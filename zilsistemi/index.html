@@ -1,1 +1,1506 @@
+<!DOCTYPE html>
+<html lang="tr" id="uygulamaHtml" class="dark h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Okul Zil & Mikrofonlu Anons Otomasyonu</title>
+  
+  <!-- Tailwind CSS & Lucide İkonları -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    }
+  </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Firebase SDK (Compat Modülleri) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; transition: background-color 0.25s ease, color 0.25s ease; }
+    
+    .dark .panel-kutusu {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      color: #f8fafc;
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    }
 
+    .ozel-kaydirma::-webkit-scrollbar { width: 6px; height: 6px; }
+    .dark .ozel-kaydirma::-webkit-scrollbar-track { background: #090d16; }
+    .dark .ozel-kaydirma::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    
+    /* Sürükle Brak Efekti */
+    .surukle-alan {
+      border: 2px dashed #334155;
+      transition: all 0.2s ease;
+    }
+    .surukle-alan.dragover {
+      border-color: #6366f1;
+      background-color: rgba(99, 102, 241, 0.1);
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col ozel-kaydirma overflow-x-hidden select-none bg-slate-950 text-slate-100 transition-colors duration-250">
+
+  <!-- AÇILIŞ ŞİFRE KİLİDİ -->
+  <div id="acilisKilitEkrani" class="fixed inset-0 bg-slate-950 z-[100] flex items-center justify-center p-4">
+    <div class="panel-kutusu w-full max-w-sm rounded-2xl p-6 border shadow-2xl text-center space-y-4">
+      <div class="w-12 h-12 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center mx-auto">
+        <i data-lucide="lock" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <h3 class="font-bold text-base text-slate-100">Uygulama Kilitli</h3>
+        <p class="text-xs text-slate-400 mt-1">Devam etmek için Yönetici veya Kullanıcı şifresi giriniz.<br><span class="text-[10px] text-slate-500">(Yönetici: 1234 | Kullanıcı: 1111)</span></p>
+      </div>
+      <form onsubmit="acilisSifreKontrol(event)" class="space-y-3">
+        <input type="password" id="acilisSifreGirdi" required placeholder="Şifrenizi giriniz..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-center focus:outline-none focus:border-indigo-500 text-slate-100 font-mono">
+        <div id="acilisHataMesaji" class="hidden text-xs text-red-400 bg-red-500/10 p-2 rounded border border-red-500/20">
+          Hatalı şifre!
+        </div>
+        <button type="submit" class="w-full py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-500 transition shadow-lg">Kilidi Aç</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ÜST BAŞLIK / HEADER -->
+  <header class="panel-kutusu sticky top-0 z-30 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 border-b">
+    <div class="flex items-center gap-3.5">
+      <div class="p-2.5 bg-indigo-600/20 text-indigo-400 rounded-2xl border border-indigo-500/30">
+        <i data-lucide="radio" class="w-6 h-6 animate-pulse"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 id="anaBaslikGosterge" class="text-xl font-black tracking-tight bg-gradient-to-r from-indigo-400 to-emerald-400 bg-clip-text text-transparent">
+            ZİL SİSTEMİ
+          </h1>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase tracking-wider">v5.0 Pro</span>
+        </div>
+        <p id="altBaslikGosterge" class="text-xs text-slate-400">Kurum Adı</p>
+      </div>
+    </div>
+
+    <!-- Saat ve Yönetici Kontrolleri -->
+    <div class="flex items-center gap-3 sm:gap-4">
+      <div class="text-right hidden sm:block">
+        <div id="canliSaat" class="text-2xl font-black tracking-wider font-mono">00:00:00</div>
+        <div id="canliTarih" class="text-xs font-medium text-slate-400">-- --- ----</div>
+      </div>
+
+      <!-- Yönetici Giriş / Çıkış Butonu -->
+      <button id="yoneticiGirisBtn" onclick="yoneticiOturumKapatVeyaAc()" class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition shadow-sm">
+        <i id="yoneticiKilitIkon" data-lucide="lock" class="w-4 h-4 text-amber-400"></i>
+        <span id="yoneticiDurumMetni">Yönetici Girişi</span>
+      </button>
+
+      <!-- Ayarlar Modal Butonu (Doğrudan Ayarlar Paneli) -->
+      <button onclick="ayarlarModalAc()" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-800 transition shadow-sm" title="Sistem, Başlık & Firebase Ayarları">
+        <i data-lucide="settings" class="w-5 h-5"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- ANA PANEL İÇERİĞİ -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- SOL SÜTUN -->
+    <div class="lg:col-span-5 flex flex-col gap-6">
+      
+      <!-- Durum ve Geri Sayım Kartı -->
+      <div class="panel-kutusu rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between shadow-xl">
+        <div class="absolute -right-10 -bottom-10 w-44 h-44 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              Otomasyon Çalışıyor
+            </span>
+
+            <span id="firebaseDurumEtiketi" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-900 text-slate-400 border border-slate-800">
+              <i data-lucide="database" class="w-3.5 h-3.5"></i>
+              <span id="firebaseDurumMetni">Lokal Bellek</span>
+            </span>
+          </div>
+
+          <h2 id="mevcutAramaBaslik" class="text-2xl font-extrabold">Program Yükleniyor...</h2>
+          <p id="mevcutAramaAltBaslik" class="text-sm text-slate-400 mt-1">Lütfen bekleyin...</p>
+        </div>
+
+        <div class="my-5 py-4 px-6 bg-slate-950/80 rounded-2xl border border-slate-800 text-center shadow-inner">
+          <span class="text-[11px] uppercase tracking-widest text-slate-400 font-bold block mb-1">Sonraki Zile Kalan Süre</span>
+          <div id="geriSayimSayaci" class="text-5xl font-black font-mono tracking-tight text-sky-400 drop-shadow-sm">
+            00:00:00
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <div class="flex items-center justify-between text-xs font-semibold text-slate-400">
+            <span class="flex items-center gap-1.5"><i data-lucide="volume-2" class="w-4 h-4 text-indigo-400"></i> Ses Seviyesi</span>
+            <span id="sesYuzdesi" class="font-mono text-indigo-400 font-bold">80%</span>
+          </div>
+          <input type="range" id="anaSesAyar" min="0" max="100" step="1" value="80" oninput="sesSeviyesiGuncelle(this.value)" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-400">
+
+          <div class="grid grid-cols-3 gap-2 pt-1">
+            <button onclick="zilCal('giris')" class="flex flex-col items-center justify-center p-2.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 rounded-xl border border-emerald-500/30 transition text-xs font-semibold shadow-sm">
+              <i data-lucide="bell" class="w-4 h-4 mb-1"></i>
+              Giriş Zili
+            </button>
+            <button onclick="zilCal('cikis')" class="flex flex-col items-center justify-center p-2.5 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 rounded-xl border border-amber-500/30 transition text-xs font-semibold shadow-sm">
+              <i data-lucide="bell-off" class="w-4 h-4 mb-1"></i>
+              Çıkış Zili
+            </button>
+            <button onclick="acilSirenCal()" class="flex flex-col items-center justify-center p-2.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-xl border border-red-500/30 transition text-xs font-semibold shadow-sm">
+              <i data-lucide="siren" class="w-4 h-4 mb-1 animate-bounce"></i>
+              Acil Siren
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CANLI MİKROFON VE ANONS PANELİ -->
+      <div class="panel-kutusu rounded-2xl p-6 border flex flex-col gap-4 shadow-xl">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i data-lucide="mic" class="w-5 h-5 text-indigo-400"></i>
+            <h3 class="font-bold text-sm">Canlı Mikrofon & Ses Kayıt Anons</h3>
+          </div>
+          <span id="mikrofonDurumEtiketi" class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+            Hazır
+          </span>
+        </div>
+
+        <p class="text-xs text-slate-400">
+          Mikrofonunuzu kullanarak doğrudan sesli anons yapabilir veya sesinizi kaydedip hoparlörden duyurabilirsiniz.
+        </p>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button id="canliMikrofonBtn" onclick="canliMikrofonDegistir()" class="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 px-3 rounded-xl shadow-md text-xs transition">
+            <i data-lucide="mic-2" class="w-4 h-4"></i>
+            Canlı Mikrofonu Aç
+          </button>
+
+          <button id="sesKayitBtn" onclick="sesKaydiDegistir()" class="flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-500 text-white font-semibold py-3 px-3 rounded-xl shadow-md text-xs transition">
+            <i data-lucide="disc" class="w-4 h-4"></i>
+            Anons Kaydet & Çal
+          </button>
+        </div>
+
+        <div id="kayitSayacKutusu" class="hidden text-center text-xs font-mono text-rose-400 font-bold bg-rose-500/10 p-2 rounded-xl border border-rose-500/20">
+          Kayıt Yapılıyor...
+        </div>
+      </div>
+
+      <!-- ZİL SESİ YÖNETİMİ & YEREL DOSYA YÜKLEME (Kompakt / Küçük Yazılar) -->
+      <div class="panel-kutusu rounded-2xl p-6 border flex flex-col gap-4 shadow-xl">
+        <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+          <div class="flex items-center gap-2">
+            <i data-lucide="music-4" class="w-5 h-5 text-indigo-400"></i>
+            <h3 class="font-bold text-sm">Okul Zil Sesi Seçimleri</h3>
+          </div>
+          <span class="text-[11px] text-slate-400 font-mono">Melodiler & Dosyalar</span>
+        </div>
+
+        <div class="space-y-3 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 text-xs">
+          <div>
+            <label class="block font-semibold text-slate-400 mb-1">Giriş Zili Sesi</label>
+            <select id="girisZilSecim" onchange="sesAtamalariniKaydet()" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-200 text-xs">
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-400 mb-1">Çıkış Zili Sesi</label>
+            <select id="cikisZilSecim" onchange="sesAtamalariniKaydet()" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-200 text-xs">
+            </select>
+          </div>
+
+          <!-- Sürükle Bırak Alanı -->
+          <div class="pt-2 border-t border-slate-800">
+            <label class="block font-semibold text-slate-400 mb-1">Özel Zil Dosyası Ekle (.mp3, .wav)</label>
+            <div id="surukleBirakAlani" class="surukle-alan p-3 rounded-xl text-center cursor-pointer bg-slate-900/60 flex flex-col items-center justify-center gap-1" onclick="document.getElementById('yerelSesDosyaGirdi').click()">
+              <i data-lucide="upload-cloud" class="w-5 h-5 text-indigo-400"></i>
+              <span class="text-[11px] font-semibold text-slate-300">Dosyayı buraya sürükleyin ya da tıklayın</span>
+              <span class="text-[10px] text-slate-500">Desteklenen formatlar: MP3, WAV</span>
+              <input type="file" id="yerelSesDosyaGirdi" accept="audio/*" class="hidden" onchange="dosyaSecildi(this.files[0])">
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SAĞ SÜTUN -->
+    <div class="lg:col-span-7 flex flex-col gap-6">
+      
+      <div class="panel-kutusu rounded-2xl p-6 border flex flex-col h-full shadow-xl">
+        
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-5 pb-4 border-b border-slate-800">
+          <div>
+            <h3 class="font-bold text-lg">Zil Saatleri & Ders Cetveli</h3>
+            <p class="text-xs text-slate-400">Giriş saatine göre otomatik sıralanan günlük program</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <!-- Plan Seçici -->
+            <select id="planSecici" onchange="planDegistir(this.value)" class="bg-slate-900 border border-slate-800 text-xs rounded-xl px-3 py-2 focus:outline-none">
+            </select>
+
+            <!-- Plan Sil Butonu -->
+            <button id="planSilBtn" onclick="aktifPlaniSilOnayModalAc()" disabled class="flex items-center gap-1 bg-red-600/40 opacity-50 cursor-not-allowed text-red-200 px-2.5 py-2 rounded-xl text-xs font-semibold transition" title="Aktif Planı Sil">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+
+            <!-- Plan Ekle Butonu -->
+            <button id="planEkleBtn" onclick="yeniPlanEkleModalAc()" disabled class="flex items-center gap-1.5 bg-indigo-600/40 opacity-50 cursor-not-allowed text-white px-3 py-2 rounded-xl text-xs font-semibold transition" title="Yönetici Girişi Gerektirir">
+              <i data-lucide="folder-plus" class="w-4 h-4"></i>
+              Plan Ekle
+            </button>
+
+            <!-- Ders Ekle Butonu -->
+            <button id="dersEkleBtn" onclick="dersEkleModalAc()" disabled class="flex items-center gap-1.5 bg-indigo-600/40 opacity-50 cursor-not-allowed text-white px-3 py-2 rounded-xl text-xs font-semibold transition" title="Yönetici Girişi Gerektirir">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              Ders Ekle
+            </button>
+          </div>
+        </div>
+
+        <!-- Aktif Çalışma Günleri -->
+        <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 mb-4 flex flex-col gap-2">
+          <div class="flex items-center justify-between text-xs font-bold text-slate-300">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="calendar" class="w-4 h-4 text-indigo-400"></i>
+              <span>Aktif Çalışma Günleri</span>
+            </span>
+            <span id="gunKilitDurumMetni" class="text-[10px] text-amber-400 font-semibold">(Yönetici Girişi Gerekir)</span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-7 gap-1.5" id="gunDugmeleri">
+          </div>
+        </div>
+
+        <!-- Ders Tablosu (Kartın En Altına Kadar Uzanan Yapı) -->
+        <div class="flex-1 overflow-y-auto ozel-kaydirma pr-1 min-h-[250px]">
+          <table class="w-full text-left text-base">
+            <thead class="text-slate-300 font-bold uppercase tracking-wider border-b border-slate-800 bg-slate-900/80 sticky top-0 text-sm">
+              <tr>
+                <th class="py-3.5 px-3.5">Ders / Etkinlik</th>
+                <th class="py-3.5 px-3.5">Giriş Zili</th>
+                <th class="py-3.5 px-3.5">Çıkış Zili</th>
+                <th class="py-3.5 px-3.5">Durum</th>
+                <th class="py-3.5 px-3.5 text-right">İşlem</th>
+              </tr>
+            </thead>
+            <tbody id="dersTablosuGövde" class="divide-y divide-slate-800/60">
+            </tbody>
+          </table>
+        </div>
+
+        <!-- BİLGİLENDİRME VE DERS SAYISI (KARTIN EN ALTINA SABİTLENDİ) -->
+        <div class="mt-auto pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+          <span>* Dersler ekleme veya düzenleme sonrasında giriş saatine göre otomatik sıralanır.</span>
+          <span id="dersSayisiMetni" class="font-mono text-indigo-400 font-bold text-sm text-right ml-auto">0 Ders Tanımlı</span>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- YÖNETİCİ GİRİŞ MODAL -->
+  <div id="yoneticiModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="panel-kutusu w-full max-w-md rounded-2xl p-6 border shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2 text-amber-400">
+          <i data-lucide="shield-check" class="w-5 h-5"></i>
+          <h3 class="font-bold">Yönetici / Kullanıcı Girişi</h3>
+        </div>
+        <button onclick="yoneticiModalKapat()" class="text-slate-400 hover:text-slate-200">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-400 mb-4">Yönetici ya da kullanıcı şifresini giriniz.</p>
+
+      <form onsubmit="yoneticiGirisYap(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold mb-1">Şifre</label>
+          <input type="password" id="yoneticiSifreGirdi" required placeholder="••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500 text-slate-100 font-mono">
+        </div>
+
+        <div id="yoneticiHataMesaji" class="hidden text-xs text-red-400 bg-red-500/10 p-2.5 rounded-lg border border-red-500/20">
+          Hatalı şifre! Tekrar deneyiniz.
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="yoneticiModalKapat()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">İptal</button>
+          <button type="submit" class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg">Giriş Yap</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- AYARLAR MODAL -->
+  <div id="ayarlarModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="panel-kutusu w-full max-w-lg rounded-2xl p-6 border shadow-2xl max-h-[90vh] overflow-y-auto ozel-kaydirma">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-bold">Sistem & Firebase Ayarları</h3>
+        <button onclick="ayarlarModalKapat()" class="text-slate-400 hover:text-slate-200">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-5 text-xs">
+        
+        <!-- BAŞLIK & ALT BAŞLIK AYARLARI -->
+        <div class="space-y-3">
+          <h4 class="font-bold text-slate-300 border-b border-slate-800 pb-1">Sistem Başlık Bilgileri</h4>
+          
+          <div>
+            <label class="block font-semibold mb-1 text-slate-400">Ana Başlık (Pro-Bell Alanı)</label>
+            <input type="text" id="anaBaslikGirdi" placeholder="Örn: ZİL SİSTEMİ" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-100 font-mono">
+          </div>
+
+          <div>
+            <label class="block font-semibold mb-1 text-slate-400">Alt Başlık Açıklaması</label>
+            <input type="text" id="altBaslikGirdi" placeholder="Örn: Kurumsal Okul Zil Otomasyonu" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-100">
+          </div>
+
+          <button onclick="baslikBilgileriniKaydet()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2 rounded-xl transition">
+            Başlıkları Güncelle
+          </button>
+        </div>
+
+        <!-- ŞİFRE DEĞİŞİKLİĞİ -->
+        <div class="pt-3 border-t border-slate-800 space-y-3">
+          <h4 class="font-bold text-slate-300">Şifre Yönetimi</h4>
+          
+          <div class="space-y-1">
+            <label class="block text-slate-400 font-semibold">Yönetici Şifresi Değiştir</label>
+            <div class="flex gap-2">
+              <input type="password" id="yeniYoneticiSifreGirdi" placeholder="Yeni Yönetici Şifresi" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-100">
+              <button onclick="yoneticiSifreDegistir()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2 rounded-xl transition">Yönetici Şifresini Güncelle</button>
+            </div>
+          </div>
+
+          <div class="space-y-1 pt-2">
+            <label class="block text-slate-400 font-semibold">Kullanıcı Şifresi Değiştir</label>
+            <div class="flex gap-2">
+              <input type="password" id="yeniKullaniciSifreGirdi" placeholder="Yeni Kullanıcı Şifresi" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-100">
+              <button onclick="kullaniciSifreDegistir()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-xl transition">Kullanıcı Şifresini Güncelle</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- FIREBASE YAPILANDIRMASI -->
+        <div class="pt-3 border-t border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="font-bold block text-slate-300">Firebase Realtime Database Senkronizasyonu</span>
+              <span class="text-[11px] text-slate-400">Açık iken Firebase canlı veritabanı, kapalı iken Lokal (Offline) çalışır.</span>
+            </div>
+            
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="firebaseAnahtar" onchange="firebaseSenkronizasyonDegistir(this.checked)" class="sr-only peer">
+              <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+            </label>
+          </div>
+
+          <!-- KUTUCUK ALANLARI -->
+          <div id="firebaseFormKutusu" class="space-y-3 hidden">
+            <div>
+              <label class="block font-semibold mb-1">Firebase Yapılandırma Objesi ({...})</label>
+              <textarea id="firebaseAyarGirdi" rows="8" class="w-full font-mono text-[11px] bg-slate-950 border border-slate-800 rounded-xl p-2.5 focus:outline-none focus:border-indigo-500 resize-none text-slate-100">{
+    apiKey: "",
+    authDomain: "",
+    databaseURL: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: "",
+    measurementId: ""
+}</textarea>
+            </div>
+
+            <div>
+              <label class="block font-semibold mb-1">Firebase Kök Düğüm Adı (Root Node)</label>
+              <input type="text" id="firebaseKokDugumGirdi" placeholder="okul_zil_sistemi" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 font-mono text-slate-100" value="okul_zil_sistemi">
+            </div>
+
+            <button onclick="firebaseAyarlariniKaydet()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold p-2.5 rounded-xl transition">
+              Firebase Ayarlarını Kaydet & Bağlan
+            </button>
+          </div>
+
+          <!-- KAYIT BİLGİLERİ KARTI -->
+          <div id="firebaseKayitKarti" class="hidden bg-slate-900/80 border border-slate-800 rounded-xl p-3.5 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-emerald-400 flex items-center gap-1.5"><i data-lucide="check-circle-2" class="w-4 h-4"></i> Kaydedilen Firebase Bilgileri</span>
+              <div class="flex gap-1.5">
+                <button onclick="firebaseFormunuDuzenle()" class="px-2 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 rounded text-[11px] font-semibold transition">Düzenle</button>
+                <button onclick="firebaseKaydiniSilOnayModalAc()" class="px-2 py-1 bg-red-600/20 hover:bg-red-600/30 text-red-300 rounded text-[11px] font-semibold transition">Sil</button>
+              </div>
+            </div>
+            <div class="text-[11px] font-mono text-slate-300 space-y-1">
+              <div><strong class="text-slate-400">Root Node:</strong> <span id="kartKokDugumGosterge">--</span></div>
+              <div class="truncate"><strong class="text-slate-400">Config:</strong> <span id="kartConfigGosterge">--</span></div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="flex justify-end pt-4">
+        <button onclick="ayarlarModalKapat()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">Kapat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÖZEL DİNAMİK BİLDİRİM / ONAY MODALI -->
+  <div id="onayBildirimModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4">
+    <div class="panel-kutusu w-full max-w-sm rounded-2xl p-6 border shadow-2xl text-center space-y-4">
+      <div id="onayIkonKutusu" class="w-12 h-12 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center mx-auto">
+        <i id="onayIkon" data-lucide="bell-ring" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <h3 id="onayBaslik" class="font-bold text-base text-slate-100">Bildirim</h3>
+        <p id="onayAciklama" class="text-xs text-slate-400 mt-1">İşlem gerçekleştirilecektir.</p>
+      </div>
+      <div class="flex gap-2 pt-2" id="onayButonlarAlani">
+        <button id="onayIptalBtn" onclick="onayModalKapat()" class="flex-1 px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">İptal</button>
+        <button id="onayEvetBtn" class="flex-1 px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-500 transition shadow-lg">Evet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- YENİ PLAN EKLEME MODAL -->
+  <div id="planEkleModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="panel-kutusu w-full max-w-md rounded-2xl p-6 border shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-bold">Yeni Plan Ekle</h3>
+        <button onclick="yeniPlanModalKapat()" class="text-slate-400 hover:text-slate-200">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form onsubmit="yeniPlanKaydet(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold mb-1">Plan Adı</label>
+          <input type="text" id="yeniPlanAdiGirdi" required placeholder="Örn: Plan 4 veya Sınav Haftası" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500 text-slate-100">
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="yeniPlanModalKapat()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">İptal</button>
+          <button type="submit" class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-500">Planı Oluştur</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- DERS EKLE / DÜZENLE MODAL -->
+  <div id="dersModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="panel-kutusu w-full max-w-md rounded-2xl p-6 border shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="dersModalBaslik" class="font-bold">Yeni Ders Ekle</h3>
+        <button onclick="dersModalKapat()" class="text-slate-400 hover:text-slate-200">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form onsubmit="dersKaydet(event)" class="space-y-4">
+        <input type="hidden" id="duzenlenenDersIndeks" value="-1">
+
+        <div>
+          <label class="block text-xs font-semibold mb-1">Ders / Etkinlik Adı</label>
+          <input type="text" id="dersAdiGirdi" required placeholder="Örn: 1. Ders" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 text-slate-100">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold mb-1">Giriş Saati</label>
+            <input type="time" id="dersGirisSaatGirdi" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 text-slate-100">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1">Çıkış Saati</label>
+            <input type="time" id="dersCikisSaatGirdi" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 text-slate-100">
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="dersModalKapat()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">İptal</button>
+          <button type="submit" class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-500">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT MANTIKSAL KODLARI -->
+  <script>
+    let yoneticiMi = false;
+    let yoneticiSifresi = localStorage.getItem('okul_admin_pw') || '1234';
+    let kullaniciSifresi = localStorage.getItem('okul_user_pw') || '1111';
+
+    let anaSesSeviyesi = parseFloat(localStorage.getItem('okul_volume') || '0.8');
+    let aktifGunler = JSON.parse(localStorage.getItem('okul_active_days')) || [1, 2, 3, 4, 5];
+    
+    let anaBaslikMetni = localStorage.getItem('okul_header_title') || 'ZİL SİSTEMİ';
+    let altBaslikMetni = localStorage.getItem('okul_sub_title') || 'Kurum Adı';
+
+    let girisZilSesi = localStorage.getItem('okul_entry_bell_sound') || 'bell_1';
+    let cikisZilSesi = localStorage.getItem('okul_exit_bell_sound') || 'bell_1';
+
+    let yerelSesler = {};
+    let yerelSesIsimleri = JSON.parse(localStorage.getItem('okul_yerel_ses_isimleri')) || [];
+
+    let firebaseEtkin = false;
+    let firebaseAyarMetni = localStorage.getItem('okul_firebase_config') || '';
+    let firebaseKokDugum = localStorage.getItem('okul_firebase_root_node') || 'okul_zil_sistemi';
+    let firebaseVeritabaniReferansi = null;
+
+    let ortamKaydedici = null;
+    let sesParcalari = [];
+    let kayitYapiliyorMu = false;
+    let canliMikrofonAktif = false;
+    let mikrofonAkisi = null;
+    let mikrofonSesBaglanti = null;
+
+    let planlar = JSON.parse(localStorage.getItem('okul_planlar')) || {
+      'plan_1': { adi: 'Plan 1', dersler: [
+        { name: '1. Ders', start: '08:30', end: '09:10', active: true },
+        { name: '2. Ders', start: '09:20', end: '10:00', active: true },
+        { name: '3. Ders', start: '10:10', end: '10:50', active: true },
+        { name: '4. Ders', start: '11:00', end: '11:40', active: true }
+      ]},
+      'plan_2': { adi: 'Plan 2', dersler: [
+        { name: '1. Ders', start: '09:00', end: '09:40', active: true },
+        { name: '2. Ders', start: '09:55', end: '10:35', active: true }
+      ]}
+    };
+
+    let aktifPlanAnahtari = localStorage.getItem('okul_aktif_plan') || 'plan_1';
+    if (!planlar[aktifPlanAnahtari]) {
+      aktifPlanAnahtari = Object.keys(planlar)[0] || 'plan_1';
+    }
+    let mevcutDersProgrami = planlar[aktifPlanAnahtari] ? planlar[aktifPlanAnahtari].dersler : [];
+    let sonCalanZilAnahtari = '';
+    let onayCallback = null;
+
+    let sesBaglantisi = null;
+    function sesBaglantisiAl() {
+      if (!sesBaglantisi) sesBaglantisi = new (window.AudioContext || window.webkitAudioContext)();
+      if (sesBaglantisi.state === 'suspended') sesBaglantisi.resume();
+      return sesBaglantisi;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      planSecenekleriniDoldur();
+      gunDugmeleriniCiz();
+      dersleriSiralaVeCiz();
+      sesSecimleriniDoldur();
+      saatMotorunuBaslat();
+      surukleBirakDinleyicileriniKur();
+
+      document.getElementById('anaBaslikGosterge').innerText = anaBaslikMetni;
+      document.getElementById('altBaslikGosterge').innerText = altBaslikMetni;
+      document.getElementById('anaBaslikGirdi').value = anaBaslikMetni;
+      document.getElementById('altBaslikGirdi').value = altBaslikMetni;
+
+      if (firebaseAyarMetni) {
+        document.getElementById('firebaseAyarGirdi').value = firebaseAyarMetni;
+      }
+      if (firebaseKokDugum) {
+        document.getElementById('firebaseKokDugumGirdi').value = firebaseKokDugum;
+      }
+
+      const sesKaydiriciDegeri = Math.round(anaSesSeviyesi * 100);
+      document.getElementById('anaSesAyar').value = sesKaydiriciDegeri;
+      document.getElementById('sesYuzdesi').innerText = `${sesKaydiriciDegeri}%`;
+
+      document.getElementById('firebaseAnahtar').checked = false;
+      document.getElementById('firebaseFormKutusu').classList.add('hidden');
+      document.getElementById('firebaseKayitKarti').classList.add('hidden');
+      firebaseRozetGuncelle(false);
+    });
+
+    // SÜRÜKLE BIRAK DİNLEYİCİLERİ
+    function surukleBirakDinleyicileriniKur() {
+      const alan = document.getElementById('surukleBirakAlani');
+      ['dragenter', 'dragover'].forEach(eventName => {
+        alan.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          alan.classList.add('dragover');
+        }, false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        alan.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          alan.classList.remove('dragover');
+        }, false);
+      });
+
+      alan.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const dosyalar = dt.files;
+        if (dosyalar && dosyalar[0]) {
+          dosyaSecildi(dosyalar[0]);
+        }
+      }, false);
+    }
+
+    // AÇILIŞ ŞİFRE KONTROLÜ
+    function acilisSifreKontrol(e) {
+      e.preventDefault();
+      const girilenSifre = document.getElementById('acilisSifreGirdi').value;
+      
+      if (girilenSifre === yoneticiSifresi) {
+        yoneticiMi = true; 
+        document.getElementById('acilisKilitEkrani').classList.add('hidden');
+        yoneticiArayuzGuncelle();
+      } else if (girilenSifre === kullaniciSifresi) {
+        yoneticiMi = false; 
+        document.getElementById('acilisKilitEkrani').classList.add('hidden');
+        yoneticiArayuzGuncelle();
+      } else {
+        document.getElementById('acilisHataMesaji').classList.remove('hidden');
+        document.getElementById('acilisSifreGirdi').value = '';
+      }
+    }
+
+    // YEREL SES DOSYASI İŞLEME
+    function dosyaSecildi(dosya) {
+      if (!yoneticiMi) {
+        onayModalAc('Yetki Uyarısı', 'Yerel ses dosyası eklemek için yönetici girişi yapmalısınız.', null, true, 'uyari');
+        return;
+      }
+      if (!dosya || !dosya.type.startsWith('audio/')) {
+        onayModalAc('Hata', 'Lütfen geçerli bir ses dosyası (.mp3, .wav) seçin.', null, true, 'uyari');
+        return;
+      }
+
+      const dosyaUrl = URL.createObjectURL(dosya);
+      const dosyaAnahtari = 'yerel_' + Date.now();
+      
+      yerelSesler[dosyaAnahtari] = dosyaUrl;
+      yerelSesIsimleri.push({ anahtar: dosyaAnahtari, adi: dosya.name });
+      localStorage.setItem('okul_yerel_ses_isimleri', JSON.stringify(yerelSesIsimleri));
+
+      sesSecimleriniDoldur();
+      onayModalAc('Başarılı', `"${dosya.name}" başarıyla listeye eklendi!`, null, true, 'bilgi');
+    }
+
+    // PLAN YÖNETİMİ
+    function planSecenekleriniDoldur() {
+      const planSecici = document.getElementById('planSecici');
+      let icerik = '';
+      for (let anahtar in planlar) {
+        icerik += `<option value="${anahtar}" ${anahtar === aktifPlanAnahtari ? 'selected' : ''}>${planlar[anahtar].adi}</option>`;
+      }
+      planSecici.innerHTML = icerik;
+    }
+
+    function planDegistir(planAnahtari) {
+      if (planlar[planAnahtari]) {
+        aktifPlanAnahtari = planAnahtari;
+        mevcutDersProgrami = planlar[planAnahtari].dersler;
+        localStorage.setItem('okul_aktif_plan', aktifPlanAnahtari);
+        durumuKaydet();
+        dersleriSiralaVeCiz();
+      }
+    }
+
+    function yeniPlanEkleModalAc() {
+      if (!yoneticiMi) return;
+      document.getElementById('yeniPlanAdiGirdi').value = '';
+      document.getElementById('planEkleModal').classList.remove('hidden');
+    }
+
+    function yeniPlanModalKapat() {
+      document.getElementById('planEkleModal').classList.add('hidden');
+    }
+
+    function yeniPlanKaydet(e) {
+      e.preventDefault();
+      const planAdi = document.getElementById('yeniPlanAdiGirdi').value.trim();
+      if (!planAdi) return;
+
+      const yeniAnahtar = 'plan_' + Date.now();
+      planlar[yeniAnahtar] = {
+        adi: planAdi,
+        dersler: []
+      };
+
+      aktifPlanAnahtari = yeniAnahtar;
+      mevcutDersProgrami = planlar[yeniAnahtar].dersler;
+
+      localStorage.setItem('okul_planlar', JSON.stringify(planlar));
+      localStorage.setItem('okul_aktif_plan', aktifPlanAnahtari);
+
+      planSecenekleriniDoldur();
+      durumuKaydet();
+      dersleriSiralaVeCiz();
+      yeniPlanModalKapat();
+    }
+
+    function aktifPlaniSilOnayModalAc() {
+      if (!yoneticiMi) return;
+      const planAnahtarlari = Object.keys(planlar);
+      if (planAnahtarlari.length <= 1) {
+        onayModalAc('Plan Silme Uyarısı', 'Sistemde en az bir plan kalmalıdır, son plan silinemez!', null, true, 'uyari');
+        return;
+      }
+
+      const silinecekPlanAdi = planlar[aktifPlanAnahtari].adi;
+      onayModalAc(
+        'Plan Silme Onayı',
+        `"${silinecekPlanAdi}" adlı plan silinecektir. Kabul ediyor musunuz?`,
+        () => {
+          delete planlar[aktifPlanAnahtari];
+          aktifPlanAnahtari = Object.keys(planlar)[0];
+          mevcutDersProgrami = planlar[aktifPlanAnahtari].dersler;
+
+          localStorage.setItem('okul_planlar', JSON.stringify(planlar));
+          localStorage.setItem('okul_aktif_plan', aktifPlanAnahtari);
+
+          planSecenekleriniDoldur();
+          durumuKaydet();
+          dersleriSiralaVeCiz();
+          onayModalKapat();
+        },
+        false,
+        'silme'
+      );
+    }
+
+    // DİNAMİK BİLDİRİM / ONAY MODALI
+    function onayModalAc(baslikMetni, aciklamaMetni, callback, sadeceTamam = false, tip = 'silme') {
+      document.getElementById('onayBaslik').innerText = baslikMetni;
+      document.getElementById('onayAciklama').innerText = aciklamaMetni;
+      onayCallback = callback;
+      
+      const evetBtn = document.getElementById('onayEvetBtn');
+      const iptalBtn = document.getElementById('onayIptalBtn');
+      const ikonKutusu = document.getElementById('onayIkonKutusu');
+      const ikon = document.getElementById('onayIkon');
+
+      if (tip === 'bilgi' || sadeceTamam) {
+        evetBtn.innerText = 'Tamam';
+        evetBtn.className = 'flex-1 px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-500 transition shadow-lg';
+        iptalBtn.classList.add('hidden');
+        evetBtn.onclick = () => onayModalKapat();
+        ikonKutusu.className = 'w-12 h-12 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center mx-auto';
+        ikon.setAttribute('data-lucide', 'check-circle-2');
+      } else {
+        evetBtn.innerText = 'Evet';
+        evetBtn.className = 'flex-1 px-4 py-2 rounded-xl text-xs font-semibold bg-red-600 text-white hover:bg-red-500 transition shadow-lg';
+        iptalBtn.classList.remove('hidden');
+        evetBtn.onclick = () => {
+          if (typeof onayCallback === 'function') onayCallback();
+        };
+        ikonKutusu.className = 'w-12 h-12 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center mx-auto';
+        ikon.setAttribute('data-lucide', 'alert-triangle');
+      }
+      lucide.createIcons();
+      document.getElementById('onayBildirimModal').classList.remove('hidden');
+    }
+
+    function onayModalKapat() {
+      document.getElementById('onayBildirimModal').classList.add('hidden');
+      onayCallback = null;
+    }
+
+    // YÖNETİCİ GİRİŞİ / ÇIKIŞI
+    function yoneticiOturumKapatVeyaAc() {
+      if (yoneticiMi) {
+        onayModalAc(
+          'Oturum Kapatma Onayı',
+          'Yönetici oturumunu kapatmak istediğinize emin misiniz?',
+          () => {
+            yoneticiMi = false;
+            yoneticiArayuzGuncelle();
+            onayModalKapat();
+          },
+          false,
+          'silme'
+        );
+      } else {
+        document.getElementById('yoneticiModal').classList.remove('hidden');
+      }
+    }
+
+    function yoneticiModalKapat() { document.getElementById('yoneticiModal').classList.add('hidden'); }
+    function ayarlarModalAc() { 
+      if (!yoneticiMi) {
+        onayModalAc('Yetki Uyarısı', 'Sistem ayarlarını açabilmek için önce Yönetici Girişi yapmalısınız!', null, true, 'uyari');
+        document.getElementById('yoneticiModal').classList.remove('hidden');
+        return;
+      }
+      document.getElementById('ayarlarModal').classList.remove('hidden'); 
+    }
+    function ayarlarModalKapat() { document.getElementById('ayarlarModal').classList.add('hidden'); }
+
+    function yoneticiGirisYap(e) {
+      e.preventDefault();
+      const girilen = document.getElementById('yoneticiSifreGirdi').value;
+      if (girilen === yoneticiSifresi) {
+        yoneticiMi = true;
+        yoneticiArayuzGuncelle();
+        yoneticiModalKapat();
+        document.getElementById('yoneticiSifreGirdi').value = '';
+        document.getElementById('yoneticiHataMesaji').classList.add('hidden');
+      } else if (girilen === kullaniciSifresi) {
+        yoneticiMi = false;
+        yoneticiArayuzGuncelle();
+        yoneticiModalKapat();
+        document.getElementById('yoneticiSifreGirdi').value = '';
+        document.getElementById('yoneticiHataMesaji').classList.add('hidden');
+        onayModalAc('Bilgi', 'Kullanıcı yetkisiyle oturum açıldı.', null, true, 'bilgi');
+      } else {
+        document.getElementById('yoneticiHataMesaji').classList.remove('hidden');
+      }
+    }
+
+    function yoneticiArayuzGuncelle() {
+      const kilitIkon = document.getElementById('yoneticiKilitIkon');
+      const durumMetni = document.getElementById('yoneticiDurumMetni');
+      const dersEkleBtn = document.getElementById('dersEkleBtn');
+      const planEkleBtn = document.getElementById('planEkleBtn');
+      const planSilBtn = document.getElementById('planSilBtn');
+      const gunKilitMetni = document.getElementById('gunKilitDurumMetni');
+
+      if (yoneticiMi) {
+        kilitIkon.setAttribute('data-lucide', 'unlock');
+        durumMetni.innerText = 'Yönetici (Çıkış)';
+        
+        dersEkleBtn.disabled = false;
+        dersEkleBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-indigo-600/40');
+        dersEkleBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-500');
+
+        planEkleBtn.disabled = false;
+        planEkleBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-indigo-600/40');
+        planEkleBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-500');
+
+        planSilBtn.disabled = false;
+        planSilBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-red-600/40');
+        planSilBtn.classList.add('bg-red-600', 'hover:bg-red-500', 'text-white');
+
+        gunKilitMetni.innerText = '(Düzenlenebilir)';
+        gunKilitMetni.className = 'text-[10px] text-emerald-400 font-semibold';
+      } else {
+        kilitIkon.setAttribute('data-lucide', 'lock');
+        durumMetni.innerText = 'Kullanıcı Girişi';
+
+        dersEkleBtn.disabled = true;
+        dersEkleBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-indigo-600/40');
+        dersEkleBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
+
+        planEkleBtn.disabled = true;
+        planEkleBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-indigo-600/40');
+        planEkleBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
+
+        planSilBtn.disabled = true;
+        planSilBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-red-600/40');
+        planSilBtn.classList.remove('bg-red-600', 'hover:bg-red-500', 'text-white');
+
+        gunKilitMetni.innerText = '(Yönetici Girişi Gerekir)';
+        gunKilitMetni.className = 'text-[10px] text-amber-400 font-semibold';
+      }
+      lucide.createIcons();
+      gunDugmeleriniCiz();
+      dersleriSiralaVeCiz();
+    }
+
+    // DERS TABLOSU
+    function dersleriSiralaVeCiz() {
+      mevcutDersProgrami.sort((a, b) => {
+        return a.start.localeCompare(b.start);
+      });
+
+      const tbody = document.getElementById('dersTablosuGövde');
+      tbody.innerHTML = '';
+      
+      mevcutDersProgrami.forEach((ders, indeks) => {
+        const aktifMi = ders.active !== false;
+        const tr = document.createElement('tr');
+        tr.className = `transition ${aktifMi ? 'hover:bg-slate-900/50' : 'opacity-40 bg-slate-900/20'}`;
+        
+        tr.innerHTML = `
+          <td class="py-3.5 px-3.5 text-base font-bold ${!aktifMi ? 'line-through text-slate-500' : 'text-slate-100'}">${ders.name}</td>
+          <td class="py-3.5 px-3.5 font-mono text-emerald-400 font-extrabold text-lg">${ders.start}</td>
+          <td class="py-3.5 px-3.5 font-mono text-amber-400 font-extrabold text-lg">${ders.end}</td>
+          <td class="py-3.5 px-3.5">
+            <span class="px-2.5 py-1 rounded text-xs font-bold ${aktifMi ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}">
+              ${aktifMi ? 'Aktif' : 'Pasif'}
+            </span>
+          </td>
+          <td class="py-3.5 px-3.5 text-right">
+            ${yoneticiMi ? `
+              <div class="flex justify-end gap-2 items-center">
+                <button onclick="dersDurumDegistir(${indeks})" class="px-2.5 py-1 rounded text-xs font-semibold transition ${aktifMi ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30' : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30'}" title="Durumu Değiştir">
+                  ${aktifMi ? 'Pasife Al' : 'Aktif Yap'}
+                </button>
+                <button onclick="dersDuzenleModalAc(${indeks})" class="p-2 hover:bg-slate-800 rounded text-slate-300" title="Düzenle"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                <button onclick="dersSilOnayModalAc(${indeks})" class="p-2 hover:bg-red-500/20 rounded text-red-400" title="Sil"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+              </div>
+            ` : `<span class="text-slate-500 font-mono text-xs">Kilitli</span>`}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      document.getElementById('dersSayisiMetni').innerText = `${mevcutDersProgrami.length} Ders Tanımlı`;
+      lucide.createIcons();
+    }
+
+    function dersDurumDegistir(indeks) {
+      if (!yoneticiMi) return;
+      mevcutDersProgrami[indeks].active = mevcutDersProgrami[indeks].active === false ? true : false;
+      durumuKaydet();
+      dersleriSiralaVeCiz();
+    }
+
+    function dersEkleModalAc() {
+      if (!yoneticiMi) return;
+      document.getElementById('dersModalBaslik').innerText = 'Yeni Ders Ekle';
+      document.getElementById('duzenlenenDersIndeks').value = '-1';
+      document.getElementById('dersAdiGirdi').value = `${mevcutDersProgrami.length + 1}. Ders`;
+      document.getElementById('dersGirisSaatGirdi').value = '08:00';
+      document.getElementById('dersCikisSaatGirdi').value = '08:40';
+      document.getElementById('dersModal').classList.remove('hidden');
+    }
+
+    function dersDuzenleModalAc(indeks) {
+      if (!yoneticiMi) return;
+      const ders = mevcutDersProgrami[indeks];
+      document.getElementById('dersModalBaslik').innerText = 'Ders Düzenle';
+      document.getElementById('duzenlenenDersIndeks').value = indeks;
+      document.getElementById('dersAdiGirdi').value = ders.name;
+      document.getElementById('dersGirisSaatGirdi').value = ders.start;
+      document.getElementById('dersCikisSaatGirdi').value = ders.end;
+      document.getElementById('dersModal').classList.remove('hidden');
+    }
+
+    function dersModalKapat() { document.getElementById('dersModal').classList.add('hidden'); }
+
+    function dersKaydet(e) {
+      e.preventDefault();
+      const indeks = parseInt(document.getElementById('duzenlenenDersIndeks').value);
+      const yeniDers = {
+        name: document.getElementById('dersAdiGirdi').value.trim(),
+        start: document.getElementById('dersGirisSaatGirdi').value,
+        end: document.getElementById('dersCikisSaatGirdi').value,
+        active: indeks >= 0 && mevcutDersProgrami[indeks].active !== undefined ? mevcutDersProgrami[indeks].active : true
+      };
+      
+      if (indeks >= 0) {
+        mevcutDersProgrami[indeks] = yeniDers;
+      } else {
+        mevcutDersProgrami.push(yeniDers);
+      }
+
+      durumuKaydet();
+      dersleriSiralaVeCiz();
+      dersModalKapat();
+    }
+
+    function dersSilOnayModalAc(indeks) {
+      if (!yoneticiMi) return;
+      const dersAdi = mevcutDersProgrami[indeks].name;
+      onayModalAc(
+        'Ders Silme Onayı',
+        `"${dersAdi}" adlı ders silinecektir. Kabul ediyor musunuz?`,
+        () => {
+          mevcutDersProgrami.splice(indeks, 1);
+          durumuKaydet();
+          dersleriSiralaVeCiz();
+          onayModalKapat();
+        },
+        false,
+        'silme'
+      );
+    }
+
+    // AYARLAR VE KONTROLLER
+    function baslikBilgileriniKaydet() {
+      const anaBaslik = document.getElementById('anaBaslikGirdi').value.trim();
+      const altBaslik = document.getElementById('altBaslikGirdi').value.trim();
+
+      if (anaBaslik && altBaslik) {
+        anaBaslikMetni = anaBaslik;
+        altBaslikMetni = altBaslik;
+        localStorage.setItem('okul_header_title', anaBaslikMetni);
+        localStorage.setItem('okul_sub_title', altBaslikMetni);
+
+        document.getElementById('anaBaslikGosterge').innerText = anaBaslikMetni;
+        document.getElementById('altBaslikGosterge').innerText = altBaslikMetni;
+        onayModalAc('Başarılı', 'Sistem başlıkları başarıyla güncellendi!', null, true, 'bilgi');
+      } else {
+        onayModalAc('Hata', 'Başlık alanları boş bırakılamaz.', null, true, 'uyari');
+      }
+    }
+
+    function yoneticiSifreDegistir() {
+      const yeniSifre = document.getElementById('yeniYoneticiSifreGirdi').value.trim();
+      if (yeniSifre.length >= 4) {
+        yoneticiSifresi = yeniSifre;
+        localStorage.setItem('okul_admin_pw', yoneticiSifresi);
+        document.getElementById('yeniYoneticiSifreGirdi').value = '';
+        onayModalAc('Başarılı', 'Yönetici şifresi başarıyla güncellendi.', null, true, 'bilgi');
+      } else { onayModalAc('Hata', 'Şifre en az 4 karakter olmalıdır.', null, true, 'uyari'); }
+    }
+
+    function kullaniciSifreDegistir() {
+      const yeniSifre = document.getElementById('yeniKullaniciSifreGirdi').value.trim();
+      if (yeniSifre.length >= 4) {
+        kullaniciSifresi = yeniSifre;
+        localStorage.setItem('okul_user_pw', kullaniciSifresi);
+        document.getElementById('yeniKullaniciSifreGirdi').value = '';
+        onayModalAc('Başarılı', 'Kullanıcı şifresi başarıyla güncellendi.', null, true, 'bilgi');
+      } else { onayModalAc('Hata', 'Şifre en az 4 karakter olmalıdır.', null, true, 'uyari'); }
+    }
+
+    function firebaseSenkronizasyonDegistir(etkin) {
+      firebaseEtkin = etkin;
+      const formKutusu = document.getElementById('firebaseFormKutusu');
+      const kayitKarti = document.getElementById('firebaseKayitKarti');
+
+      if (etkin) {
+        if (firebaseAyarMetni) {
+          formKutusu.classList.add('hidden');
+          kayitKarti.classList.remove('hidden');
+          document.getElementById('kartKokDugumGosterge').innerText = firebaseKokDugum;
+          document.getElementById('kartConfigGosterge').innerText = firebaseAyarMetni;
+          firebaseBaslat();
+        } else {
+          formKutusu.classList.remove('hidden');
+          kayitKarti.classList.add('hidden');
+        }
+      } else {
+        formKutusu.classList.add('hidden');
+        kayitKarti.classList.add('hidden');
+        if (firebaseVeritabaniReferansi) firebaseVeritabaniReferansi.off();
+        firebaseRozetGuncelle(false);
+      }
+    }
+
+    function firebaseAyarlariniKaydet() {
+      const ayarMetni = document.getElementById('firebaseAyarGirdi').value.trim();
+      const kokDugum = document.getElementById('firebaseKokDugumGirdi').value.trim() || 'okul_zil_sistemi';
+      
+      if (!ayarMetni) {
+        onayModalAc('Hata', 'Lütfen Firebase yapılandırma objesini giriniz.', null, true, 'uyari');
+        return;
+      }
+
+      try {
+        let temizMetin = ayarMetni;
+        let ayarObjesi;
+        try {
+          ayarObjesi = JSON.parse(temizMetin);
+        } catch(err) {
+          let corrected = temizMetin.replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
+          ayarObjesi = JSON.parse(corrected);
+        }
+
+        firebaseAyarMetni = ayarMetni;
+        firebaseKokDugum = kokDugum;
+        localStorage.setItem('okul_firebase_config', firebaseAyarMetni);
+        localStorage.setItem('okul_firebase_root_node', firebaseKokDugum);
+        
+        document.getElementById('firebaseFormKutusu').classList.add('hidden');
+        document.getElementById('firebaseKayitKarti').classList.remove('hidden');
+        document.getElementById('kartKokDugumGosterge').innerText = firebaseKokDugum;
+        document.getElementById('kartConfigGosterge').innerText = firebaseAyarMetni;
+
+        if (firebaseEtkin) firebaseBaslat();
+        onayModalAc('Başarılı', 'Firebase ayarları başarıyla kaydedildi!', null, true, 'bilgi');
+      } catch (e) { 
+        onayModalAc('Hata', 'Geçersiz format! Lütfen yapılandırma nesnesini kontrol edin.', null, true, 'uyari'); 
+      }
+    }
+
+    function firebaseFormunuDuzenle() {
+      document.getElementById('firebaseAyarGirdi').value = firebaseAyarMetni;
+      document.getElementById('firebaseKokDugumGirdi').value = firebaseKokDugum;
+      document.getElementById('firebaseFormKutusu').classList.remove('hidden');
+      document.getElementById('firebaseKayitKarti').classList.add('hidden');
+    }
+
+    function firebaseKaydiniSilOnayModalAc() {
+      onayModalAc(
+        'Firebase Silme Onayı',
+        'Firebase kayıt bilgileri silinecektir. Kabul ediyor musunuz?',
+        () => {
+          firebaseAyarMetni = '';
+          firebaseKokDugum = 'okul_zil_sistemi';
+          localStorage.removeItem('okul_firebase_config');
+          localStorage.removeItem('okul_firebase_root_node');
+          
+          document.getElementById('firebaseAyarGirdi').value = '{\n    apiKey: "",\n    authDomain: "",\n    databaseURL: "",\n    projectId: "",\n    storageBucket: "",\n    messagingSenderId: "",\n    appId: "",\n    measurementId: ""\n}';
+          document.getElementById('firebaseKokDugumGirdi').value = 'okul_zil_sistemi';
+          document.getElementById('firebaseKayitKarti').classList.add('hidden');
+          document.getElementById('firebaseFormKutusu').classList.remove('hidden');
+          firebaseRozetGuncelle(false);
+          onayModalKapat();
+        },
+        false,
+        'silme'
+      );
+    }
+
+    function firebaseBaslat() {
+      try {
+        let temizMetin = firebaseAyarMetni.trim();
+        let ayarObjesi;
+        try {
+          ayarObjesi = JSON.parse(temizMetin);
+        } catch(err) {
+          let corrected = temizMetin.replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
+          ayarObjesi = JSON.parse(corrected);
+        }
+
+        if (!firebase.apps.length) firebase.initializeApp(ayarObjesi);
+        firebaseVeritabaniReferansi = firebase.database().ref(firebaseKokDugum);
+
+        firebaseVeritabaniReferansi.on('value', (snapshot) => {
+          const veri = snapshot.val();
+          if (veri) {
+            if (veri.planlar) {
+              planlar = veri.planlar;
+              localStorage.setItem('okul_planlar', JSON.stringify(planlar));
+              if (planlar[aktifPlanAnahtari]) mevcutDersProgrami = planlar[aktifPlanAnahtari].dersler;
+              planSecenekleriniDoldur();
+              dersleriSiralaVeCiz();
+            }
+            if (veri.activeDays) {
+              aktifGunler = veri.activeDays;
+              localStorage.setItem('okul_active_days', JSON.stringify(aktifGunler));
+              gunDugmeleriniCiz();
+            }
+          }
+        });
+        firebaseRozetGuncelle(true);
+      } catch (err) {
+        firebaseRozetGuncelle(false);
+      }
+    }
+
+    function firebaseRozetGuncelle(bagliMi) {
+      const metin = document.getElementById('firebaseDurumMetni');
+      const rozet = document.getElementById('firebaseDurumEtiketi');
+      if (bagliMi) {
+        metin.innerText = 'Firebase Canlı Sync';
+        rozet.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+      } else {
+        metin.innerText = 'Lokal Bellek';
+        rozet.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-900 text-slate-400 border border-slate-800';
+      }
+    }
+
+    function durumuKaydet() {
+      planlar[aktifPlanAnahtari].dersler = mevcutDersProgrami;
+      localStorage.setItem('okul_planlar', JSON.stringify(planlar));
+      localStorage.setItem('okul_active_days', JSON.stringify(aktifGunler));
+
+      if (firebaseEtkin && firebaseVeritabaniReferansi) {
+        firebaseVeritabaniReferansi.set({ planlar: planlar, activeDays: aktifGunler });
+      }
+    }
+
+    // MİKROFON, SES KAYDI VE SAAT MOTORU
+    async function canliMikrofonDegistir() {
+      const btn = document.getElementById('canliMikrofonBtn');
+      const rozet = document.getElementById('mikrofonDurumEtiketi');
+
+      if (!canliMikrofonAktif) {
+        try {
+          mikrofonAkisi = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mikrofonSesBaglanti = new (window.AudioContext || window.webkitAudioContext)();
+          const kaynak = mikrofonSesBaglanti.createMediaStreamSource(mikrofonAkisi);
+          const kazanc = mikrofonSesBaglanti.createGain();
+          kazanc.gain.setValueAtTime(anaSesSeviyesi, mikrofonSesBaglanti.currentTime);
+          kaynak.connect(kazanc);
+          kazanc.connect(mikrofonSesBaglanti.destination);
+
+          canliMikrofonAktif = true;
+          btn.innerHTML = `<i data-lucide="mic-off" class="w-4 h-4"></i> Canlı Mikrofonu Kapat`;
+          btn.className = `flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-500 text-white font-semibold py-3 px-3 rounded-xl shadow-md text-xs transition`;
+          rozet.innerText = 'Canlı Yayın Açık';
+          rozet.className = 'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+          lucide.createIcons();
+        } catch (err) {
+          onayModalAc('Mikrofon Hatası', 'Mikrofon erişim izni reddedildi veya mikrofon bulunamadı.', null, true, 'uyari');
+        }
+      } else {
+        if (mikrofonAkisi) mikrofonAkisi.getTracks().forEach(t => t.stop());
+        if (mikrofonSesBaglanti) mikrofonSesBaglanti.close();
+        canliMikrofonAktif = false;
+        btn.innerHTML = `<i data-lucide="mic-2" class="w-4 h-4"></i> Canlı Mikrofonu Aç`;
+        btn.className = `flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 px-3 rounded-xl shadow-md text-xs transition`;
+        rozet.innerText = 'Hazır';
+        rozet.className = 'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-slate-300';
+        lucide.createIcons();
+      }
+    }
+
+    async function sesKaydiDegistir() {
+      const btn = document.getElementById('sesKayitBtn');
+      const kayitKutusu = document.getElementById('kayitSayacKutusu');
+      const rozet = document.getElementById('mikrofonDurumEtiketi');
+
+      if (!kayitYapiliyorMu) {
+        try {
+          const akis = await navigator.mediaDevices.getUserMedia({ audio: true });
+          ortamKaydedici = new MediaRecorder(akis);
+          sesParcalari = [];
+
+          ortamKaydedici.ondataavailable = e => sesParcalari.push(e.data);
+          ortamKaydedici.onstop = () => {
+            const blob = new Blob(sesParcalari, { type: 'audio/mp3' });
+            const sesUrl = URL.createObjectURL(blob);
+            const ses = new Audio(sesUrl);
+            ses.volume = anaSesSeviyesi;
+            ses.play();
+            onayModalAc('Bilgi', 'Kayıt tamamlandı ve hoparlörden çalınıyor!', null, true, 'bilgi');
+          };
+
+          ortamKaydedici.start();
+          kayitYapiliyorMu = true;
+          kayitKutusu.classList.remove('hidden');
+          btn.innerHTML = `<i data-lucide="square" class="w-4 h-4"></i> Kaydı Durdur & Çal`;
+          rozet.innerText = 'Kayıt Yapılıyor';
+          rozet.className = 'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30';
+          lucide.createIcons();
+        } catch (err) {
+          onayModalAc('Hata', 'Mikrofon kaydı başlatılamadı.', null, true, 'uyari');
+        }
+      } else {
+        if (ortamKaydedici) ortamKaydedici.stop();
+        kayitYapiliyorMu = false;
+        kayitKutusu.classList.add('hidden');
+        btn.innerHTML = `<i data-lucide="disc" class="w-4 h-4"></i> Anons Kaydet & Çal`;
+        rozet.innerText = 'Hazır';
+        rozet.className = 'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-slate-300';
+        lucide.createIcons();
+      }
+    }
+
+    function saatMotorunuBaslat() {
+      saatiGuncelle();
+      setInterval(saatiGuncelle, 1000);
+    }
+
+    function saatiGuncelle() {
+      const simdi = new Date();
+      document.getElementById('canliSaat').innerText = simdi.toLocaleTimeString('tr-TR');
+      document.getElementById('canliTarih').innerText = simdi.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+      const mevcutGun = simdi.getDay();
+      if (!aktifGunler.includes(mevcutGun)) {
+        document.getElementById('mevcutAramaBaslik').innerText = 'Hafta Sonu / Tatil Günü';
+        document.getElementById('mevcutAramaAltBaslik').innerText = 'Otomatik ziller bugün devre dışı';
+        document.getElementById('geriSayimSayaci').innerText = '--:--:--';
+        return;
+      }
+      zilTetikleriniVeEvreyiDegerlendir(simdi);
+    }
+
+    function zilTetikleriniVeEvreyiDegerlendir(simdi) {
+      const mevcutDakika = simdi.getHours() * 60 + simdi.getMinutes();
+      const mevcutSaniye = simdi.getSeconds();
+      const saatMetni = `${String(simdi.getHours()).padStart(2, '0')}:${String(simdi.getMinutes()).padStart(2, '0')}`;
+
+      let evreBaslik = 'Dersler Başlamadı';
+      let evreAltBaslik = 'İlk ders saatini bekliyor';
+      let sonrakiZilFark = null;
+
+      for (let i = 0; i < mevcutDersProgrami.length; i++) {
+        const ders = mevcutDersProgrami[i];
+        if (ders.active === false) continue;
+
+        const [basH, basM] = ders.start.split(':').map(Number);
+        const [bitH, bitM] = ders.end.split(':').map(Number);
+
+        const basDakika = basH * 60 + basM;
+        const bitDakika = bitH * 60 + bitM;
+
+        if (saatMetni === ders.start && mevcutSaniye === 0) {
+          const zilAnahtar = `giris_${i}_${ders.start}`;
+          if (sonCalanZilAnahtari !== zilAnahtar) {
+            sonCalanZilAnahtari = zilAnahtar;
+            zilCal('giris');
+          }
+        }
+
+        if (saatMetni === ders.end && mevcutSaniye === 0) {
+          const zilAnahtar = `cikis_${i}_${ders.end}`;
+          if (sonCalanZilAnahtari !== zilAnahtar) {
+            sonCalanZilAnahtari = zilAnahtar;
+            zilCal('cikis');
+          }
+        }
+
+        if (mevcutDakika >= basDakika && mevcutDakika < bitDakika) {
+          evreBaslik = `🔔 ${ders.name} Devam Ediyor`;
+          evreAltBaslik = `Ders Bitiş Saati: ${ders.end}`;
+          sonrakiZilFark = (bitDakika * 60) - (mevcutDakika * 60 + mevcutSaniye);
+          break;
+        } else if (mevcutDakika < basDakika) {
+          sonrakiZilFark = (basDakika * 60) - (mevcutDakika * 60 + mevcutSaniye);
+          break;
+        }
+      }
+
+      document.getElementById('mevcutAramaBaslik').innerText = evreBaslik;
+      document.getElementById('mevcutAramaAltBaslik').innerText = evreAltBaslik;
+
+      if (sonrakiZilFark !== null && sonrakiZilFark >= 0) {
+        const saat = Math.floor(sonrakiZilFark / 3600);
+        const dakika = Math.floor((sonrakiZilFark % 3600) / 60);
+        const saniye = sonrakiZilFark % 60;
+        document.getElementById('geriSayimSayaci').innerText = `${String(saat).padStart(2, '0')}:${String(dakika).padStart(2, '0')}:${String(saniye).padStart(2, '0')}`;
+      } else {
+        document.getElementById('geriSayimSayaci').innerText = '00:00:00';
+      }
+    }
+
+    function zilCal(tur = 'giris') {
+      const sesKimlik = tur === 'giris' ? girisZilSesi : cikisZilSesi;
+
+      if (sesKimlik && sesKimlik.startsWith('yerel_') && yerelSesler[sesKimlik]) {
+        const sesObjesi = new Audio(yerelSesler[sesKimlik]);
+        sesObjesi.volume = anaSesSeviyesi;
+        sesObjesi.play().catch(err => console.log('Yerel ses çalma hatası:', err));
+        return;
+      }
+
+      let secenekIndeks = 1;
+      if (sesKimlik && sesKimlik.startsWith('bell_')) {
+        secenekIndeks = parseInt(sesKimlik.replace('bell_', '')) || 1;
+      }
+
+      const baglanti = sesBaglantisiAl();
+      const anaKazanc = baglanti.createGain();
+      anaKazanc.gain.setValueAtTime(anaSesSeviyesi, baglanti.currentTime);
+      anaKazanc.connect(baglanti.destination);
+
+      let temelFrekans = 200 + (secenekIndeks * 35);
+      const notalar = tur === 'giris' ? [temelFrekans, temelFrekans * 0.8, temelFrekans * 1.2, temelFrekans * 0.6] : [temelFrekans * 0.6, temelFrekans * 1.2, temelFrekans * 0.8, temelFrekans];
+      
+      notalar.forEach((freq, index) => {
+        const osc = baglanti.createOscillator();
+        const notaKazanc = baglanti.createGain();
+        osc.type = (secenekIndeks % 2 === 0) ? 'triangle' : 'sine';
+        osc.frequency.value = freq;
+        const baslamaZamani = baglanti.currentTime + (index * 0.4);
+        notaKazanc.gain.setValueAtTime(0.6, baslamaZamani);
+        notaKazanc.gain.exponentialRampToValueAtTime(0.001, baslamaZamani + 0.9);
+        osc.connect(notaKazanc);
+        notaKazanc.connect(anaKazanc);
+        osc.start(baslamaZamani);
+        osc.stop(baslamaZamani + 0.9);
+      });
+    }
+
+    function acilSirenCal() {
+      const baglanti = sesBaglantisiAl();
+      const osc = baglanti.createOscillator();
+      const kazanc = baglanti.createGain();
+      osc.type = 'sawtooth';
+      kazanc.gain.setValueAtTime(anaSesSeviyesi, baglanti.currentTime);
+      const simdi = baglanti.currentTime;
+      for (let i = 0; i < 5; i++) {
+        osc.frequency.setValueAtTime(400, simdi + i * 0.8);
+        osc.frequency.linearRampToValueAtTime(900, simdi + i * 0.8 + 0.4);
+        osc.frequency.linearRampToValueAtTime(400, simdi + i * 0.8 + 0.8);
+      }
+      osc.connect(kazanc);
+      kazanc.connect(baglanti.destination);
+      osc.start();
+      osc.stop(simdi + 4.0);
+    }
+
+    function sesSecimleriniDoldur() {
+      const girisSecim = document.getElementById('girisZilSecim');
+      const cikisSecim = document.getElementById('cikisZilSecim');
+      
+      let seceneklerHtml = '<optgroup label="Standart Melodiler">';
+      for (let i = 1; i <= 5; i++) {
+        seceneklerHtml += `<option value="bell_${i}">${i}. Zil Melodisi</option>`;
+      }
+      seceneklerHtml += '</optgroup>';
+
+      if (yerelSesIsimleri.length > 0) {
+        seceneklerHtml += '<optgroup label="Yüklenen Yerel Dosyalar">';
+        yerelSesIsimleri.forEach(item => {
+          seceneklerHtml += `<option value="${item.anahtar}">${item.adi}</option>`;
+        });
+        seceneklerHtml += '</optgroup>';
+      }
+
+      girisSecim.innerHTML = seceneklerHtml;
+      cikisSecim.innerHTML = seceneklerHtml;
+      girisSecim.value = girisZilSesi;
+      cikisSecim.value = cikisZilSesi;
+    }
+
+    function sesAtamalariniKaydet() {
+      if (!yoneticiMi) {
+        onayModalAc('Yetki Uyarısı', 'Zil seslerini değiştirmek için yönetici girişi yapmalısınız.', null, true, 'uyari');
+        sesSecimleriniDoldur();
+        return;
+      }
+      girisZilSesi = document.getElementById('girisZilSecim').value;
+      cikisZilSesi = document.getElementById('cikisZilSecim').value;
+      localStorage.setItem('okul_entry_bell_sound', girisZilSesi);
+      localStorage.setItem('okul_exit_bell_sound', cikisZilSesi);
+    }
+
+    function gunDugmeleriniCiz() {
+      const gunSiralama = [
+        { id: 1, name: 'Pazartesi' },
+        { id: 2, name: 'Salı' },
+        { id: 3, name: 'Çarşamba' },
+        { id: 4, name: 'Perşembe' },
+        { id: 5, name: 'Cuma' },
+        { id: 6, name: 'Cumartesi' },
+        { id: 0, name: 'Pazar' }
+      ];
+
+      const kapsayici = document.getElementById('gunDugmeleri');
+      kapsayici.innerHTML = '';
+      
+      gunSiralama.forEach(gun => {
+        const aktifMi = aktifGunler.includes(gun.id);
+        const btn = document.createElement('button');
+        
+        if (!yoneticiMi) {
+          btn.className = `px-2 py-2 text-[11px] font-semibold rounded-lg border text-center truncate opacity-60 cursor-not-allowed ${aktifMi ? 'bg-indigo-600/60 border-indigo-500/60 text-white' : 'bg-slate-950 border-slate-800 text-slate-500'}`;
+          btn.disabled = true;
+        } else {
+          btn.className = `px-2 py-2 text-[11px] font-semibold rounded-lg border text-center truncate transition cursor-pointer ${aktifMi ? 'bg-indigo-600 border-indigo-500 text-white shadow-sm' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'}`;
+          btn.onclick = () => {
+            if (aktifGunler.includes(gun.id)) aktifGunler = aktifGunler.filter(d => d !== gun.id);
+            else aktifGunler.push(gun.id);
+            gunDugmeleriniCiz();
+            durumuKaydet();
+          };
+        }
+        btn.innerText = gun.name;
+        kapsayici.appendChild(btn);
+      });
+    }
+
+    function sesSeviyesiGuncelle(deger) {
+      const sayisalDeger = parseInt(deger);
+      anaSesSeviyesi = sayisalDeger / 100;
+      localStorage.setItem('okul_volume', anaSesSeviyesi);
+      document.getElementById('sesYuzdesi').innerText = `${sayisalDeger}%`;
+    }
+  </script>
+</body>
+</html>
