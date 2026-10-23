@@ -1,1 +1,85 @@
-
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#172554">
+  <title>Restoran POS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">R</div><div><strong>Restoran POS</strong><small>Satış ve işletme yönetimi</small></div></div>
+    <div class="top-actions"><span id="syncBadge" class="status-pill">● Yerel kayıt</span><button class="icon-btn" id="backupBtn" title="Yedek indir">⬇ Yedek</button></div>
+  </header>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="nav-label">İŞLETME</div>
+      <button class="nav-btn active" data-view="sales">🛒 <span>Hızlı Satış</span></button>
+      <button class="nav-btn" data-view="tables">▦ <span>Masa Yönetimi</span></button>
+      <button class="nav-btn" data-view="kitchen" id="kitchenNav">♨ <span>Mutfak</span><b id="kitchenCount" class="nav-count">0</b></button>
+      <button class="nav-btn" data-view="products">🍽 <span>Ürünler ve Stok</span></button>
+      <button class="nav-btn" data-view="reports">▥ <span>Satış Analizi</span></button>
+      <div class="nav-label nav-label-spaced">SİSTEM</div>
+      <button class="nav-btn" data-view="settings">⚙ <span>Ayarlar ve Yedekleme</span></button>
+      <div class="sidebar-foot"><span class="live-dot"></span> Çevrim dışı kullanıma hazır <small>Veriler bu cihazda saklanır.</small></div>
+    </aside>
+    <main class="main">
+      <section class="view active" id="view-sales">
+        <div class="page-heading"><div><p class="eyebrow">SATIŞ NOKTASI</p><h1>Hızlı Satış</h1><p class="subheading">Ürün seç, sipariş oluştur, ödemeyi tamamla.</p></div><div class="date-chip" id="todayLabel"></div></div>
+        <div class="sales-layout">
+          <div class="catalog-panel">
+            <div class="toolbar"><input id="productSearch" type="search" placeholder="Ürün ara…"><select id="categoryFilter"><option value="Tümü">Tüm kategoriler</option></select></div>
+            <div id="categoryChips" class="category-chips"></div>
+            <div id="productGrid" class="product-grid"></div>
+          </div>
+          <div class="cart-panel">
+            <div class="cart-heading"><div><h2>Aktif Sipariş</h2><p id="cartContext">Yeni satış</p></div><button class="text-btn danger-text" id="clearCartBtn">Temizle</button></div>
+            <label class="field-label" for="orderType">Sipariş türü</label><select id="orderType"><option value="Paket">Paket</option><option value="Masa">Masa</option><option value="Gel-Al">Gel-Al</option></select>
+            <div id="tableSelectWrap" class="hidden"><label class="field-label" for="orderTable">Masa</label><select id="orderTable"></select></div>
+            <div id="cartItems" class="cart-items"><div class="empty-state">Sepetiniz boş.<br>Ürün eklemek için bir ürüne dokunun.</div></div>
+            <div class="cart-summary"><div><span>Ara toplam</span><strong id="subtotal">₺0,00</strong></div><div class="total-line"><span>Toplam</span><strong id="total">₺0,00</strong></div></div>
+            <div class="payment-buttons"><button class="pay-btn cash" data-pay="Nakit">₺ Nakit</button><button class="pay-btn card" data-pay="Kredi Kartı">▤ Kart</button><button class="pay-btn credit" data-pay="Veresiye">◷ Veresiye</button></div>
+            <button class="secondary-btn full-width" id="sendKitchenBtn">♨ Mutfağa Gönder / Beklet</button>
+          </div>
+        </div>
+      </section>
+      <section class="view" id="view-tables">
+        <div class="page-heading"><div><p class="eyebrow">SALON</p><h1>Masa Yönetimi</h1><p class="subheading">Masaların durumunu takip edin.</p></div><button class="primary-btn" id="addTableBtn">＋ Masa Ekle</button></div>
+        <div class="legend"><span><i class="legend-dot free"></i> Boş</span><span><i class="legend-dot busy"></i> Dolu</span><span><i class="legend-dot ready"></i> Hazır sipariş var</span></div>
+        <div id="tablesGrid" class="tables-grid"></div>
+      </section>
+      <section class="view" id="view-kitchen">
+        <div class="page-heading"><div><p class="eyebrow">SİPARİŞ HAZIRLAMA</p><h1>Mutfak Ekranı</h1><p class="subheading">Yeni siparişleri ve hazırlık durumlarını yönetin.</p></div><button class="secondary-btn" id="soundToggle">🔔 Ses açık</button></div>
+        <div class="kitchen-columns"><div><h2 class="column-title">Yeni Siparişler <span id="newKitchenCount" class="count-chip">0</span></h2><div id="kitchenNew" class="ticket-list"></div></div><div><h2 class="column-title">Hazırlanıyor</h2><div id="kitchenPreparing" class="ticket-list"></div></div><div><h2 class="column-title">Hazır</h2><div id="kitchenReady" class="ticket-list"></div></div></div>
+      </section>
+      <section class="view" id="view-products">
+        <div class="page-heading"><div><p class="eyebrow">ÜRÜN KATALOĞU</p><h1>Ürünler ve Stok</h1><p class="subheading">Fiyatları, maliyetleri ve stok miktarlarını yönetin.</p></div><button class="primary-btn" id="addProductBtn">＋ Ürün Ekle</button></div>
+        <div class="stats-row compact-stats"><div class="stat-card"><span>Ürün çeşidi</span><strong id="productCountStat">0</strong></div><div class="stat-card"><span>Stok uyarısı</span><strong id="lowStockStat">0</strong></div><div class="stat-card"><span>Stok maliyeti (tahmini)</span><strong id="stockValueStat">₺0</strong></div></div>
+        <div class="table-wrap"><table><thead><tr><th>Ürün</th><th>Kategori</th><th>Satış fiyatı</th><th>Birim maliyet</th><th>Stok</th><th>İşlem</th></tr></thead><tbody id="productsTable"></tbody></table></div>
+      </section>
+      <section class="view" id="view-reports">
+        <div class="page-heading"><div><p class="eyebrow">İŞLETME PERFORMANSI</p><h1>Satış Analizi</h1><p class="subheading">Tamamlanan satışlara göre özet.</p></div><button class="secondary-btn" id="exportCsvBtn">⇩ CSV indir</button></div>
+        <div class="stats-row"><div class="stat-card stat-purple"><span>Toplam ciro</span><strong id="reportRevenue">₺0</strong><small>Ödenmiş satışlar</small></div><div class="stat-card stat-blue"><span>Tahmini ürün maliyeti</span><strong id="reportCost">₺0</strong><small>Satılan ürünlerin kayıtlı maliyeti</small></div><div class="stat-card stat-green"><span>Tahmini brüt kâr</span><strong id="reportProfit">₺0</strong><small>Ciro − ürün maliyeti</small></div><div class="stat-card stat-orange"><span>Satış adedi</span><strong id="reportOrders">0</strong><small>Tamamlanan işlemler</small></div></div>
+        <div class="report-grid"><div class="content-card"><h2>Ödeme türleri</h2><div id="paymentBreakdown" class="breakdown"></div></div><div class="content-card"><h2>En çok satılan ürünler</h2><div id="topProducts" class="top-products"></div></div></div>
+        <div class="content-card recent-card"><h2>Son satışlar</h2><div class="table-wrap"><table><thead><tr><th>Tarih</th><th>Sipariş</th><th>Ödeme</th><th>Toplam</th><th>İşlem</th></tr></thead><tbody id="salesTable"></tbody></table></div></div>
+      </section>
+      <section class="view" id="view-settings">
+        <div class="page-heading"><div><p class="eyebrow">SİSTEM TERCİHLERİ</p><h1>Ayarlar ve Yedekleme</h1><p class="subheading">İşletme bilgileri, modüller ve verilerin korunması.</p></div></div>
+        <div class="settings-grid">
+          <div class="content-card"><h2>İşletme bilgileri</h2><label class="field-label">İşletme adı</label><input id="businessName" value="Restoranım"><label class="field-label">Para birimi</label><select id="currency"><option value="TRY">Türk Lirası (₺)</option><option value="EUR">Euro (€)</option><option value="USD">ABD Doları ($)</option></select><button class="primary-btn top-gap" id="saveSettingsBtn">Ayarları Kaydet</button></div>
+          <div class="content-card"><h2>Modüller</h2><p class="muted">Seçimler bu cihazda saklanır.</p><label class="switch-row"><span><strong>Mutfak sistemi</strong><small>Sipariş hazırlama ekranı</small></span><input type="checkbox" id="kitchenEnabled" checked><i></i></label><label class="switch-row"><span><strong>Masa yönetimi</strong><small>Salon ve masa takibi</small></span><input type="checkbox" id="tablesEnabled" checked><i></i></label><label class="switch-row"><span><strong>Stok takibi</strong><small>Stok ve maliyet alanları</small></span><input type="checkbox" id="stockEnabled" checked><i></i></label><label class="switch-row"><span><strong>Sesli mutfak uyarısı</strong><small>Yeni sipariş geldiğinde ses çal</small></span><input type="checkbox" id="soundEnabled" checked><i></i></label><label class="field-label top-gap" for="soundFile">Bildirim sesi dosyası (cihazdan)</label><input id="soundFile" type="file" accept="audio/*"><div class="button-row top-gap"><button class="secondary-btn" id="testSoundBtn" type="button">▶ Sesi test et</button><button class="mini-btn" id="clearSoundBtn" type="button">Varsayılan sese dön</button></div><p class="muted">Seçtiğiniz ses bu tarayıcıda saklanır. Çok büyük dosyalar tarayıcı depolama sınırına takılabilir.</p></div>
+          <div class="content-card"><h2>Yedekleme ve geri yükleme</h2><p class="muted">JSON yedeği ürünleri, masaları, ayarları ve satış kayıtlarını içerir.</p><button class="primary-btn" id="downloadBackupBtn">⬇ JSON yedeği indir</button><label class="field-label top-gap" for="restoreFile">Yedekten geri yükle</label><input id="restoreFile" type="file" accept=".json,application/json"><button class="secondary-btn top-gap" id="restoreBtn">Yedeği geri yükle</button><p class="warning-note">Geri yükleme mevcut cihaz verilerinin yerini alır. Önce yedek indirmeniz önerilir.</p><button class="danger-btn top-gap" id="resetDemoBtn">Demo verilerine dön</button></div>
+          <div class="content-card"><h2>Firebase bağlantısı</h2><p class="muted">İsteğe bağlı bağlantı ayarları. Gerçek çok kullanıcılı eşitlemeyi etkinleştirmeden önce güvenlik kuralları ve veri yapısı ayrıca doğrulanmalıdır.</p><label class="field-label">API Key</label><input id="fbApiKey" placeholder="Firebase apiKey"><label class="field-label">Database URL</label><input id="fbDatabaseURL" placeholder="https://...-default-rtdb.firebaseio.com"><label class="field-label">Project ID</label><input id="fbProjectId" placeholder="project-id"><button class="secondary-btn top-gap" id="saveFirebaseBtn">Bağlantı bilgilerini bu cihaza kaydet</button><p id="firebaseHelp" class="warning-note">Bu sürüm yerel kayıtla çalışır. Firebase alanları yapılandırma notu olarak saklanır; canlı senkronizasyon henüz etkin değildir.</p></div>
+        </div>
+      </section>
+      <footer class="footer">Restoran POS · Demo başlangıç sürümü <span>Verilerinizi düzenli yedekleyin.</span></footer>
+    </main>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <dialog id="productDialog"><form method="dialog" id="productForm"><div class="dialog-head"><h2 id="productDialogTitle">Ürün ekle</h2><button class="close-btn" value="cancel" aria-label="Kapat">×</button></div><input type="hidden" id="editProductId"><label class="field-label">Ürün adı</label><input id="pName" required placeholder="Örn. Izgara köfte"><div class="form-two"><div><label class="field-label">Kategori</label><input id="pCategory" required placeholder="Ana yemek"></div><div><label class="field-label">Stok miktarı</label><input id="pStock" type="number" min="0" step="1" value="20" required></div></div><div class="form-two"><div><label class="field-label">Satış fiyatı (₺)</label><input id="pPrice" type="number" min="0" step="0.01" required></div><div><label class="field-label">Birim maliyet (₺)</label><input id="pCost" type="number" min="0" step="0.01" value="0" required></div></div><div class="dialog-actions"><button class="secondary-btn" value="cancel">Vazgeç</button><button class="primary-btn" id="saveProductBtn" value="default">Kaydet</button></div></form></dialog>
+  <dialog id="tableDialog"><form method="dialog" id="tableForm"><div class="dialog-head"><h2>Masa ekle</h2><button class="close-btn" value="cancel">×</button></div><label class="field-label">Masa adı</label><input id="tableName" required placeholder="Örn. Masa 9"><div class="dialog-actions"><button class="secondary-btn" value="cancel">Vazgeç</button><button class="primary-btn" id="saveTableBtn" value="default">Ekle</button></div></form></dialog>
+  <dialog id="qrDialog"><div class="dialog-head"><h2 id="qrDialogTitle">Masa QR kodu</h2><button class="close-btn" id="closeQrDialog">×</button></div><div class="qr-content"><img id="tableQrImage" alt="Masaya özel müşteri sipariş QR kodu"><p id="tableQrUrl" class="muted qr-url"></p><p class="warning-note">Müşterilerin kendi telefonlarından sipariş verebilmesi için bu uygulamayı herkese açık bir HTTPS adresinde yayınlayıp güvenli canlı eşitleme kurmanız gerekir. Yerel dosya bağlantısı başka telefonda çalışmaz.</p><button class="primary-btn full-width" id="openCustomerPreview">Müşteri menüsünü önizle</button></div></dialog>
+  <script src="app.js"></script>
+</body>
+</html>
