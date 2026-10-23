@@ -12,10 +12,7 @@
             theme: {
                 extend: {
                     colors: {
-                        brand: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 900: '#0c4a6e' },
-                        darkbg: '#0f172a',
-                        darkpanel: '#1e293b',
-                        darkborder: '#334155'
+                        brand: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 900: '#0c4a6e' }
                     }
                 }
             }
@@ -43,58 +40,94 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
+        :root {
+            --bg-main: #f8fafc;
+            --bg-panel: #ffffff;
+            --bg-darker: #f1f5f9;
+            --border-color: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+        }
+
+        html.dark {
+            --bg-main: #0f172a;
+            --bg-panel: #1e293b;
+            --bg-darker: #0b1329;
+            --border-color: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+        }
+
+        .app-panel {
+            background-color: var(--bg-panel);
+            border-color: var(--border-color);
+        }
+
+        .app-bg-darker {
+            background-color: var(--bg-darker);
+            border-color: var(--border-color);
+        }
+
+        .app-text-muted {
+            color: var(--text-muted);
+        }
+
         .CodeMirror { height: 100% !important; font-family: 'Fira Code', monospace; font-size: 13px; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #1e293b; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
-        /* Panel Katlama Animasyonları */
+        ::-webkit-scrollbar-track { background: var(--bg-darker); }
+        ::-webkit-scrollbar-thumb { background: #64748b; border-radius: 3px; }
         .panel-transition { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     </style>
 </head>
-<body class="bg-darkbg text-slate-200 h-screen flex flex-col overflow-hidden font-sans select-none">
+<body class="h-screen flex flex-col overflow-hidden font-sans select-none">
 
     <!-- ÜST NAVBAR / TOOLBAR -->
-    <header class="h-14 bg-darkpanel border-b border-darkborder flex items-center justify-between px-4 z-20 shrink-0">
+    <header class="h-14 app-panel border-b flex items-center justify-between px-4 z-20 shrink-0">
         <div class="flex items-center gap-3">
             <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-600 to-purple-600 flex items-center justify-center font-black text-white shadow-lg shadow-brand-500/20">
                 <i class="fa-solid fa-code-branch text-lg"></i>
             </div>
             <div>
                 <h1 class="font-bold text-sm leading-none flex items-center gap-2">
-                    WebStudio IDE <span class="bg-brand-500/20 text-brand-400 text-[10px] px-2 py-0.5 rounded font-mono font-bold">MASTER v11.0</span>
+                    WebStudio IDE <span class="bg-brand-500/20 text-brand-500 text-[10px] px-2 py-0.5 rounded font-mono font-bold">MASTER v11.0</span>
                 </h1>
-                <p class="text-[11px] text-slate-400 mt-0.5">Tüm Özellikler Entegre • Görsel & Kod IDE</p>
+                <p class="text-[11px] app-text-muted mt-0.5">Tüm Özellikler Entegre • Görsel & Kod IDE</p>
             </div>
         </div>
 
         <!-- Odak / Bölüm Görünüm Modları -->
-        <div class="flex items-center bg-darkbg p-1 rounded-lg border border-darkborder text-xs gap-1">
+        <div class="flex items-center app-bg-darker p-1 rounded-lg border text-xs gap-1">
             <button onclick="setLayout('all')" id="btn-lay-all" class="px-2.5 py-1 rounded bg-brand-600 text-white font-medium flex items-center gap-1.5"><i class="fa-solid fa-table-columns"></i> Tam Görünüm</button>
-            <button onclick="setLayout('code')" id="btn-lay-code" class="px-2.5 py-1 rounded text-slate-400 hover:text-white flex items-center gap-1.5"><i class="fa-solid fa-code"></i> Kod Odak</button>
-            <button onclick="setLayout('visual')" id="btn-lay-visual" class="px-2.5 py-1 rounded text-slate-400 hover:text-white flex items-center gap-1.5"><i class="fa-solid fa-eye"></i> Görsel Odak</button>
-            <button onclick="setLayout('split')" id="btn-lay-split" class="px-2.5 py-1 rounded text-slate-400 hover:text-white flex items-center gap-1.5"><i class="fa-solid fa-columns"></i> İkili Bölünmüş</button>
+            <button onclick="setLayout('code')" id="btn-lay-code" class="px-2.5 py-1 rounded app-text-muted hover:text-brand-500 flex items-center gap-1.5"><i class="fa-solid fa-code"></i> Kod Odak</button>
+            <button onclick="setLayout('visual')" id="btn-lay-visual" class="px-2.5 py-1 rounded app-text-muted hover:text-brand-500 flex items-center gap-1.5"><i class="fa-solid fa-eye"></i> Görsel Odak</button>
+            <button onclick="setLayout('split')" id="btn-lay-split" class="px-2.5 py-1 rounded app-text-muted hover:text-brand-500 flex items-center gap-1.5"><i class="fa-solid fa-columns"></i> İkili Bölünmüş</button>
         </div>
 
         <!-- Cihaz Simülatörü Butonları -->
-        <div class="flex items-center bg-darkbg p-1 rounded-lg border border-darkborder text-xs gap-1">
-            <button onclick="setCanvasSize('100%')" class="p-1.5 hover:bg-darkpanel rounded text-slate-400 hover:text-white" title="Masaüstü (100%)"><i class="fa-solid fa-desktop"></i></button>
-            <button onclick="setCanvasSize('768px')" class="p-1.5 hover:bg-darkpanel rounded text-slate-400 hover:text-white" title="Tablet (768px)"><i class="fa-solid fa-tablet-screen-button"></i></button>
-            <button onclick="setCanvasSize('375px')" class="p-1.5 hover:bg-darkpanel rounded text-slate-400 hover:text-white" title="Mobil (375px)"><i class="fa-solid fa-mobile-screen-button"></i></button>
+        <div class="flex items-center app-bg-darker p-1 rounded-lg border text-xs gap-1">
+            <button onclick="setCanvasSize('100%')" class="p-1.5 hover:bg-brand-500/10 rounded app-text-muted hover:text-brand-500" title="Masaüstü (100%)"><i class="fa-solid fa-desktop"></i></button>
+            <button onclick="setCanvasSize('768px')" class="p-1.5 hover:bg-brand-500/10 rounded app-text-muted hover:text-brand-500" title="Tablet (768px)"><i class="fa-solid fa-tablet-screen-button"></i></button>
+            <button onclick="setCanvasSize('375px')" class="p-1.5 hover:bg-brand-500/10 rounded app-text-muted hover:text-brand-500" title="Mobil (375px)"><i class="fa-solid fa-mobile-screen-button"></i></button>
         </div>
 
         <!-- Sağ Aksiyon Butonları -->
         <div class="flex items-center gap-2">
             <!-- AÇIK / KOYU TEMA (LIGHT/DARK MODE) -->
-            <button onclick="toggleThemeMode()" id="btn-theme-mode" class="p-1.5 bg-darkbg hover:bg-slate-800 border border-darkborder text-amber-400 rounded-lg text-xs font-semibold" title="Açık/Koyu Tema Değiştir">
-                <i class="fa-solid fa-sun"></i>
+            <button onclick="toggleThemeMode()" id="btn-theme-mode" class="p-1.5 app-bg-darker hover:bg-brand-500/10 border text-amber-500 rounded-lg text-xs font-semibold" title="Açık/Koyu Tema Değiştir">
+                <i class="fa-solid fa-sun" id="theme-icon"></i>
             </button>
             <!-- SESLİ KOMUT -->
-            <button id="btn-voice" onclick="toggleVoiceControl()" class="px-2.5 py-1.5 bg-darkbg hover:bg-slate-800 border border-darkborder text-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1.5" title="Sesli AI Komut Motoru">
+            <button id="btn-voice" onclick="toggleVoiceControl()" class="px-2.5 py-1.5 app-bg-darker hover:bg-brand-500/10 border rounded-lg text-xs font-semibold flex items-center gap-1.5" title="Sesli AI Komut Motoru">
                 <i class="fa-solid fa-microphone text-red-400"></i> <span id="voice-status">Sesli Komut</span>
             </button>
             <!-- KOD İÇİ ARAMA (CTRL+F) -->
-            <button onclick="triggerFindReplace()" class="px-2.5 py-1.5 bg-darkbg hover:bg-slate-800 border border-darkborder text-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1.5" title="Kod İçinde Bul & Değiştir (Ctrl+F)">
-                <i class="fa-solid fa-magnifying-glass text-brand-400"></i> Bul & Değiştir
+            <button onclick="triggerFindReplace()" class="px-2.5 py-1.5 app-bg-darker hover:bg-brand-500/10 border rounded-lg text-xs font-semibold flex items-center gap-1.5" title="Kod İçinde Bul & Değiştir (Ctrl+F)">
+                <i class="fa-solid fa-magnifying-glass text-brand-500"></i> Bul & Değiştir
             </button>
             <!-- EXPORT DÜĞMELERİ -->
             <button onclick="openFrameworkExportModal()" class="px-3 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5">
@@ -117,101 +150,101 @@
             <i class="fa-solid fa-chevron-left text-xs" id="icon-toggle-left"></i>
         </button>
 
-        <!-- SOL PANEL: BİLEŞENLER, DOSYALAR, E-TİCARET, CMS, DİL & FIGMA -->
-        <aside id="panel-left" class="w-80 bg-darkpanel border-r border-darkborder flex flex-col shrink-0 z-10 panel-transition">
-            <div class="flex border-b border-darkborder bg-darkbg/50 text-[11px] overflow-x-auto">
+        <!-- SOL PANEL -->
+        <aside id="panel-left" class="w-80 app-panel border-r flex flex-col shrink-0 z-10 panel-transition">
+            <div class="flex border-b app-bg-darker text-[11px] overflow-x-auto">
                 <button onclick="switchLeftTab('components')" id="tab-btn-components" class="px-3 py-2.5 font-medium border-b-2 border-brand-500 text-brand-500 flex items-center gap-1 whitespace-nowrap"><i class="fa-solid fa-cubes"></i> Bloklar</button>
-                <button onclick="switchLeftTab('files')" id="tab-btn-files" class="px-3 py-2.5 font-medium border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-1 whitespace-nowrap"><i class="fa-solid fa-folder-tree"></i> Dosyalar</button>
-                <button onclick="switchLeftTab('ecom')" id="tab-btn-ecom" class="px-3 py-2.5 font-medium border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-1 whitespace-nowrap"><i class="fa-solid fa-cart-shopping"></i> E-Ticaret</button>
-                <button onclick="switchLeftTab('cms')" id="tab-btn-cms" class="px-3 py-2.5 font-medium border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-1 whitespace-nowrap"><i class="fa-solid fa-database"></i> CMS</button>
-                <button onclick="switchLeftTab('i18n')" id="tab-btn-i18n" class="px-3 py-2.5 font-medium border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-1 whitespace-nowrap"><i class="fa-solid fa-globe"></i> Dil & Auth</button>
-                <button onclick="switchLeftTab('figma')" id="tab-btn-figma" class="px-3 py-2.5 font-medium border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-1 whitespace-nowrap"><i class="fa-brands fa-figma"></i> Figma/SVG</button>
+                <button onclick="switchLeftTab('files')" id="tab-btn-files" class="px-3 py-2.5 font-medium border-b-2 border-transparent app-text-muted hover:text-brand-500 flex items-center gap-1 whitespace-nowrap"><i class="fa-solid fa-folder-tree"></i> Dosyalar</button>
+                <button onclick="switchLeftTab('ecom')" id="tab-btn-ecom" class="px-3 py-2.5 font-medium border-b-2 border-transparent app-text-muted hover:text-brand-500 flex items-center gap-1 whitespace-nowrap"><i class="fa-solid fa-cart-shopping"></i> E-Ticaret</button>
+                <button onclick="switchLeftTab('cms')" id="tab-btn-cms" class="px-3 py-2.5 font-medium border-b-2 border-transparent app-text-muted hover:text-brand-500 flex items-center gap-1 whitespace-nowrap"><i class="fa-solid fa-database"></i> CMS</button>
+                <button onclick="switchLeftTab('i18n')" id="tab-btn-i18n" class="px-3 py-2.5 font-medium border-b-2 border-transparent app-text-muted hover:text-brand-500 flex items-center gap-1 whitespace-nowrap"><i class="fa-solid fa-globe"></i> Dil & Auth</button>
+                <button onclick="switchLeftTab('figma')" id="tab-btn-figma" class="px-3 py-2.5 font-medium border-b-2 border-transparent app-text-muted hover:text-brand-500 flex items-center gap-1 whitespace-nowrap"><i class="fa-brands fa-figma"></i> Figma/SVG</button>
             </div>
 
-            <!-- TAB 1: ZENGİNLEŞTİRİLMİŞ UI BLOK KÜTÜPHANESİ -->
+            <!-- TAB 1: UI BLOK KÜTÜPHANESİ -->
             <div id="tab-left-components" class="flex-1 overflow-y-auto p-3 space-y-4 text-xs">
                 <div>
-                    <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Temel Öğeler</h3>
+                    <h3 class="text-[11px] font-bold app-text-muted uppercase tracking-wider mb-2">Temel Öğeler</h3>
                     <div class="grid grid-cols-2 gap-2">
-                        <div draggable="true" ondragstart="dragStart(event, 'heading')" class="p-2 bg-darkbg border border-darkborder hover:border-brand-500 rounded cursor-grab flex items-center gap-2"><i class="fa-solid fa-heading text-brand-500"></i> Başlık</div>
-                        <div draggable="true" ondragstart="dragStart(event, 'paragraph')" class="p-2 bg-darkbg border border-darkborder hover:border-brand-500 rounded cursor-grab flex items-center gap-2"><i class="fa-solid fa-paragraph text-brand-500"></i> Paragraf</div>
-                        <div draggable="true" ondragstart="dragStart(event, 'button')" class="p-2 bg-darkbg border border-darkborder hover:border-brand-500 rounded cursor-grab flex items-center gap-2"><i class="fa-solid fa-square-poll-horizontal text-brand-500"></i> Buton</div>
-                        <div draggable="true" ondragstart="dragStart(event, 'image')" class="p-2 bg-darkbg border border-darkborder hover:border-brand-500 rounded cursor-grab flex items-center gap-2"><i class="fa-solid fa-image text-brand-500"></i> Görsel</div>
+                        <div draggable="true" ondragstart="dragStart(event, 'heading')" class="p-2 app-bg-darker border hover:border-brand-500 rounded cursor-grab flex items-center gap-2"><i class="fa-solid fa-heading text-brand-500"></i> Başlık</div>
+                        <div draggable="true" ondragstart="dragStart(event, 'paragraph')" class="p-2 app-bg-darker border hover:border-brand-500 rounded cursor-grab flex items-center gap-2"><i class="fa-solid fa-paragraph text-brand-500"></i> Paragraf</div>
+                        <div draggable="true" ondragstart="dragStart(event, 'button')" class="p-2 app-bg-darker border hover:border-brand-500 rounded cursor-grab flex items-center gap-2"><i class="fa-solid fa-square-poll-horizontal text-brand-500"></i> Buton</div>
+                        <div draggable="true" ondragstart="dragStart(event, 'image')" class="p-2 app-bg-darker border hover:border-brand-500 rounded cursor-grab flex items-center gap-2"><i class="fa-solid fa-image text-brand-500"></i> Görsel</div>
                     </div>
                 </div>
 
                 <div>
-                    <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Düzen & Izgara (Grid/Flex)</h3>
+                    <h3 class="text-[11px] font-bold app-text-muted uppercase tracking-wider mb-2">Düzen & Izgara (Grid/Flex)</h3>
                     <div class="grid grid-cols-2 gap-2">
-                        <div draggable="true" ondragstart="dragStart(event, 'container')" class="p-2 bg-darkbg border border-darkborder hover:border-brand-500 rounded cursor-grab flex items-center gap-2"><i class="fa-solid fa-box text-indigo-400"></i> Konteyner</div>
-                        <div draggable="true" ondragstart="dragStart(event, 'grid2')" class="p-2 bg-darkbg border border-darkborder hover:border-brand-500 rounded cursor-grab flex items-center gap-2"><i class="fa-solid fa-table-cells-large text-indigo-400"></i> 2'li Grid</div>
-                        <div draggable="true" ondragstart="dragStart(event, 'grid3')" class="p-2 bg-darkbg border border-darkborder hover:border-brand-500 rounded cursor-grab flex items-center gap-2"><i class="fa-solid fa-table-cells text-indigo-400"></i> 3'lü Grid</div>
-                        <div draggable="true" ondragstart="dragStart(event, 'card')" class="p-2 bg-darkbg border border-darkborder hover:border-brand-500 rounded cursor-grab flex items-center gap-2"><i class="fa-solid fa-id-card text-indigo-400"></i> Kart</div>
+                        <div draggable="true" ondragstart="dragStart(event, 'container')" class="p-2 app-bg-darker border hover:border-brand-500 rounded cursor-grab flex items-center gap-2"><i class="fa-solid fa-box text-indigo-400"></i> Konteyner</div>
+                        <div draggable="true" ondragstart="dragStart(event, 'grid2')" class="p-2 app-bg-darker border hover:border-brand-500 rounded cursor-grab flex items-center gap-2"><i class="fa-solid fa-table-cells-large text-indigo-400"></i> 2'li Grid</div>
+                        <div draggable="true" ondragstart="dragStart(event, 'grid3')" class="p-2 app-bg-darker border hover:border-brand-500 rounded cursor-grab flex items-center gap-2"><i class="fa-solid fa-table-cells text-indigo-400"></i> 3'lü Grid</div>
+                        <div draggable="true" ondragstart="dragStart(event, 'card')" class="p-2 app-bg-darker border hover:border-brand-500 rounded cursor-grab flex items-center gap-2"><i class="fa-solid fa-id-card text-indigo-400"></i> Kart</div>
                     </div>
                 </div>
 
                 <div>
-                    <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Hazır UI Blokları</h3>
+                    <h3 class="text-[11px] font-bold app-text-muted uppercase tracking-wider mb-2">Hazır UI Blokları</h3>
                     <div class="space-y-1.5">
-                        <div draggable="true" ondragstart="dragStart(event, 'navbar')" class="p-2 bg-darkbg border border-darkborder hover:border-brand-500 rounded cursor-grab flex items-center justify-between"><span class="flex items-center gap-2"><i class="fa-solid fa-bars text-emerald-400"></i> Navigasyon Barı</span></div>
-                        <div draggable="true" ondragstart="dragStart(event, 'hero')" class="p-2 bg-darkbg border border-darkborder hover:border-brand-500 rounded cursor-grab flex items-center justify-between"><span class="flex items-center gap-2"><i class="fa-solid fa-star text-emerald-400"></i> Hero Tanıtım</span></div>
-                        <div draggable="true" ondragstart="dragStart(event, 'pricing')" class="p-2 bg-darkbg border border-darkborder hover:border-brand-500 rounded cursor-grab flex items-center justify-between"><span class="flex items-center gap-2"><i class="fa-solid fa-tags text-emerald-400"></i> Fiyat Tablosu</span></div>
-                        <div draggable="true" ondragstart="dragStart(event, 'footer')" class="p-2 bg-darkbg border border-darkborder hover:border-brand-500 rounded cursor-grab flex items-center justify-between"><span class="flex items-center gap-2"><i class="fa-solid fa-[#1e293b] text-emerald-400"></i> Footer Altbilgi</span></div>
+                        <div draggable="true" ondragstart="dragStart(event, 'navbar')" class="p-2 app-bg-darker border hover:border-brand-500 rounded cursor-grab flex items-center justify-between"><span class="flex items-center gap-2"><i class="fa-solid fa-bars text-emerald-400"></i> Navigasyon Barı</span></div>
+                        <div draggable="true" ondragstart="dragStart(event, 'hero')" class="p-2 app-bg-darker border hover:border-brand-500 rounded cursor-grab flex items-center justify-between"><span class="flex items-center gap-2"><i class="fa-solid fa-star text-emerald-400"></i> Hero Tanıtım</span></div>
+                        <div draggable="true" ondragstart="dragStart(event, 'pricing')" class="p-2 app-bg-darker border hover:border-brand-500 rounded cursor-grab flex items-center justify-between"><span class="flex items-center gap-2"><i class="fa-solid fa-tags text-emerald-400"></i> Fiyat Tablosu</span></div>
+                        <div draggable="true" ondragstart="dragStart(event, 'footer')" class="p-2 app-bg-darker border hover:border-brand-500 rounded cursor-grab flex items-center justify-between"><span class="flex items-center gap-2"><i class="fa-solid fa-shoe-prints text-emerald-400"></i> Footer Altbilgi</span></div>
                     </div>
                 </div>
             </div>
 
-            <!-- TAB 2: ÇOKLU DOSYA YÖNETİCİSİ -->
+            <!-- TAB 2: DOSYA YÖNETİCİSİ -->
             <div id="tab-left-files" class="flex-1 overflow-y-auto p-3 hidden space-y-3 text-xs">
                 <div class="flex items-center justify-between mb-1">
-                    <span class="text-xs font-bold text-slate-400 uppercase">Proje Dosyaları</span>
+                    <span class="text-xs font-bold app-text-muted uppercase">Proje Dosyaları</span>
                     <button onclick="addNewFile()" class="p-1 text-xs bg-brand-600 text-white rounded hover:bg-brand-500 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Yeni Sayfa</button>
                 </div>
                 <div id="file-tree" class="space-y-1"></div>
             </div>
 
-            <!-- TAB 3: E-TİCARET & SEPET MOTORU -->
+            <!-- TAB 3: E-TİCARET -->
             <div id="tab-left-ecom" class="flex-1 overflow-y-auto p-3 hidden space-y-3 text-xs">
-                <h4 class="font-bold text-slate-300 border-b border-darkborder pb-1">E-Ticaret Elemanları</h4>
+                <h4 class="font-bold border-b pb-1">E-Ticaret Elemanları</h4>
                 <div class="space-y-2">
-                    <button onclick="insertEcomComponent('product-card')" class="w-full p-2 bg-darkbg hover:bg-slate-800 border border-darkborder rounded text-left flex items-center gap-2"><i class="fa-solid fa-bag-shopping text-emerald-400"></i> Ürün Kartı + "Satın Al"</button>
-                    <button onclick="insertEcomComponent('cart-drawer')" class="w-full p-2 bg-darkbg hover:bg-slate-800 border border-darkborder rounded text-left flex items-center gap-2"><i class="fa-solid fa-cart-flatbed text-amber-400"></i> Canlı Sepet Çekmecesi</button>
+                    <button onclick="insertEcomComponent('product-card')" class="w-full p-2 app-bg-darker border rounded text-left flex items-center gap-2"><i class="fa-solid fa-bag-shopping text-emerald-400"></i> Ürün Kartı + "Satın Al"</button>
+                    <button onclick="insertEcomComponent('cart-drawer')" class="w-full p-2 app-bg-darker border rounded text-left flex items-center gap-2"><i class="fa-solid fa-cart-flatbed text-amber-400"></i> Canlı Sepet Çekmecesi</button>
                 </div>
             </div>
 
-            <!-- TAB 4: DİNAMİK CMS KOLEKSİYONLARI -->
+            <!-- TAB 4: CMS -->
             <div id="tab-left-cms" class="flex-1 overflow-y-auto p-3 hidden space-y-3 text-xs">
-                <h4 class="font-bold text-slate-300 border-b border-darkborder pb-1">CMS Veri Koleksiyonları</h4>
+                <h4 class="font-bold border-b pb-1">CMS Veri Koleksiyonları</h4>
                 <div class="space-y-2">
-                    <button onclick="insertCMSBlock('blog-list')" class="w-full p-2 bg-darkbg hover:bg-slate-800 border border-darkborder rounded text-left flex items-center gap-2"><i class="fa-solid fa-newspaper text-indigo-400"></i> Blog Yazıları Listesi</button>
-                    <button onclick="insertCMSBlock('team-grid')" class="w-full p-2 bg-darkbg hover:bg-slate-800 border border-darkborder rounded text-left flex items-center gap-2"><i class="fa-solid fa-users text-purple-400"></i> Ekip Üyeleri Izgarası</button>
+                    <button onclick="insertCMSBlock('blog-list')" class="w-full p-2 app-bg-darker border rounded text-left flex items-center gap-2"><i class="fa-solid fa-newspaper text-indigo-400"></i> Blog Yazıları Listesi</button>
+                    <button onclick="insertCMSBlock('team-grid')" class="w-full p-2 app-bg-darker border rounded text-left flex items-center gap-2"><i class="fa-solid fa-users text-purple-400"></i> Ekip Üyeleri Izgarası</button>
                 </div>
             </div>
 
-            <!-- TAB 5: ÇOKLU DİL, AUTH VE CANLI SOHBET -->
+            <!-- TAB 5: DİL & AUTH -->
             <div id="tab-left-i18n" class="flex-1 overflow-y-auto p-3 hidden space-y-3 text-xs">
-                <button onclick="insertWidget('lang-switcher')" class="w-full p-2 bg-darkbg hover:bg-slate-800 border border-darkborder rounded text-left flex items-center gap-2"><i class="fa-solid fa-language text-brand-400"></i> Dil Seçici (TR/EN)</button>
-                <button onclick="insertWidget('auth-modal')" class="w-full p-2 bg-darkbg hover:bg-slate-800 border border-darkborder rounded text-left flex items-center gap-2"><i class="fa-solid fa-user-lock text-emerald-400"></i> Giriş Yap & Kayıt Formu</button>
-                <button onclick="insertWidget('whatsapp')" class="w-full p-2 bg-darkbg hover:bg-slate-800 border border-darkborder rounded text-left flex items-center gap-2"><i class="fa-brands fa-whatsapp text-emerald-500"></i> WhatsApp Destek</button>
+                <button onclick="insertWidget('lang-switcher')" class="w-full p-2 app-bg-darker border rounded text-left flex items-center gap-2"><i class="fa-solid fa-language text-brand-500"></i> Dil Seçici (TR/EN)</button>
+                <button onclick="insertWidget('auth-modal')" class="w-full p-2 app-bg-darker border rounded text-left flex items-center gap-2"><i class="fa-solid fa-user-lock text-emerald-400"></i> Giriş Yap & Kayıt Formu</button>
+                <button onclick="insertWidget('whatsapp')" class="w-full p-2 app-bg-darker border rounded text-left flex items-center gap-2"><i class="fa-brands fa-whatsapp text-emerald-500"></i> WhatsApp Destek</button>
             </div>
 
             <!-- TAB 6: FIGMA & SVG IMPORT -->
             <div id="tab-left-figma" class="flex-1 overflow-y-auto p-3 hidden space-y-3 text-xs">
-                <textarea id="svg-input" rows="4" placeholder="SVG veya Figma Kodunu Yapıştırın..." class="w-full bg-darkbg border border-darkborder rounded p-2 text-xs text-slate-200 focus:outline-none"></textarea>
+                <textarea id="svg-input" rows="4" placeholder="SVG veya Figma Kodunu Yapıştırın..." class="w-full app-bg-darker border rounded p-2 text-xs focus:outline-none"></textarea>
                 <button onclick="insertSVGCode()" class="w-full py-2 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded">Tuvala Ekle</button>
             </div>
         </aside>
 
         <!-- ORTA ORTAM: KOD EDİTÖRÜ VE CANLI WYSIWYG TUVAL -->
-        <main class="flex-1 flex flex-col min-w-0 bg-darkbg relative overflow-hidden">
+        <main class="flex-1 flex flex-col min-w-0 app-bg-darker relative overflow-hidden">
             <div id="workspace-container" class="flex-1 flex overflow-hidden">
                 <!-- Kod Editörü Paneli -->
-                <div id="panel-code" class="flex-1 flex flex-col border-r border-darkborder bg-[#1e1e1e] min-w-[250px]">
-                    <div class="flex items-center justify-between bg-darkpanel border-b border-darkborder px-2 h-9 shrink-0">
+                <div id="panel-code" class="flex-1 flex flex-col border-r bg-[#1e1e1e] min-w-[250px]">
+                    <div class="flex items-center justify-between app-panel border-b px-2 h-9 shrink-0">
                         <div class="flex items-center gap-1 text-xs">
                             <button onclick="switchCodeTab('html')" id="codetab-html" class="px-3 py-1 rounded-t font-semibold bg-[#1e1e1e] text-amber-400 border-t-2 border-amber-400"><i class="fa-brands fa-html5"></i> HTML</button>
-                            <button onclick="switchCodeTab('css')" id="codetab-css" class="px-3 py-1 rounded-t text-slate-400 hover:text-white"><i class="fa-brands fa-css3-alt text-blue-400"></i> CSS</button>
-                            <button onclick="switchCodeTab('js')" id="codetab-js" class="px-3 py-1 rounded-t text-slate-400 hover:text-white"><i class="fa-brands fa-js text-yellow-400"></i> JS</button>
+                            <button onclick="switchCodeTab('css')" id="codetab-css" class="px-3 py-1 rounded-t app-text-muted hover:text-brand-500"><i class="fa-brands fa-css3-alt text-blue-400"></i> CSS</button>
+                            <button onclick="switchCodeTab('js')" id="codetab-js" class="px-3 py-1 rounded-t app-text-muted hover:text-brand-500"><i class="fa-brands fa-js text-yellow-400"></i> JS</button>
                         </div>
                     </div>
                     <div class="flex-1 relative overflow-hidden">
@@ -222,15 +255,21 @@
                 </div>
 
                 <!-- CANLI GÖRSEL SAHNE DÜZENLEME (WYSIWYG CANVAS) -->
-                <div id="panel-visual" class="flex-1 flex flex-col bg-slate-900/50 min-w-[300px] relative overflow-hidden">
-                    <div class="h-9 bg-darkpanel border-b border-darkborder flex items-center justify-between px-3 text-xs shrink-0">
-                        <span class="font-medium text-slate-300 flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Canlı Görsel Sahne (Çift Tıkla: Düzenle)
+                <div id="panel-visual" class="flex-1 flex flex-col min-w-[300px] relative overflow-hidden">
+                    <div class="h-9 app-panel border-b flex items-center justify-between px-3 text-xs shrink-0">
+                        <span class="font-medium flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Canlı Görsel Sahne
                         </span>
-                        <button onclick="clearCanvas()" class="text-slate-400 hover:text-red-400"><i class="fa-solid fa-trash-can"></i> Temizle</button>
+                        <div class="flex items-center gap-2">
+                            <!-- CANLI SAHNE DÜZENLEME MODU BUTONU -->
+                            <button onclick="toggleEditMode()" id="btn-edit-mode" class="px-2.5 py-1 bg-brand-600 hover:bg-brand-500 text-white rounded font-medium flex items-center gap-1">
+                                <i class="fa-solid fa-pen-to-square" id="icon-edit-mode"></i> <span id="text-edit-mode">Düzenle</span>
+                            </button>
+                            <button onclick="clearCanvas()" class="app-text-muted hover:text-red-400"><i class="fa-solid fa-trash-can"></i> Temizle</button>
+                        </div>
                     </div>
-                    <div class="flex-1 overflow-auto p-4 flex justify-center items-start bg-slate-950/40">
-                        <div id="canvas-wrapper" class="w-full h-full transition-all duration-300 bg-white shadow-2xl rounded-md overflow-hidden relative border border-slate-700">
+                    <div class="flex-1 overflow-auto p-4 flex justify-center items-start app-bg-darker">
+                        <div id="canvas-wrapper" class="h-full transition-all duration-300 bg-white shadow-2xl rounded-md overflow-hidden relative border border-slate-300 dark:border-slate-700" style="width: 100%;">
                             <iframe id="preview-frame" class="w-full h-full border-0 bg-white"></iframe>
                         </div>
                     </div>
@@ -238,10 +277,10 @@
             </div>
 
             <!-- ALT KONSOL -->
-            <div id="panel-console" class="h-24 bg-darkpanel border-t border-darkborder flex flex-col shrink-0 panel-transition">
-                <div class="h-7 bg-darkbg px-3 flex items-center justify-between border-b border-darkborder text-[11px]">
-                    <span class="font-bold text-slate-400 flex items-center gap-1.5"><i class="fa-solid fa-terminal text-brand-500"></i> Geliştirici Konsolu</span>
-                    <button onclick="toggleConsolePanel()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-chevron-down" id="icon-toggle-console"></i></button>
+            <div id="panel-console" class="h-24 app-panel border-t flex flex-col shrink-0 panel-transition">
+                <div class="h-7 app-bg-darker px-3 flex items-center justify-between border-b text-[11px]">
+                    <span class="font-bold app-text-muted flex items-center gap-1.5"><i class="fa-solid fa-terminal text-brand-500"></i> Geliştirici Konsolu</span>
+                    <button onclick="toggleConsolePanel()" class="app-text-muted hover:text-brand-500"><i class="fa-solid fa-chevron-down" id="icon-toggle-console"></i></button>
                 </div>
                 <div id="console-logs" class="flex-1 p-2 font-mono text-xs overflow-y-auto space-y-1 bg-[#090d16] text-slate-300">
                     <div class="text-slate-500">[Sistem] WebStudio IDE Master v11.0 Hazır.</div>
@@ -254,39 +293,39 @@
             <i class="fa-solid fa-chevron-right text-xs" id="icon-toggle-right"></i>
         </button>
 
-        <!-- SAĞ PANEL: ÖZELLİK DENETÇİSİ & TAILWIND CONFIG -->
-        <aside id="panel-right" class="w-80 bg-darkpanel border-l border-darkborder flex flex-col shrink-0 z-10 panel-transition">
-            <div class="h-10 bg-darkbg border-b border-darkborder flex items-center justify-between px-3 shrink-0">
-                <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5"><i class="fa-solid fa-sliders text-brand-500"></i> Özellik & Stil Yöneticisi</span>
-                <span id="selected-tag-badge" class="text-[10px] bg-brand-500/20 text-brand-400 px-2 py-0.5 rounded font-mono">Seçilmedi</span>
+        <!-- SAĞ PANEL -->
+        <aside id="panel-right" class="w-80 app-panel border-l flex flex-col shrink-0 z-10 panel-transition">
+            <div class="h-10 app-bg-darker border-b flex items-center justify-between px-3 shrink-0">
+                <span class="text-xs font-bold flex items-center gap-1.5"><i class="fa-solid fa-sliders text-brand-500"></i> Özellik & Stil Yöneticisi</span>
+                <span id="selected-tag-badge" class="text-[10px] bg-brand-500/20 text-brand-500 px-2 py-0.5 rounded font-mono">Seçilmedi</span>
             </div>
 
             <div class="flex-1 overflow-y-auto p-3 space-y-4 text-xs">
                 <!-- SEÇİLİ ÖĞE DÜZENLEME FORMU -->
                 <div id="inspector-form" class="space-y-3">
-                    <div class="flex items-center gap-1 bg-darkbg p-1 rounded border border-darkborder">
-                        <button onclick="duplicateSelectedElement()" class="flex-1 py-1 bg-darkpanel hover:bg-slate-700 text-slate-200 rounded text-[11px]"><i class="fa-solid fa-copy"></i> Çoğalt</button>
-                        <button onclick="deleteSelectedElement()" class="p-1 px-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded"><i class="fa-solid fa-trash"></i></button>
+                    <div class="flex items-center gap-1 app-bg-darker p-1 rounded border">
+                        <button onclick="duplicateSelectedElement()" class="flex-1 py-1 app-panel hover:bg-brand-500/10 rounded text-[11px]"><i class="fa-solid fa-copy"></i> Çoğalt</button>
+                        <button onclick="deleteSelectedElement()" class="p-1 px-2 bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white rounded"><i class="fa-solid fa-trash"></i></button>
                     </div>
                     <div>
-                        <label class="text-slate-400 text-[11px]">Metin / İçerik</label>
-                        <textarea id="attr-text" oninput="updateSelectedText(this.value)" class="w-full bg-darkbg border border-darkborder rounded p-1.5 text-xs text-slate-200 mt-1 h-12"></textarea>
+                        <label class="app-text-muted text-[11px]">Metin / İçerik</label>
+                        <textarea id="attr-text" oninput="updateSelectedText(this.value)" class="w-full app-bg-darker border rounded p-1.5 text-xs mt-1 h-12 focus:outline-none"></textarea>
                     </div>
                 </div>
 
                 <!-- TAILWIND TEMA KONTROLÜ -->
-                <div class="pt-2 border-t border-darkborder">
-                    <h4 class="font-bold text-slate-400 uppercase text-[10px] mb-2">Tailwind Marka Rengi</h4>
-                    <input type="color" id="tailwind-brand-color" value="#0ea5e9" onchange="updateTailwindBrandColor(this.value)" class="w-full h-7 bg-darkbg border border-darkborder rounded cursor-pointer">
+                <div class="pt-2 border-t">
+                    <h4 class="font-bold app-text-muted uppercase text-[10px] mb-2">Tailwind Marka Rengi</h4>
+                    <input type="color" id="tailwind-brand-color" value="#0ea5e9" onchange="updateTailwindBrandColor(this.value)" class="w-full h-7 app-bg-darker border rounded cursor-pointer">
                 </div>
 
                 <!-- DOM HİYERARŞİ AĞACI -->
-                <div class="pt-2 border-t border-darkborder">
-                    <h4 class="font-bold text-slate-400 uppercase text-[10px] mb-2 flex items-center justify-between">
+                <div class="pt-2 border-t">
+                    <h4 class="font-bold app-text-muted uppercase text-[10px] mb-2 flex items-center justify-between">
                         <span>DOM Hiyerarşisi</span>
-                        <button onclick="refreshDOMTree()" class="hover:text-white"><i class="fa-solid fa-rotate"></i></button>
+                        <button onclick="refreshDOMTree()" class="hover:text-brand-500"><i class="fa-solid fa-rotate"></i></button>
                     </h4>
-                    <div id="dom-tree" class="bg-darkbg p-2 rounded border border-darkborder font-mono text-[11px] max-h-40 overflow-y-auto space-y-1"></div>
+                    <div id="dom-tree" class="app-bg-darker p-2 rounded border font-mono text-[11px] max-h-40 overflow-y-auto space-y-1"></div>
                 </div>
             </div>
         </aside>
@@ -295,17 +334,17 @@
 
     <!-- FRAMEWORK EXPORT MODAL -->
     <div id="framework-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden">
-        <div class="bg-darkpanel border border-darkborder rounded-xl w-[600px] p-5 shadow-2xl space-y-4">
-            <div class="flex items-center justify-between border-b border-darkborder pb-3">
-                <h3 class="font-bold text-sm text-cyan-400 flex items-center gap-2"><i class="fa-brands fa-react"></i> Framework Dönüştürücü</h3>
-                <button onclick="closeFrameworkExportModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        <div class="app-panel border rounded-xl w-[600px] p-5 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b pb-3">
+                <h3 class="font-bold text-sm text-cyan-500 flex items-center gap-2"><i class="fa-brands fa-react"></i> Framework Dönüştürücü</h3>
+                <button onclick="closeFrameworkExportModal()" class="app-text-muted hover:text-brand-500"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="flex gap-2 border-b border-darkborder pb-2 text-xs">
+            <div class="flex gap-2 border-b pb-2 text-xs">
                 <button onclick="convertCode('react')" class="px-3 py-1 bg-cyan-600 text-white rounded">React (JSX)</button>
                 <button onclick="convertCode('vue')" class="px-3 py-1 bg-emerald-600 text-white rounded">Vue 3 (SFC)</button>
                 <button onclick="convertCode('svelte')" class="px-3 py-1 bg-orange-600 text-white rounded">Svelte</button>
             </div>
-            <textarea id="converted-code" rows="10" class="w-full bg-darkbg border border-darkborder rounded p-2 font-mono text-xs text-slate-200 focus:outline-none"></textarea>
+            <textarea id="converted-code" rows="10" class="w-full app-bg-darker border rounded p-2 font-mono text-xs focus:outline-none"></textarea>
             <div class="flex justify-end">
                 <button onclick="navigator.clipboard.writeText(document.getElementById('converted-code').value); alert('Kopyalandı!');" class="px-4 py-1.5 bg-brand-600 text-white text-xs font-semibold rounded">Kopyala</button>
             </div>
@@ -314,14 +353,14 @@
 
     <!-- AI PROMPT MODAL -->
     <div id="ai-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden">
-        <div class="bg-darkpanel border border-darkborder rounded-xl w-[500px] p-5 shadow-2xl space-y-4">
-            <div class="flex items-center justify-between border-b border-darkborder pb-3">
+        <div class="app-panel border rounded-xl w-[500px] p-5 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b pb-3">
                 <h3 class="font-bold text-sm text-purple-400 flex items-center gap-2"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Studio</h3>
-                <button onclick="closeAIModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+                <button onclick="closeAIModal()" class="app-text-muted hover:text-brand-500"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <textarea id="ai-prompt-input" rows="3" placeholder="Örn: Koyu temalı modern fiyat kartı tasarla..." class="w-full bg-darkbg border border-darkborder rounded p-2 text-xs text-slate-200 focus:outline-none"></textarea>
+            <textarea id="ai-prompt-input" rows="3" placeholder="Örn: Koyu temalı modern fiyat kartı tasarla..." class="w-full app-bg-darker border rounded p-2 text-xs focus:outline-none"></textarea>
             <div class="flex justify-end gap-2">
-                <button onclick="closeAIModal()" class="px-3 py-1.5 bg-darkbg rounded text-xs text-slate-300">İptal</button>
+                <button onclick="closeAIModal()" class="px-3 py-1.5 app-bg-darker rounded text-xs">İptal</button>
                 <button onclick="generateAIContent()" class="px-4 py-1.5 bg-purple-600 text-white rounded text-xs font-semibold">Oluştur</button>
             </div>
         </div>
@@ -357,6 +396,7 @@
         let isLeftCollapsed = false;
         let isRightCollapsed = false;
         let isConsoleCollapsed = false;
+        let isEditMode = false;
 
         window.addEventListener('DOMContentLoaded', () => {
             initCodeMirror();
@@ -392,19 +432,11 @@
 
         function attachCanvasEvents(doc) {
             doc.body.addEventListener('click', (e) => {
-                e.preventDefault(); e.stopPropagation();
-                selectCanvasElement(e.target);
-            });
-
-            // ÇİFT TIKLAMA İLE DOĞRUDAN METİN DÜZENLEME
-            doc.body.addEventListener('dblclick', (e) => {
-                e.stopPropagation();
-                e.target.contentEditable = true;
-                e.target.focus();
-                e.target.onblur = () => {
-                    e.target.contentEditable = false;
-                    syncCanvasToCode();
-                };
+                if (isEditMode) {
+                    e.preventDefault(); 
+                    e.stopPropagation();
+                    selectCanvasElement(e.target);
+                }
             });
 
             doc.body.addEventListener('dragover', (e) => e.preventDefault());
@@ -413,6 +445,29 @@
                 const type = e.dataTransfer.getData('text/plain');
                 insertComponentToCanvas(type, e.target);
             });
+        }
+
+        // DÜZENLEME MODU BUTONU İŞLEVİ (ÇİFT TIKLAMA YERİNE)
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const btn = document.getElementById('btn-edit-mode');
+            const icon = document.getElementById('icon-edit-mode');
+            const text = document.getElementById('text-edit-mode');
+            const frame = document.getElementById('preview-frame');
+            const doc = frame.contentDocument || frame.contentWindow.document;
+
+            if (isEditMode) {
+                btn.className = "px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-white rounded font-medium flex items-center gap-1";
+                icon.className = "fa-solid fa-lock-open";
+                text.innerText = "Kilitle";
+                doc.body.contentEditable = "true";
+            } else {
+                btn.className = "px-2.5 py-1 bg-brand-600 hover:bg-brand-500 text-white rounded font-medium flex items-center gap-1";
+                icon.className = "fa-solid fa-pen-to-square";
+                text.innerText = "Düzenle";
+                doc.body.contentEditable = "false";
+                syncCanvasToCode();
+            }
         }
 
         function selectCanvasElement(el) {
@@ -429,6 +484,7 @@
             const frame = document.getElementById('preview-frame');
             const doc = frame.contentDocument || frame.contentWindow.document;
             const cloneDoc = doc.cloneNode(true);
+            cloneDoc.body.contentEditable = "false";
             cloneDoc.querySelectorAll('[style*="outline"]').forEach(s => s.style.outline = '');
             editors.html.setValue(cloneDoc.documentElement.outerHTML);
         }
@@ -500,7 +556,21 @@
 
         // AÇIK / KOYU TEMA DÖNÜŞTÜRÜCÜ
         function toggleThemeMode() {
-            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.toggle('dark');
+            const themeIcon = document.getElementById('theme-icon');
+            if (isDark) {
+                themeIcon.className = 'fa-solid fa-sun';
+            } else {
+                themeIcon.className = 'fa-solid fa-moon';
+            }
+        }
+
+        // CİHAZ SİMÜLATÖRÜ BOYUT AYARLAYICI
+        function setCanvasSize(size) {
+            const wrapper = document.getElementById('canvas-wrapper');
+            if (wrapper) {
+                wrapper.style.width = size;
+            }
         }
 
         // KOD İÇİ CTRL+F BUL & DEĞİŞTİR
@@ -529,7 +599,7 @@
         function switchLeftTab(tab) {
             ['components', 'files', 'ecom', 'cms', 'i18n', 'figma'].forEach(t => {
                 document.getElementById(`tab-left-${t}`).classList.add('hidden');
-                document.getElementById(`tab-btn-${t}`).className = "px-3 py-2.5 font-medium border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-1 whitespace-nowrap";
+                document.getElementById(`tab-btn-${t}`).className = "px-3 py-2.5 font-medium border-b-2 border-transparent app-text-muted hover:text-brand-500 flex items-center gap-1 whitespace-nowrap";
             });
             document.getElementById(`tab-left-${tab}`).classList.remove('hidden');
             document.getElementById(`tab-btn-${tab}`).className = "px-3 py-2.5 font-medium border-b-2 border-brand-500 text-brand-500 flex items-center gap-1 whitespace-nowrap";
@@ -546,7 +616,7 @@
             const container = document.getElementById('file-tree'); container.innerHTML = '';
             Object.keys(files).forEach(filename => {
                 const item = document.createElement('div');
-                item.className = `p-2 rounded cursor-pointer text-xs ${filename === currentFile ? 'bg-brand-600/20 text-brand-400 font-semibold' : 'hover:bg-slate-800 text-slate-300'}`;
+                item.className = `p-2 rounded cursor-pointer text-xs ${filename === currentFile ? 'bg-brand-600/20 text-brand-500 font-semibold' : 'hover:bg-brand-500/10 app-text-muted'}`;
                 item.innerHTML = `<i class="fa-solid fa-file-code mr-1"></i> ${filename}`;
                 item.onclick = () => switchFile(filename);
                 container.appendChild(item);
@@ -626,7 +696,6 @@
             document.getElementById('panel-visual').classList.toggle('hidden', mode === 'code');
         }
 
-        function setCanvasSize(size) { document.getElementById('canvas-wrapper').style.width = size; }
         function clearCanvas() {
             const frame = document.getElementById('preview-frame');
             (frame.contentDocument || frame.contentWindow.document).body.innerHTML = '';
@@ -641,7 +710,7 @@
             function buildTree(node, parentEl) {
                 if (node.nodeType === 1) {
                     const item = document.createElement('div');
-                    item.className = 'hover:text-brand-400 cursor-pointer pl-2';
+                    item.className = 'hover:text-brand-500 cursor-pointer pl-2';
                     item.innerText = `<${node.tagName.toLowerCase()}>`;
                     item.onclick = (e) => { e.stopPropagation(); selectCanvasElement(node); };
                     parentEl.appendChild(item);
