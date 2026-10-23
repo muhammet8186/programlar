@@ -1,0 +1,1479 @@
+```html
+<!DOCTYPE html>
+<html lang="tr" class="h-full dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebStudio IDE Pro - Gelişmiş Türkçe HTML/CSS Editörü & Görsel Tasarımcı</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        studio: {
+                            bg: '#0f1117',
+                            sidebar: '#161922',
+                            panel: '#1e222e',
+                            border: '#2a2e3d',
+                            hover: '#252938',
+                            active: '#2f3446',
+                            accent: '#6366f1',
+                            accentHover: '#4f46e5',
+                            text: '#f1f5f9',
+                            muted: '#94a3b8'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['Fira Code', 'JetBrains Mono', 'Consolas', 'monospace'],
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- CodeMirror CSS & JS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/eclipse.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closetag.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/selection/active-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/html-hint.min.js"></script>
+
+    <!-- JS Beautify & JSZip -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify-html.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        .CodeMirror {
+            height: 100% !important;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            background: transparent !important;
+        }
+        .CodeMirror-gutters {
+            background-color: rgba(0,0,0,0.18) !important;
+            border-right: 1px solid rgba(255,255,255,0.06) !important;
+        }
+        .CodeMirror-activeline-background {
+            background: rgba(255, 255, 255, 0.04) !important;
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.25); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.45); }
+
+        .preview-device-mobile { width: 375px; height: 667px; }
+        .preview-device-tablet { width: 768px; height: 1024px; }
+        .preview-device-desktop { width: 100%; height: 100%; }
+
+        /* Smooth Drag Ghost */
+        .component-btn {
+            cursor: grab;
+            user-select: none;
+        }
+        .component-btn:active {
+            cursor: grabbing;
+        }
+    </style>
+</head>
+<body class="h-full bg-studio-bg text-studio-text font-sans antialiased flex flex-col overflow-hidden select-none">
+
+    <!-- Üst Kontrol Çubuğu (Header) -->
+    <header class="h-12 border-b border-studio-border bg-studio-sidebar flex items-center justify-between px-3 z-30 shrink-0">
+        <!-- Logo & Başlık -->
+        <div class="flex items-center space-x-3">
+            <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 font-bold text-lg">
+                <i class="fa-solid fa-laptop-code"></i>
+            </div>
+            <div>
+                <h1 class="text-sm font-bold tracking-wide text-white flex items-center gap-2">
+                    WebStudio IDE <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">PRO v4.0</span>
+                </h1>
+            </div>
+        </div>
+
+        <!-- Şablonlar & Hızlı Aksiyonlar -->
+        <div class="flex items-center space-x-2">
+            <!-- Şablon Seçici -->
+            <select id="templateSelect" onchange="loadTemplate(this.value)" class="bg-studio-panel text-xs text-studio-text border border-studio-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-indigo-500 transition cursor-pointer">
+                <option value="" disabled selected>🚀 Hazır Şablon Yükle...</option>
+                <option value="landing">Modern Tanıtım Sayfası (Hero & Features)</option>
+                <option value="portfolio">Kişisel Portfolyo Sayfası</option>
+                <option value="dashboard">Yönetim Paneli (Dashboard UI)</option>
+                <option value="contact">İletişim & Form Sayfası</option>
+                <option value="blank">Boş Tuval</option>
+            </select>
+
+            <div class="h-4 w-px bg-studio-border mx-1"></div>
+
+            <!-- Kod İşlemleri -->
+            <button onclick="formatCode()" title="Kodu Biçimlendir (Alt+Shift+F)" class="p-1.5 px-2.5 rounded-lg text-xs bg-studio-panel border border-studio-border hover:bg-studio-hover text-studio-text flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
+                <span class="hidden md:inline">Biçimlendir</span>
+            </button>
+
+            <button id="autoRefreshBtn" onclick="toggleAutoRefresh()" class="p-1.5 px-2.5 rounded-lg text-xs bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-600/30 flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-rotate text-xs"></i>
+                <span class="hidden md:inline">Oto Yenile: <b id="autoRefreshState">AÇIK</b></span>
+            </button>
+
+            <button onclick="updatePreview()" title="Önizlemeyi Yenile (Ctrl+S)" class="p-1.5 px-2.5 rounded-lg text-xs bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-600/30 flex items-center gap-1.5 transition font-semibold">
+                <i class="fa-solid fa-play"></i>
+                <span class="hidden md:inline">Çalıştır</span>
+            </button>
+
+            <div class="h-4 w-px bg-studio-border mx-1"></div>
+
+            <!-- İçe / Dışa Aktar -->
+            <button onclick="exportSingleHTML()" title="HTML Olarak İndir" class="p-1.5 px-2.5 rounded-lg text-xs bg-studio-panel border border-studio-border hover:bg-studio-hover text-studio-text flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-file-code text-indigo-400"></i>
+                <span class="hidden lg:inline">.HTML</span>
+            </button>
+            <button onclick="exportZIP()" title="ZIP Projesi İndir" class="p-1.5 px-2.5 rounded-lg text-xs bg-studio-panel border border-studio-border hover:bg-studio-hover text-studio-text flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-file-archive text-yellow-400"></i>
+                <span class="hidden lg:inline">ZIP</span>
+            </button>
+            <label class="p-1.5 px-2.5 rounded-lg text-xs bg-studio-panel border border-studio-border hover:bg-studio-hover text-studio-text flex items-center gap-1.5 cursor-pointer transition" title="Dosya Aç">
+                <i class="fa-solid fa-upload text-sky-400"></i>
+                <span class="hidden lg:inline">Yükle</span>
+                <input type="file" id="importFileInput" onchange="importFile(event)" accept=".html,.css,.js" class="hidden">
+            </label>
+
+            <div class="h-4 w-px bg-studio-border mx-1"></div>
+
+            <button onclick="toggleTheme()" id="themeToggleBtn" title="Aydınlık / Koyu Tema" class="p-1.5 rounded-lg bg-studio-panel border border-studio-border hover:bg-studio-hover text-studio-text transition">
+                <i class="fa-solid fa-moon text-indigo-400"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Ana Çalışma Alanı -->
+    <div class="flex-1 flex overflow-hidden">
+        
+        <!-- Sol Yan Panel -->
+        <aside id="sidebar" class="w-80 border-r border-studio-border bg-studio-sidebar flex flex-col shrink-0 z-20 transition-all duration-300">
+            <!-- Sol Panel Sekmeleri -->
+            <div class="flex border-b border-studio-border text-xs bg-studio-bg shrink-0">
+                <button onclick="switchSidebarTab('components')" id="tabBtn-components" class="flex-1 py-2.5 px-2 border-b-2 border-indigo-500 font-semibold text-white flex items-center justify-center gap-1.5 bg-studio-panel">
+                    <i class="fa-solid fa-cubes text-emerald-400"></i> Öğeler
+                </button>
+                <button onclick="switchSidebarTab('inspector')" id="tabBtn-inspector" class="flex-1 py-2.5 px-2 border-b-2 border-transparent text-studio-muted hover:text-studio-text flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-sliders text-amber-400"></i> Stil
+                </button>
+                <button onclick="switchSidebarTab('domtree')" id="tabBtn-domtree" class="flex-1 py-2.5 px-2 border-b-2 border-transparent text-studio-muted hover:text-studio-text flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-sitemap text-sky-400"></i> Katmanlar
+                </button>
+                <button onclick="switchSidebarTab('explorer')" id="tabBtn-explorer" class="flex-1 py-2.5 px-2 border-b-2 border-transparent text-studio-muted hover:text-studio-text flex items-center justify-center gap-1.5">
+                    <i class="fa-regular fa-folder-open text-indigo-400"></i> Proje
+                </button>
+            </div>
+
+            <!-- SEKMELERİN İÇERİĞİ -->
+
+            <!-- Sekme 1: Zengin Görsel Bileşen Kütüphanesi -->
+            <div id="tabContent-components" class="p-3 space-y-4 overflow-y-auto flex-1 text-xs">
+                <div class="relative">
+                    <input type="text" id="componentSearch" onkeyup="filterComponents()" placeholder="Bileşen ara... (ör. Buton, Kart)" class="w-full bg-studio-bg border border-studio-border rounded-lg px-2.5 py-1.5 pl-8 text-xs text-white focus:outline-none focus:border-indigo-500">
+                    <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-studio-muted text-xs"></i>
+                </div>
+
+                <!-- Tipografi & Metin -->
+                <div class="component-group">
+                    <div class="text-[11px] font-bold text-studio-muted uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-font text-indigo-400"></i> Tipografi & Metin
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <button onclick="insertComponent('h1')" draggable="true" ondragstart="dragComponent(event, 'h1')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-heading text-indigo-400"></i> Ana Başlık (H1)
+                        </button>
+                        <button onclick="insertComponent('h2')" draggable="true" ondragstart="dragComponent(event, 'h2')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-heading text-sky-400"></i> Alt Başlık (H2)
+                        </button>
+                        <button onclick="insertComponent('paragraph')" draggable="true" ondragstart="dragComponent(event, 'paragraph')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-paragraph text-emerald-400"></i> Paragraf
+                        </button>
+                        <button onclick="insertComponent('leadParagraph')" draggable="true" ondragstart="dragComponent(event, 'leadParagraph')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-align-left text-amber-400"></i> Vurgulu Paragraf
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Butonlar -->
+                <div class="component-group">
+                    <div class="text-[11px] font-bold text-studio-muted uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-hand-pointer text-emerald-400"></i> Butonlar
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <button onclick="insertComponent('btnPrimary')" draggable="true" ondragstart="dragComponent(event, 'btnPrimary')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-square text-indigo-500"></i> Birincil Buton
+                        </button>
+                        <button onclick="insertComponent('btnSecondary')" draggable="true" ondragstart="dragComponent(event, 'btnSecondary')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-regular fa-square text-slate-400"></i> İkincil Buton
+                        </button>
+                        <button onclick="insertComponent('btnGradient')" draggable="true" ondragstart="dragComponent(event, 'btnGradient')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-circle-half-stroke text-purple-400"></i> Gradyan Buton
+                        </button>
+                        <button onclick="insertComponent('btnIcon')" draggable="true" ondragstart="dragComponent(event, 'btnIcon')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-arrow-right text-rose-400"></i> İkonlu Buton
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Kartlar & İçerik -->
+                <div class="component-group">
+                    <div class="text-[11px] font-bold text-studio-muted uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fa-regular fa-square text-amber-400"></i> Kartlar & Şablon Parçaları
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <button onclick="insertComponent('cardBasic')" draggable="true" ondragstart="dragComponent(event, 'cardBasic')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-square-minus text-amber-400"></i> Temel Kart
+                        </button>
+                        <button onclick="insertComponent('cardFeature')" draggable="true" ondragstart="dragComponent(event, 'cardFeature')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-star text-yellow-400"></i> Özellik Kartı
+                        </button>
+                        <button onclick="insertComponent('cardProduct')" draggable="true" ondragstart="dragComponent(event, 'cardProduct')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-cart-shopping text-cyan-400"></i> Ürün Kartı
+                        </button>
+                        <button onclick="insertComponent('cardPricing')" draggable="true" ondragstart="dragComponent(event, 'cardPricing')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-tags text-emerald-400"></i> Fiyatlandırma Kartı
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Form Elemanları -->
+                <div class="component-group">
+                    <div class="text-[11px] font-bold text-studio-muted uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fa-regular fa-keyboard text-rose-400"></i> Form Elemanları
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <button onclick="insertComponent('inputGroup')" draggable="true" ondragstart="dragComponent(event, 'inputGroup')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-input-text text-rose-400"></i> Metin Kutusu
+                        </button>
+                        <button onclick="insertComponent('selectGroup')" draggable="true" ondragstart="dragComponent(event, 'selectGroup')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-caret-down text-sky-400"></i> Seçim Menüsü (Select)
+                        </button>
+                        <button onclick="insertComponent('checkboxGroup')" draggable="true" ondragstart="dragComponent(event, 'checkboxGroup')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-regular fa-square-check text-indigo-400"></i> Onay Kutusu (Checkbox)
+                        </button>
+                        <button onclick="insertComponent('textareaGroup')" draggable="true" ondragstart="dragComponent(event, 'textareaGroup')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-align-left text-teal-400"></i> Metin Alanı (Textarea)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Navigasyon & Düzen (Layout) -->
+                <div class="component-group">
+                    <div class="text-[11px] font-bold text-studio-muted uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-layer-group text-sky-400"></i> Navigasyon & Düzen
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <button onclick="insertComponent('navbar')" draggable="true" ondragstart="dragComponent(event, 'navbar')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-bars text-sky-400"></i> Navigasyon Menüsü
+                        </button>
+                        <button onclick="insertComponent('heroSection')" draggable="true" ondragstart="dragComponent(event, 'heroSection')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-image text-purple-400"></i> Hero Tanıtım Alanı
+                        </button>
+                        <button onclick="insertComponent('grid2Col')" draggable="true" ondragstart="dragComponent(event, 'grid2Col')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-table-columns text-teal-400"></i> 2'li Izgara (Grid)
+                        </button>
+                        <button onclick="insertComponent('footer')" draggable="true" ondragstart="dragComponent(event, 'footer')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-window-minimize text-slate-400"></i> Alt Bilgi (Footer)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- UI Öğeleri & Bildirimler -->
+                <div class="component-group">
+                    <div class="text-[11px] font-bold text-studio-muted uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-bell text-yellow-400"></i> UI & Medya
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <button onclick="insertComponent('alertBox')" draggable="true" ondragstart="dragComponent(event, 'alertBox')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-circle-exclamation text-yellow-400"></i> Bildirim Kutusu
+                        </button>
+                        <button onclick="insertComponent('badge')" draggable="true" ondragstart="dragComponent(event, 'badge')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-tag text-emerald-400"></i> Rozet (Badge)
+                        </button>
+                        <button onclick="insertComponent('image')" draggable="true" ondragstart="dragComponent(event, 'image')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-regular fa-image text-indigo-400"></i> Görsel Resim
+                        </button>
+                        <button onclick="insertComponent('avatar')" draggable="true" ondragstart="dragComponent(event, 'avatar')" class="component-btn p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 text-left transition flex items-center gap-2">
+                            <i class="fa-solid fa-user-circle text-purple-400"></i> Kullanıcı Avatarı
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sekme 2: Gelişmiş Stil & Görsel Özellik Müfettişi (Inspector) -->
+            <div id="tabContent-inspector" class="p-3 space-y-4 overflow-y-auto flex-1 text-xs hidden">
+                <div class="flex justify-between items-center border-b border-studio-border pb-2">
+                    <span class="font-bold text-white uppercase text-[11px] tracking-wider">Seçili Öğe Özellikleri</span>
+                    <span id="inspectorTagBadge" class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono text-[10px]">Öğe Seçilmedi</span>
+                </div>
+
+                <div id="inspectorNoSelection" class="p-6 text-center text-studio-muted border border-dashed border-studio-border rounded-xl my-4">
+                    <i class="fa-solid fa-arrow-pointer text-3xl mb-3 text-indigo-400 opacity-60"></i>
+                    <p class="text-xs">Canlı önizleme ekranında bir öğeye tıklayın veya Katmanlar sekmesinden bir elaman seçin.</p>
+                </div>
+
+                <div id="inspectorControls" class="space-y-4 hidden">
+                    
+                    <!-- Hızlı İşlem Çubuğu (Çoğalt, Taşı, Ebeveyn, Sil) -->
+                    <div class="bg-studio-panel p-2 rounded-lg border border-studio-border flex items-center justify-between gap-1">
+                        <button onclick="duplicateSelectedElement()" title="Öğeyi Tek Tıkla Çoğalt (Ctrl+D)" class="flex-1 py-1.5 bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-600/30 rounded font-semibold flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-copy"></i> Çoğalt
+                        </button>
+                        <button onclick="moveSelectedElement('up')" title="Yukarı Taşı" class="p-1.5 bg-studio-bg border border-studio-border hover:text-white rounded">
+                            <i class="fa-solid fa-arrow-up"></i>
+                        </button>
+                        <button onclick="moveSelectedElement('down')" title="Aşağı Taşı" class="p-1.5 bg-studio-bg border border-studio-border hover:text-white rounded">
+                            <i class="fa-solid fa-arrow-down"></i>
+                        </button>
+                        <button onclick="selectParentElement()" title="Ebeveyn Öğeyi Seç" class="p-1.5 bg-studio-bg border border-studio-border hover:text-white rounded">
+                            <i class="fa-solid fa-turn-up"></i>
+                        </button>
+                        <button onclick="deleteSelectedElement()" title="Seçili Öğeyi Sil (Delete)" class="p-1.5 bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600/30 rounded">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+
+                    <!-- HTML Kimlik & Sınıflar -->
+                    <div class="space-y-2">
+                        <div class="font-semibold text-studio-muted text-[11px]">Kimlik & Sınıflar (ID & Class)</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] text-studio-muted mb-1">ID (Kimlik)</label>
+                                <input type="text" id="propId" onchange="applyAttributeChange('id', this.value)" placeholder="element-id" class="w-full bg-studio-bg border border-studio-border rounded p-1.5 text-xs text-white focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-studio-muted mb-1">CSS Sınıfları</label>
+                                <input type="text" id="propClass" onchange="applyAttributeChange('class', this.value)" placeholder="class-1 class-2" class="w-full bg-studio-bg border border-studio-border rounded p-1.5 text-xs text-white focus:border-indigo-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Metin İçeriği / Öznitelikler -->
+                    <div class="space-y-2">
+                        <div class="font-semibold text-studio-muted text-[11px]">Metin / Bağlantı İçeriği</div>
+                        <div>
+                            <textarea id="propTextContent" oninput="applyPropertyChange('text', this.value)" rows="2" placeholder="Metin içeriği..." class="w-full bg-studio-bg border border-studio-border rounded p-1.5 text-xs text-white focus:border-indigo-500"></textarea>
+                        </div>
+                        <div id="attrUrlContainer" class="hidden">
+                            <label class="block text-[10px] text-studio-muted mb-1">URL (href / src)</label>
+                            <input type="text" id="propUrl" onchange="applyAttributeChange('url', this.value)" placeholder="https://..." class="w-full bg-studio-bg border border-studio-border rounded p-1.5 text-xs text-white focus:border-indigo-500">
+                        </div>
+                    </div>
+
+                    <!-- Tipografi -->
+                    <div class="space-y-2 border-t border-studio-border pt-3">
+                        <div class="font-semibold text-studio-muted text-[11px]">Tipografi & Yazı Stili</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] text-studio-muted mb-1">Metin Rengi</label>
+                                <input type="color" id="propColor" onchange="applyPropertyChange('color', this.value)" class="w-full h-8 bg-studio-bg border border-studio-border rounded cursor-pointer p-0.5">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-studio-muted mb-1">Yazı Tipi (Font)</label>
+                                <select id="propFontFamily" onchange="applyPropertyChange('fontFamily', this.value)" class="w-full bg-studio-bg border border-studio-border rounded p-1.5 text-xs text-white">
+                                    <option value="inherit">Varsayılan</option>
+                                    <option value="Inter, sans-serif">Inter</option>
+                                    <option value="'Roboto', sans-serif">Roboto</option>
+                                    <option value="'Fira Code', monospace">Monospace</option>
+                                    <option value="Georgia, serif">Georgia</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] text-studio-muted mb-1">Boyut (px)</label>
+                                <input type="number" id="propFontSize" oninput="applyPropertyChange('fontSize', this.value + 'px')" class="w-full bg-studio-bg border border-studio-border rounded p-1.5 text-xs text-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-studio-muted mb-1">Hizalama</label>
+                                <select id="propTextAlign" onchange="applyPropertyChange('textAlign', this.value)" class="w-full bg-studio-bg border border-studio-border rounded p-1.5 text-xs text-white">
+                                    <option value="left">Sol</option>
+                                    <option value="center">Orta</option>
+                                    <option value="right">Sağ</option>
+                                    <option value="justify">Yasla</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Renkler & Arka Plan -->
+                    <div class="space-y-2 border-t border-studio-border pt-3">
+                        <div class="font-semibold text-studio-muted text-[11px]">Arka Plan & Renkler</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] text-studio-muted mb-1">Arka Plan Rengi</label>
+                                <input type="color" id="propBgColor" onchange="applyPropertyChange('backgroundColor', this.value)" class="w-full h-8 bg-studio-bg border border-studio-border rounded cursor-pointer p-0.5">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-studio-muted mb-1">Opaklık (Opacity)</label>
+                                <input type="range" id="propOpacity" min="0" max="1" step="0.05" oninput="applyPropertyChange('opacity', this.value)" class="w-full accent-indigo-500 mt-2">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Görsel Kutusu (Padding & Margin) -->
+                    <div class="space-y-2 border-t border-studio-border pt-3">
+                        <div class="font-semibold text-studio-muted text-[11px]">Boşluklar (Margin & Padding)</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] text-studio-muted mb-1">Dış Boşluk (Margin)</label>
+                                <input type="text" id="propMargin" placeholder="10px auto" oninput="applyPropertyChange('margin', this.value)" class="w-full bg-studio-bg border border-studio-border rounded p-1.5 text-xs text-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-studio-muted mb-1">İç Boşluk (Padding)</label>
+                                <input type="text" id="propPadding" placeholder="12px 16px" oninput="applyPropertyChange('padding', this.value)" class="w-full bg-studio-bg border border-studio-border rounded p-1.5 text-xs text-white">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kenarlık & Köşe Yuvarlama -->
+                    <div class="space-y-2 border-t border-studio-border pt-3">
+                        <div class="font-semibold text-studio-muted text-[11px]">Kenarlık & Yuvarlama</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] text-studio-muted mb-1">Köşe Yuvarlama</label>
+                                <input type="text" id="propBorderRadius" placeholder="8px veya 50%" oninput="applyPropertyChange('borderRadius', this.value)" class="w-full bg-studio-bg border border-studio-border rounded p-1.5 text-xs text-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-studio-muted mb-1">Görünürlük (Display)</label>
+                                <select id="propDisplay" onchange="applyPropertyChange('display', this.value)" class="w-full bg-studio-bg border border-studio-border rounded p-1.5 text-xs text-white">
+                                    <option value="block">Block</option>
+                                    <option value="flex">Flex</option>
+                                    <option value="grid">Grid</option>
+                                    <option value="inline-block">Inline-Block</option>
+                                    <option value="none">Gizli (None)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sekme 3: DOM Katman Ağacı (DOM Tree Inspector) -->
+            <div id="tabContent-domtree" class="p-3 space-y-2 overflow-y-auto flex-1 text-xs hidden">
+                <div class="text-[11px] font-bold text-studio-muted uppercase tracking-wider mb-2 flex justify-between items-center">
+                    <span>DOM Katman Ağacı</span>
+                    <button onclick="refreshDOMTree()" class="hover:text-white"><i class="fa-solid fa-arrows-rotate"></i></button>
+                </div>
+                <div id="domTreeContainer" class="space-y-1 font-mono text-[11px]">
+                    <!-- Dinamik DOM Ağacı buraya yüklenecek -->
+                </div>
+            </div>
+
+            <!-- Sekme 4: Proje Dosya Yöneticisi -->
+            <div id="tabContent-explorer" class="p-3 space-y-3 overflow-y-auto flex-1 text-xs hidden">
+                <div class="text-[11px] font-bold text-studio-muted uppercase tracking-wider">Proje Dosyaları</div>
+                <div class="space-y-1">
+                    <div onclick="switchCodeTab('html')" id="file-tree-html" class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer bg-studio-active text-white border border-studio-border">
+                        <i class="fa-brands fa-html5 text-orange-500 text-sm"></i>
+                        <span class="flex-1 truncate">index.html</span>
+                    </div>
+                    <div onclick="switchCodeTab('css')" id="file-tree-css" class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer text-studio-muted hover:bg-studio-hover hover:text-studio-text transition">
+                        <i class="fa-brands fa-css3-alt text-sky-400 text-sm"></i>
+                        <span class="flex-1 truncate">style.css</span>
+                    </div>
+                    <div onclick="switchCodeTab('js')" id="file-tree-js" class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer text-studio-muted hover:bg-studio-hover hover:text-studio-text transition">
+                        <i class="fa-brands fa-js text-amber-400 text-sm"></i>
+                        <span class="flex-1 truncate">script.js</span>
+                    </div>
+                </div>
+
+                <div class="pt-3">
+                    <div class="text-[11px] font-bold text-studio-muted uppercase tracking-wider mb-2">Hızlı CDN Ekle</div>
+                    <div class="space-y-1">
+                        <button onclick="addCDN('tailwind')" class="w-full text-left p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 flex items-center justify-between text-xs">
+                            <span>Tailwind CSS</span>
+                            <i class="fa-solid fa-plus text-indigo-400 text-[10px]"></i>
+                        </button>
+                        <button onclick="addCDN('fontawesome')" class="w-full text-left p-2 rounded-lg bg-studio-panel border border-studio-border hover:border-indigo-500 flex items-center justify-between text-xs">
+                            <span>FontAwesome İkonları</span>
+                            <i class="fa-solid fa-plus text-indigo-400 text-[10px]"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alt Kapatma Çubuğu -->
+            <div class="p-2 border-t border-studio-border flex justify-between items-center text-xs text-studio-muted shrink-0">
+                <span>Sol Panel</span>
+                <button onclick="toggleSidebar()" class="p-1 hover:text-white transition">
+                    <i id="sidebarCollapseIcon" class="fa-solid fa-chevron-left"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Sol Paneli Açma Yüzen Butonu -->
+        <button id="sidebarOpenBtn" onclick="toggleSidebar()" class="hidden absolute top-14 left-2 z-30 p-2 rounded-lg bg-studio-panel border border-studio-border shadow-xl text-studio-muted hover:text-white transition">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+
+        <!-- Orta Kod Editörü & Konsol -->
+        <main id="editorArea" class="flex-1 flex flex-col min-w-0 bg-studio-bg relative transition-all duration-300">
+            
+            <!-- Kod Sekme Başlıkları -->
+            <div class="h-9 border-b border-studio-border bg-studio-sidebar flex items-center justify-between px-2 shrink-0">
+                <div class="flex items-center space-x-1 h-full">
+                    <button onclick="switchCodeTab('html')" id="codeTab-html" class="h-full px-3 text-xs font-semibold border-b-2 border-orange-500 bg-studio-bg text-white flex items-center gap-2">
+                        <i class="fa-brands fa-html5 text-orange-500"></i> HTML
+                    </button>
+                    <button onclick="switchCodeTab('css')" id="codeTab-css" class="h-full px-3 text-xs font-semibold border-b-2 border-transparent text-studio-muted hover:text-studio-text flex items-center gap-2">
+                        <i class="fa-brands fa-css3-alt text-sky-400"></i> CSS
+                    </button>
+                    <button onclick="switchCodeTab('js')" id="codeTab-js" class="h-full px-3 text-xs font-semibold border-b-2 border-transparent text-studio-muted hover:text-studio-text flex items-center gap-2">
+                        <i class="fa-brands fa-js text-amber-400"></i> JavaScript
+                    </button>
+                </div>
+
+                <div class="flex items-center space-x-3 text-xs text-studio-muted">
+                    <span id="editorCursorPos" class="font-mono text-[11px] hidden sm:inline">Satır 1, Sütun 1</span>
+                    <button onclick="resetProject()" title="Projeyi Temizle" class="hover:text-red-400 transition">
+                        <i class="fa-solid fa-rotate-left"></i> Sıfırla
+                    </button>
+                </div>
+            </div>
+
+            <!-- CodeMirror Konteynırı -->
+            <div class="flex-1 relative overflow-hidden">
+                <div id="editor-container-html" class="absolute inset-0"></div>
+                <div id="editor-container-css" class="absolute inset-0 hidden"></div>
+                <div id="editor-container-js" class="absolute inset-0 hidden"></div>
+            </div>
+
+            <!-- Alt Geliştirici Konsolu -->
+            <div id="terminalPanel" class="h-36 border-t border-studio-border bg-studio-sidebar flex flex-col shrink-0 transition-all duration-300">
+                <div class="h-8 border-b border-studio-border px-3 flex items-center justify-between bg-studio-panel text-xs">
+                    <div class="flex items-center space-x-2">
+                        <span class="font-bold text-white flex items-center gap-1.5">
+                            <i class="fa-solid fa-terminal text-emerald-400"></i> Konsol
+                        </span>
+                        <span id="consoleErrorBadge" class="hidden px-2 py-0.5 rounded-full text-[10px] bg-red-500/20 text-red-400 border border-red-500/30 font-bold">0 Hata</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="clearConsole()" class="hover:text-white text-studio-muted transition text-xs" title="Konsolu Temizle">
+                            <i class="fa-solid fa-ban"></i>
+                        </button>
+                        <button onclick="toggleTerminal()" class="hover:text-white text-studio-muted transition text-xs">
+                            <i id="terminalToggleIcon" class="fa-solid fa-chevron-down"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Konsol Logları -->
+                <div id="consoleLogs" class="flex-1 p-2 font-mono text-xs overflow-y-auto space-y-1 bg-studio-bg/80">
+                    <div class="text-studio-muted italic text-[11px]">[Sistem] Konsol hazır. Kod ve çalışma hataları burada görünecektir.</div>
+                </div>
+
+                <!-- Komut Satırı -->
+                <div class="h-8 border-t border-studio-border px-2 flex items-center bg-studio-panel font-mono text-xs">
+                    <span class="text-emerald-400 font-bold mr-2">&gt;</span>
+                    <input type="text" id="consoleInput" onkeydown="handleConsoleSubmit(event)" placeholder="JS kodu yazın ve Enter'a basın..." class="w-full bg-transparent text-white focus:outline-none">
+                </div>
+            </div>
+        </main>
+
+        <!-- Sağ Canlı Önizleme & Görsel Düzenleyici -->
+        <section id="previewPanel" class="w-1/2 border-l border-studio-border bg-studio-panel flex flex-col shrink-0 relative transition-all duration-300">
+            
+            <!-- Canlı Panel Başlığı -->
+            <div class="h-9 border-b border-studio-border bg-studio-sidebar flex items-center justify-between px-3 text-xs shrink-0">
+                <div class="flex items-center space-x-3">
+                    <span class="font-bold text-white flex items-center gap-2">
+                        <span class="relative flex h-2 w-2">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        Canlı Görsel Önizleme
+                    </span>
+
+                    <button id="visualModeBtn" onclick="toggleVisualDesignMode()" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-studio-panel border border-studio-border hover:bg-studio-hover text-studio-text flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-pen-to-square text-indigo-400"></i>
+                        <span id="visualModeText">Canlı Düzenleme: KAPALI</span>
+                    </button>
+                </div>
+
+                <!-- Cihaz Görünümleri -->
+                <div class="flex items-center bg-studio-bg rounded-lg p-0.5 border border-studio-border">
+                    <button onclick="setPreviewDevice('desktop')" id="deviceBtn-desktop" class="px-2 py-0.5 rounded text-white bg-studio-active transition" title="Masaüstü">
+                        <i class="fa-solid fa-desktop text-xs"></i>
+                    </button>
+                    <button onclick="setPreviewDevice('tablet')" id="deviceBtn-tablet" class="px-2 py-0.5 rounded text-studio-muted hover:text-white transition" title="Tablet (768px)">
+                        <i class="fa-solid fa-tablet-screen-button text-xs"></i>
+                    </button>
+                    <button onclick="setPreviewDevice('mobile')" id="deviceBtn-mobile" class="px-2 py-0.5 rounded text-studio-muted hover:text-white transition" title="Mobil (375px)">
+                        <i class="fa-solid fa-mobile-screen-button text-xs"></i>
+                    </button>
+                </div>
+
+                <!-- Ekran Kontrolleri -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="openPreviewInNewTab()" title="Yeni Sekmede Aç" class="text-studio-muted hover:text-white transition">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </button>
+                    <button onclick="togglePreviewFullscreen()" title="Tam Ekran Yap" class="text-studio-muted hover:text-white transition">
+                        <i class="fa-solid fa-expand"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Önizleme Iframe Kapsayıcısı -->
+            <div class="flex-1 bg-zinc-950 flex items-center justify-center overflow-auto p-2 relative">
+                <div id="previewFrameWrapper" class="w-full h-full transition-all duration-300 bg-white rounded-lg shadow-2xl overflow-hidden flex flex-col">
+                    <iframe id="previewIframe" class="w-full h-full border-0 bg-white" sandbox="allow-scripts allow-modals allow-same-origin allow-forms"></iframe>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Bildirim Kapsayıcısı (Toast) -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- JAVASCRIPT MANTIĞI -->
+    <script>
+        // Global Uygulama Durumu
+        let editors = {};
+        let activeTab = 'html';
+        let autoRefresh = true;
+        let updateTimer = null;
+        let isDarkMode = true;
+        let isVisualMode = false;
+        let selectedElementPath = null;
+        let errorCount = 0;
+
+        // BİLEŞEN ŞABLONLARI SÖZLÜĞÜ (VISUAL COMPONENT LIBRARY)
+        const COMPONENT_SNIPPETS = {
+            h1: `\n<h1 class="text-4xl font-extrabold text-slate-900 tracking-tight my-4">Ana Başlık Metni</h1>\n`,
+            h2: `\n<h2 class="text-2xl font-bold text-slate-800 my-3">Alt Başlık Metni</h2>\n`,
+            paragraph: `\n<p class="text-slate-600 my-2 leading-relaxed">Buraya paragraf metninizi ekleyebilirsiniz.</p>\n`,
+            leadParagraph: `\n<p class="text-lg text-slate-700 font-medium my-3 leading-relaxed">Bu vurgulu ve daha büyük boyutta bir paragraf metnidir.</p>\n`,
+            btnPrimary: `\n<button class="px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition shadow-md">Birincil Buton</button>\n`,
+            btnSecondary: `\n<button class="px-5 py-2.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold transition">İkincil Buton</button>\n`,
+            btnGradient: `\n<button class="px-6 py-2.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold shadow-lg hover:opacity-95 transition">Gradik Buton</button>\n`,
+            btnIcon: `\n<button class="px-5 py-2.5 rounded-lg bg-indigo-600 text-white font-semibold flex items-center gap-2 hover:bg-indigo-700 transition"> Devam Et →</button>\n`,
+            cardBasic: `\n<div class="p-6 bg-white rounded-xl border border-slate-200 shadow-sm my-4">\n  <h3 class="text-lg font-bold text-slate-900 mb-2">Kart Başlığı</h3>\n  <p class="text-slate-600 text-sm">Kart detay metnini buraya yazabilirsiniz.</p>\n</div>\n`,
+            cardFeature: `\n<div class="p-6 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition my-4">\n  <div class="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold mb-4">★</div>\n  <h3 class="text-xl font-bold text-slate-900 mb-2">Harika Özellik</h3>\n  <p class="text-slate-600 text-sm">Özelliğin detaylı açıklaması ve avantajları.</p>\n</div>\n`,
+            cardProduct: `\n<div class="max-w-sm rounded-xl border bg-white overflow-hidden shadow-sm my-4">\n  <img src="https://placehold.co/400x200/6366f1/ffffff?text=Urun+Gorseli" class="w-full h-48 object-cover">\n  <div class="p-5">\n    <h4 class="font-bold text-lg text-slate-900">Modern Ürün Adı</h4>\n    <p class="text-slate-500 text-xs mt-1">Ürün hakkında kısa bilgi.</p>\n    <div class="mt-4 flex items-center justify-between">\n      <span class="text-xl font-extrabold text-indigo-600">₺299.00</span>\n      <button class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold">Sepete Ekle</button>\n    </div>\n  </div>\n</div>\n`,
+            cardPricing: `\n<div class="p-6 bg-slate-900 text-white rounded-2xl shadow-xl border border-slate-800 my-4 max-w-sm">\n  <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Popüler</span>\n  <h3 class="text-2xl font-bold mt-2">Pro Paket</h3>\n  <div class="text-4xl font-extrabold my-4">₺149 <span class="text-sm font-normal text-slate-400">/ ay</span></div>\n  <ul class="space-y-2 text-sm text-slate-300 my-6">\n    <li>✓ Sınırsız Proje</li>\n    <li>✓ Canlı Önizleme</li>\n    <li>✓ 7/24 Destek</li>\n  </ul>\n  <button class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition">Satın Al</button>\n</div>\n`,
+            inputGroup: `\n<div class="my-3">\n  <label class="block text-xs font-bold text-slate-700 mb-1">E-Posta Adresi</label>\n  <input type="email" placeholder="ornek@email.com" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">\n</div>\n`,
+            selectGroup: `\n<div class="my-3">\n  <label class="block text-xs font-bold text-slate-700 mb-1">Şehir Seçin</label>\n  <select class="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">\n    <option>İstanbul</option>\n    <option>Ankara</option>\n    <option>İzmir</option>\n  </select>\n</div>\n`,
+            checkboxGroup: `\n<label class="flex items-center gap-2 my-2 cursor-pointer text-sm text-slate-700">\n  <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded border-gray-300">\n  <span>Kullanım şartlarını kabul ediyorum.</span>\n</label>\n`,
+            textareaGroup: `\n<div class="my-3">\n  <label class="block text-xs font-bold text-slate-700 mb-1">Mesajınız</label>\n  <textarea rows="3" placeholder="Mesajınızı buraya yazın..." class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>\n</div>\n`,
+            navbar: `\n<nav class="flex items-center justify-between p-4 bg-white border-b border-slate-200">\n  <div class="font-bold text-xl text-indigo-600">WebStudio</div>\n  <div class="flex items-center gap-6 text-sm font-medium text-slate-600">\n    <a href="#" class="hover:text-indigo-600">Anasayfa</a>\n    <a href="#" class="hover:text-indigo-600">Hakkımızda</a>\n    <a href="#" class="hover:text-indigo-600">İletişim</a>\n  </div>\n</nav>\n`,
+            heroSection: `\n<section class="py-16 px-6 text-center bg-slate-50 rounded-2xl my-6">\n  <h1 class="text-5xl font-black text-slate-900 tracking-tight">Geleceğin Web Sitelerini Tasarlayın</h1>\n  <p class="text-slate-600 text-lg max-w-2xl mx-auto my-4">Sürükle bırak bileşenler ve canlı kod editörü ile hayalinizdeki projeleri saniyeler içinde gerçeğe dönüştürün.</p>\n  <button class="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 transition">Hemen Başlayın</button>\n</section>\n`,
+            grid2Col: `\n<div class="grid grid-cols-1 md:grid-cols-2 gap-6 my-6">\n  <div class="p-6 bg-white border rounded-xl">Sol Kolon İçeriği</div>\n  <div class="p-6 bg-white border rounded-xl">Sağ Kolon İçeriği</div>\n</div>\n`,
+            footer: `\n<footer class="p-8 bg-slate-900 text-slate-400 text-center text-sm rounded-t-2xl mt-12">\n  <p>© 2026 WebStudio IDE Pro. Tüm Hakları Saklıdır.</p>\n</footer>\n`,
+            alertBox: `\n<div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center gap-3 my-3">\n  <span>⚠️ <strong>Sistem Uyarısı:</strong> Projeniz başarıyla senkronize edildi.</span>\n</div>\n`,
+            badge: `\n<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">Aktif Durum</span>\n`,
+            image: `\n<img src="https://placehold.co/800x400/6366f1/ffffff?text=Gorsel+Alani" alt="Görsel" class="w-full rounded-xl my-4 shadow-sm">\n`,
+            avatar: `\n<img src="https://placehold.co/100x100/4f46e5/ffffff?text=User" alt="Avatar" class="w-12 h-12 rounded-full border-2 border-indigo-500">\n`
+        };
+
+        // BÜTÜN TÜRKÇE PROJE ŞABLONLARI
+        const TEMPLATES = {
+            landing: {
+                html: `<!DOCTYPE html>\n<html lang="tr">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Modern Tanıtım Sayfası</title>\n  <script src="https://cdn.tailwindcss.com"><\/script>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body class="bg-slate-900 text-white min-h-screen font-sans">\n  <nav class="max-w-6xl mx-auto p-6 flex justify-between items-center">\n    <div class="font-extrabold text-2xl tracking-wide bg-gradient-to-r from-indigo-400 to-sky-400 bg-clip-text text-transparent">WebStudio PRO</div>\n    <div class="flex gap-4">\n      <button onclick="selamla()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-semibold transition">Giriş Yap</button>\n    </div>\n  </nav>\n  <main class="max-w-4xl mx-auto text-center px-6 py-20 space-y-6">\n    <span class="px-3.5 py-1 text-xs font-semibold rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Yerli & Gelişmiş Kod Stüdyosu</span>\n    <h1 class="text-5xl md:text-6xl font-black tracking-tight leading-tight">Canlı Düzenleyin & Kodlayın</h1>\n    <p class="text-slate-400 text-lg max-w-2xl mx-auto">Sürükle-bırak görsel bileşen kütüphanesi ve çift yönlü senkronize kod editörü ile projelerinizi hızlandırın.</p>\n    <div class="flex justify-center gap-4 pt-4">\n      <button class="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold shadow-lg shadow-indigo-600/30 transition">Ücretsiz Deneyin</button>\n      <button class="px-8 py-3.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl font-bold transition">Özellikleri İncele</button>\n    </div>\n  </main>\n  <script src="script.js"><\/script>\n</body>\n</html>`,
+                css: `/* Özel CSS Stilleri */\nbody {\n  font-family: 'Inter', system-ui, sans-serif;\n}`,
+                js: `function selamla() {\n  console.log("Giriş Yap Butonuna Tıklandı!");\n  alert("WebStudio IDE Pro'ya Hoş Geldiniz!");\n}`
+            },
+            portfolio: {
+                html: `<!DOCTYPE html>\n<html lang="tr">\n<head>\n  <meta charset="UTF-8">\n  <title>Kişisel Portfolyo</title>\n  <script src="https://cdn.tailwindcss.com"><\/script>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body class="bg-gray-50 text-gray-800 p-8">\n  <div class="max-w-4xl mx-auto space-y-8">\n    <header class="border-b pb-6 flex justify-between items-center">\n      <div>\n        <h1 class="text-3xl font-bold text-gray-900">Ahmet Yılmaz</h1>\n        <p class="text-indigo-600 font-medium">Kıdemli Front-End Geliştirici</p>\n      </div>\n      <button class="bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-semibold">İletişim</button>\n    </header>\n    <section class="grid md:grid-cols-2 gap-6">\n      <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">\n        <h3 class="font-bold text-lg text-gray-900 mb-2">Web Uygulamaları</h3>\n        <p class="text-gray-600 text-sm">React, Tailwind ve Node.js ile performanslı çözümler sunuyorum.</p>\n      </div>\n      <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">\n        <h3 class="font-bold text-lg text-gray-900 mb-2">UI/UX Tasarım</h3>\n        <p class="text-gray-600 text-sm">Kullanıcı odaklı, modern ve erişilebilir arayüzler tasarlıyorum.</p>\n      </div>\n    </section>\n  </div>\n  <script src="script.js"><\/script>\n</body>\n</html>`,
+                css: ``,
+                js: `console.log("Portfolyo Şablonu Yüklendi.");`
+            },
+            dashboard: {
+                html: `<!DOCTYPE html>\n<html lang="tr">\n<head>\n  <meta charset="UTF-8">\n  <title>Yönetim Paneli</title>\n  <script src="https://cdn.tailwindcss.com"><\/script>\n</head>\n<body class="bg-slate-100 p-6">\n  <div class="max-w-6xl mx-auto space-y-6">\n    <h2 class="text-2xl font-bold text-slate-800">Yönetim Özeti</h2>\n    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">\n      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">\n        <span class="text-slate-500 text-xs uppercase font-bold">Toplam Kullanıcı</span>\n        <div class="text-3xl font-extrabold text-slate-900 mt-2">12,480</div>\n      </div>\n      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">\n        <span class="text-slate-500 text-xs uppercase font-bold">Aylık Gelir</span>\n        <div class="text-3xl font-extrabold text-indigo-600 mt-2">₺84,250</div>\n      </div>\n      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">\n        <span class="text-slate-500 text-xs uppercase font-bold">Aktif Projeler</span>\n        <div class="text-3xl font-extrabold text-emerald-600 mt-2">36</div>\n      </div>\n    </div>\n  </div>\n</body>\n</html>`,
+                css: ``,
+                js: ``
+            },
+            contact: {
+                html: `<!DOCTYPE html>\n<html lang="tr">\n<head>\n  <meta charset="UTF-8">\n  <title>İletişim</title>\n  <script src="https://cdn.tailwindcss.com"><\/script>\n</head>\n<body class="bg-slate-900 min-h-screen p-6 flex justify-center items-center">\n  <form class="w-full max-w-md bg-white p-8 rounded-2xl shadow-2xl space-y-4">\n    <h2 class="text-2xl font-bold text-slate-900">Bize Ulaşın</h2>\n    <div>\n      <label class="block text-xs font-bold text-slate-700 mb-1">Adınız Soyadınız</label>\n      <input type="text" placeholder="Ahmet Yılmaz" class="w-full p-2.5 border rounded-lg text-sm">\n    </div>\n    <div>\n      <label class="block text-xs font-bold text-slate-700 mb-1">E-Posta</label>\n      <input type="email" placeholder="ahmet@example.com" class="w-full p-2.5 border rounded-lg text-sm">\n    </div>\n    <div>\n      <label class="block text-xs font-bold text-slate-700 mb-1">Mesajınız</label>\n      <textarea rows="4" placeholder="Mesajınızı detaylandırın..." class="w-full p-2.5 border rounded-lg text-sm"></textarea>\n    </div>\n    <button type="button" onclick="alert('Mesajınız gönderildi!')" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-500 transition">Gönder</button>\n  </form>\n</body>\n</html>`,
+                css: ``,
+                js: ``
+            },
+            blank: {
+                html: `<!DOCTYPE html>\n<html lang="tr">\n<head>\n  <meta charset="UTF-8">\n  <title>Yeni Sayfa</title>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n  <h1>Merhaba Dünya!</h1>\n  <p>Kodlarınızı buraya yazmaya başlayabilirsiniz.</p>\n  <script src="script.js"><\/script>\n</body>\n</html>`,
+                css: `body {\n  font-family: sans-serif;\n  padding: 2rem;\n}`,
+                js: `console.log("Boş sayfa hazır.");`
+            }
+        };
+
+        // Uygulama İlk Yükleme
+        window.addEventListener('DOMContentLoaded', () => {
+            initCodeMirrorEditors();
+            loadSavedState();
+            setupConsoleAndPostMessage();
+            updatePreview();
+
+            // Klavye Kısayolları (Ctrl+S / Cmd+S, Ctrl+D / Cmd+D, Delete)
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    updatePreview();
+                    showToast('Proje kaydedildi ve yenilendi!', 'success');
+                }
+                if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+                    e.preventDefault();
+                    duplicateSelectedElement();
+                }
+                if (e.key === 'Delete' && isVisualMode && selectedElementPath) {
+                    deleteSelectedElement();
+                }
+            });
+        });
+
+        // CodeMirror Başlatma
+        function initCodeMirrorEditors() {
+            const commonConfig = {
+                theme: 'dracula',
+                lineNumbers: true,
+                styleActiveLine: true,
+                autoCloseTags: true,
+                autoCloseBrackets: true,
+                matchBrackets: true,
+                lineWrapping: true,
+                tabSize: 2,
+                extraKeys: {
+                    "Ctrl-Space": "autocomplete",
+                    "Alt-Shift-F": formatCode
+                }
+            };
+
+            editors.html = CodeMirror(document.getElementById('editor-container-html'), {
+                ...commonConfig,
+                mode: 'htmlmixed',
+                value: TEMPLATES.landing.html
+            });
+
+            editors.css = CodeMirror(document.getElementById('editor-container-css'), {
+                ...commonConfig,
+                mode: 'css',
+                value: TEMPLATES.landing.css
+            });
+
+            editors.js = CodeMirror(document.getElementById('editor-container-js'), {
+                ...commonConfig,
+                mode: 'javascript',
+                value: TEMPLATES.landing.js
+            });
+
+            Object.keys(editors).forEach(lang => {
+                editors[lang].on('change', (cm, change) => {
+                    saveToLocalStorage();
+                    if (autoRefresh && change.origin !== 'setValue' && change.origin !== 'visualEdit') {
+                        clearTimeout(updateTimer);
+                        updateTimer = setTimeout(updatePreview, 500);
+                    }
+                });
+
+                editors[lang].on('cursorActivity', (cm) => {
+                    if (activeTab === lang) {
+                        const pos = cm.getCursor();
+                        document.getElementById('editorCursorPos').innerText = `Satır ${pos.line + 1}, Sütun ${pos.ch + 1}`;
+                    }
+                });
+            });
+        }
+
+        // Sekme Değiştirme
+        function switchCodeTab(tab) {
+            activeTab = tab;
+            ['html', 'css', 'js'].forEach(t => {
+                const container = document.getElementById(`editor-container-${t}`);
+                const tabBtn = document.getElementById(`codeTab-${t}`);
+                const fileTreeBtn = document.getElementById(`file-tree-${t}`);
+
+                if (t === tab) {
+                    container.classList.remove('hidden');
+                    tabBtn.className = `h-full px-3 text-xs font-semibold border-b-2 border-${t==='html'?'orange':t==='css'?'sky':'amber'}-500 bg-studio-bg text-white flex items-center gap-2`;
+                    if (fileTreeBtn) fileTreeBtn.className = "flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer bg-studio-active text-white border border-studio-border";
+                    editors[t].refresh();
+                    editors[t].focus();
+                } else {
+                    container.classList.add('hidden');
+                    tabBtn.className = "h-full px-3 text-xs font-semibold border-b-2 border-transparent text-studio-muted hover:text-studio-text flex items-center gap-2";
+                    if (fileTreeBtn) fileTreeBtn.className = "flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer text-studio-muted hover:bg-studio-hover hover:text-studio-text transition";
+                }
+            });
+        }
+
+        // Önizleme ve Görsel Mod Senkronizasyonu
+        function updatePreview() {
+            const html = editors.html.getValue();
+            const css = editors.css.getValue();
+            const js = editors.js.getValue();
+
+            const visualScript = `
+                <script>
+                    (function() {
+                        let isDesignMode = ${isVisualMode};
+                        
+                        function sendToParent(type, payload) {
+                            try {
+                                window.parent.postMessage({ source: 'webstudio-iframe', type, ...payload }, '*');
+                            } catch(e){}
+                        }
+
+                        // Konsol Yakalama
+                        const origLog = console.log, origError = console.error;
+                        console.log = function(...args) { sendToParent('log', { message: args.join(' ') }); origLog.apply(console, args); };
+                        console.error = function(...args) { sendToParent('error', { message: args.join(' ') }); origError.apply(console, args); };
+
+                        // Canlı Düzenleme
+                        function makeEditable(enable) {
+                            isDesignMode = enable;
+                            document.body.contentEditable = enable ? 'true' : 'false';
+                        }
+
+                        // Mavi Seçim Çerçevesi
+                        let hoverOutline = document.createElement('div');
+                        hoverOutline.style.position = 'absolute';
+                        hoverOutline.style.border = '2px solid #6366f1';
+                        hoverOutline.style.pointerEvents = 'none';
+                        hoverOutline.style.zIndex = '999999';
+                        hoverOutline.style.transition = 'all 0.1s ease';
+                        hoverOutline.style.display = 'none';
+                        document.body.appendChild(hoverOutline);
+
+                        document.addEventListener('mouseover', function(e) {
+                            if (!isDesignMode || e.target === document.body) return;
+                            const rect = e.target.getBoundingClientRect();
+                            hoverOutline.style.left = (rect.left + window.scrollX) + 'px';
+                            hoverOutline.style.top = (rect.top + window.scrollY) + 'px';
+                            hoverOutline.style.width = rect.width + 'px';
+                            hoverOutline.style.height = rect.height + 'px';
+                            hoverOutline.style.display = 'block';
+                        });
+
+                        document.addEventListener('mouseout', function() {
+                            hoverOutline.style.display = 'none';
+                        });
+
+                        document.addEventListener('click', function(e) {
+                            if (!isDesignMode) return;
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            const path = getElementPath(e.target);
+                            const style = window.getComputedStyle(e.target);
+
+                            sendToParent('visual-select', {
+                                path: path,
+                                tagName: e.target.tagName.toLowerCase(),
+                                textContent: e.target.innerText,
+                                attributes: {
+                                    id: e.target.id || '',
+                                    class: e.target.className || '',
+                                    url: e.target.src || e.target.href || ''
+                                },
+                                styles: {
+                                    color: rgbToHex(style.color),
+                                    backgroundColor: rgbToHex(style.backgroundColor),
+                                    fontSize: parseInt(style.fontSize) || '',
+                                    textAlign: style.textAlign,
+                                    padding: style.padding,
+                                    margin: style.margin,
+                                    borderRadius: style.borderRadius,
+                                    display: style.display,
+                                    opacity: style.opacity,
+                                    fontFamily: style.fontFamily
+                                }
+                            });
+                        }, true);
+
+                        document.addEventListener('input', function() {
+                            if (!isDesignMode) return;
+                            sendToParent('visual-content-change', { fullHTML: document.body.innerHTML });
+                        });
+
+                        function getElementPath(el) {
+                            const path = [];
+                            while (el && el.nodeType === Node.ELEMENT_NODE && el.tagName !== 'HTML') {
+                                let selector = el.tagName.toLowerCase();
+                                if (el.id) {
+                                    selector += '#' + el.id;
+                                    path.unshift(selector);
+                                    break;
+                                } else {
+                                    let sibling = el;
+                                    let nth = 1;
+                                    while (sibling = sibling.previousElementSibling) {
+                                        if (sibling.tagName.toLowerCase() === selector) nth++;
+                                    }
+                                    if (nth !== 1) selector += ":nth-of-type(" + nth + ")";
+                                }
+                                path.unshift(selector);
+                                el = el.parentNode;
+                            }
+                            return path.join(" > ");
+                        }
+
+                        function rgbToHex(rgb) {
+                            if (!rgb || rgb.indexOf('rgb') === -1) return '#000000';
+                            const nums = rgb.match(/\\d+/g);
+                            if (!nums) return '#000000';
+                            return "#" + ((1 << 24) + (parseInt(nums[0]) << 16) + (parseInt(nums[1]) << 8) + parseInt(nums[2])).toString(16).slice(1);
+                        }
+
+                        window.makeEditable = makeEditable;
+                    })();
+                <\/script>
+            `;
+
+            const combinedSource = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    ${visualScript}
+                    <style>${css}</style>
+                </head>
+                <body>
+                    ${html}
+                    <script>${js}<\/script>
+                </body>
+                </html>
+            `;
+
+            const iframe = document.getElementById('previewIframe');
+            iframe.srcdoc = combinedSource;
+            refreshDOMTree();
+        }
+
+        // Canlı Düzenleme Modu Değişimi
+        function toggleVisualDesignMode() {
+            isVisualMode = !isVisualMode;
+            const btn = document.getElementById('visualModeBtn');
+            const text = document.getElementById('visualModeText');
+            const iframe = document.getElementById('previewIframe');
+
+            if (isVisualMode) {
+                btn.className = "px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-600 text-white border border-indigo-500 flex items-center gap-1.5 transition shadow-lg shadow-indigo-500/20";
+                text.innerText = "Canlı Düzenleme: AÇIK";
+                showToast('Canlı Düzenleme Açıldı! Sayfadaki öğelere tıklayarak düzenleyebilirsiniz.', 'info');
+                switchSidebarTab('inspector');
+            } else {
+                btn.className = "px-2.5 py-1 rounded-lg text-xs font-semibold bg-studio-panel border border-studio-border hover:bg-studio-hover text-studio-text flex items-center gap-1.5 transition";
+                text.innerText = "Canlı Düzenleme: KAPALI";
+                showToast('Canlı Düzenleme Kapatıldı.', 'info');
+            }
+
+            try {
+                if (iframe.contentWindow && iframe.contentWindow.makeEditable) {
+                    iframe.contentWindow.makeEditable(isVisualMode);
+                }
+            } catch(e) {}
+        }
+
+        // iframe İletişim Yakalayıcı
+        function setupConsoleAndPostMessage() {
+            window.addEventListener('message', (event) => {
+                if (!event.data || event.data.source !== 'webstudio-iframe') return;
+
+                if (event.data.type === 'log') appendConsoleLog(event.data.message, 'log');
+                if (event.data.type === 'error') appendConsoleLog(event.data.message, 'error');
+
+                if (event.data.type === 'visual-select') {
+                    selectedElementPath = event.data.path;
+                    document.getElementById('inspectorNoSelection').classList.add('hidden');
+                    document.getElementById('inspectorControls').classList.remove('hidden');
+                    document.getElementById('inspectorTagBadge').innerText = event.data.tagName;
+
+                    // Değerleri Doldur
+                    document.getElementById('propTextContent').value = event.data.textContent;
+                    document.getElementById('propId').value = event.data.attributes.id;
+                    document.getElementById('propClass').value = event.data.attributes.class;
+                    document.getElementById('propColor').value = event.data.styles.color;
+                    document.getElementById('propBgColor').value = event.data.styles.backgroundColor;
+                    document.getElementById('propFontSize').value = event.data.styles.fontSize;
+                    document.getElementById('propTextAlign').value = event.data.styles.textAlign;
+                    document.getElementById('propPadding').value = event.data.styles.padding;
+                    document.getElementById('propMargin').value = event.data.styles.margin;
+                    document.getElementById('propBorderRadius').value = event.data.styles.borderRadius;
+                    document.getElementById('propDisplay').value = event.data.styles.display;
+                    document.getElementById('propOpacity').value = event.data.styles.opacity;
+
+                    if (['img', 'a'].includes(event.data.tagName)) {
+                        document.getElementById('attrUrlContainer').classList.remove('hidden');
+                        document.getElementById('propUrl').value = event.data.attributes.url;
+                    } else {
+                        document.getElementById('attrUrlContainer').classList.add('hidden');
+                    }
+                }
+
+                if (event.data.type === 'visual-content-change') {
+                    const doc = new DOMParser().parseFromString(editors.html.getValue(), 'text/html');
+                    doc.body.innerHTML = event.data.fullHTML;
+                    editors.html.setValue(doc.documentElement.outerHTML);
+                }
+            });
+        }
+
+        // BİLEŞEN ÇOĞALTMA & ÖĞE YÖNETİMİ (DUPLICATION & MANAGEMENT)
+        function duplicateSelectedElement() {
+            if (!selectedElementPath) {
+                showToast('Lütfen önce bir öğe seçin!', 'warn');
+                return;
+            }
+
+            const doc = new DOMParser().parseFromString(editors.html.getValue(), 'text/html');
+            const targetEl = doc.querySelector(selectedElementPath);
+
+            if (targetEl) {
+                const clone = targetEl.cloneNode(true);
+                targetEl.parentNode.insertBefore(clone, targetEl.nextSibling);
+                editors.html.setValue(doc.documentElement.outerHTML);
+                updatePreview();
+                showToast('Öğe başarıyla çoğaltıldı! (Ctrl+D)', 'success');
+            }
+        }
+
+        function moveSelectedElement(direction) {
+            if (!selectedElementPath) return;
+
+            const doc = new DOMParser().parseFromString(editors.html.getValue(), 'text/html');
+            const targetEl = doc.querySelector(selectedElementPath);
+
+            if (targetEl && targetEl.parentNode) {
+                if (direction === 'up' && targetEl.previousElementSibling) {
+                    targetEl.parentNode.insertBefore(targetEl, targetEl.previousElementSibling);
+                } else if (direction === 'down' && targetEl.nextElementSibling) {
+                    targetEl.parentNode.insertBefore(targetEl.nextElementSibling, targetEl);
+                }
+                editors.html.setValue(doc.documentElement.outerHTML);
+                updatePreview();
+            }
+        }
+
+        function selectParentElement() {
+            if (!selectedElementPath) return;
+            const parts = selectedElementPath.split(" > ");
+            if (parts.length > 1) {
+                parts.pop();
+                selectedElementPath = parts.join(" > ");
+                showToast(`Ebeveyn öğeye geçildi: ${selectedElementPath}`, 'info');
+            }
+        }
+
+        function deleteSelectedElement() {
+            if (!selectedElementPath) return;
+
+            const doc = new DOMParser().parseFromString(editors.html.getValue(), 'text/html');
+            const el = doc.querySelector(selectedElementPath);
+            if (el) {
+                el.remove();
+                editors.html.setValue(doc.documentElement.outerHTML);
+                updatePreview();
+                document.getElementById('inspectorNoSelection').classList.remove('hidden');
+                document.getElementById('inspectorControls').classList.add('hidden');
+                document.getElementById('inspectorTagBadge').innerText = "Seçilmedi";
+                selectedElementPath = null;
+                showToast('Öğe silindi!', 'info');
+            }
+        }
+
+        // Özellikleri Koda Uygulama
+        function applyPropertyChange(prop, value) {
+            if (!selectedElementPath) return;
+
+            const doc = new DOMParser().parseFromString(editors.html.getValue(), 'text/html');
+            const htmlTarget = doc.querySelector(selectedElementPath);
+            if (htmlTarget) {
+                if (prop === 'text') htmlTarget.innerText = value;
+                else htmlTarget.style[prop] = value;
+                
+                editors.html.setValue(doc.documentElement.outerHTML);
+                updatePreview();
+            }
+        }
+
+        function applyAttributeChange(attr, value) {
+            if (!selectedElementPath) return;
+
+            const doc = new DOMParser().parseFromString(editors.html.getValue(), 'text/html');
+            const htmlTarget = doc.querySelector(selectedElementPath);
+            if (htmlTarget) {
+                if (attr === 'id') htmlTarget.id = value;
+                if (attr === 'class') htmlTarget.className = value;
+                if (attr === 'url') {
+                    if (htmlTarget.tagName.toLowerCase() === 'img') htmlTarget.src = value;
+                    if (htmlTarget.tagName.toLowerCase() === 'a') htmlTarget.href = value;
+                }
+                editors.html.setValue(doc.documentElement.outerHTML);
+                updatePreview();
+            }
+        }
+
+        // BİLEŞEN EKLEME & SÜRÜKLE BIRAK
+        function insertComponent(key) {
+            const snippet = COMPONENT_SNIPPETS[key];
+            if (!snippet) return;
+
+            const doc = editors.html.getDoc();
+            const cursor = doc.getCursor();
+            doc.replaceRange(snippet, cursor);
+            updatePreview();
+            showToast('Görsel bileşen kodunuza eklendi!', 'success');
+        }
+
+        function dragComponent(e, key) {
+            e.dataTransfer.setData('componentKey', key);
+        }
+
+        function filterComponents() {
+            const query = document.getElementById('componentSearch').value.toLowerCase();
+            const buttons = document.querySelectorAll('.component-btn');
+            buttons.forEach(btn => {
+                const text = btn.innerText.toLowerCase();
+                btn.style.display = text.includes(query) ? 'flex' : 'none';
+            });
+        }
+
+        // DOM AĞACI GÖRÜNTÜLEYİCİ
+        function refreshDOMTree() {
+            const container = document.getElementById('domTreeContainer');
+            if (!container) return;
+
+            const doc = new DOMParser().parseFromString(editors.html.getValue(), 'text/html');
+            container.innerHTML = buildTreeHTML(doc.body);
+        }
+
+        function buildTreeHTML(node, depth = 0) {
+            if (node.nodeType !== Node.ELEMENT_NODE) return '';
+
+            let html = '';
+            const children = Array.from(node.children);
+            const tag = node.tagName.toLowerCase();
+            const idStr = node.id ? `#${node.id}` : '';
+            const classStr = node.className ? `.${node.className.split(' ')[0]}` : '';
+
+            html += `
+                <div class="hover:bg-studio-hover p-1 rounded cursor-pointer flex items-center justify-between text-studio-text" style="padding-left: ${depth * 12 + 4}px">
+                    <span onclick="selectDomElement('${tag}${idStr}')" class="truncate">
+                        <i class="fa-solid fa-code text-indigo-400 text-[10px]"></i> <strong>${tag}</strong><span class="text-indigo-400">${idStr}</span><span class="text-studio-muted">${classStr}</span>
+                    </span>
+                    <button onclick="duplicateDomElement('${tag}${idStr}')" class="opacity-50 hover:opacity-100 text-[10px] px-1" title="Çoğalt"><i class="fa-solid fa-copy"></i></button>
+                </div>
+            `;
+
+            children.forEach(child => {
+                html += buildTreeHTML(child, depth + 1);
+            });
+
+            return html;
+        }
+
+        function selectDomElement(selector) {
+            selectedElementPath = selector;
+            showToast(`Katman seçildi: ${selector}`, 'info');
+            switchSidebarTab('inspector');
+        }
+
+        function duplicateDomElement(selector) {
+            selectedElementPath = selector;
+            duplicateSelectedElement();
+        }
+
+        // Konsol Log Ekleme
+        function appendConsoleLog(message, type = 'log') {
+            const logsContainer = document.getElementById('consoleLogs');
+            const logItem = document.createElement('div');
+            
+            let colorClass = 'text-studio-text';
+            let icon = 'fa-angle-right';
+
+            if (type === 'error') {
+                colorClass = 'text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20';
+                icon = 'fa-circle-xmark';
+                errorCount++;
+                updateErrorBadge();
+            }
+
+            logItem.className = `flex items-start gap-2 text-xs font-mono py-0.5 ${colorClass}`;
+            logItem.innerHTML = `<i class="fa-solid ${icon} text-[10px] mt-1 opacity-70"></i><span class="flex-1 break-all">${escapeHtml(message)}</span>`;
+            
+            logsContainer.appendChild(logItem);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+
+        function clearConsole() {
+            document.getElementById('consoleLogs').innerHTML = '<div class="text-studio-muted italic text-[11px]">[Sistem] Konsol temizlendi.</div>';
+            errorCount = 0;
+            updateErrorBadge();
+        }
+
+        function updateErrorBadge() {
+            const badge = document.getElementById('consoleErrorBadge');
+            if (errorCount > 0) {
+                badge.innerText = `${errorCount} Hata`;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function handleConsoleSubmit(e) {
+            if (e.key === 'Enter') {
+                const input = e.target.value.trim();
+                if (!input) return;
+
+                appendConsoleLog('> ' + input, 'log');
+                e.target.value = '';
+
+                try {
+                    const iframeWindow = document.getElementById('previewIframe').contentWindow;
+                    const result = iframeWindow.eval(input);
+                    appendConsoleLog(result !== undefined ? String(result) : 'undefined', 'log');
+                } catch (err) {
+                    appendConsoleLog(err.message, 'error');
+                }
+            }
+        }
+
+        // Kütüphane Ekleme
+        function addCDN(library) {
+            let tag = '';
+            if (library === 'tailwind') tag = '<script src="https://cdn.tailwindcss.com"><\/script>';
+            if (library === 'fontawesome') tag = '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">';
+
+            const html = editors.html.getValue();
+            if (html.includes(tag)) {
+                showToast('Bu kütüphane zaten ekli!', 'warn');
+                return;
+            }
+
+            if (html.includes('</head>')) {
+                editors.html.setValue(html.replace('</head>', `  ${tag}\n</head>`));
+            } else {
+                editors.html.setValue(`${tag}\n${html}`);
+            }
+            showToast(`${library.toUpperCase()} eklendi!`, 'success');
+        }
+
+        // Biçimlendir
+        function formatCode() {
+            try {
+                editors.html.setValue(html_beautify(editors.html.getValue(), { indent_size: 2 }));
+                editors.css.setValue(css_beautify(editors.css.getValue(), { indent_size: 2 }));
+                editors.js.setValue(js_beautify(editors.js.getValue(), { indent_size: 2 }));
+                showToast('Tüm kodlar biçimlendirildi!', 'success');
+            } catch(e) {
+                showToast('Biçimlendirme hatası!', 'error');
+            }
+        }
+
+        // Şablon Yükle
+        function loadTemplate(key) {
+            if (TEMPLATES[key]) {
+                if (confirm('Şablon yüklemek mevcut kodların üzerine yazacaktır. Devam edilsin mi?')) {
+                    editors.html.setValue(TEMPLATES[key].html);
+                    editors.css.setValue(TEMPLATES[key].css);
+                    editors.js.setValue(TEMPLATES[key].js);
+                    updatePreview();
+                    showToast('Şablon yüklendi!', 'info');
+                }
+            }
+        }
+
+        // Aktar/İndir
+        function exportSingleHTML() {
+            const html = editors.html.getValue();
+            const css = editors.css.getValue();
+            const js = editors.js.getValue();
+
+            const combined = `<!DOCTYPE html>\n<html lang="tr">\n<head>\n<meta charset="UTF-8">\n<title>WebStudio Projesi</title>\n<style>\n${css}\n</style>\n</head>\n<body>\n${html}\n<script>\n${js}\n<\/script>\n</body>\n</html>`;
+            
+            const element = document.createElement('a');
+            element.setAttribute('href', 'data:text/html;charset=utf-8,' + encodeURIComponent(combined));
+            element.setAttribute('download', 'index.html');
+            element.click();
+            showToast('HTML dosyası indirildi!', 'success');
+        }
+
+        function exportZIP() {
+            const zip = new JSZip();
+            zip.file('index.html', editors.html.getValue());
+            zip.file('style.css', editors.css.getValue());
+            zip.file('script.js', editors.js.getValue());
+
+            zip.generateAsync({ type: 'blob' }).then((content) => {
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'webstudio-proje.zip';
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('ZIP projesi indirildi!', 'success');
+            });
+        }
+
+        function importFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const content = evt.target.result;
+                if (file.name.endsWith('.html')) { editors.html.setValue(content); switchCodeTab('html'); }
+                else if (file.name.endsWith('.css')) { editors.css.setValue(content); switchCodeTab('css'); }
+                else if (file.name.endsWith('.js')) { editors.js.setValue(content); switchCodeTab('js'); }
+                showToast(`${file.name} başarıyla içe aktarıldı!`, 'success');
+            };
+            reader.readAsText(file);
+        }
+
+        // Hafıza İşlemleri
+        function saveToLocalStorage() {
+            localStorage.setItem('webstudio_pro_html', editors.html.getValue());
+            localStorage.setItem('webstudio_pro_css', editors.css.getValue());
+            localStorage.setItem('webstudio_pro_js', editors.js.getValue());
+        }
+
+        function loadSavedState() {
+            const h = localStorage.getItem('webstudio_pro_html');
+            const c = localStorage.getItem('webstudio_pro_css');
+            const j = localStorage.getItem('webstudio_pro_js');
+
+            if (h !== null) editors.html.setValue(h);
+            if (c !== null) editors.css.setValue(c);
+            if (j !== null) editors.js.setValue(j);
+        }
+
+        function resetProject() {
+            if (confirm('Tüm projeyi sıfırlamak istediğinize emin misiniz?')) {
+                editors.html.setValue(TEMPLATES.blank.html);
+                editors.css.setValue(TEMPLATES.blank.css);
+                editors.js.setValue(TEMPLATES.blank.js);
+                clearConsole();
+                updatePreview();
+                showToast('Proje sıfırlandı.', 'info');
+            }
+        }
+
+        // Yardımcı Görünüm Fonksiyonları
+        function toggleAutoRefresh() {
+            autoRefresh = !autoRefresh;
+            const btn = document.getElementById('autoRefreshBtn');
+            const stateText = document.getElementById('autoRefreshState');
+            
+            if (autoRefresh) {
+                btn.className = "p-1.5 px-2.5 rounded-lg text-xs bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-600/30 flex items-center gap-1.5 transition";
+                stateText.innerText = "AÇIK";
+                updatePreview();
+            } else {
+                btn.className = "p-1.5 px-2.5 rounded-lg text-xs bg-studio-panel text-studio-muted border border-studio-border hover:bg-studio-hover flex items-center gap-1.5 transition";
+                stateText.innerText = "KAPALI";
+            }
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const openBtn = document.getElementById('sidebarOpenBtn');
+            sidebar.classList.toggle('-ml-80');
+            if (sidebar.classList.contains('-ml-80')) openBtn.classList.remove('hidden');
+            else openBtn.classList.add('hidden');
+        }
+
+        function switchSidebarTab(tab) {
+            ['components', 'inspector', 'domtree', 'explorer'].forEach(t => {
+                const content = document.getElementById(`tabContent-${t}`);
+                const btn = document.getElementById(`tabBtn-${t}`);
+                if (t === tab) {
+                    content.classList.remove('hidden');
+                    btn.className = "flex-1 py-2.5 px-2 border-b-2 border-indigo-500 font-semibold text-white flex items-center justify-center gap-1.5 bg-studio-panel";
+                } else {
+                    content.classList.add('hidden');
+                    btn.className = "flex-1 py-2.5 px-2 border-b-2 border-transparent text-studio-muted hover:text-studio-text flex items-center justify-center gap-1.5";
+                }
+            });
+        }
+
+        function setPreviewDevice(device) {
+            const wrapper = document.getElementById('previewFrameWrapper');
+            ['desktop', 'tablet', 'mobile'].forEach(d => {
+                const btn = document.getElementById(`deviceBtn-${d}`);
+                if (d === device) btn.className = "px-2 py-0.5 rounded text-white bg-studio-active transition";
+                else btn.className = "px-2 py-0.5 rounded text-studio-muted hover:text-white transition";
+            });
+            wrapper.className = `transition-all duration-300 bg-white rounded-lg shadow-2xl overflow-hidden flex flex-col preview-device-${device}`;
+        }
+
+        function toggleTerminal() {
+            const panel = document.getElementById('terminalPanel');
+            const icon = document.getElementById('terminalToggleIcon');
+            if (panel.classList.contains('h-36')) {
+                panel.classList.replace('h-36', 'h-8');
+                icon.className = "fa-solid fa-chevron-up";
+            } else {
+                panel.classList.replace('h-8', 'h-36');
+                icon.className = "fa-solid fa-chevron-down";
+            }
+        }
+
+        function openPreviewInNewTab() {
+            const win = window.open('');
+            win.document.write(`<!DOCTYPE html><html><head><style>${editors.css.getValue()}</style></head><body>${editors.html.getValue()}<script>${editors.js.getValue()}<\/script></body></html>`);
+            win.document.close();
+        }
+
+        function togglePreviewFullscreen() {
+            const panel = document.getElementById('previewPanel');
+            panel.classList.toggle('w-1/2');
+            panel.classList.toggle('w-full');
+        }
+
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            const icon = document.querySelector('#themeToggleBtn i');
+            const cmTheme = isDarkMode ? 'dracula' : 'eclipse';
+            Object.keys(editors).forEach(e => editors[e].setOption('theme', cmTheme));
+            icon.className = isDarkMode ? 'fa-solid fa-moon text-indigo-400' : 'fa-solid fa-sun text-yellow-400';
+        }
+
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            let icon = 'fa-circle-info text-sky-400';
+            if (type === 'success') icon = 'fa-circle-check text-emerald-400';
+            if (type === 'warn') icon = 'fa-triangle-exclamation text-amber-400';
+            if (type === 'error') icon = 'fa-circle-xmark text-red-400';
+
+            toast.className = "pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 rounded-lg bg-studio-panel border border-studio-border text-white text-xs shadow-2xl transition-all duration-300";
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${msg}</span>`;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(10px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+    </script>
+</body>
+</html>
+```
