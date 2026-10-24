@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="tr" class="dark">
 <head>
     <meta charset="UTF-8">
@@ -1688,15 +1688,16 @@
                 const dayTasks = tasks.filter(t => !t.cancelled && t.dueDate === dateStr);
 
                 gridHTML += `
-                    <div class="p-2 min-h-[85px] rounded-xl bg-slate-200/60 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-800/80 flex flex-col justify-between ${isToday ? 'ring-2 ring-indigo-500 font-bold bg-indigo-50/30' : ''}">
-                        <div class="flex justify-between items-center mb-1">
+                    <button type="button" onclick="openMonthlyDayDetails('${dateStr}')" aria-label="${day} tarihindeki görevleri görüntüle" class="text-left p-2 min-h-[85px] rounded-xl bg-slate-200/60 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-800/80 flex flex-col justify-between hover:ring-2 hover:ring-teal-500 hover:bg-teal-50/70 dark:hover:bg-teal-950/30 transition-all ${isToday ? 'ring-2 ring-indigo-500 font-bold bg-indigo-50/30' : ''}">
+                        <div class="flex justify-between items-center mb-1 w-full">
                             <span class="text-xs font-bold ${isToday ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-800 dark:text-slate-200'}">${day}</span>
                             ${dayTasks.length > 0 ? `<span class="text-[10px] font-extrabold px-1.5 py-0.2 rounded-full bg-indigo-600 text-white">${dayTasks.length}</span>` : ''}
                         </div>
-                        <div class="space-y-1 overflow-y-auto max-h-[50px]">
-                            ${dayTasks.map(t => `<div onclick="openEditModal('${t.id}')" class="text-[10px] font-semibold truncate px-1.5 py-0.5 rounded cursor-pointer ${t.completed ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 line-through' : 'bg-indigo-500/20 text-indigo-900 dark:text-indigo-200'}">${t.title}</div>`).join('')}
+                        <div class="space-y-1 overflow-y-auto max-h-[50px] w-full pointer-events-none">
+                            ${dayTasks.slice(0, 3).map(t => `<div class="text-[10px] font-semibold truncate px-1.5 py-0.5 rounded ${t.completed ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 line-through' : 'bg-indigo-500/20 text-indigo-900 dark:text-indigo-200'}">${escapeHTML(t.title || 'Başlıksız görev')}</div>`).join('')}
+                            ${dayTasks.length > 3 ? `<div class="text-[9px] font-bold text-teal-700 dark:text-teal-300">+${dayTasks.length-3} görev daha</div>` : ''}
                         </div>
-                    </div>
+                    </button>
                 `;
             }
             container.innerHTML = gridHTML;
@@ -2327,6 +2328,9 @@
 #planproNotesPage .notes-hero{position:relative;overflow:hidden;isolation:isolate;background:linear-gradient(125deg,#0f766e 0%,#0e7490 48%,#4f46e5 100%);border:1px solid rgba(255,255,255,.28);box-shadow:0 18px 45px rgba(13,148,136,.22)}
 #planproNotesPage .notes-hero:before{content:"";position:absolute;width:230px;height:230px;right:-65px;top:-115px;border-radius:50%;background:rgba(255,255,255,.12);z-index:-1}
 #planproNotesPage .notes-hero:after{content:"";position:absolute;width:150px;height:150px;right:80px;bottom:-110px;border-radius:50%;background:rgba(255,255,255,.1);z-index:-1}
+/* Bilgisayar ekranında notlar sayfasını tek ekrana sığdır ve en az üç kartı yan yana göster. */
+@media (min-width: 1024px){#planproNotesPage{overflow:hidden!important}#planproNotesPage>.max-w-5xl{max-width:none;width:100%;height:100vh;min-height:0;padding:18px 24px;display:flex;flex-direction:column;box-sizing:border-box}#planproNotesPage .notes-hero{flex:0 0 auto;margin-bottom:14px;padding:14px 20px;border-radius:20px}#planproNotesPage>.max-w-5xl> .space-y-4{flex:1;min-height:0;display:flex;flex-direction:column}#planproNotesPage>.max-w-5xl> .space-y-4> .space-y-4{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}#planproNotesPage #planproNotesList{grid-template-columns:repeat(3,minmax(0,1fr));align-content:start;overflow-y:auto;min-height:0;flex:1;padding:2px 4px 10px;gap:12px}#planproNotesPage #planproNotesList>article{min-width:0}#planproNotesPage #planproNotesList>article h3{font-size:1rem;line-height:1.4}#planproNotesPage #planproNotesList>article>p{overflow-wrap:anywhere}#planproNotesPage #planproNotesList>article .mt-4{margin-top:12px}#planproNotesPage #planproNotesList>article{padding:14px}}
+@media (min-width: 1440px){#planproNotesPage>.max-w-5xl{padding:20px 32px}#planproNotesPage #planproNotesList{grid-template-columns:repeat(4,minmax(0,1fr))}}
 </style>
 <section id="planproNotesPage" class="hidden fixed inset-0 z-[100] overflow-y-auto bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100">
   <div class="max-w-5xl mx-auto min-h-full p-4 sm:p-6">
@@ -2438,6 +2442,52 @@
 })();
 </script>
 
+
+<!-- Aylık takvim gün ayrıntıları -->
+<div id="monthlyDayDetailsModal" class="hidden fixed inset-0 z-[180] items-center justify-center bg-slate-950/65 backdrop-blur-sm p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="monthlyDayDetailsTitle" onclick="if(event.target===this)closeMonthlyDayDetails()">
+  <div class="w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-3xl border border-white/20 bg-white dark:bg-slate-900 shadow-2xl">
+    <div class="relative overflow-hidden bg-gradient-to-r from-teal-600 via-cyan-600 to-blue-700 px-5 py-5 sm:px-7 text-white">
+      <div class="absolute -right-8 -top-10 h-36 w-36 rounded-full bg-white/10"></div>
+      <div class="relative flex items-start justify-between gap-3">
+        <div><div class="text-xs font-bold uppercase tracking-wider text-white/75">Aylık Takvim · Gün Detayı</div><h2 id="monthlyDayDetailsTitle" class="mt-1 text-xl sm:text-2xl font-black">Günün Görevleri</h2><p id="monthlyDayDetailsSubtitle" class="mt-1 text-sm text-white/80"></p></div>
+        <button type="button" onclick="closeMonthlyDayDetails()" class="shrink-0 rounded-xl bg-white/15 hover:bg-white/25 p-2.5" aria-label="Kapat"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+    </div>
+    <div id="monthlyDayDetailsList" class="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 space-y-3"></div>
+    <div class="flex flex-col-reverse sm:flex-row gap-2 border-t border-slate-200 dark:border-slate-800 p-4 sm:px-6">
+      <button type="button" onclick="closeMonthlyDayDetails()" class="px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 font-bold text-sm text-slate-700 dark:text-slate-200">Kapat</button>
+      <button type="button" onclick="addTaskFromMonthlyDay()" class="sm:ml-auto px-4 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-sm"><i class="fa-solid fa-plus mr-2"></i>Bu güne görev ekle</button>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  let selectedMonthlyDetailDate = '';
+  window.openMonthlyDayDetails = function(dateStr){
+    selectedMonthlyDetailDate = dateStr;
+    const parts = dateStr.split('-').map(Number);
+    const date = new Date(parts[0], parts[1]-1, parts[2]);
+    document.getElementById('monthlyDayDetailsTitle').textContent = date.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'});
+    const dayTasks = (Array.isArray(tasks)?tasks:[]).filter(t=>!t.cancelled && t.dueDate===dateStr).sort((a,b)=>(a.dueTime||'').localeCompare(b.dueTime||'') || String(a.title||'').localeCompare(String(b.title||''),'tr'));
+    const doneCount = dayTasks.filter(t=>t.completed).length;
+    document.getElementById('monthlyDayDetailsSubtitle').textContent = dayTasks.length + ' görev · ' + doneCount + ' tamamlandı';
+    const list = document.getElementById('monthlyDayDetailsList');
+    if(!dayTasks.length){
+      list.innerHTML = '<div class="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 p-8 text-center"><div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-50 dark:bg-teal-950 text-teal-600 text-2xl"><i class="fa-regular fa-calendar-plus"></i></div><h3 class="font-extrabold text-lg text-slate-800 dark:text-slate-100">Bu gün için görev yok</h3><p class="mt-1 text-sm text-slate-500">İstersen bu tarihe yeni görev ekleyebilirsin.</p></div>';
+    } else {
+      list.innerHTML = dayTasks.map(t=>{
+        const priority = t.priority==='Yüksek' ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300' : t.priority==='Düşük' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300';
+        return '<article class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 p-4"><div class="flex items-start gap-3"><div class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl '+(t.completed?'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300':'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300')+'"><i class="fa-solid '+(t.completed?'fa-check':'fa-list-check')+'"></i></div><div class="min-w-0 flex-1"><h3 class="font-extrabold break-words '+(t.completed?'line-through text-slate-500':'text-slate-900 dark:text-white')+'">'+escapeHTML(t.title||'Başlıksız görev')+'</h3><div class="mt-2 flex flex-wrap gap-2"><span class="rounded-lg px-2 py-1 text-xs font-bold '+priority+'">'+escapeHTML(t.priority||'Orta')+' öncelik</span>'+(t.dueTime?'<span class="rounded-lg bg-slate-200 dark:bg-slate-700 px-2 py-1 text-xs font-bold text-slate-700 dark:text-slate-200"><i class="fa-regular fa-clock mr-1"></i>'+escapeHTML(t.dueTime)+'</span>':'')+'<span class="rounded-lg px-2 py-1 text-xs font-bold '+(t.completed?'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300':'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300')+'">'+(t.completed?'Tamamlandı':'Bekliyor')+'</span></div>'+(t.desc?'<p class="mt-2 whitespace-pre-wrap break-words text-sm text-slate-600 dark:text-slate-300">'+escapeHTML(t.desc)+'</p>':'')+'</div><button type="button" onclick="editTaskFromMonthlyDay(&quot;'+escapeHTML(String(t.id))+'&quot;)" class="shrink-0 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm font-bold text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950" title="Görevi düzenle"><i class="fa-solid fa-pen"></i></button></div></article>';
+      }).join('');
+    }
+    const modal=document.getElementById('monthlyDayDetailsModal'); modal.classList.remove('hidden'); modal.classList.add('flex'); document.body.classList.add('overflow-hidden');
+  };
+  window.closeMonthlyDayDetails=function(){const modal=document.getElementById('monthlyDayDetailsModal');if(!modal)return;modal.classList.add('hidden');modal.classList.remove('flex');document.body.classList.remove('overflow-hidden');};
+  window.editTaskFromMonthlyDay=function(id){closeMonthlyDayDetails();openEditModal(id);};
+  window.addTaskFromMonthlyDay=function(){const date=selectedMonthlyDetailDate;closeMonthlyDayDetails();openModal();document.getElementById('taskDueDate').value=date;};
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!document.getElementById('monthlyDayDetailsModal').classList.contains('hidden'))closeMonthlyDayDetails();});
+})();
+</script>
+
 </body>
 </html>
-
