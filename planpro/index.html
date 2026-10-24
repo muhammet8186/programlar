@@ -547,6 +547,10 @@
                 </div>
                 <span id="cancelledCountLabel" class="text-sm font-black px-3 py-2 rounded-xl bg-slate-700 text-white">0 görev</span>
             </div>
+            <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input id="cancelledTaskSearch" type="search" oninput="renderCancelledTasks()" placeholder="İptal edilen görevlerde ara..." aria-label="İptal edilen görevlerde ara" class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-violet-500 shadow-sm" />
+            </div>
             <div id="cancelledTaskList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
         </section>
 
@@ -653,6 +657,10 @@
                 </button>
             </div>
 
+            <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input id="completedTaskSearch" type="search" oninput="renderCompletedTasks()" placeholder="Tamamlanan görevlerde ara..." aria-label="Tamamlanan görevlerde ara" class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm" />
+            </div>
             <div id="completedTaskList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
         </section>
 
@@ -1561,11 +1569,13 @@
 
         function renderCancelledTasks() {
             const container = document.getElementById('cancelledTaskList');
-            const cancelled = tasks.filter(t => t.cancelled)
+            const query = (document.getElementById('cancelledTaskSearch')?.value || '').trim().toLocaleLowerCase('tr-TR');
+            const allCancelled = tasks.filter(t => t.cancelled)
                 .sort((a, b) => (a.dueDate + (a.dueTime || '')).localeCompare(b.dueDate + (b.dueTime || '')));
-            document.getElementById('cancelledCountLabel').textContent = `${cancelled.length} görev`;
+            const cancelled = allCancelled.filter(t => !query || [t.title, t.description, t.dueDate, t.dueTime, t.priority].some(v => String(v || '').toLocaleLowerCase('tr-TR').includes(query)));
+            document.getElementById('cancelledCountLabel').textContent = query ? `${cancelled.length} / ${allCancelled.length} görev` : `${cancelled.length} görev`;
             container.innerHTML = cancelled.length === 0
-                ? getEmptyStateHTML("İptal Edilen Görev Yok", "İptal ettiğiniz görevler burada listelenecek.")
+                ? (query ? getEmptyStateHTML("Eşleşen Görev Bulunamadı", "Farklı bir kelime veya tarih ile aramayı deneyin.") : getEmptyStateHTML("İptal Edilen Görev Yok", "İptal ettiğiniz görevler burada listelenecek."))
                 : cancelled.map(t => renderTaskCardHTML(t)).join('');
         }
 
@@ -1744,9 +1754,11 @@
 
         function renderCompletedTasks() {
             const container = document.getElementById('completedTaskList');
-            const completed = getFilteredTasks(true);
-            container.innerHTML = completed.length === 0 
-                ? getEmptyStateHTML("Tamamlanmış Görev Bulunmuyor", "Henüz bitirilen bir görev kaydı yok.") 
+            const query = (document.getElementById('completedTaskSearch')?.value || '').trim().toLocaleLowerCase('tr-TR');
+            const allCompleted = getFilteredTasks(true);
+            const completed = allCompleted.filter(t => !query || [t.title, t.description, t.dueDate, t.dueTime, t.priority].some(v => String(v || '').toLocaleLowerCase('tr-TR').includes(query)));
+            container.innerHTML = completed.length === 0
+                ? (query ? getEmptyStateHTML("Eşleşen Görev Bulunamadı", "Farklı bir kelime veya tarih ile aramayı deneyin.") : getEmptyStateHTML("Tamamlanmış Görev Bulunmuyor", "Henüz bitirilen bir görev kaydı yok."))
                 : completed.map(t => renderTaskCardHTML(t)).join('');
         }
 
