@@ -555,104 +555,27 @@
         <!-- TAB 6: AYARLAR -->
         <section id="section-settings" class="tab-content space-y-6 hidden">
             
-            <!-- Firebase Ayarları Kartı (Kök Düğüm ve Konfigürasyon JSON) -->
+            <!-- Program Başlığı Ayarları -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="p-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex items-center gap-2">
-                    <i class="fa-solid fa-fire text-lg text-yellow-200"></i>
-                    <h2 class="font-bold">Firebase Bulut Senkronizasyon Ayarları</h2>
+                <div class="p-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white flex items-center gap-2">
+                    <i class="fa-solid fa-heading text-lg"></i>
+                    <h2 class="font-bold">Program Başlığı Ayarları</h2>
                 </div>
-                <form onsubmit="handleSaveFirebaseSettings(event)" class="p-4 sm:p-6 space-y-4">
-                    <p class="text-xs text-slate-500">Verilerinizi Firebase üzerinde saklamak için kök düğüm başlığını ve konfigürasyon JSON nesnesini giriniz.</p>
-                    
+                <form onsubmit="handleSaveHeaderSettings(event)" class="p-4 sm:p-6 space-y-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Kök Düğüm Başlığı</label>
-                        <input type="text" id="fb-root-node" placeholder="Örn: okul_yoklama_sistemi" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Ana Başlık</label>
+                        <input type="text" id="setting-app-title" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
-
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Firebase Konfigürasyon Nesnesi (JSON)</label>
-                        <textarea id="fb-config-json" rows="6" placeholder='{
-  "apiKey": "",
-  "authDomain": "",
-  "databaseURL": "",
-  "projectId": "",
-  "storageBucket": "",
-  "messagingSenderId": "",
-  "appId": "",
-  "measurementId": ""
-}' class="w-full px-3 py-2 text-xs font-mono border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none bg-slate-50"></textarea>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Alt Başlık / Dönem</label>
+                        <input type="text" id="setting-app-subtitle" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
-
-                    <div class="flex items-center justify-between pt-2">
-                        <span id="fb-connection-status" class="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
-                            <i class="fa-solid fa-circle text-slate-300" id="fb-status-dot"></i> <span id="fb-status-text">Bağlantı Yapılmadı</span>
-                        </span>
-                        <button type="submit" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl text-sm transition shadow-md shadow-amber-600/20 flex items-center gap-2">
-                            <i class="fa-solid fa-cloud-arrow-up"></i> Firebase Kaydet & Bağlan
+                    <div class="flex justify-end">
+                        <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition shadow-md shadow-indigo-600/20 flex items-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> Başlıkları Kaydet
                         </button>
                     </div>
                 </form>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="p-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white flex items-center gap-2">
-                        <i class="fa-solid fa-heading text-lg"></i>
-                        <h2 class="font-bold">Program Başlığı Ayarları</h2>
-                    </div>
-                    <form onsubmit="handleSaveHeaderSettings(event)" class="p-4 sm:p-6 space-y-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Ana Başlık</label>
-                            <input type="text" id="setting-app-title" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Alt Başlık / Dönem</label>
-                            <input type="text" id="setting-app-subtitle" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                        </div>
-                        <div class="flex justify-end">
-                            <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition shadow-md shadow-indigo-600/20 flex items-center gap-2">
-                                <i class="fa-solid fa-floppy-disk"></i> Başlıkları Kaydet
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="p-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white flex items-center gap-2">
-                        <i class="fa-solid fa-database text-lg"></i>
-                        <h2 class="font-bold">Veri Yedekleme & Geri Yükleme</h2>
-                    </div>
-                    <div class="p-4 sm:p-6 space-y-4">
-                        <p class="text-xs text-slate-500">Tüm öğrencileri, öğretmenleri ve yoklama verilerinizi yerel yedekleyin.</p>
-                        
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <button onclick="exportBackupData()" class="p-4 bg-slate-50 border border-slate-200 hover:border-purple-500 hover:bg-purple-50/50 rounded-xl text-left transition group">
-                                <div class="flex items-center gap-3">
-                                    <div class="p-3 bg-purple-100 text-purple-600 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition">
-                                        <i class="fa-solid fa-download text-lg"></i>
-                                    </div>
-                                    <div>
-                                        <div class="font-bold text-slate-800 text-sm">Yedek İndir</div>
-                                        <div class="text-xs text-slate-500">JSON indir</div>
-                                    </div>
-                                </div>
-                            </button>
-
-                            <label class="p-4 bg-slate-50 border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 rounded-xl text-left transition group cursor-pointer block">
-                                <div class="flex items-center gap-3">
-                                    <div class="p-3 bg-indigo-100 text-indigo-600 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition">
-                                        <i class="fa-solid fa-upload text-lg"></i>
-                                    </div>
-                                    <div>
-                                        <div class="font-bold text-slate-800 text-sm">Geri Yükle</div>
-                                        <div class="text-xs text-slate-500">JSON yükle</div>
-                                    </div>
-                                </div>
-                                <input type="file" id="import-file-input" accept=".json" onchange="importBackupData(event)" class="hidden">
-                            </label>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- Ders/Etkinlik, Sınıf Yönetimi ve Seviye Yönetimi Sıralaması -->
@@ -723,6 +646,83 @@
                                 <tbody id="levels-table-body" class="divide-y divide-slate-100"></tbody>
                             </table>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Firebase Ayarları Kartı (Yedeklemenin hemen üstünde) -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex items-center gap-2">
+                    <i class="fa-solid fa-fire text-lg text-yellow-200"></i>
+                    <h2 class="font-bold">Firebase Bulut Senkronizasyon Ayarları</h2>
+                </div>
+                <form onsubmit="handleSaveFirebaseSettings(event)" class="p-4 sm:p-6 space-y-4">
+                    <p class="text-xs text-slate-500">Verilerinizi Firebase üzerinde saklamak için kök düğüm başlığını ve konfigürasyon JSON nesnesini giriniz.</p>
+                    
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Kök Düğüm Başlığı</label>
+                        <input type="text" id="fb-root-node" placeholder="Örn: okul_yoklama_sistemi" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Firebase Konfigürasyon Nesnesi (JSON)</label>
+                        <textarea id="fb-config-json" rows="6" placeholder='{
+  "apiKey": "",
+  "authDomain": "",
+  "databaseURL": "",
+  "projectId": "",
+  "storageBucket": "",
+  "messagingSenderId": "",
+  "appId": "",
+  "measurementId": ""
+}' class="w-full px-3 py-2 text-xs font-mono border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none bg-slate-50"></textarea>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2">
+                        <span id="fb-connection-status" class="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle text-slate-300" id="fb-status-dot"></i> <span id="fb-status-text">Bağlantı Yapılmadı</span>
+                        </span>
+                        <button type="submit" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl text-sm transition shadow-md shadow-amber-600/20 flex items-center gap-2">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> Firebase Kaydet & Bağlan
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Veri Yedekleme & Geri Yükleme (En Altta) -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white flex items-center gap-2">
+                    <i class="fa-solid fa-database text-lg"></i>
+                    <h2 class="font-bold">Veri Yedekleme & Geri Yükleme</h2>
+                </div>
+                <div class="p-4 sm:p-6 space-y-4">
+                    <p class="text-xs text-slate-500">Tüm öğrencileri, öğretmenleri ve yoklama verilerinizi yerel yedekleyin.</p>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button onclick="exportBackupData()" class="p-4 bg-slate-50 border border-slate-200 hover:border-purple-500 hover:bg-purple-50/50 rounded-xl text-left transition group">
+                            <div class="flex items-center gap-3">
+                                <div class="p-3 bg-purple-100 text-purple-600 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition">
+                                    <i class="fa-solid fa-download text-lg"></i>
+                                </div>
+                                <div>
+                                    <div class="font-bold text-slate-800 text-sm">Yedek İndir</div>
+                                    <div class="text-xs text-slate-500">JSON indir</div>
+                                </div>
+                            </div>
+                        </button>
+
+                        <label class="p-4 bg-slate-50 border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 rounded-xl text-left transition group cursor-pointer block">
+                            <div class="flex items-center gap-3">
+                                <div class="p-3 bg-indigo-100 text-indigo-600 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition">
+                                    <i class="fa-solid fa-upload text-lg"></i>
+                                </div>
+                                <div>
+                                    <div class="font-bold text-slate-800 text-sm">Geri Yükle</div>
+                                    <div class="text-xs text-slate-500">JSON yükle</div>
+                                </div>
+                            </div>
+                            <input type="file" id="import-file-input" accept=".json" onchange="importBackupData(event)" class="hidden">
+                        </label>
                     </div>
                 </div>
             </div>
