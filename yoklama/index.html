@@ -1194,11 +1194,8 @@
             
             const configInput = document.getElementById('fb-config-json');
             if (configInput) {
-                if (state.firebaseConfig && state.firebaseConfig.apiKey) {
-                    configInput.value = `{\n    apiKey: "${state.firebaseConfig.apiKey || ''}",\n    authDomain: "${state.firebaseConfig.authDomain || ''}",\n    databaseURL: "${state.firebaseConfig.databaseURL || ''}",\n    projectId: "${state.firebaseConfig.projectId || ''}",\n    storageBucket: "${state.firebaseConfig.storageBucket || ''}",\n    messagingSenderId: "${state.firebaseConfig.messagingSenderId || ''}",\n    appId: "${state.firebaseConfig.appId || ''}"\n}`;
-                } else {
-                    configInput.value = '';
-                }
+                // Sayfa ilk açıldığında eğer daha önceden kaydedilmişse input alanına doldurmayalım (görünmesin istendiği için)
+                configInput.value = '';
             }
             
             const limitInput = document.getElementById('setting-unexcused-limit');
@@ -3370,6 +3367,9 @@
             renderFirebaseSection();
             setupRealtimeFirebaseSync();
 
+            // Kaydet ve bağlan butonuna tıklandıktan sonra input kutucuğunun içeriğini temizle
+            document.getElementById('fb-config-json').value = '';
+
             Toast.fire({ icon: 'success', title: 'Firebase ayarları kaydedildi ve gerçek zamanlı senkronizasyon aktifleşti.' });
         }
 
@@ -3377,7 +3377,7 @@
             const savedCard = document.getElementById('firebase-saved-card');
             if (savedCard) {
                 if (state.firebaseConfig && state.firebaseConfig.apiKey) {
-                    savedCard.classList.remove('hidden');
+                    savedCard.classList.remove('hidden'); // Kayıtlı ise kart görünür
                     document.getElementById('saved-fb-root-display').textContent = state.firebaseRootNode || "okul_yoklama_sistemi";
                 } else {
                     savedCard.classList.add('hidden');
