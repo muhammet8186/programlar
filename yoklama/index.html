@@ -779,16 +779,16 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Firebase Konfigürasyon Nesnesi (JSON)</label>
-                        <textarea id="fb-config-json" rows="5" placeholder='{
-  "apiKey": "",
-  "authDomain": "",
-  "databaseURL": "",
-  "projectId": "",
-  "storageBucket": "",
-  "messagingSenderId": "",
-  "appId": ""
-}' class="w-full px-3 py-2 text-xs font-mono border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none bg-slate-50"></textarea>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Firebase Konfigürasyon Nesnesi</label>
+                        <textarea id="fb-config-json" rows="6" placeholder="{
+    apiKey: &quot;&quot;,
+    authDomain: &quot;&quot;,
+    databaseURL: &quot;&quot;,
+    projectId: &quot;&quot;,
+    storageBucket: &quot;&quot;,
+    messagingSenderId: &quot;&quot;,
+    appId: &quot;&quot;
+}" class="w-full px-3 py-2 text-xs font-mono border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none bg-slate-50"></textarea>
                     </div>
 
                     <!-- Bağlantı Durumu ve Kaydetme Butonu -->
@@ -1195,7 +1195,7 @@
             const configInput = document.getElementById('fb-config-json');
             if (configInput) {
                 if (state.firebaseConfig && state.firebaseConfig.apiKey) {
-                    configInput.value = JSON.stringify(state.firebaseConfig, null, 2);
+                    configInput.value = `{\n    apiKey: "${state.firebaseConfig.apiKey || ''}",\n    authDomain: "${state.firebaseConfig.authDomain || ''}",\n    databaseURL: "${state.firebaseConfig.databaseURL || ''}",\n    projectId: "${state.firebaseConfig.projectId || ''}",\n    storageBucket: "${state.firebaseConfig.storageBucket || ''}",\n    messagingSenderId: "${state.firebaseConfig.messagingSenderId || ''}",\n    appId: "${state.firebaseConfig.appId || ''}"\n}`;
                 } else {
                     configInput.value = '';
                 }
@@ -1232,7 +1232,6 @@
             }
         }
 
-        // 1. Önce Local'e sonra Firebase'e Türkçe kök anahtarlarıyla otomatik kaydetme fonksiyonu
         function saveToLocalStorage() {
             saveToLocalStorageCacheOnly();
             
@@ -1256,7 +1255,6 @@
             }
         }
 
-        // 2. Firebase Realtime Listener: Başka biri kayıt yaptığında bilgileri hemen senkronize et
         function setupRealtimeFirebaseSync() {
             if (initFirebaseConnection() && dbRef) {
                 dbRef.on('value', (snapshot) => {
@@ -1278,7 +1276,6 @@
 
                         saveToLocalStorageCacheOnly();
 
-                        // Ekranları anında güncelle
                         renderHeader();
                         renderDropdowns();
                         renderAttendanceFilters();
@@ -3352,12 +3349,17 @@
 
             let parsedConfig = {};
             try {
-                parsedConfig = JSON.parse(jsonText);
+                // Standart JSON veya JavaScript object literal ({ apiKey: "..." }) formatını esnekçe okur
+                try {
+                    parsedConfig = JSON.parse(jsonText);
+                } catch(e1) {
+                    parsedConfig = new Function('return ' + jsonText)();
+                }
             } catch (err) {
                 Swal.fire({ 
                     icon: 'error', 
-                    title: 'Geçersiz JSON Formatı', 
-                    text: 'Girdiğiniz Firebase konfigürasyonu geçerli bir JSON formatında değil!', 
+                    title: 'Geçersiz Format', 
+                    text: 'Girdiğiniz Firebase konfigürasyonu geçerli bir nesne formatında değil!', 
                     confirmButtonColor: '#4F46E5' 
                 });
                 return;
