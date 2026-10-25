@@ -815,14 +815,14 @@
                 </div>
             </div>
 
-            <!-- Veri Yedekleme ve Geri Yükleme -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <!-- Veri Yedekleme ve Geri Yükleme (Yalnızca Yönetici) -->
+            <div id="backup-restore-card" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white flex items-center gap-2">
                     <i class="fa-solid fa-database text-lg"></i>
                     <h2 class="font-bold">Veri Yedekleme & Geri Yükleme (Yalnızca Yönetici)</h2>
                 </div>
                 <div class="p-4 sm:p-6 space-y-4">
-                    <p class="text-xs text-slate-500">Tüm öğrencileri, öğretmenleri ve yoklama verilerinizi yedekleyin. Normal kullanıcılar bu butonları kullanamaz.</p>
+                    <p class="text-xs text-slate-500">Tüm öğrencileri, öğretmenleri ve yoklama verilerinizi yedekleyin. Normal kullanıcılar bu bölümü göremez.</p>
                     
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <button onclick="exportBackupData()" id="btn-backup-json" class="p-4 bg-slate-50 border border-slate-200 hover:border-purple-500 hover:bg-purple-50/50 rounded-xl text-left transition group">
@@ -865,8 +865,8 @@
                 </div>
             </div>
 
-            <!-- Tehlikeli Bölge: Tüm Geçmiş Bilgileri ve Verileri Sil (En Altta) -->
-            <div class="bg-rose-50 rounded-2xl shadow-sm border border-rose-200 overflow-hidden">
+            <!-- Tehlikeli Bölge: Tüm Geçmiş Bilgileri ve Verileri Sil (Yalnızca Yönetici) -->
+            <div id="danger-zone-card" class="bg-rose-50 rounded-2xl shadow-sm border border-rose-200 overflow-hidden">
                 <div class="p-4 bg-gradient-to-r from-rose-600 to-red-700 text-white flex items-center gap-2">
                     <i class="fa-solid fa-triangle-exclamation text-lg"></i>
                     <h2 class="font-bold">Tehlikeli Bölge: Tüm Geçmişi ve Verileri Sıfırla</h2>
@@ -1349,16 +1349,13 @@
                 renderStatisticsTab();
             } else if(tabId === 'settings') {
                 renderUsersManagementList();
-                // Admin kontrolü - Normal kullanıcı yedekleme butonlarını görebilir ama tıklayamaz veya gizlenebilir
+                
+                // Yöneticiye özel bölümleri normal kullanıcılardan tamamen gizle
                 const isAdmin = state.currentUser && state.currentUser.role === 'admin';
-                const backupJsonBtn = document.getElementById('btn-backup-json');
-                const backupExcelBtn = document.getElementById('btn-backup-excel');
-                const restoreLabel = document.getElementById('lbl-backup-restore');
-                if (!isAdmin) {
-                    if(backupJsonBtn) { backupJsonBtn.style.opacity = '0.5'; backupJsonBtn.title = 'Yalnızca yönetici kullanabilir'; }
-                    if(backupExcelBtn) { backupExcelBtn.style.opacity = '0.5'; backupExcelBtn.title = 'Yalnızca yönetici kullanabilir'; }
-                    if(restoreLabel) { restoreLabel.style.opacity = '0.5'; restoreLabel.title = 'Yalnızca yönetici kullanabilir'; }
-                }
+                const backupCard = document.getElementById('backup-restore-card');
+                const dangerCard = document.getElementById('danger-zone-card');
+                if (backupCard) backupCard.style.display = isAdmin ? 'block' : 'none';
+                if (dangerCard) dangerCard.style.display = isAdmin ? 'block' : 'none';
             }
         }
 
