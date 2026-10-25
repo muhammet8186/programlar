@@ -802,15 +802,20 @@
                     </div>
                 </form>
 
-                <!-- Aktif Kayıtlı Firebase Konfigürasyonu ve Hemen Yanında Sil Butonu -->
+                <!-- Aktif Kayıtlı Firebase Konfigürasyonu (Düzenle ve Sil Özellikli) -->
                 <div id="firebase-saved-card" class="mx-4 mb-4 sm:mx-6 sm:mb-6 p-4 rounded-xl bg-slate-50 border border-slate-200 hidden">
-                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200">
+                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200 flex-wrap gap-2">
                         <h3 class="text-xs font-bold uppercase text-slate-700 flex items-center gap-1.5">
                             <i class="fa-solid fa-file-lines text-amber-600"></i> Aktif Kayıtlı Firebase Konfigürasyonu
                         </h3>
-                        <button type="button" onclick="deleteFirebaseSettings()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs transition shadow-sm flex items-center gap-1.5">
-                            <i class="fa-solid fa-trash-can"></i> Kaydı Sil
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="editFirebaseSettings()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs transition shadow-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-pen-to-square"></i> Düzenle
+                            </button>
+                            <button type="button" onclick="deleteFirebaseSettings()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs transition shadow-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-trash-can"></i> Kaydı Sil
+                            </button>
+                        </div>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                         <div class="bg-white p-3 rounded-lg border border-slate-200">
@@ -3349,7 +3354,6 @@
 
             let parsedConfig = {};
             try {
-                // Standart JSON veya JavaScript object literal ({ apiKey: "..." }) formatını esnekçe okur
                 try {
                     parsedConfig = JSON.parse(jsonText);
                 } catch(e1) {
@@ -3390,6 +3394,17 @@
                 document.getElementById('fb-status-dot').className = "fa-solid fa-circle text-slate-300 mr-1";
                 document.getElementById('fb-status-text').textContent = "Bağlantı Yapılmadı";
             }
+        }
+
+        // Firebase Ayarlarını Form Alanına Geri Yükleme (Düzenleme Modu)
+        function editFirebaseSettings() {
+            if (!checkAdminPermission()) return;
+            document.getElementById('fb-root-node').value = state.firebaseRootNode || "okul_yoklama_sistemi";
+            if (state.firebaseConfig && state.firebaseConfig.apiKey) {
+                document.getElementById('fb-config-json').value = `{\n    apiKey: "${state.firebaseConfig.apiKey || ''}",\n    authDomain: "${state.firebaseConfig.authDomain || ''}",\n    databaseURL: "${state.firebaseConfig.databaseURL || ''}",\n    projectId: "${state.firebaseConfig.projectId || ''}",\n    storageBucket: "${state.firebaseConfig.storageBucket || ''}",\n    messagingSenderId: "${state.firebaseConfig.messagingSenderId || ''}",\n    appId: "${state.firebaseConfig.appId || ''}"\n}`;
+            }
+            document.getElementById('firebase-form').scrollIntoView({ behavior: 'smooth' });
+            Toast.fire({ icon: 'info', title: 'Konfigürasyon düzenleme için form alanına yüklendi.' });
         }
 
         function deleteFirebaseSettings() {
