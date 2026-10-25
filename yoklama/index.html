@@ -16,6 +16,9 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- SheetJS (Excel) CDN -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Firebase App & Realtime Database CDN (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -758,12 +761,17 @@
 
             <!-- Firebase Bulut Senkronizasyon Ayarları -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="p-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex items-center gap-2">
-                    <i class="fa-solid fa-fire text-lg text-yellow-200"></i>
-                    <h2 class="font-bold">Firebase Bulut Senkronizasyon Ayarları</h2>
+                <div class="p-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-fire text-lg text-yellow-200"></i>
+                        <h2 class="font-bold">Firebase Bulut Senkronizasyon Ayarları</h2>
+                    </div>
+                    <button type="button" onclick="manualSyncToFirebase()" class="px-3 py-1.5 bg-white text-amber-700 hover:bg-amber-50 rounded-lg text-xs font-bold transition shadow-sm flex items-center gap-1.5">
+                        <i class="fa-solid fa-rotate"></i> Şimdi Senkronize Et
+                    </button>
                 </div>
                 <form id="firebase-form" onsubmit="handleSaveFirebaseSettings(event)" class="p-4 sm:p-6 space-y-4">
-                    <p class="text-xs text-slate-500">Firebase kök düğüm başlığını ve konfigürasyon ayarlarını buradan tek bir yerden yönetebilirsiniz.</p>
+                    <p class="text-xs text-slate-500">Firebase kök düğüm başlığını ve konfigürasyon ayarlarını buradan yönetin. Tüm veriler bulut ile eşitlecektir.</p>
                     
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Firebase Kök Düğüm Başlığı</label>
@@ -1091,6 +1099,9 @@
         let modalStudentChartInstance = null;
         let activeModalStudentId = null;
 
+        let firebaseApp = null;
+        let dbRef = null;
+
         const Toast = Swal.mixin({
             toast: true,
             position: 'top-end',
@@ -1098,6 +1109,23 @@
             timer: 3000,
             timerProgressBar: true
         });
+
+        function initFirebaseConnection() {
+            try {
+                if (state.firebaseConfig && state.firebaseConfig.apiKey && state.firebaseConfig.projectId) {
+                    if (!firebase.apps.length) {
+                        firebaseApp = firebase.initializeApp(state.firebaseConfig);
+                    } else {
+                        firebaseApp = firebase.app();
+                    }
+                    dbRef = firebase.database().ref(state.firebaseRootNode || 'okul_yoklama_sistemi');
+                    return true;
+                }
+            } catch(e) {
+                console.error("Firebase bağlantı hatası:", e);
+            }
+            return false;
+        }
 
         function checkAdminPermission() {
             if (!state.currentUser || state.currentUser.role !== 'admin') {
@@ -1125,7 +1153,11 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             loadFromLocalStorage();
-            checkLoginState();
+            if (state.firebaseConfig && state.firebaseConfig.apiKey) {
+                loadFromFirebaseAndStart();
+            } else {
+                checkLoginState();
+            }
         });
 
         function loadFromLocalStorage() {
@@ -1179,7 +1211,7 @@
             }
         }
 
-        function saveToLocalStorage() {
+        function saveToLocalStorageCacheOnly() {
             localStorage.setItem('att_title', state.appTitle);
             localStorage.setItem('att_subtitle', state.appSubtitle);
             localStorage.setItem('att_unexcused_limit', state.unexcusedLimit);
@@ -1197,6 +1229,87 @@
                 localStorage.setItem('att_current_user', JSON.stringify(state.currentUser));
             } else {
                 localStorage.removeItem('att_current_user');
+            }
+        }
+
+        function saveToLocalStorage() {
+            saveToLocalStorageCacheOnly();
+            
+            // Firebase otomatik senkronizasyon
+            if (initFirebaseConnection() && dbRef) {
+                dbRef.set({
+                    appTitle: state.appTitle,
+                    appSubtitle: state.appSubtitle,
+                    unexcusedLimit: state.unexcusedLimit,
+                    students: state.students,
+                    teachers: state.teachers,
+                    lessons: state.lessons,
+                    levels: state.levels,
+                    classes: state.classes,
+                    attendanceRecords: state.attendanceRecords,
+                    studentNotes: state.studentNotes,
+                    users: state.users,
+                    lastUpdated: new Date().toISOString()
+                }).then(() => {
+                    console.log("Firebase bulut senkronizasyonu başarılı.");
+                }).catch(err => {
+                    console.error("Firebase senkronizasyon hatası:", err);
+                });
+            }
+        }
+
+        function loadFromFirebaseAndStart() {
+            if (initFirebaseConnection() && dbRef) {
+                dbRef.once('value').then((snapshot) => {
+                    const fbData = snapshot.val();
+                    if (fbData) {
+                        if (fbData.appTitle) state.appTitle = fbData.appTitle;
+                        if (fbData.appSubtitle) state.appSubtitle = fbData.appSubtitle;
+                        if (fbData.unexcusedLimit) state.unexcusedLimit = fbData.unexcusedLimit;
+                        if (fbData.students) state.students = fbData.students;
+                        if (fbData.teachers) state.teachers = fbData.teachers;
+                        if (fbData.lessons) state.lessons = fbData.lessons;
+                        if (fbData.levels) state.levels = fbData.levels;
+                        if (fbData.classes) state.classes = fbData.classes;
+                        if (fbData.attendanceRecords) state.attendanceRecords = fbData.attendanceRecords;
+                        if (fbData.studentNotes) state.studentNotes = fbData.studentNotes;
+                        if (fbData.users) state.users = fbData.users;
+                        
+                        saveToLocalStorageCacheOnly();
+                    }
+                    checkLoginState();
+                }).catch(err => {
+                    console.error("Firebase'den veri yüklenirken hata:", err);
+                    checkLoginState();
+                });
+            } else {
+                checkLoginState();
+            }
+        }
+
+        function manualSyncToFirebase() {
+            if (!checkAdminPermission()) return;
+            if (initFirebaseConnection() && dbRef) {
+                dbRef.set({
+                    appTitle: state.appTitle,
+                    appSubtitle: state.appSubtitle,
+                    unexcusedLimit: state.unexcusedLimit,
+                    students: state.students,
+                    teachers: state.teachers,
+                    lessons: state.lessons,
+                    levels: state.levels,
+                    classes: state.classes,
+                    attendanceRecords: state.attendanceRecords,
+                    studentNotes: state.studentNotes,
+                    users: state.users,
+                    lastUpdated: new Date().toISOString()
+                }).then(() => {
+                    Swal.fire({ icon: 'success', title: 'Senkronizasyon Başarılı', text: 'Tüm veriler Firebase buluta başarıyla kaydedildi!', confirmButtonColor: '#4F46E5' });
+                }).catch(err => {
+                    Swal.fire({ icon: 'error', title: 'Hata', text: 'Firebase senkronizasyonu başarısız oldu: ' + err.message, confirmButtonColor: '#4F46E5' });
+                });
+            } else {
+                Swal.fire({ icon: 'warning', title: 'Yapılandırma Eksik', text: 'Önce geçerli bir Firebase konfigürasyonu girip kaydedin.', confirmButtonColor: '#4F46E5' });
             }
         }
 
@@ -3242,7 +3355,7 @@
             saveToLocalStorage();
             renderFirebaseSection();
 
-            Toast.fire({ icon: 'success', title: 'Firebase ayarları kaydedildi.' });
+            Toast.fire({ icon: 'success', title: 'Firebase ayarları kaydedildi ve bağlandı.' });
         }
 
         function renderFirebaseSection() {
@@ -3314,6 +3427,9 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     localStorage.clear();
+                    if (initFirebaseConnection() && dbRef) {
+                        dbRef.remove();
+                    }
 
                     state.students = [];
                     state.teachers = [];
@@ -3324,7 +3440,7 @@
                     state.firebaseConfig = { apiKey: "", authDomain: "", databaseURL: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: "" };
                     state.firebaseRootNode = "okul_yoklama_sistemi";
 
-                    saveToLocalStorage();
+                    saveToLocalStorageCacheOnly();
 
                     Swal.fire({
                         icon: 'success',
@@ -3398,7 +3514,7 @@
                         Swal.fire({
                             icon: 'success',
                             title: 'Yedek Yüklendi',
-                            text: 'Veriler başarıyla yüklendi. Sayfa yenileniyor...',
+                            text: 'Veriler başarıyla yüklendi ve buluta aktarıldı. Sayfa yenileniyor...',
                             timer: 1500,
                             showConfirmButton: false
                         }).then(() => location.reload());
