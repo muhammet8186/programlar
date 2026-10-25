@@ -46,24 +46,20 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
 
-    <!-- LOGIN MODAL -->
+    <!-- LOGIN MODAL (Sadece Şifre ile Giriş) -->
     <div id="login-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100">
             <div class="p-6 bg-gradient-to-r from-slate-900 to-indigo-950 text-white text-center">
                 <div class="inline-flex p-3 bg-white/10 rounded-2xl mb-3 text-sky-400 border border-white/20">
                     <i class="fa-solid fa-lock text-2xl"></i>
                 </div>
-                <h2 class="text-xl font-extrabold">Sistem Girişi</h2>
-                <p class="text-xs text-slate-300 mt-1">Devam etmek için lütfen giriş yapınız</p>
+                <h2 class="text-xl font-extrabold">Şifre ile Sistem Girişi</h2>
+                <p class="text-xs text-slate-300 mt-1">Devam etmek için şifrenizi giriniz</p>
             </div>
             <form onsubmit="handleLogin(event)" class="p-6 space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Kullanıcı Adı</label>
-                    <input type="text" id="login-username" required placeholder="Kullanıcı adınızı girin" class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Şifre</label>
-                    <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Giriş Şifresi</label>
+                    <input type="password" id="login-password" required placeholder="Şifrenizi girin (Örn: 1234)" class="w-full px-4 py-3 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center font-bold tracking-widest text-lg">
                 </div>
                 <div class="pt-2">
                     <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20 transition duration-150 flex items-center justify-center space-x-2">
@@ -71,9 +67,9 @@
                         <span>Giriş Yap</span>
                     </button>
                 </div>
-                <div class="text-[11px] text-slate-400 text-center mt-2">
-                    Varsayılan Yönetici: <span class="font-semibold text-slate-600">admin</span> / Şifre: <span class="font-semibold text-slate-600">123</span><br>
-                    Varsayılan Kullanıcı: <span class="font-semibold text-slate-600">user</span> / Şifre: <span class="font-semibold text-slate-600">123</span>
+                <div class="text-[11px] text-slate-400 text-center mt-2 space-y-0.5">
+                    <div>Yönetici Şifresi: <span class="font-semibold text-slate-600">1234</span></div>
+                    <div>Kullanıcı Şifresi: <span class="font-semibold text-slate-600">1111</span></div>
                 </div>
             </form>
         </div>
@@ -93,9 +89,8 @@
                     </div>
                 </div>
 
-                <!-- Navigation Tabs -->
+                <!-- Navigation Tabs (Yetkilere Göre Dinamik) -->
                 <nav id="desktop-nav" class="hidden lg:flex space-x-1 bg-slate-900/60 p-1.5 rounded-xl border border-slate-700 shadow-inner">
-                    <!-- Dinamik olarak rollerine göre doldurulur -->
                 </nav>
 
                 <!-- User Profile & Logout -->
@@ -113,7 +108,6 @@
 
         <!-- Mobile Navigation Bar -->
         <div id="mobile-nav" class="lg:hidden flex border-t border-slate-800 bg-slate-900 divide-x divide-slate-800 text-center overflow-x-auto shadow-sm">
-            <!-- Dinamik olarak rollerine göre doldurulur -->
         </div>
     </header>
 
@@ -249,7 +243,7 @@
             </div>
         </section>
 
-        <!-- TAB 3: ÖĞRENCİ YÖNETİMİ (Sadece Admin) -->
+        <!-- TAB 3: ÖĞRENCİ YÖNETİMİ -->
         <section id="section-students" class="tab-content space-y-6 hidden">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-4 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center gap-2">
@@ -312,7 +306,7 @@
             </div>
         </section>
 
-        <!-- TAB 4: ÖĞRETMEN YÖNETİMİ (Sadece Admin) -->
+        <!-- TAB 4: ÖĞRETMEN YÖNETİMİ -->
         <section id="section-teachers" class="tab-content space-y-6 hidden">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex items-center gap-2">
@@ -556,7 +550,7 @@
             </div>
         </section>
 
-        <!-- TAB 6: AYARLAR (Sadece Admin) -->
+        <!-- TAB 6: AYARLAR (Şifrelerin Göründüğü & Bölüm Yetkilerinin Seçildiği Kullanıcı Yönetimi ile) -->
         <section id="section-settings" class="tab-content space-y-6 hidden">
             
             <!-- Program Başlığı Ayarları -->
@@ -582,32 +576,47 @@
                 </form>
             </div>
 
-            <!-- Kullanıcı Yönetimi Bölümü -->
+            <!-- Kullanıcı Yönetimi Bölümü (Şifrelerin Görüldüğü ve Bölüm Yetkilerinin Tanımlandığı Panel) -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white flex items-center gap-2">
                     <i class="fa-solid fa-users-gear text-lg"></i>
-                    <h2 class="font-bold">Kullanıcı Yönetimi (Yönetici & Kullanıcı)</h2>
+                    <h2 class="font-bold">Kullanıcı Yönetimi ve Bölüm Yetkilendirme</h2>
                 </div>
                 <div class="p-4 sm:p-6 space-y-4">
-                    <form onsubmit="handleAddUser(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Kullanıcı Adı</label>
-                            <input type="text" id="new-user-username" required placeholder="ornek_user" class="w-full px-3 py-2 text-xs border rounded-lg bg-white">
+                    <form onsubmit="handleAddUser(event)" class="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Kullanıcı Adı / Açıklama</label>
+                                <input type="text" id="new-user-username" required placeholder="ornek_user" class="w-full px-3 py-2 text-xs border rounded-lg bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Giriş Şifresi</label>
+                                <input type="text" id="new-user-password" required placeholder="Şifre" class="w-full px-3 py-2 text-xs border rounded-lg bg-white font-bold">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Rol</label>
+                                <select id="new-user-role" class="w-full px-3 py-2 text-xs border rounded-lg bg-white">
+                                    <option value="user">Kullanıcı</option>
+                                    <option value="admin">Yönetici</option>
+                                </select>
+                            </div>
                         </div>
+
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Şifre</label>
-                            <input type="password" id="new-user-password" required placeholder="Şifre" class="w-full px-3 py-2 text-xs border rounded-lg bg-white">
+                            <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1.5">Görüntüleyebileceği Bölümler (Sayfa Yetkileri)</label>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs bg-white p-3 rounded-lg border border-slate-200">
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="new-user-perm" value="take-attendance" checked class="rounded text-indigo-600"> Yoklama Al</label>
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="new-user-perm" value="history" checked class="rounded text-indigo-600"> Geçmiş</label>
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="new-user-perm" value="students" class="rounded text-indigo-600"> Öğrenciler</label>
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="new-user-perm" value="teachers" class="rounded text-indigo-600"> Öğretmenler</label>
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="new-user-perm" value="statistics" checked class="rounded text-indigo-600"> İstatistik</label>
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="new-user-perm" value="settings" class="rounded text-indigo-600"> Ayarlar</label>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Rol</label>
-                            <select id="new-user-role" class="w-full px-3 py-2 text-xs border rounded-lg bg-white">
-                                <option value="user">Kullanıcı (Yoklama, Geçmiş, İstatistik)</option>
-                                <option value="admin">Yönetici (Tam Yetkili)</option>
-                            </select>
-                        </div>
-                        <div class="flex items-end">
-                            <button type="submit" class="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-xs transition shadow-sm">
-                                <i class="fa-solid fa-user-plus mr-1"></i> Kullanıcı Ekle
+
+                        <div class="flex justify-end">
+                            <button type="submit" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-xs transition shadow-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-user-plus"></i> Kullanıcı Ekle
                             </button>
                         </div>
                     </form>
@@ -616,8 +625,10 @@
                         <table class="w-full text-left text-xs text-slate-600">
                             <thead class="bg-slate-100 font-bold uppercase text-slate-500 border-b">
                                 <tr>
-                                    <th class="px-4 py-3">Kullanıcı Adı</th>
+                                    <th class="px-4 py-3">Kullanıcı / İsim</th>
+                                    <th class="px-4 py-3">Şifre</th>
                                     <th class="px-4 py-3">Rolü</th>
+                                    <th class="px-4 py-3">Erişebildiği Bölümler</th>
                                     <th class="px-4 py-3 text-right">İşlemler</th>
                                 </tr>
                             </thead>
@@ -627,7 +638,7 @@
                 </div>
             </div>
 
-            <!-- Ders/Etkinlik, Sınıf Yönetimi ve Seviye Yönetimi -->
+            <!-- Ders/Etkinlik, Sınıf ve Seviye Yönetimi -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Ders / Etkinlik Yönetimi -->
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
@@ -699,7 +710,7 @@
                 </div>
             </div>
 
-            <!-- Tekil Firebase Ayarları Kartı (Kayıt Formu ve Silme Özellikli) -->
+            <!-- Tekil Firebase Ayarları Kartı -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex items-center gap-2">
                     <i class="fa-solid fa-fire text-lg text-yellow-200"></i>
@@ -736,7 +747,6 @@
                     </div>
                 </form>
 
-                <!-- Kayıtlı Tekil Firebase Bilgileri Formu ve Silme Butonu -->
                 <div id="firebase-saved-card" class="mx-4 mb-4 sm:mx-6 sm:mb-6 p-4 rounded-xl bg-slate-50 border border-slate-200 hidden">
                     <h3 class="text-xs font-bold uppercase text-slate-700 mb-2 flex items-center gap-1.5">
                         <i class="fa-solid fa-file-lines text-amber-600"></i> Aktif Kayıtlı Firebase Konfigürasyon Formu
@@ -952,9 +962,11 @@
             { id: 't1', name: 'Ali Öğretmen', branch: 'Sınıf Öğretmeni' },
             { id: 't2', name: 'Fatma Öğretmen', branch: 'Matematik' }
         ];
+
+        // Varsayılan Kullanıcılar (Yönetici şifresi: 1234, Kullanıcı şifresi: 1111)
         const DEFAULT_USERS = [
-            { id: 'u1', username: 'admin', password: '123', role: 'admin', name: 'Sistem Yöneticisi' },
-            { id: 'u2', username: 'user', password: '123', role: 'user', name: 'Yoklama Kullanıcısı' }
+            { id: 'u1', username: 'admin', password: '1234', role: 'admin', name: 'Sistem Yöneticisi', permissions: ['take-attendance', 'history', 'students', 'teachers', 'statistics', 'settings'] },
+            { id: 'u2', username: 'user', password: '1111', role: 'user', name: 'Yoklama Kullanıcısı', permissions: ['take-attendance', 'history', 'statistics'] }
         ];
 
         let state = {
@@ -1066,33 +1078,32 @@
             }
         }
 
+        // Sadece Şifre ile Giriş Kontrolü
         function handleLogin(e) {
             e.preventDefault();
-            const usernameInput = document.getElementById('login-username').value.trim();
             const passwordInput = document.getElementById('login-password').value.trim();
 
-            const foundUser = state.users.find(u => u.username === usernameInput && u.password === passwordInput);
+            const foundUser = state.users.find(u => u.password === passwordInput);
             if (foundUser) {
                 state.currentUser = foundUser;
                 saveToLocalStorage();
                 document.getElementById('login-modal').classList.add('hidden');
-                Toast.fire({ icon: 'success', title: `Hoş geldiniz, ${foundUser.name}` });
+                Toast.fire({ icon: 'success', title: `Hoş geldiniz, ${foundUser.username}` });
                 initAppAfterLogin();
             } else {
-                Swal.fire({ icon: 'error', title: 'Hatalı Giriş', text: 'Kullanıcı adı veya şifre yanlış!', confirmButtonColor: '#4F46E5' });
+                Swal.fire({ icon: 'error', title: 'Hatalı Şifre', text: 'Girdiğiniz şifre sistemde kayıtlı bir kullanıcıya ait değil!', confirmButtonColor: '#4F46E5' });
             }
         }
 
         function handleLogout() {
             state.currentUser = null;
             localStorage.removeItem('att_current_user');
-            document.getElementById('login-username').value = '';
             document.getElementById('login-password').value = '';
             document.getElementById('login-modal').classList.remove('hidden');
         }
 
         function initAppAfterLogin() {
-            document.getElementById('current-user-name').textContent = state.currentUser.name;
+            document.getElementById('current-user-name').textContent = state.currentUser.username;
             document.getElementById('current-user-role').textContent = state.currentUser.role === 'admin' ? 'Yönetici' : 'Kullanıcı';
 
             renderNavigation();
@@ -1117,242 +1128,61 @@
             renderStatisticsTab();
             renderFirebaseSection();
 
-            // Eğer kullanıcı rolündeyse ve yasaklı bir sekmedeyse ilk sekmesine yönlendir
+            // Eğer kullanıcının mevcut açık sekmeye izni yoksa yetkili olduğu ilk sekmeye yönlendir
             const activeSec = document.querySelector('.tab-content:not(.hidden)');
-            if (state.currentUser.role === 'user') {
-                if (activeSec && (activeSec.id === 'section-students' || activeSec.id === 'section-teachers' || activeSec.id === 'section-settings')) {
-                    switchTab('take-attendance');
-                }
+            const currentTabId = activeSec ? activeSec.id.replace('section-', '') : '';
+            const userPerms = state.currentUser.permissions || [];
+            
+            if (!userPerms.includes(currentTabId) && userPerms.length > 0) {
+                switchTab(userPerms[0]);
             }
         }
 
+        // Kullanıcının Yetkilerine Göre Dinamik Navigasyon
         function renderNavigation() {
             const desktopNav = document.getElementById('desktop-nav');
             const mobileNav = document.getElementById('mobile-nav');
+            if(!desktopNav || !mobileNav) return;
 
-            let dNavHTML = `
-                <button onclick="switchTab('take-attendance')" id="tab-take-attendance" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
-                    <i class="fa-solid fa-clipboard-user"></i>
-                    <span>Yoklama Al</span>
-                </button>
-                <button onclick="switchTab('history')" id="tab-history" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800">
-                    <i class="fa-solid fa-clock-rotate-left text-purple-400"></i>
-                    <span>Geçmiş</span>
-                </button>
-            `;
+            const allTabConfig = [
+                { id: 'take-attendance', label: 'Yoklama Al', icon: 'fa-clipboard-user', color: 'sky' },
+                { id: 'history', label: 'Geçmiş', icon: 'fa-clock-rotate-left', color: 'purple' },
+                { id: 'students', label: 'Öğrenciler', icon: 'fa-graduation-cap', color: 'emerald' },
+                { id: 'teachers', label: 'Öğretmenler', icon: 'fa-chalkboard-user', color: 'amber' },
+                { id: 'statistics', label: 'İstatistik', icon: 'fa-chart-line', color: 'blue' },
+                { id: 'settings', label: 'Ayarlar', icon: 'fa-gear', color: 'rose' }
+            ];
 
-            let mNavHTML = `
-                <button onclick="switchTab('take-attendance')" id="mob-tab-take-attendance" class="flex-1 min-w-[60px] py-3 text-[10px] font-bold text-sky-400 flex flex-col items-center gap-1 bg-slate-800/80">
-                    <i class="fa-solid fa-clipboard-user text-sm text-sky-400"></i> Yoklama
-                </button>
-                <button onclick="switchTab('history')" id="mob-tab-history" class="flex-1 min-w-[60px] py-3 text-[10px] font-semibold text-slate-300 flex flex-col items-center gap-1">
-                    <i class="fa-solid fa-clock-rotate-left text-sm text-purple-400"></i> Geçmiş
-                </button>
-            `;
+            const userPerms = state.currentUser.permissions || [];
+            const allowedTabs = allTabConfig.filter(t => userPerms.includes(t.id));
 
-            if (state.currentUser && state.currentUser.role === 'admin') {
+            let dNavHTML = '';
+            let mNavHTML = '';
+
+            allowedTabs.forEach((tab, index) => {
+                const isActive = index === 0; // ilk izinli sekme varsayılan aktif
                 dNavHTML += `
-                    <button onclick="switchTab('students')" id="tab-students" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800">
-                        <i class="fa-solid fa-graduation-cap text-emerald-400"></i>
-                        <span>Öğrenciler</span>
-                    </button>
-                    <button onclick="switchTab('teachers')" id="tab-teachers" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800">
-                        <i class="fa-solid fa-chalkboard-user text-amber-400"></i>
-                        <span>Öğretmenler</span>
+                    <button onclick="switchTab('${tab.id}')" id="tab-${tab.id}" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ${isActive ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'text-slate-300 hover:text-white hover:bg-slate-800'}">
+                        <i class="fa-solid ${tab.icon}"></i>
+                        <span>${tab.label}</span>
                     </button>
                 `;
                 mNavHTML += `
-                    <button onclick="switchTab('students')" id="mob-tab-students" class="flex-1 min-w-[60px] py-3 text-[10px] font-semibold text-slate-300 flex flex-col items-center gap-1">
-                        <i class="fa-solid fa-graduation-cap text-sm text-emerald-400"></i> Öğrenci
-                    </button>
-                    <button onclick="switchTab('teachers')" id="mob-tab-teachers" class="flex-1 min-w-[60px] py-3 text-[10px] font-semibold text-slate-300 flex flex-col items-center gap-1">
-                        <i class="fa-solid fa-chalkboard-user text-sm text-amber-400"></i> Öğretmen
+                    <button onclick="switchTab('${tab.id}')" id="mob-tab-${tab.id}" class="flex-1 min-w-[60px] py-3 text-[10px] ${isActive ? 'font-bold text-sky-400 bg-slate-800/80' : 'font-semibold text-slate-300'} flex flex-col items-center gap-1">
+                        <i class="fa-solid ${tab.icon} text-sm"></i> ${tab.label}
                     </button>
                 `;
-            }
-
-            dNavHTML += `
-                <button onclick="switchTab('statistics')" id="tab-statistics" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800">
-                    <i class="fa-solid fa-chart-line text-blue-400"></i>
-                    <span>İstatistik</span>
-                </button>
-            `;
-            mNavHTML += `
-                <button onclick="switchTab('statistics')" id="mob-tab-statistics" class="flex-1 min-w-[60px] py-3 text-[10px] font-semibold text-slate-300 flex flex-col items-center gap-1">
-                    <i class="fa-solid fa-chart-line text-sm text-blue-400"></i> İstatistik
-                </button>
-            `;
-
-            if (state.currentUser && state.currentUser.role === 'admin') {
-                dNavHTML += `
-                    <button onclick="switchTab('settings')" id="tab-settings" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800">
-                        <i class="fa-solid fa-gear text-rose-400"></i>
-                        <span>Ayarlar</span>
-                    </button>
-                `;
-                mNavHTML += `
-                    <button onclick="switchTab('settings')" id="mob-tab-settings" class="flex-1 min-w-[60px] py-3 text-[10px] font-semibold text-slate-300 flex flex-col items-center gap-1">
-                        <i class="fa-solid fa-gear text-sm text-rose-400"></i> Ayarlar
-                    </button>
-                `;
-            }
+            });
 
             desktopNav.innerHTML = dNavHTML;
             mobileNav.innerHTML = mNavHTML;
         }
 
-        function handleSaveFirebaseSettings(e) {
-            e.preventDefault();
-            const rootNode = document.getElementById('fb-root-node').value.trim() || "okul_yoklama_sistemi";
-            const jsonText = document.getElementById('fb-config-json').value.trim();
-
-            let parsedConfig = {};
-            try {
-                if (jsonText) {
-                    parsedConfig = JSON.parse(jsonText);
-                }
-            } catch (err) {
-                Swal.fire({ icon: 'error', title: 'JSON Hatası', text: 'Firebase konfigürasyon JSON formatı geçerli değil!', confirmColor: '#4F46E5' });
-                return;
-            }
-
-            state.firebaseRootNode = rootNode;
-            state.firebaseConfig = parsedConfig;
-            saveToLocalStorage();
-            renderFirebaseSection();
-
-            Toast.fire({ icon: 'success', title: 'Firebase ayarları tekil olarak kaydedildi.' });
-        }
-
-        function renderFirebaseSection() {
-            const savedCard = document.getElementById('firebase-saved-card');
-            const rootDisplay = document.getElementById('saved-fb-root-display');
-            const projectDisplay = document.getElementById('saved-fb-project-display');
-
-            if (state.firebaseConfig && state.firebaseConfig.apiKey) {
-                rootDisplay.textContent = state.firebaseRootNode || '-';
-                projectDisplay.textContent = state.firebaseConfig.projectId || 'Belirtilmemiş';
-                savedCard.classList.remove('hidden');
-                document.getElementById('fb-status-dot').className = "fa-solid fa-circle text-emerald-500 mr-1";
-                document.getElementById('fb-status-text').textContent = "Firebase Yapılandırıldı ve Aktif";
-            } else {
-                savedCard.classList.add('hidden');
-                document.getElementById('fb-status-dot').className = "fa-solid fa-circle text-slate-300 mr-1";
-                document.getElementById('fb-status-text').textContent = "Bağlantı Yapılmadı";
-            }
-        }
-
-        function deleteFirebaseSettings() {
-            Swal.fire({
-                title: 'Firebase Ayarları Silinsin mi?',
-                text: 'Kayıtlı tekil Firebase bağlantı konfigürasyonu kaldırılacak.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#EF4444',
-                cancelColor: '#6B7280',
-                confirmButtonText: 'Evet, Sil',
-                cancelButtonText: 'İptal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    state.firebaseConfig = {};
-                    state.firebaseRootNode = "okul_yoklama_sistemi";
-                    document.getElementById('fb-root-node').value = state.firebaseRootNode;
-                    document.getElementById('fb-config-json').value = '';
-                    saveToLocalStorage();
-                    renderFirebaseSection();
-                    Toast.fire({ icon: 'success', title: 'Firebase ayarları silindi.' });
-                }
-            });
-        }
-
-        // Kullanıcı Yönetimi İşlemleri
-        function renderUsersManagementList() {
-            const tbody = document.getElementById('users-table-body');
-            if(!tbody) return;
-
-            tbody.innerHTML = state.users.map(u => `
-                <tr class="hover:bg-slate-50 transition">
-                    <td class="px-4 py-3 font-bold text-slate-800">${escapeHtml(u.username)} <span class="text-[11px] font-normal text-slate-400">(${escapeHtml(u.name)})</span></td>
-                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}">${u.role.toUpperCase()}</span></td>
-                    <td class="px-4 py-3 text-right">
-                        ${u.username !== 'admin' ? `<button onclick="deleteUser('${u.id}')" class="text-rose-500 hover:text-rose-700 p-1"><i class="fa-solid fa-trash-can"></i></button>` : '<span class="text-slate-300 text-[10px]">Kilitli</span>'}
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function handleAddUser(e) {
-            e.preventDefault();
-            const usernameInput = document.getElementById('new-user-username');
-            const passwordInput = document.getElementById('new-user-password');
-            const roleSelect = document.getElementById('new-user-role');
-
-            const username = usernameInput.value.trim();
-            const password = passwordInput.value.trim();
-            const role = roleSelect.value;
-
-            if (state.users.some(u => u.username === username)) {
-                Swal.fire({ icon: 'error', title: 'Hata', text: 'Bu kullanıcı adı zaten kullanımda!', confirmButtonColor: '#4F46E5' });
-                return;
-            }
-
-            const newUser = {
-                id: Date.now().toString(),
-                username: username,
-                password: password,
-                role: role,
-                name: username === 'admin' ? 'Yönetici' : 'Kullanıcı'
-            };
-
-            state.users.push(newUser);
-            saveToLocalStorage();
-            renderUsersManagementList();
-
-            usernameInput.value = '';
-            passwordInput.value = '';
-            Toast.fire({ icon: 'success', title: 'Yeni kullanıcı eklendi.' });
-        }
-
-        function deleteUser(userId) {
-            const user = state.users.find(u => u.id === userId);
-            if (user && user.username === 'admin') {
-                Swal.fire({ icon: 'error', title: 'İşlem Engellendi', text: 'Ana yönetici hesabı silinemez!', confirmButtonColor: '#4F46E5' });
-                return;
-            }
-
-            Swal.fire({
-                title: 'Kullanıcı Silinsin mi?',
-                text: `"${user?.username}" kullanıcısının erişimi kaldırılacak.`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#EF4444',
-                cancelColor: '#6B7280',
-                confirmButtonText: 'Evet, Sil',
-                cancelButtonText: 'İptal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    state.users = state.users.filter(u => u.id !== userId);
-                    saveToLocalStorage();
-                    renderUsersManagementList();
-                    Toast.fire({ icon: 'success', title: 'Kullanıcı silindi.' });
-                }
-            });
-        }
-
-        function resetCurrentAttendanceToUnselected() {
-            state.currentAttendance = {};
-            state.students.forEach(s => {
-                state.currentAttendance[s.id] = { status: null, note: '' };
-            });
-        }
-
         function switchTab(tabId) {
-            // Kullanıcı yetki kontrolü
-            if (state.currentUser && state.currentUser.role === 'user') {
-                if (['students', 'teachers', 'settings'].includes(tabId)) {
-                    Swal.fire({ icon: 'warning', title: 'Yetkisiz Erişim', text: 'Bu sayfaya erişim yetkiniz bulunmamaktadır.', confirmButtonColor: '#4F46E5' });
-                    return;
-                }
+            const userPerms = state.currentUser.permissions || [];
+            if (!userPerms.includes(tabId)) {
+                Swal.fire({ icon: 'warning', title: 'Yetkisiz Erişim', text: 'Bu sayfayı görüntüleme yetkiniz bulunmamaktadır.', confirmButtonColor: '#4F46E5' });
+                return;
             }
 
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
@@ -1381,16 +1211,200 @@
                 renderAttendanceList();
             } else if(tabId === 'history') {
                 renderHistoryList();
-            } else if(tabId === 'students' && state.currentUser.role === 'admin') {
+            } else if(tabId === 'students') {
                 renderDropdowns();
                 renderStudentManagementList();
-            } else if(tabId === 'teachers' && state.currentUser.role === 'admin') {
+            } else if(tabId === 'teachers') {
                 renderTeacherManagementList();
             } else if(tabId === 'statistics') {
                 renderStatisticsTab();
-            } else if(tabId === 'settings' && state.currentUser.role === 'admin') {
+            } else if(tabId === 'settings') {
                 renderUsersManagementList();
             }
+        }
+
+        // Kullanıcı Şifrelerinin Gözüktüğü & Yetki Ayarlarının Yapıldığı Yönetim Paneli
+        function renderUsersManagementList() {
+            const tbody = document.getElementById('users-table-body');
+            if(!tbody) return;
+
+            tbody.innerHTML = state.users.map(u => {
+                const permsStr = (u.permissions || []).map(p => {
+                    switch(p) {
+                        case 'take-attendance': return 'Yoklama';
+                        case 'history': return 'Geçmiş';
+                        case 'students': return 'Öğrenci';
+                        case 'teachers': return 'Öğretmen';
+                        case 'statistics': return 'İstatistik';
+                        case 'settings': return 'Ayarlar';
+                        default: return p;
+                    }
+                }).join(', ');
+
+                return `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-4 py-3 font-bold text-slate-800">${escapeHtml(u.username)} <span class="text-[11px] font-normal text-slate-400">(${escapeHtml(u.name || '-')})</span></td>
+                    <td class="px-4 py-3 font-mono font-bold text-indigo-600 bg-slate-50 rounded">${escapeHtml(u.password)}</td>
+                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}">${u.role.toUpperCase()}</span></td>
+                    <td class="px-4 py-3 text-[11px] text-slate-500">${permsStr || 'Hiçbiri'}</td>
+                    <td class="px-4 py-3 text-right space-x-1">
+                        <button onclick="openEditUserModal('${u.id}')" class="text-indigo-600 hover:text-indigo-800 p-1" title="Düzenle"><i class="fa-solid fa-pen-to-square"></i></button>
+                        ${u.username !== 'admin' ? `<button onclick="deleteUser('${u.id}')" class="text-rose-500 hover:text-rose-700 p-1" title="Sil"><i class="fa-solid fa-trash-can"></i></button>` : '<span class="text-slate-300 text-[10px]">Kilitli</span>'}
+                    </td>
+                </tr>
+            `;
+            }).join('');
+        }
+
+        function handleAddUser(e) {
+            e.preventDefault();
+            const usernameInput = document.getElementById('new-user-username');
+            const passwordInput = document.getElementById('new-user-password');
+            const roleSelect = document.getElementById('new-user-role');
+            
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+            const role = roleSelect.value;
+
+            const checkboxes = document.querySelectorAll('input[name="new-user-perm"]:checked');
+            const permissions = Array.from(checkboxes).map(cb => cb.value);
+
+            if (state.users.some(u => u.username === username)) {
+                Swal.fire({ icon: 'error', title: 'Hata', text: 'Bu kullanıcı adı zaten kullanımda!', confirmButtonColor: '#4F46E5' });
+                return;
+            }
+
+            const newUser = {
+                id: Date.now().toString(),
+                username: username,
+                password: password,
+                role: role,
+                name: role === 'admin' ? 'Yönetici' : 'Kullanıcı',
+                permissions: permissions
+            };
+
+            state.users.push(newUser);
+            saveToLocalStorage();
+            renderUsersManagementList();
+
+            usernameInput.value = '';
+            passwordInput.value = '';
+            Toast.fire({ icon: 'success', title: 'Yeni kullanıcı başarıyla eklendi.' });
+        }
+
+        // Kullanıcı Düzenleme Modalı
+        function openEditUserModal(userId) {
+            const user = state.users.find(u => u.id === userId);
+            if (!user) return;
+
+            const allPerms = [
+                { id: 'take-attendance', label: 'Yoklama Al' },
+                { id: 'history', label: 'Geçmiş' },
+                { id: 'students', label: 'Öğrenciler' },
+                { id: 'teachers', label: 'Öğretmenler' },
+                { id: 'statistics', label: 'İstatistik' },
+                { id: 'settings', label: 'Ayarlar' }
+            ];
+
+            let htmlContent = `
+                <div class="text-left space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Kullanıcı Adı</label>
+                        <input type="text" id="swal-edit-username" value="${escapeHtml(user.username)}" class="w-full text-xs border rounded-lg p-2.5">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Şifre</label>
+                        <input type="text" id="swal-edit-password" value="${escapeHtml(user.password)}" class="w-full text-xs border rounded-lg p-2.5 font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Rol</label>
+                        <select id="swal-edit-role" class="w-full text-xs border rounded-lg p-2.5 bg-white">
+                            <option value="user" ${user.role === 'user' ? 'selected' : ''}>Kullanıcı</option>
+                            <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Yönetici</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Erişebileceği Bölümler</label>
+                        <div class="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-lg border">
+            `;
+
+            allPerms.forEach(p => {
+                const checked = (user.permissions || []).includes(p.id) ? 'checked' : '';
+                htmlContent += `<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="swal-edit-perm" value="${p.id}" ${checked} class="rounded text-indigo-600"> ${p.label}</label>`;
+            });
+
+            htmlContent += `</div></div></div>`;
+
+            Swal.fire({
+                title: 'Kullanıcıyı Düzenle',
+                html: htmlContent,
+                showCancelButton: true,
+                confirmButtonText: 'Güncelle',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#4F46E5',
+                preConfirm: () => {
+                    const newUsername = document.getElementById('swal-edit-username').value.trim();
+                    const newPassword = document.getElementById('swal-edit-password').value.trim();
+                    const newRole = document.getElementById('swal-edit-role').value;
+                    const checkedPerms = document.querySelectorAll('input[name="swal-edit-perm"]:checked');
+                    const newPermissions = Array.from(checkedPerms).map(cb => cb.value);
+
+                    if (!newUsername || !newPassword) {
+                        Swal.showValidationMessage('Kullanıcı adı ve şifre boş bırakılamaz!');
+                        return false;
+                    }
+
+                    return { username: newUsername, password: newPassword, role: newRole, permissions: newPermissions };
+                }
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    user.username = result.value.username;
+                    user.password = result.value.password;
+                    user.role = result.value.role;
+                    user.permissions = result.value.permissions;
+
+                    saveToLocalStorage();
+                    renderUsersManagementList();
+                    if (state.currentUser && state.currentUser.id === user.id) {
+                        state.currentUser = user;
+                        renderNavigation();
+                    }
+                    Toast.fire({ icon: 'success', title: 'Kullanıcı bilgileri güncellendi.' });
+                }
+            });
+        }
+
+        function deleteUser(userId) {
+            const user = state.users.find(u => u.id === userId);
+            if (user && user.username === 'admin') {
+                Swal.fire({ icon: 'error', title: 'İşlem Engellendi', text: 'Ana admin hesabı silinemez!', confirmButtonColor: '#4F46E5' });
+                return;
+            }
+
+            Swal.fire({
+                title: 'Kullanıcı Silinsin mi?',
+                text: `"${user?.username}" kullanıcısının erişimi kaldırılacak.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#EF4444',
+                cancelColor: '#6B7280',
+                confirmButtonText: 'Evet, Sil',
+                cancelButtonText: 'İptal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    state.users = state.users.filter(u => u.id !== userId);
+                    saveToLocalStorage();
+                    renderUsersManagementList();
+                    Toast.fire({ icon: 'success', title: 'Kullanıcı silindi.' });
+                }
+            });
+        }
+
+        function resetCurrentAttendanceToUnselected() {
+            state.currentAttendance = {};
+            state.students.forEach(s => {
+                state.currentAttendance[s.id] = { status: null, note: '' };
+            });
         }
 
         function renderHeader() {
@@ -2391,7 +2405,7 @@
 
         function deleteTeacher(id) {
             if (state.teachers.length <= 1) {
-                Swal.fire({ icon: 'error', title: 'İşlem Engellendi', text: 'Sistemde en az bir öğretmen bulunmalıdır.', confirmColor: '#4F46E5' });
+                Swal.fire({ icon: 'error', title: 'İşlem Engellendi', text: 'Sistemde en az bir öğretmen bulunmalıdır.', confirmButtonColor: '#4F46E5' });
                 return;
             }
             const teacher = state.teachers.find(t => t.id === id);
@@ -2707,6 +2721,70 @@
                     renderDropdowns();
                     renderLevelsManagementList();
                     Toast.fire({ icon: 'success', title: 'Seviye silindi.' });
+                }
+            });
+        }
+
+        function handleSaveFirebaseSettings(e) {
+            e.preventDefault();
+            const rootNode = document.getElementById('fb-root-node').value.trim() || "okul_yoklama_sistemi";
+            const jsonText = document.getElementById('fb-config-json').value.trim();
+
+            let parsedConfig = {};
+            try {
+                if (jsonText) {
+                    parsedConfig = JSON.parse(jsonText);
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'JSON Hatası', text: 'Firebase konfigürasyon JSON formatı geçerli değil!', confirmColor: '#4F46E5' });
+                return;
+            }
+
+            state.firebaseRootNode = rootNode;
+            state.firebaseConfig = parsedConfig;
+            saveToLocalStorage();
+            renderFirebaseSection();
+
+            Toast.fire({ icon: 'success', title: 'Firebase ayarları tekil olarak kaydedildi.' });
+        }
+
+        function renderFirebaseSection() {
+            const savedCard = document.getElementById('firebase-saved-card');
+            const rootDisplay = document.getElementById('saved-fb-root-display');
+            const projectDisplay = document.getElementById('saved-fb-project-display');
+
+            if (state.firebaseConfig && state.firebaseConfig.apiKey) {
+                rootDisplay.textContent = state.firebaseRootNode || '-';
+                projectDisplay.textContent = state.firebaseConfig.projectId || 'Belirtilmemiş';
+                savedCard.classList.remove('hidden');
+                document.getElementById('fb-status-dot').className = "fa-solid fa-circle text-emerald-500 mr-1";
+                document.getElementById('fb-status-text').textContent = "Firebase Yapılandırıldı ve Aktif";
+            } else {
+                savedCard.classList.add('hidden');
+                document.getElementById('fb-status-dot').className = "fa-solid fa-circle text-slate-300 mr-1";
+                document.getElementById('fb-status-text').textContent = "Bağlantı Yapılmadı";
+            }
+        }
+
+        function deleteFirebaseSettings() {
+            Swal.fire({
+                title: 'Firebase Ayarları Silinsin mi?',
+                text: 'Kayıtlı tekil Firebase bağlantı konfigürasyonu kaldırılacak.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#EF4444',
+                cancelColor: '#6B7280',
+                confirmButtonText: 'Evet, Sil',
+                cancelButtonText: 'İptal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    state.firebaseConfig = {};
+                    state.firebaseRootNode = "okul_yoklama_sistemi";
+                    document.getElementById('fb-root-node').value = state.firebaseRootNode;
+                    document.getElementById('fb-config-json').value = '';
+                    saveToLocalStorage();
+                    renderFirebaseSection();
+                    Toast.fire({ icon: 'success', title: 'Firebase ayarları silindi.' });
                 }
             });
         }
