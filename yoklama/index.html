@@ -14,6 +14,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- SheetJS (Excel) CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -51,9 +53,9 @@
         <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100">
             <div class="p-6 bg-gradient-to-r from-slate-900 to-indigo-950 text-white text-center">
                 <div class="inline-flex p-3 bg-white/10 rounded-2xl mb-3 text-sky-400 border border-white/20">
-                    <i class="fa-solid fa-lock text-2xl"></i>
+                    <i class="fa-solid fa-user-check text-2xl"></i>
                 </div>
-                <h2 class="text-xl font-extrabold">Şifre ile Sistem Girişi</h2>
+                <h2 class="text-xl font-extrabold">Öğrenci Yoklama Sistemi</h2>
                 <p class="text-xs text-slate-300 mt-1">Devam etmek için şifrenizi giriniz</p>
             </div>
             <form onsubmit="handleLogin(event)" class="p-6 space-y-4">
@@ -89,7 +91,7 @@
                     </div>
                 </div>
 
-                <!-- Navigation Tabs (Yetkilere Göre Dinamik) -->
+                <!-- Navigation Tabs -->
                 <nav id="desktop-nav" class="hidden lg:flex space-x-1 bg-slate-900/60 p-1.5 rounded-xl border border-slate-700 shadow-inner">
                 </nav>
 
@@ -246,9 +248,20 @@
         <!-- TAB 3: ÖĞRENCİ YÖNETİMİ -->
         <section id="section-students" class="tab-content space-y-6 hidden">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="p-4 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center gap-2">
-                    <i class="fa-solid fa-user-plus text-lg"></i>
-                    <h2 class="font-bold">Yeni Öğrenci Ekle</h2>
+                <div class="p-4 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-user-plus text-lg"></i>
+                        <h2 class="font-bold">Yeni Öğrenci Ekle</h2>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="downloadStudentExcelTemplate()" class="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold rounded-lg transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-download"></i> Excel Şablonu
+                        </button>
+                        <label class="px-3 py-1.5 bg-white text-emerald-700 hover:bg-emerald-50 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-file-excel"></i> Excel'den Yükle
+                            <input type="file" accept=".xlsx, .xls, .csv" onchange="importStudentsFromExcel(event)" class="hidden">
+                        </label>
+                    </div>
                 </div>
                 <form id="add-student-form" onsubmit="handleAddStudent(event)" class="p-4 sm:p-6">
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -309,9 +322,20 @@
         <!-- TAB 4: ÖĞRETMEN YÖNETİMİ -->
         <section id="section-teachers" class="tab-content space-y-6 hidden">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="p-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex items-center gap-2">
-                    <i class="fa-solid fa-user-tie text-lg"></i>
-                    <h2 class="font-bold">Yeni Öğretmen Ekle</h2>
+                <div class="p-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-user-tie text-lg"></i>
+                        <h2 class="font-bold">Yeni Öğretmen Ekle</h2>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="downloadTeacherExcelTemplate()" class="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold rounded-lg transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-download"></i> Excel Şablonu
+                        </button>
+                        <label class="px-3 py-1.5 bg-white text-amber-700 hover:bg-amber-50 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-file-excel"></i> Excel'den Yükle
+                            <input type="file" accept=".xlsx, .xls, .csv" onchange="importTeachersFromExcel(event)" class="hidden">
+                        </label>
+                    </div>
                 </div>
                 <form onsubmit="handleAddTeacher(event)" class="p-4 sm:p-6">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -576,7 +600,7 @@
                 </form>
             </div>
 
-            <!-- Devamsızlık Sınırı Ayarı (Özürsüz Sınır) -->
+            <!-- Devamsızlık Sınırı Ayarı -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-4 bg-gradient-to-r from-rose-600 to-pink-700 text-white flex items-center gap-2">
                     <i class="fa-solid fa-triangle-exclamation text-lg"></i>
@@ -596,7 +620,7 @@
                 </form>
             </div>
 
-            <!-- Kullanıcı Yönetimi ve Bölüm Yetkilendirme -->
+            <!-- Kullanıcı Yönetimi ve Bölüm Yetkilendirme (İşlemler sütunu mobilde kaydırılabilir yapıyla eklendi) -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white flex items-center gap-2">
                     <i class="fa-solid fa-users-gear text-lg"></i>
@@ -641,8 +665,8 @@
                         </div>
                     </form>
 
-                    <div class="border border-slate-200 rounded-xl overflow-hidden">
-                        <table class="w-full text-left text-xs text-slate-600">
+                    <div class="border border-slate-200 rounded-xl overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-600 whitespace-nowrap sm:whitespace-normal">
                             <thead class="bg-slate-100 font-bold uppercase text-slate-500 border-b">
                                 <tr>
                                     <th class="px-4 py-3">Kullanıcı / İsim</th>
@@ -1020,7 +1044,6 @@
             timerProgressBar: true
         });
 
-        // Yönetici Yetki Kontrolü (Silme ve Ayar işlemleri için)
         function checkAdminPermission() {
             if (!state.currentUser || state.currentUser.role !== 'admin') {
                 Swal.fire({ icon: 'error', title: 'Yetkisiz İşlem', text: 'Bu işlemi yalnızca yöneticiler gerçekleştirebilir!', confirmButtonColor: '#4F46E5' });
@@ -1254,6 +1277,7 @@
             }
         }
 
+        // Kullanıcılar tablosu (İşlemler sütunu geri getirildi ve mobilde sığacak şekilde düzenlendi)
         function renderUsersManagementList() {
             const tbody = document.getElementById('users-table-body');
             if(!tbody) return;
@@ -1279,7 +1303,7 @@
                     <td class="px-4 py-3 font-mono font-bold text-indigo-600 bg-slate-50 rounded">${escapeHtml(u.password)}</td>
                     <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}">${u.role.toUpperCase()}</span></td>
                     <td class="px-4 py-3 text-[11px] text-slate-500">${permsStr || 'Hiçbiri'}</td>
-                    <td class="px-4 py-3 text-right space-x-1">
+                    <td class="px-4 py-3 text-right space-x-1 whitespace-nowrap">
                         ${isAdmin ? `<button onclick="openEditUserModal('${u.id}')" class="text-indigo-600 hover:text-indigo-800 p-1" title="Düzenle"><i class="fa-solid fa-pen-to-square"></i></button>` : ''}
                         ${isAdmin && u.username !== 'admin' ? `<button onclick="deleteUser('${u.id}')" class="text-rose-500 hover:text-rose-700 p-1" title="Sil"><i class="fa-solid fa-trash-can"></i></button>` : '<span class="text-slate-300 text-[10px]">Kısıtlı</span>'}
                     </td>
@@ -1421,7 +1445,7 @@
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#EF4444',
-                cancelColor: '#6B7280',
+                cancelButtonColor: '#6B7280',
                 confirmButtonText: 'Evet, Sil',
                 cancelButtonText: 'İptal'
             }).then((result) => {
@@ -1869,6 +1893,112 @@
             document.body.appendChild(link);
             link.click();
             link.remove();
+        }
+
+        // --- EXCEL IMPORT / EXPORT FOR STUDENTS & TEACHERS ---
+        function downloadStudentExcelTemplate() {
+            const wsData = [
+                ["Adı Soyadı", "Sınıfı", "Seviyesi"],
+                ["Örnek Ahmet", "10-A", "Seviye 1"],
+                ["Örnek Ayşe", "10-B", "Seviye 2"]
+            ];
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            XLSX.utils.book_append_sheet(wb, ws, "Öğrenciler");
+            XLSX.writeFile(wb, "Ogrenci_Sablonu.xlsx");
+        }
+
+        function importStudentsFromExcel(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    let addedCount = 0;
+                    for (let i = 1; i < json.length; i++) {
+                        const row = json[i];
+                        if (row && row[0]) {
+                            const name = String(row[0]).trim();
+                            const studentClass = row[1] ? String(row[1]).trim() : (state.classes[0] || "10-A");
+                            const level = row[2] ? String(row[2]).trim() : (state.levels[0] || "Seviye 1");
+
+                            if (name) {
+                                const newId = Date.now().toString() + Math.random().toString(36).substr(2, 4);
+                                state.students.push({ id: newId, name, studentClass, level });
+                                state.currentAttendance[newId] = { status: null, note: '' };
+                                addedCount++;
+                            }
+                        }
+                    }
+
+                    saveToLocalStorage();
+                    renderAttendanceFilters();
+                    renderStudentManagementList();
+                    renderAttendanceList();
+                    event.target.value = '';
+                    Swal.fire({ icon: 'success', title: 'Başarılı', text: `${addedCount} öğrenci Excel'den başarıyla eklendi!`, confirmButtonColor: '#4F46E5' });
+                } catch(err) {
+                    Swal.fire({ icon: 'error', title: 'Hata', text: 'Excel dosyası okunurken hata oluştu!', confirmButtonColor: '#4F46E5' });
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function downloadTeacherExcelTemplate() {
+            const wsData = [
+                ["Adı Soyadı", "Branşı"],
+                ["Ahmet Öğretmen", "Matematik"],
+                ["Fatma Öğretmen", "Türkçe"]
+            ];
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            XLSX.utils.book_append_sheet(wb, ws, "Öğretmenler");
+            XLSX.writeFile(wb, "Ogretmen_Sablonu.xlsx");
+        }
+
+        function importTeachersFromExcel(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    let addedCount = 0;
+                    for (let i = 1; i < json.length; i++) {
+                        const row = json[i];
+                        if (row && row[0]) {
+                            const name = String(row[0]).trim();
+                            const branch = row[1] ? String(row[1]).trim() : "Öğretmen";
+
+                            if (name) {
+                                const newId = Date.now().toString() + Math.random().toString(36).substr(2, 4);
+                                state.teachers.push({ id: newId, name, branch });
+                                addedCount++;
+                            }
+                        }
+                    }
+
+                    saveToLocalStorage();
+                    renderDropdowns();
+                    renderTeacherManagementList();
+                    event.target.value = '';
+                    Swal.fire({ icon: 'success', title: 'Başarılı', text: `${addedCount} öğretmen Excel'den başarıyla eklendi!`, confirmButtonColor: '#4F46E5' });
+                } catch(err) {
+                    Swal.fire({ icon: 'error', title: 'Hata', text: 'Excel dosyası okunurken hata oluştu!', confirmButtonColor: '#4F46E5' });
+                }
+            };
+            reader.readAsArrayBuffer(file);
         }
 
         function editHistoryRecord(recordId) {
