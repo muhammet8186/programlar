@@ -819,13 +819,13 @@
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white flex items-center gap-2">
                     <i class="fa-solid fa-database text-lg"></i>
-                    <h2 class="font-bold">Veri Yedekleme & Geri Yükleme</h2>
+                    <h2 class="font-bold">Veri Yedekleme & Geri Yükleme (Yalnızca Yönetici)</h2>
                 </div>
                 <div class="p-4 sm:p-6 space-y-4">
-                    <p class="text-xs text-slate-500">Tüm öğrencileri, öğretmenleri ve yoklama verilerinizi yedekleyin.</p>
+                    <p class="text-xs text-slate-500">Tüm öğrencileri, öğretmenleri ve yoklama verilerinizi yedekleyin. Normal kullanıcılar bu butonları kullanamaz.</p>
                     
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <button onclick="exportBackupData()" class="p-4 bg-slate-50 border border-slate-200 hover:border-purple-500 hover:bg-purple-50/50 rounded-xl text-left transition group">
+                        <button onclick="exportBackupData()" id="btn-backup-json" class="p-4 bg-slate-50 border border-slate-200 hover:border-purple-500 hover:bg-purple-50/50 rounded-xl text-left transition group">
                             <div class="flex items-center gap-3">
                                 <div class="p-3 bg-purple-100 text-purple-600 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition">
                                     <i class="fa-solid fa-download text-lg"></i>
@@ -837,7 +837,7 @@
                             </div>
                         </button>
 
-                        <button onclick="exportAllDataToExcel()" class="p-4 bg-slate-50 border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 rounded-xl text-left transition group">
+                        <button onclick="exportAllDataToExcel()" id="btn-backup-excel" class="p-4 bg-slate-50 border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 rounded-xl text-left transition group">
                             <div class="flex items-center gap-3">
                                 <div class="p-3 bg-emerald-100 text-emerald-600 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition">
                                     <i class="fa-solid fa-file-excel text-lg"></i>
@@ -849,7 +849,7 @@
                             </div>
                         </button>
 
-                        <label class="p-4 bg-slate-50 border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 rounded-xl text-left transition group cursor-pointer block">
+                        <label id="lbl-backup-restore" class="p-4 bg-slate-50 border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 rounded-xl text-left transition group cursor-pointer block">
                             <div class="flex items-center gap-3">
                                 <div class="p-3 bg-indigo-100 text-indigo-600 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition">
                                     <i class="fa-solid fa-upload text-lg"></i>
@@ -1349,6 +1349,16 @@
                 renderStatisticsTab();
             } else if(tabId === 'settings') {
                 renderUsersManagementList();
+                // Admin kontrolü - Normal kullanıcı yedekleme butonlarını görebilir ama tıklayamaz veya gizlenebilir
+                const isAdmin = state.currentUser && state.currentUser.role === 'admin';
+                const backupJsonBtn = document.getElementById('btn-backup-json');
+                const backupExcelBtn = document.getElementById('btn-backup-excel');
+                const restoreLabel = document.getElementById('lbl-backup-restore');
+                if (!isAdmin) {
+                    if(backupJsonBtn) { backupJsonBtn.style.opacity = '0.5'; backupJsonBtn.title = 'Yalnızca yönetici kullanabilir'; }
+                    if(backupExcelBtn) { backupExcelBtn.style.opacity = '0.5'; backupExcelBtn.title = 'Yalnızca yönetici kullanabilir'; }
+                    if(restoreLabel) { restoreLabel.style.opacity = '0.5'; restoreLabel.title = 'Yalnızca yönetici kullanabilir'; }
+                }
             }
         }
 
@@ -1974,6 +1984,7 @@
         }
 
         function exportAllDataToExcel() {
+            if (!checkAdminPermission()) return;
             const wb = XLSX.utils.book_new();
 
             const studentWS = XLSX.utils.json_to_sheet(state.students.map(s => ({
