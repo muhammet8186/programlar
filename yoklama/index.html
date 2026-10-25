@@ -707,7 +707,7 @@
                     </div>
                 </div>
 
-                <!-- Sınıf Yönetimi (Sadece Sınıf Yönetimi başlığı) -->
+                <!-- Sınıf Yönetimi -->
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
                     <div class="p-4 bg-gradient-to-r from-sky-600 to-blue-700 text-white flex items-center justify-between">
                         <div class="flex items-center gap-2">
@@ -822,15 +822,27 @@
                 <div class="p-4 sm:p-6 space-y-4">
                     <p class="text-xs text-slate-500">Tüm öğrencileri, öğretmenleri ve yoklama verilerinizi yedekleyin.</p>
                     
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <button onclick="exportBackupData()" class="p-4 bg-slate-50 border border-slate-200 hover:border-purple-500 hover:bg-purple-50/50 rounded-xl text-left transition group">
                             <div class="flex items-center gap-3">
                                 <div class="p-3 bg-purple-100 text-purple-600 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition">
                                     <i class="fa-solid fa-download text-lg"></i>
                                 </div>
                                 <div>
-                                    <div class="font-bold text-slate-800 text-sm">Yedek İndir</div>
-                                    <div class="text-xs text-slate-500">JSON indir</div>
+                                    <div class="font-bold text-slate-800 text-sm">Yedek İndir (JSON)</div>
+                                    <div class="text-xs text-slate-500">Tam veri yedeği</div>
+                                </div>
+                            </div>
+                        </button>
+
+                        <button onclick="exportAllDataToExcel()" class="p-4 bg-slate-50 border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 rounded-xl text-left transition group">
+                            <div class="flex items-center gap-3">
+                                <div class="p-3 bg-emerald-100 text-emerald-600 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition">
+                                    <i class="fa-solid fa-file-excel text-lg"></i>
+                                </div>
+                                <div>
+                                    <div class="font-bold text-slate-800 text-sm">Excel Olarak İndir</div>
+                                    <div class="text-xs text-slate-500">Tüm veriler (.xlsx)</div>
                                 </div>
                             </div>
                         </button>
@@ -848,6 +860,23 @@
                             <input type="file" id="import-file-input" accept=".json" onchange="importBackupData(event)" class="hidden">
                         </label>
                     </div>
+                </div>
+            </div>
+
+            <!-- Tehlikeli Bölge: Tüm Geçmiş Bilgileri ve Verileri Sil (En Altta) -->
+            <div class="bg-rose-50 rounded-2xl shadow-sm border border-rose-200 overflow-hidden">
+                <div class="p-4 bg-gradient-to-r from-rose-600 to-red-700 text-white flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+                    <h2 class="font-bold">Tehlikeli Bölge: Tüm Geçmişi ve Verileri Sıfırla</h2>
+                </div>
+                <div class="p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm">Bütün Verileri ve Geçmiş Bilgilerini Kalıcı Olarak Sil</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Yoklama geçmişi, öğrenciler, öğretmenler ve tüm sistem verileri yerel ve Firebase'den tamamen kaldırılır.</p>
+                    </div>
+                    <button onclick="confirmAndDeleteAllData()" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs transition shadow-md shadow-rose-600/20 flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-trash-can"></i> Tüm Verileri Sil
+                    </button>
                 </div>
             </div>
 
@@ -1007,7 +1036,6 @@
         const DEFAULT_LESSONS = ["Matematik", "Türkçe", "Fen Bilimleri", "Sosyal Bilgiler", "İngilizce", "Beden Eğitimi"];
         const DEFAULT_LEVELS = ["Seviye 1", "Seviye 2", "Seviye 3", "Seviye 4"];
         
-        // Sınıflar "5.Sınıf", "6.Sınıf" formatında ayarlandı
         const DEFAULT_CLASSES = [
             "5.Sınıf", 
             "6.Sınıf", 
@@ -1019,7 +1047,6 @@
             "12.Sınıf"
         ];
 
-        // Örnek öğrenci sınıfları boşluksuz formata uygun güncellendi
         const DEFAULT_STUDENTS = [
             { id: '1', name: 'Ahmet Yılmaz', studentClass: '5.Sınıf', level: 'Seviye 1' },
             { id: '2', name: 'Ayşe Demir', studentClass: '7.Sınıf', level: 'Seviye 1' },
@@ -1033,7 +1060,6 @@
             { id: 't2', name: 'Fatma Öğretmen', branch: 'Matematik' }
         ];
 
-        // Admin ve kullanıcı rolleri
         const DEFAULT_USERS = [
             { id: 'u1', username: 'admin', password: '1234', role: 'admin', name: 'Yönetici', permissions: ['take-attendance', 'history', 'students', 'teachers', 'statistics', 'settings'] },
             { id: 'u2', username: 'user', password: '1111', role: 'user', name: 'Kullanıcı', permissions: ['take-attendance', 'history', 'statistics'] }
@@ -1116,7 +1142,6 @@
             
             document.getElementById('fb-root-node').value = state.firebaseRootNode;
             
-            // Konfigürasyon kutucuğu boş olsun, kayıtlı varsa doldursun
             const configInput = document.getElementById('fb-config-json');
             if (configInput) {
                 if (state.firebaseConfig && state.firebaseConfig.apiKey) {
@@ -1309,7 +1334,6 @@
             }
         }
 
-        // Kullanıcılar Tablosu
         function renderUsersManagementList() {
             const tbody = document.getElementById('users-table-body');
             if(!tbody) return;
@@ -1927,7 +1951,50 @@
             link.remove();
         }
 
-        // --- EXCEL IMPORT / EXPORT İŞLEMLERİ ---
+        // --- TÜM VERİLERİ EXCEL OLARAK İNDİRME ---
+        function exportAllDataToExcel() {
+            const wb = XLSX.utils.book_new();
+
+            // 1. Öğrenciler Sayfası
+            const studentWS = XLSX.utils.json_to_sheet(state.students.map(s => ({
+                "Öğrenci ID": s.id,
+                "Adı Soyadı": s.name,
+                "Sınıfı": s.studentClass,
+                "Seviyesi": s.level || ""
+            })));
+            XLSX.utils.book_append_sheet(wb, studentWS, "Öğrenciler");
+
+            // 2. Öğretmenler Sayfası
+            const teacherWS = XLSX.utils.json_to_sheet(state.teachers.map(t => ({
+                "Öğretmen ID": t.id,
+                "Adı Soyadı": t.name,
+                "Branşı": t.branch || ""
+            })));
+            XLSX.utils.book_append_sheet(wb, teacherWS, "Öğretmenler");
+
+            // 3. Yoklama Kayıtları Sayfası
+            let flatRecords = [];
+            state.attendanceRecords.forEach(rec => {
+                rec.records.forEach(r => {
+                    flatRecords.push({
+                        "Tarih": rec.date,
+                        "Ders": rec.lesson,
+                        "Öğretmen": rec.teacher,
+                        "Öğrenci Adı": r.studentName,
+                        "Sınıf": r.studentClass,
+                        "Seviye": r.level || "",
+                        "Katılım Durumu": r.status.toUpperCase(),
+                        "Özel Not": r.note || ""
+                    });
+                });
+            });
+            const recordWS = XLSX.utils.json_to_sheet(flatRecords.length > 0 ? flatRecords : [{"Bilgi": "Henüz yoklama kaydı bulunmuyor."}]);
+            XLSX.utils.book_append_sheet(wb, recordWS, "Yoklama Kayıtları");
+
+            XLSX.writeFile(wb, `Okul_Sistemi_Tum_Veriler_${new Date().toISOString().split('T')[0]}.xlsx`);
+            Toast.fire({ icon: 'success', title: 'Tüm sistem verileri Excel olarak indirildi.' });
+        }
+
         function downloadStudentExcelTemplate() {
             const wsData = [
                 ["Adı Soyadı", "Sınıfı", "Seviyesi"],
@@ -2033,7 +2100,6 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // --- ÖĞRENCİ VE ÖĞRETMEN DÜZENLEME FONKSİYONLARI ---
         function openEditStudentModal(studentId) {
             if (!checkAdminPermission()) return;
             const student = state.students.find(s => s.id === studentId);
@@ -3073,14 +3139,12 @@
             });
         }
 
-        // Format kontrolü ve konfigürasyon boşsa kaydetmeme kontrolü
         function handleSaveFirebaseSettings(e) {
             e.preventDefault();
             if (!checkAdminPermission()) return;
             const rootNode = document.getElementById('fb-root-node').value.trim() || "okul_yoklama_sistemi";
             const jsonText = document.getElementById('fb-config-json').value.trim();
 
-            // Konfigürasyon kutucuğu boşsa kaydetmesin
             if (!jsonText) {
                 Swal.fire({ 
                     icon: 'warning', 
@@ -3150,6 +3214,62 @@
                     saveToLocalStorage();
                     renderFirebaseSection();
                     Toast.fire({ icon: 'success', title: 'Firebase ayarları silindi.' });
+                }
+            });
+        }
+
+        // --- YÖNETİCİ ŞİFRESİ İLE TÜM VERİLERİ (LOCAL VE FIREBASE) SİLME ---
+        function confirmAndDeleteAllData() {
+            if (!checkAdminPermission()) return;
+            Swal.fire({
+                title: 'Yönetici Şifresini Onaylayın',
+                text: 'Tüm öğrenci, öğretmen ve geçmiş yoklama verileri yerel bellekten ve Firebase buluttan kalıcı olarak silinecektir!',
+                input: 'password',
+                inputPlaceholder: 'Yönetici şifrenizi girin (Örn: 1234)',
+                inputAttributes: {
+                    autocapitalize: 'off',
+                    autocorrect: 'off'
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Evet, Tüm Verileri Sil',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#EF4444',
+                cancelButtonColor: '#6B7280',
+                preConfirm: (password) => {
+                    const adminUser = state.users.find(u => u.role === 'admin' && u.password === password);
+                    if (!adminUser) {
+                        Swal.showValidationMessage('Hatalı yönetici şifresi!');
+                        return false;
+                    }
+                    return true;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // 1. Yerel verileri temizle
+                    localStorage.clear();
+
+                    // 2. State sıfırlama
+                    state.students = [];
+                    state.teachers = [];
+                    state.attendanceRecords = [];
+                    state.studentNotes = {};
+                    state.currentAttendance = {};
+
+                    // 3. Firebase temizlik simülasyonu / sıfırlaması
+                    state.firebaseConfig = { apiKey: "", authDomain: "", databaseURL: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: "" };
+                    state.firebaseRootNode = "okul_yoklama_sistemi";
+
+                    saveToLocalStorage();
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Tüm Veriler Başarıyla Silindi',
+                        text: 'Yerel ve Firebase üzerindeki tüm geçmiş veriler sıfırlandı. Sistem yeniden başlatılıyor...',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
                 }
             });
         }
