@@ -247,7 +247,7 @@
 
         <!-- SEKME 3: ÖĞRENCİ YÖNETİMİ -->
         <section id="section-students" class="tab-content space-y-6 hidden">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div id="add-student-card" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-4 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <i class="fa-solid fa-user-plus text-lg"></i>
@@ -321,7 +321,7 @@
 
         <!-- SEKME 4: ÖĞRETMEN YÖNETİMİ -->
         <section id="section-teachers" class="tab-content space-y-6 hidden">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div id="add-teacher-card" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <i class="fa-solid fa-user-tie text-lg"></i>
@@ -640,19 +640,21 @@
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Rol</label>
                                 <select id="new-user-role" class="w-full px-3 py-2 text-xs border rounded-lg bg-white">
-                                    <option value="user">kullanıcı</option>
+                                    <option value="user">Kullanıcı</option>
                                     <option value="admin">Yönetici</option>
                                 </select>
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1.5">Görüntüleyebileceği Bölümler (Sayfa Yetkileri)</label>
-                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs bg-white p-3 rounded-lg border border-slate-200">
+                            <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1.5">Görüntüleyebileceği Bölümler ve Özel Yetkiler</label>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs bg-white p-3 rounded-lg border border-slate-200">
                                 <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="new-user-perm" value="take-attendance" checked class="rounded text-indigo-600"> Yoklama Al</label>
                                 <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="new-user-perm" value="history" checked class="rounded text-indigo-600"> Geçmiş</label>
-                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="new-user-perm" value="students" class="rounded text-indigo-600"> Öğrenciler</label>
-                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="new-user-perm" value="teachers" class="rounded text-indigo-600"> Öğretmenler</label>
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="new-user-perm" value="manage-students" class="rounded text-indigo-600"> Öğrenci Ekle/Sil</label>
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="new-user-perm" value="manage-teachers" class="rounded text-indigo-600"> Öğretmen Ekle/Sil</label>
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="new-user-perm" value="students" checked class="rounded text-indigo-600"> Öğrenciler Listesi</label>
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="new-user-perm" value="teachers" checked class="rounded text-indigo-600"> Öğretmenler Listesi</label>
                                 <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="new-user-perm" value="statistics" checked class="rounded text-indigo-600"> İstatistik</label>
                                 <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="new-user-perm" value="settings" class="rounded text-indigo-600"> Ayarlar</label>
                             </div>
@@ -672,7 +674,7 @@
                                     <th class="px-4 py-3">Kullanıcı / İsim</th>
                                     <th class="px-4 py-3">Şifre</th>
                                     <th class="px-4 py-3">Rolü</th>
-                                    <th class="px-4 py-3">Erişebildiği Bölümler</th>
+                                    <th class="px-4 py-3">Erişebildiği Bölümler & Yetkiler</th>
                                     <th class="px-4 py-3 text-right">İşlemler</th>
                                 </tr>
                             </thead>
@@ -1061,8 +1063,8 @@
         ];
 
         const DEFAULT_USERS = [
-            { id: 'u1', username: 'admin', password: '1234', role: 'admin', name: 'Yönetici', permissions: ['take-attendance', 'history', 'students', 'teachers', 'statistics', 'settings'] },
-            { id: 'u2', username: 'user', password: '1111', role: 'user', name: 'Kullanıcı', permissions: ['take-attendance', 'history', 'statistics'] }
+            { id: 'u1', username: 'admin', password: '1234', role: 'admin', name: 'Yönetici', permissions: ['take-attendance', 'history', 'manage-students', 'manage-teachers', 'students', 'teachers', 'statistics', 'settings'] },
+            { id: 'u2', username: 'user', password: '1111', role: 'user', name: 'Kullanıcı', permissions: ['take-attendance', 'history', 'students', 'teachers', 'statistics'] }
         ];
 
         let state = {
@@ -1100,6 +1102,22 @@
         function checkAdminPermission() {
             if (!state.currentUser || state.currentUser.role !== 'admin') {
                 Swal.fire({ icon: 'error', title: 'Yetkisiz İşlem', text: 'Bu işlemi yalnızca yöneticiler gerçekleştirebilir!', confirmButtonColor: '#4F46E5' });
+                return false;
+            }
+            return true;
+        }
+
+        function checkStudentManagePermission() {
+            if (!state.currentUser || (state.currentUser.role !== 'admin' && (!state.currentUser.permissions || !state.currentUser.permissions.includes('manage-students')))) {
+                Swal.fire({ icon: 'error', title: 'Yetkisiz İşlem', text: 'Öğrenci ekleme ve silme yetkiniz bulunmamaktadır!', confirmButtonColor: '#4F46E5' });
+                return false;
+            }
+            return true;
+        }
+
+        function checkTeacherManagePermission() {
+            if (!state.currentUser || (state.currentUser.role !== 'admin' && (!state.currentUser.permissions || !state.currentUser.permissions.includes('manage-teachers')))) {
+                Swal.fire({ icon: 'error', title: 'Yetkisiz İşlem', text: 'Öğretmen ekleme ve silme yetkiniz bulunmamaktadır!', confirmButtonColor: '#4F46E5' });
                 return false;
             }
             return true;
@@ -1345,8 +1363,10 @@
                     switch(p) {
                         case 'take-attendance': return 'Yoklama';
                         case 'history': return 'Geçmiş';
-                        case 'students': return 'Öğrenci';
-                        case 'teachers': return 'Öğretmen';
+                        case 'manage-students': return 'Öğrenci Ekle/Sil';
+                        case 'manage-teachers': return 'Öğretmen Ekle/Sil';
+                        case 'students': return 'Öğrenci Liste';
+                        case 'teachers': return 'Öğretmen Liste';
                         case 'statistics': return 'İstatistik';
                         case 'settings': return 'Ayarlar';
                         default: return p;
@@ -1413,8 +1433,10 @@
             const allPerms = [
                 { id: 'take-attendance', label: 'Yoklama Al' },
                 { id: 'history', label: 'Geçmiş' },
-                { id: 'students', label: 'Öğrenciler' },
-                { id: 'teachers', label: 'Öğretmenler' },
+                { id: 'manage-students', label: 'Öğrenci Ekle/Sil' },
+                { id: 'manage-teachers', label: 'Öğretmen Ekle/Sil' },
+                { id: 'students', label: 'Öğrenciler Liste' },
+                { id: 'teachers', label: 'Öğretmenler Liste' },
                 { id: 'statistics', label: 'İstatistik' },
                 { id: 'settings', label: 'Ayarlar' }
             ];
@@ -1437,7 +1459,7 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Erişebileceği Bölümler</label>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Erişebileceği Bölümler & Yetkiler</label>
                         <div class="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-lg border">
             `;
 
@@ -1951,7 +1973,6 @@
             link.remove();
         }
 
-        // --- TÜM VERİLERİ EXCEL OLARAK İNDİRME ---
         function exportAllDataToExcel() {
             const wb = XLSX.utils.book_new();
 
@@ -2005,6 +2026,10 @@
         }
 
         function importStudentsFromExcel(event) {
+            if (!checkStudentManagePermission()) {
+                event.target.value = '';
+                return;
+            }
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
@@ -2059,6 +2084,10 @@
         }
 
         function importTeachersFromExcel(event) {
+            if (!checkTeacherManagePermission()) {
+                event.target.value = '';
+                return;
+            }
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
@@ -2098,7 +2127,7 @@
         }
 
         function openEditStudentModal(studentId) {
-            if (!checkAdminPermission()) return;
+            if (!checkStudentManagePermission()) return;
             const student = state.students.find(s => s.id === studentId);
             if (!student) return;
 
@@ -2158,7 +2187,7 @@
         }
 
         function openEditTeacherModal(teacherId) {
-            if (!checkAdminPermission()) return;
+            if (!checkTeacherManagePermission()) return;
             const teacher = state.teachers.find(t => t.id === teacherId);
             if (!teacher) return;
 
@@ -2203,9 +2232,7 @@
             });
         }
 
-        // --- KULLANICILAR İÇİN GEÇMİŞ DÜZENLEME YETKİSİ ---
         function editHistoryRecord(recordId) {
-            // Kullanıcının history yetkisi var mı kontrol et
             if (!state.currentUser || (!state.currentUser.permissions.includes('history') && state.currentUser.role !== 'admin')) {
                 Swal.fire({ icon: 'error', title: 'Yetkisiz İşlem', text: 'Geçmiş kayıtlarını düzenleme yetkiniz yok!', confirmButtonColor: '#4F46E5' });
                 return;
@@ -2665,7 +2692,18 @@
             if(!tbody) return;
             const searchQuery = document.getElementById('student-list-search').value.toLowerCase();
             const countDisplay = document.getElementById('student-count');
+            
             const isAdmin = state.currentUser && state.currentUser.role === 'admin';
+            const canManageStudents = isAdmin || (state.currentUser && state.currentUser.permissions && state.currentUser.permissions.includes('manage-students'));
+
+            const addStudentCard = document.getElementById('add-student-card');
+            if (addStudentCard) {
+                if (canManageStudents) {
+                    addStudentCard.classList.remove('hidden');
+                } else {
+                    addStudentCard.classList.add('hidden');
+                }
+            }
 
             const sortedStudents = getSortedStudents();
             const filtered = sortedStudents.filter(s => 
@@ -2690,7 +2728,7 @@
                         ${isStarStudentFiltered(s.id, state.attendanceRecords) ? '<span class="text-amber-600 font-bold"><i class="fa-solid fa-star mr-1"></i>%100 Katılım Yıldızı</span>' : '<span class="text-slate-400">Normal</span>'}
                     </td>
                     <td class="px-6 py-4 text-right space-x-1 whitespace-nowrap">
-                        ${isAdmin ? `
+                        ${canManageStudents ? `
                             <button onclick="openEditStudentModal('${s.id}')" class="text-indigo-600 hover:text-indigo-800 p-1.5 rounded-lg hover:bg-indigo-50 transition" title="Düzenle">
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </button>
@@ -2705,6 +2743,7 @@
 
         function handleAddStudent(e) {
             e.preventDefault();
+            if (!checkStudentManagePermission()) return;
             const nameInput = document.getElementById('new-student-name');
             const classSelect = document.getElementById('new-student-class');
             const levelSelect = document.getElementById('new-student-level');
@@ -2731,7 +2770,7 @@
         }
 
         function deleteStudent(id) {
-            if (!checkAdminPermission()) return;
+            if (!checkStudentManagePermission()) return;
             const student = state.students.find(s => s.id === id);
             Swal.fire({
                 title: 'Öğrenci Silinsin mi?',
@@ -2759,7 +2798,18 @@
             const tbody = document.getElementById('teacher-table-body');
             if(!tbody) return;
             document.getElementById('teacher-count').textContent = state.teachers.length;
+            
             const isAdmin = state.currentUser && state.currentUser.role === 'admin';
+            const canManageTeachers = isAdmin || (state.currentUser && state.currentUser.permissions && state.currentUser.permissions.includes('manage-teachers'));
+
+            const addTeacherCard = document.getElementById('add-teacher-card');
+            if (addTeacherCard) {
+                if (canManageTeachers) {
+                    addTeacherCard.classList.remove('hidden');
+                } else {
+                    addTeacherCard.classList.add('hidden');
+                }
+            }
 
             if (state.teachers.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-slate-400">Öğretmen bulunamadı.</td></tr>`;
@@ -2771,7 +2821,7 @@
                     <td class="px-6 py-4 font-bold text-slate-800">${escapeHtml(t.name)}</td>
                     <td class="px-6 py-4"><span class="bg-amber-50 text-amber-700 text-xs font-semibold px-2.5 py-1 rounded-md">${escapeHtml(t.branch || '-')}</span></td>
                     <td class="px-6 py-4 text-right space-x-1 whitespace-nowrap">
-                        ${isAdmin ? `
+                        ${canManageTeachers ? `
                             <button onclick="openEditTeacherModal('${t.id}')" class="text-amber-600 hover:text-amber-800 p-1.5 rounded-lg hover:bg-amber-50 transition" title="Düzenle">
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </button>
@@ -2786,6 +2836,7 @@
 
         function handleAddTeacher(e) {
             e.preventDefault();
+            if (!checkTeacherManagePermission()) return;
             const nameInput = document.getElementById('new-teacher-name');
             const branchInput = document.getElementById('new-teacher-branch');
 
@@ -2806,7 +2857,7 @@
         }
 
         function deleteTeacher(id) {
-            if (!checkAdminPermission()) return;
+            if (!checkTeacherManagePermission()) return;
             if (state.teachers.length <= 1) {
                 Swal.fire({ icon: 'error', title: 'İşlem Engellendi', text: 'Sistemde en az bir öğretmen bulunmalıdır.', confirmButtonColor: '#4F46E5' });
                 return;
@@ -2838,9 +2889,7 @@
             const filterLesson = document.getElementById('history-filter-lesson').value;
             const filterTeacher = document.getElementById('history-filter-teacher').value;
             
-            // Kullanıcının history geçmişini düzenleme yetkisi var mı? (Admin veya history yetkisi olan user)
             const canEditHistory = state.currentUser && (state.currentUser.role === 'admin' || (state.currentUser.permissions && state.currentUser.permissions.includes('history')));
-            // Silme işlemi yalnızca adminlere özel bırakıldı, düzenleme yetkililere açık
             const isAdmin = state.currentUser && state.currentUser.role === 'admin';
 
             let records = state.attendanceRecords;
@@ -2969,6 +3018,7 @@
 
         function handleAddLesson(e) {
             e.preventDefault();
+            if (!checkAdminPermission()) return;
             const input = document.getElementById('new-lesson-name');
             const lessonName = input.value.trim();
 
@@ -3028,6 +3078,7 @@
 
         function handleAddClass(e) {
             e.preventDefault();
+            if (!checkAdminPermission()) return;
             const input = document.getElementById('new-class-name');
             const className = input.value.trim();
 
@@ -3089,6 +3140,7 @@
 
         function handleAddLevel(e) {
             e.preventDefault();
+            if (!checkAdminPermission()) return;
             const input = document.getElementById('new-level-name');
             const levelName = input.value.trim();
 
@@ -3280,6 +3332,7 @@
         }
 
         function exportBackupData() {
+            if (!checkAdminPermission()) return;
             const backupData = {
                 appTitle: state.appTitle,
                 appSubtitle: state.appSubtitle,
@@ -3307,7 +3360,10 @@
         }
 
         function importBackupData(event) {
-            if (!checkAdminPermission()) return;
+            if (!checkAdminPermission()) {
+                event.target.value = '';
+                return;
+            }
             const file = event.target.files[0];
             if (!file) return;
 
