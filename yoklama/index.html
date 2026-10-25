@@ -802,7 +802,7 @@
                     </div>
                 </form>
 
-                <!-- Aktif Kayıtlı Firebase Konfigürasyonu (Proje ID gizlenmiş sürüm) -->
+                <!-- Gizli Tutulan Kayıt Kartı (Kutucuk gösterilmeyecek) -->
                 <div id="firebase-saved-card" class="mx-4 mb-4 sm:mx-6 sm:mb-6 p-4 rounded-xl bg-slate-50 border border-slate-200 hidden">
                     <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200 flex-wrap gap-2">
                         <h3 class="text-xs font-bold uppercase text-slate-700 flex items-center gap-1.5">
@@ -3375,21 +3375,19 @@
 
         function renderFirebaseSection() {
             const savedCard = document.getElementById('firebase-saved-card');
-            const rootDisplay = document.getElementById('saved-fb-root-display');
+            if (savedCard) {
+                savedCard.classList.add('hidden'); // Kaydedildikten sonra kutucuğun görünmemesi için gizli tutuluyor
+            }
 
             if (state.firebaseConfig && state.firebaseConfig.apiKey) {
-                rootDisplay.textContent = state.firebaseRootNode || '-';
-                savedCard.classList.remove('hidden');
                 document.getElementById('fb-status-dot').className = "fa-solid fa-circle text-emerald-500 mr-1";
                 document.getElementById('fb-status-text').textContent = "Firebase Gerçek Zamanlı Senkronizasyon Aktif";
             } else {
-                savedCard.classList.add('hidden');
                 document.getElementById('fb-status-dot').className = "fa-solid fa-circle text-slate-300 mr-1";
                 document.getElementById('fb-status-text').textContent = "Bağlantı Yapılmadı";
             }
         }
 
-        // Firebase Ayarlarını Form Alanına Geri Yükleme (Düzenleme Modu)
         function editFirebaseSettings() {
             if (!checkAdminPermission()) return;
             document.getElementById('fb-root-node').value = state.firebaseRootNode || "okul_yoklama_sistemi";
