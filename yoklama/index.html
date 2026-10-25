@@ -766,12 +766,9 @@
                         <i class="fa-solid fa-fire text-lg text-yellow-200"></i>
                         <h2 class="font-bold">Firebase Bulut Senkronizasyon Ayarları</h2>
                     </div>
-                    <button type="button" onclick="manualSyncToFirebase()" class="px-3 py-1.5 bg-white text-amber-700 hover:bg-amber-50 rounded-lg text-xs font-bold transition shadow-sm flex items-center gap-1.5">
-                        <i class="fa-solid fa-rotate"></i> Şimdi Senkronize Et
-                    </button>
                 </div>
                 <form id="firebase-form" onsubmit="handleSaveFirebaseSettings(event)" class="p-4 sm:p-6 space-y-4">
-                    <p class="text-xs text-slate-500">Firebase kök düğüm başlığını ve konfigürasyon ayarlarını buradan yönetin. Tüm veriler Türkçe anahtarlarla buluta eşitlenecektir.</p>
+                    <p class="text-xs text-slate-500">Firebase kök düğüm başlığını ve konfigürasyon ayarlarını buradan yönetin. Tüm veriler Türkçe anahtarlarla buluta otomatik eşitlenecektir.</p>
                     
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Firebase Kök Düğüm Başlığı</label>
@@ -1194,7 +1191,6 @@
             
             const configInput = document.getElementById('fb-config-json');
             if (configInput) {
-                // Sayfa ilk açıldığında eğer daha önceden kaydedilmişse input alanına doldurmayalım (görünmesin istendiği için)
                 configInput.value = '';
             }
             
@@ -1290,32 +1286,6 @@
                         setTimeout(() => { isSyncingFromFirebase = false; }, 400);
                     }
                 });
-            }
-        }
-
-        function manualSyncToFirebase() {
-            if (!checkAdminPermission()) return;
-            if (initFirebaseConnection() && dbRef) {
-                dbRef.set({
-                    baslik: state.appTitle,
-                    altBaslik: state.appSubtitle,
-                    ozursuzSinir: state.unexcusedLimit,
-                    ogrenciler: state.students,
-                    ogretmenler: state.teachers,
-                    dersler: state.lessons,
-                    seviyeler: state.levels,
-                    siniflar: state.classes,
-                    yoklamaKayitlari: state.attendanceRecords,
-                    ogrenciNotlari: state.studentNotes,
-                    kullanicilar: state.users,
-                    sonGuncelleme: new Date().toISOString()
-                }).then(() => {
-                    Swal.fire({ icon: 'success', title: 'Senkronizasyon Başarılı', text: 'Tüm veriler Türkçe kök başlıklarıyla buluta aktarıldı!', confirmButtonColor: '#4F46E5' });
-                }).catch(err => {
-                    Swal.fire({ icon: 'error', title: 'Hata', text: 'Senkronizasyon hatası: ' + err.message, confirmButtonColor: '#4F46E5' });
-                });
-            } else {
-                Swal.fire({ icon: 'warning', title: 'Yapılandırma Eksik', text: 'Lütfen geçerli bir Firebase konfigürasyonu girip kaydedin.', confirmButtonColor: '#4F46E5' });
             }
         }
 
@@ -3377,7 +3347,7 @@
             const savedCard = document.getElementById('firebase-saved-card');
             if (savedCard) {
                 if (state.firebaseConfig && state.firebaseConfig.apiKey) {
-                    savedCard.classList.remove('hidden'); // Kayıtlı ise kart görünür
+                    savedCard.classList.remove('hidden');
                     document.getElementById('saved-fb-root-display').textContent = state.firebaseRootNode || "okul_yoklama_sistemi";
                 } else {
                     savedCard.classList.add('hidden');
