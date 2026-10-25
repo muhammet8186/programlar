@@ -802,7 +802,7 @@
                     </div>
                 </form>
 
-                <!-- Aktif Kayıtlı Firebase Konfigürasyonu (Düzenle ve Sil Özellikli) -->
+                <!-- Aktif Kayıtlı Firebase Konfigürasyonu (Proje ID gizlenmiş sürüm) -->
                 <div id="firebase-saved-card" class="mx-4 mb-4 sm:mx-6 sm:mb-6 p-4 rounded-xl bg-slate-50 border border-slate-200 hidden">
                     <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200 flex-wrap gap-2">
                         <h3 class="text-xs font-bold uppercase text-slate-700 flex items-center gap-1.5">
@@ -817,14 +817,10 @@
                             </button>
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div class="text-xs">
                         <div class="bg-white p-3 rounded-lg border border-slate-200">
                             <span class="text-slate-400 block text-[10px] font-semibold uppercase">Kök Düğüm</span>
                             <span id="saved-fb-root-display" class="font-bold text-slate-800"></span>
-                        </div>
-                        <div class="bg-white p-3 rounded-lg border border-slate-200">
-                            <span class="text-slate-400 block text-[10px] font-semibold uppercase">Proje ID (Project ID)</span>
-                            <span id="saved-fb-project-display" class="font-bold text-slate-800"></span>
                         </div>
                     </div>
                 </div>
@@ -1038,7 +1034,6 @@
 
     <!-- JAVASCRIPT MANTIK VE YAPILANDIRMA -->
     <script>
-        // --- 1. KOD İÇİNDEN KOLAYCA DEĞİŞTİRİLEBİLİR FİREBASE & SİSTEM AYARLARI ---
         const VARS_FIREBASE_KOK_DUGUM = "okul_yoklama_sistemi";
         const VARS_FIREBASE_KONFIGURASYON = {
             apiKey: "",
@@ -3189,7 +3184,7 @@
         function deleteLesson(lessonName) {
             if (!checkAdminPermission()) return;
             if (state.lessons.length <= 1) {
-                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir ders tanımı kalmalıdır.', confirmColor: '#4F46E5' });
+                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir ders tanımı kalmalıdır.', confirmButtonColor: '#4F46E5' });
                 return;
             }
             Swal.fire({
@@ -3250,7 +3245,7 @@
         function deleteClass(className) {
             if (!checkAdminPermission()) return;
             if (state.classes.length <= 1) {
-                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir sınıf tanımı kalmalıdır.', confirmColor: '#4F46E5' });
+                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir sınıf tanımı kalmalıdır.', confirmButtonColor: '#4F46E5' });
                 return;
             }
             Swal.fire({
@@ -3312,7 +3307,7 @@
         function deleteLevel(levelName) {
             if (!checkAdminPermission()) return;
             if (state.levels.length <= 1) {
-                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir seviye tanımı kalmalıdır.', confirmColor: '#4F46E5' });
+                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir seviye tanımı kalmalıdır.', confirmButtonColor: '#4F46E5' });
                 return;
             }
             Swal.fire({
@@ -3381,11 +3376,9 @@
         function renderFirebaseSection() {
             const savedCard = document.getElementById('firebase-saved-card');
             const rootDisplay = document.getElementById('saved-fb-root-display');
-            const projectDisplay = document.getElementById('saved-fb-project-display');
 
             if (state.firebaseConfig && state.firebaseConfig.apiKey) {
                 rootDisplay.textContent = state.firebaseRootNode || '-';
-                projectDisplay.textContent = state.firebaseConfig.projectId || 'Belirtilmemiş';
                 savedCard.classList.remove('hidden');
                 document.getElementById('fb-status-dot').className = "fa-solid fa-circle text-emerald-500 mr-1";
                 document.getElementById('fb-status-text').textContent = "Firebase Gerçek Zamanlı Senkronizasyon Aktif";
