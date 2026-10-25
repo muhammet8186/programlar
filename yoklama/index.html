@@ -717,7 +717,7 @@
                     </div>
                     <div class="p-4 flex-1 flex flex-col space-y-4">
                         <form onsubmit="handleAddClass(event)" class="flex gap-2">
-                            <input type="text" id="new-class-name" placeholder="Örn: 5-A" required class="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <input type="text" id="new-class-name" placeholder="Örn: 5. Sınıf" required class="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none">
                             <button type="submit" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl text-xs transition shadow-sm">
                                 <i class="fa-solid fa-plus"></i> Ekle
                             </button>
@@ -1007,24 +1007,24 @@
         const DEFAULT_LESSONS = ["Matematik", "Türkçe", "Fen Bilimleri", "Sosyal Bilgiler", "İngilizce", "Beden Eğitimi"];
         const DEFAULT_LEVELS = ["Seviye 1", "Seviye 2", "Seviye 3", "Seviye 4"];
         
-        // Sınıflar 5. Sınıftan 12. Sınıfa Kadar (Örnek Şubeler)
+        // Sınıflar 5. Sınıftan 12. Sınıfa Kadar Şeklinde Ayarlandı
         const DEFAULT_CLASSES = [
-            "5-A", "5-B", 
-            "6-A", "6-B", 
-            "7-A", "7-B", 
-            "8-A", "8-B", 
-            "9-A", "9-B", 
-            "10-A", "10-B", 
-            "11-A", "11-B", 
-            "12-A", "12-B"
+            "5. Sınıf", 
+            "6. Sınıf", 
+            "7. Sınıf", 
+            "8. Sınıf", 
+            "9. Sınıf", 
+            "10. Sınıf", 
+            "11. Sınıf", 
+            "12. Sınıf"
         ];
 
         const DEFAULT_STUDENTS = [
-            { id: '1', name: 'Ahmet Yılmaz', studentClass: '5-A', level: 'Seviye 1' },
-            { id: '2', name: 'Ayşe Demir', studentClass: '6-A', level: 'Seviye 1' },
-            { id: '3', name: 'Mehmet Kaya', studentClass: '9-A', level: 'Seviye 2' },
-            { id: '4', name: 'Zeynep Çelik', studentClass: '10-A', level: 'Seviye 2' },
-            { id: '5', name: 'Can Öztürk', studentClass: '12-A', level: 'Seviye 3' }
+            { id: '1', name: 'Ahmet Yılmaz', studentClass: '5. Sınıf', level: 'Seviye 1' },
+            { id: '2', name: 'Ayşe Demir', studentClass: '6. Sınıf', level: 'Seviye 1' },
+            { id: '3', name: 'Mehmet Kaya', studentClass: '9. Sınıf', level: 'Seviye 2' },
+            { id: '4', name: 'Zeynep Çelik', studentClass: '10. Sınıf', level: 'Seviye 2' },
+            { id: '5', name: 'Can Öztürk', studentClass: '12. Sınıf', level: 'Seviye 3' }
         ];
 
         const DEFAULT_TEACHERS = [
@@ -1299,7 +1299,7 @@
             }
         }
 
-        // Kullanıcılar Tablosu (İşlemler sütunu aktif ve mobilde kaydırılabilir)
+        // Kullanıcılar Tablosu
         function renderUsersManagementList() {
             const tbody = document.getElementById('users-table-body');
             if(!tbody) return;
@@ -1565,7 +1565,7 @@
                 const currentClass = classFilterSelect.value;
                 classFilterSelect.innerHTML = '<option value="">Tüm Sınıflar</option>';
                 state.classes.forEach(c => {
-                    classFilterSelect.innerHTML += `<option value="${c}">${c} Sınıfı</option>`;
+                    classFilterSelect.innerHTML += `<option value="${c}">${c}</option>`;
                 });
                 classFilterSelect.value = currentClass;
             }
@@ -1669,7 +1669,7 @@
             }).sort((a, b) => b.avgRate - a.avgRate);
 
             if (sortedClasses.length > 0 && sortedClasses[0].avgRate > 0) {
-                document.getElementById('stat-champion-class').textContent = `${sortedClasses[0].name} Sınıfı`;
+                document.getElementById('stat-champion-class').textContent = `${sortedClasses[0].name}`;
                 document.getElementById('stat-champion-rate').textContent = `%${sortedClasses[0].avgRate} Katılım Oranı`;
             } else {
                 document.getElementById('stat-champion-class').textContent = `-`;
@@ -1921,8 +1921,8 @@
         function downloadStudentExcelTemplate() {
             const wsData = [
                 ["Adı Soyadı", "Sınıfı", "Seviyesi"],
-                ["Örnek Ahmet", "5-A", "Seviye 1"],
-                ["Örnek Ayşe", "6-A", "Seviye 2"]
+                ["Örnek Ahmet", "5. Sınıf", "Seviye 1"],
+                ["Örnek Ayşe", "6. Sınıf", "Seviye 2"]
             ];
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(wsData);
@@ -1947,7 +1947,7 @@
                         const row = json[i];
                         if (row && row[0]) {
                             const name = String(row[0]).trim();
-                            const studentClass = row[1] ? String(row[1]).trim() : (state.classes[0] || "5-A");
+                            const studentClass = row[1] ? String(row[1]).trim() : (state.classes[0] || "5. Sınıf");
                             const level = row[2] ? String(row[2]).trim() : (state.levels[0] || "Seviye 1");
 
                             if (name) {
@@ -2021,6 +2021,113 @@
                 }
             };
             reader.readAsArrayBuffer(file);
+        }
+
+        // --- ÖĞRENCİ VE ÖĞRETMEN DÜZENLEME FONKSİYONLARI ---
+        function openEditStudentModal(studentId) {
+            if (!checkAdminPermission()) return;
+            const student = state.students.find(s => s.id === studentId);
+            if (!student) return;
+
+            let classOptions = state.classes.map(c => `<option value="${c}" ${student.studentClass === c ? 'selected' : ''}>${c}</option>`).join('');
+            let levelOptions = state.levels.map(l => `<option value="${l}" ${student.level === l ? 'selected' : ''}>${l}</option>`).join('');
+
+            Swal.fire({
+                title: 'Öğrenciyi Düzenle',
+                html: `
+                    <div class="text-left space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Adı Soyadı</label>
+                            <input type="text" id="swal-edit-student-name" value="${escapeHtml(student.name)}" class="w-full text-xs border rounded-lg p-2.5">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Sınıfı</label>
+                            <select id="swal-edit-student-class" class="w-full text-xs border rounded-lg p-2.5 bg-white">
+                                ${classOptions}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Seviyesi</label>
+                            <select id="swal-edit-student-level" class="w-full text-xs border rounded-lg p-2.5 bg-white">
+                                ${levelOptions}
+                            </select>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Güncelle',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#4F46E5',
+                preConfirm: () => {
+                    const name = document.getElementById('swal-edit-student-name').value.trim();
+                    const studentClass = document.getElementById('swal-edit-student-class').value;
+                    const level = document.getElementById('swal-edit-student-level').value;
+
+                    if (!name) {
+                        Swal.showValidationMessage('Öğrenci adı boş bırakılamaz!');
+                        return false;
+                    }
+                    return { name, studentClass, level };
+                }
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    student.name = result.value.name;
+                    student.studentClass = result.value.studentClass;
+                    student.level = result.value.level;
+
+                    saveToLocalStorage();
+                    renderAttendanceFilters();
+                    renderStudentManagementList();
+                    renderAttendanceList();
+                    Toast.fire({ icon: 'success', title: 'Öğrenci bilgileri güncellendi.' });
+                }
+            });
+        }
+
+        function openEditTeacherModal(teacherId) {
+            if (!checkAdminPermission()) return;
+            const teacher = state.teachers.find(t => t.id === teacherId);
+            if (!teacher) return;
+
+            Swal.fire({
+                title: 'Öğretmeni Düzenle',
+                html: `
+                    <div class="text-left space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Öğretmen Adı Soyadı</label>
+                            <input type="text" id="swal-edit-teacher-name" value="${escapeHtml(teacher.name)}" class="w-full text-xs border rounded-lg p-2.5">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Branşı / Açıklama</label>
+                            <input type="text" id="swal-edit-teacher-branch" value="${escapeHtml(teacher.branch || '')}" class="w-full text-xs border rounded-lg p-2.5">
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Güncelle',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#4F46E5',
+                preConfirm: () => {
+                    const name = document.getElementById('swal-edit-teacher-name').value.trim();
+                    const branch = document.getElementById('swal-edit-teacher-branch').value.trim();
+
+                    if (!name) {
+                        Swal.showValidationMessage('Öğretmen adı boş bırakılamaz!');
+                        return false;
+                    }
+                    return { name, branch };
+                }
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    teacher.name = result.value.name;
+                    teacher.branch = result.value.branch;
+
+                    saveToLocalStorage();
+                    renderDropdowns();
+                    renderTeacherManagementList();
+                    Toast.fire({ icon: 'success', title: 'Öğretmen bilgileri güncellendi.' });
+                }
+            });
         }
 
         function editHistoryRecord(recordId) {
@@ -2503,9 +2610,12 @@
                     <td class="px-6 py-4 text-xs">
                         ${isStarStudentFiltered(s.id, state.attendanceRecords) ? '<span class="text-amber-600 font-bold"><i class="fa-solid fa-star mr-1"></i>%100 Katılım Yıldızı</span>' : '<span class="text-slate-400">Normal</span>'}
                     </td>
-                    <td class="px-6 py-4 text-right">
+                    <td class="px-6 py-4 text-right space-x-1 whitespace-nowrap">
                         ${isAdmin ? `
-                            <button onclick="deleteStudent('${s.id}')" class="text-rose-500 hover:text-rose-700 p-2 rounded-lg hover:bg-rose-50 transition">
+                            <button onclick="openEditStudentModal('${s.id}')" class="text-indigo-600 hover:text-indigo-800 p-1.5 rounded-lg hover:bg-indigo-50 transition" title="Düzenle">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deleteStudent('${s.id}')" class="text-rose-500 hover:text-rose-700 p-1.5 rounded-lg hover:bg-rose-50 transition" title="Sil">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         ` : '<span class="text-slate-300 text-xs">Kısıtlı</span>'}
@@ -2581,9 +2691,12 @@
                 <tr class="hover:bg-slate-50 transition">
                     <td class="px-6 py-4 font-bold text-slate-800">${escapeHtml(t.name)}</td>
                     <td class="px-6 py-4"><span class="bg-amber-50 text-amber-700 text-xs font-semibold px-2.5 py-1 rounded-md">${escapeHtml(t.branch || '-')}</span></td>
-                    <td class="px-6 py-4 text-right">
+                    <td class="px-6 py-4 text-right space-x-1 whitespace-nowrap">
                         ${isAdmin ? `
-                            <button onclick="deleteTeacher('${t.id}')" class="text-rose-500 hover:text-rose-700 p-2 rounded-lg hover:bg-rose-50 transition">
+                            <button onclick="openEditTeacherModal('${t.id}')" class="text-amber-600 hover:text-amber-800 p-1.5 rounded-lg hover:bg-amber-50 transition" title="Düzenle">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deleteTeacher('${t.id}')" class="text-rose-500 hover:text-rose-700 p-1.5 rounded-lg hover:bg-rose-50 transition" title="Sil">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         ` : '<span class="text-slate-300 text-xs">Kısıtlı</span>'}
