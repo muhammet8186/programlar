@@ -1,1 +1,2003 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Öğrenci Yoklama Yönetim Sistemi</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .status-btn-active-present { background-color: #10B981 !important; color: white !important; border-color: #10B981 !important; }
+        .status-btn-active-absent { background-color: #EF4444 !important; color: white !important; border-color: #EF4444 !important; }
+        .status-btn-active-late { background-color: #F59E0B !important; color: white !important; border-color: #F59E0B !important; }
+        .status-btn-active-excused { background-color: #6B7280 !important; color: white !important; border-color: #6B7280 !important; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; color: black; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
 
+    <!-- Top Navigation Header -->
+    <header class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-lg sticky top-0 z-30 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-gradient-to-br from-indigo-500 to-sky-400 p-3 rounded-2xl shadow-md shadow-indigo-500/20 text-white">
+                        <i class="fa-solid fa-user-check text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 id="app-title-display" class="font-extrabold text-xl sm:text-2xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">Öğrenci Yoklama Sistemi</h1>
+                        <p id="app-subtitle-display" class="text-xs sm:text-sm text-indigo-200/80 font-medium">2026 - 2027 Eğitim Öğretim Yılı</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav class="hidden lg:flex space-x-1.5 bg-slate-800/80 p-1.5 rounded-xl border border-slate-700/60 backdrop-blur-md">
+                    <button onclick="switchTab('take-attendance')" id="tab-take-attendance" class="nav-tab flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 bg-indigo-600 text-white shadow-lg shadow-indigo-600/40 ring-2 ring-indigo-400/50">
+                        <i class="fa-solid fa-clipboard-user"></i>
+                        <span>Yoklama Al</span>
+                    </button>
+                    <button onclick="switchTab('students')" id="tab-students" class="nav-tab flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-700/50">
+                        <i class="fa-solid fa-graduation-cap text-slate-400"></i>
+                        <span>Öğrenciler</span>
+                    </button>
+                    <button onclick="switchTab('teachers')" id="tab-teachers" class="nav-tab flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-700/50">
+                        <i class="fa-solid fa-chalkboard-user text-slate-400"></i>
+                        <span>Öğretmenler</span>
+                    </button>
+                    <button onclick="switchTab('statistics')" id="tab-statistics" class="nav-tab flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-700/50">
+                        <i class="fa-solid fa-chart-line text-slate-400"></i>
+                        <span>İstatistik & Grafikler</span>
+                    </button>
+                    <button onclick="switchTab('history')" id="tab-history" class="nav-tab flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-700/50">
+                        <i class="fa-solid fa-clock-rotate-left text-slate-400"></i>
+                        <span>Geçmiş</span>
+                    </button>
+                    <button onclick="switchTab('settings')" id="tab-settings" class="nav-tab flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-700/50">
+                        <i class="fa-solid fa-gear text-slate-400"></i>
+                        <span>Ayarlar</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Bar -->
+        <div class="lg:hidden flex border-t border-slate-800/80 bg-slate-900/95 divide-x divide-slate-800 text-center overflow-x-auto">
+            <button onclick="switchTab('take-attendance')" id="mob-tab-take-attendance" class="flex-1 min-w-[65px] py-3 text-[10px] font-bold text-indigo-400 flex flex-col items-center gap-1 bg-slate-800/80">
+                <i class="fa-solid fa-clipboard-user text-sm"></i> Yoklama
+            </button>
+            <button onclick="switchTab('students')" id="mob-tab-students" class="flex-1 min-w-[65px] py-3 text-[10px] font-semibold text-slate-400 flex flex-col items-center gap-1">
+                <i class="fa-solid fa-graduation-cap text-sm"></i> Öğrenci
+            </button>
+            <button onclick="switchTab('teachers')" id="mob-tab-teachers" class="flex-1 min-w-[65px] py-3 text-[10px] font-semibold text-slate-400 flex flex-col items-center gap-1">
+                <i class="fa-solid fa-chalkboard-user text-sm"></i> Öğretmen
+            </button>
+            <button onclick="switchTab('statistics')" id="mob-tab-statistics" class="flex-1 min-w-[65px] py-3 text-[10px] font-semibold text-slate-400 flex flex-col items-center gap-1">
+                <i class="fa-solid fa-chart-line text-sm"></i> İstatistik
+            </button>
+            <button onclick="switchTab('history')" id="mob-tab-history" class="flex-1 min-w-[65px] py-3 text-[10px] font-semibold text-slate-400 flex flex-col items-center gap-1">
+                <i class="fa-solid fa-clock-rotate-left text-sm"></i> Geçmiş
+            </button>
+            <button onclick="switchTab('settings')" id="mob-tab-settings" class="flex-1 min-w-[65px] py-3 text-[10px] font-semibold text-slate-400 flex flex-col items-center gap-1">
+                <i class="fa-solid fa-gear text-sm"></i> Ayarlar
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- TAB 1: YOKLAMA AL -->
+        <section id="section-take-attendance" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 no-print">
+                <div class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-4 text-white shadow-lg flex flex-col justify-between">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-blue-100 mb-1">
+                        <i class="fa-regular fa-calendar-check mr-1"></i> Yoklama Tarihi
+                    </label>
+                    <input type="date" id="attendance-date" class="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:ring-2 focus:ring-white/50">
+                </div>
+
+                <div class="bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl p-4 text-white shadow-lg flex flex-col justify-between">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-purple-100 mb-1">
+                        <i class="fa-solid fa-book-open mr-1"></i> Ders / Etkinlik
+                    </label>
+                    <select id="attendance-lesson" class="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:ring-2 focus:ring-white/50">
+                        <option value="" class="text-slate-800">Ders / Etkinlik Seçiniz...</option>
+                    </select>
+                </div>
+
+                <div class="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-4 text-white shadow-lg flex flex-col justify-between">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-amber-100 mb-1">
+                        <i class="fa-solid fa-chalkboard-user mr-1"></i> Yoklama Alan Öğretmen
+                    </label>
+                    <select id="attendance-teacher" class="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:ring-2 focus:ring-white/50">
+                        <option value="" class="text-slate-800">Öğretmen Seçiniz...</option>
+                    </select>
+                </div>
+
+                <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-4 text-white shadow-lg flex flex-col justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                        <i class="fa-solid fa-bolt mr-1"></i> Hızlı Toplu Seçim
+                    </span>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="setAllAttendance('present')" class="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 py-2 px-2 rounded-xl text-xs font-semibold transition text-center">
+                            <i class="fa-solid fa-check mr-1"></i> Tümü Var
+                        </button>
+                        <button onclick="setAllAttendance('absent')" class="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 py-2 px-2 rounded-xl text-xs font-semibold transition text-center">
+                            <i class="fa-solid fa-xmark mr-1"></i> Tümü Yok
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Yoklama Kartları Paneli & Sınıf Filtresi -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 sm:p-6 bg-gradient-to-r from-slate-800 to-indigo-900 border-b border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-white">
+                    <div>
+                        <h2 class="text-lg font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-sky-400"></i> Öğrenci Yoklama Listesi
+                        </h2>
+                        <p class="text-xs text-slate-300 mt-0.5">Sınıfa göre filtreleyebilir veya öğrencilerin durumlarını seçebilirsiniz.</p>
+                    </div>
+                    
+                    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                        <select id="attendance-class-filter" onchange="renderAttendanceList()" class="bg-slate-700 text-white text-xs rounded-lg px-3 py-1.5 border border-slate-600 focus:ring-2 focus:ring-sky-400 focus:outline-none">
+                            <option value="">Tüm Sınıflar</option>
+                        </select>
+
+                        <div class="relative w-full sm:w-48 text-slate-800">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input type="text" id="attendance-search" oninput="renderAttendanceList()" placeholder="Öğrenci ara..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-100 rounded-lg border-0 focus:ring-2 focus:ring-sky-400">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="attendance-list" class="divide-y divide-slate-100 max-h-[550px] overflow-y-auto p-2 sm:p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                </div>
+
+                <div class="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="text-xs text-slate-500 font-medium">
+                        * Durumu işaretlenmeyen öğrenciler yoklama kaydına eklenmez.
+                    </div>
+                    <button onclick="saveAttendance()" class="w-full sm:w-auto px-8 py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-xl shadow-md shadow-indigo-500/20 transition duration-150 flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-floppy-disk text-lg"></i>
+                        <span>Yoklamayı Kaydet</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: ÖĞRENCİ YÖNETİMİ -->
+        <section id="section-students" class="tab-content space-y-6 hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center gap-2">
+                    <i class="fa-solid fa-user-plus text-lg"></i>
+                    <h2 class="font-bold">Yeni Öğrenci Ekle</h2>
+                </div>
+                <form id="add-student-form" onsubmit="handleAddStudent(event)" class="p-4 sm:p-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Adı Soyadı</label>
+                            <input type="text" id="new-student-name" required placeholder="Örn: Ahmet Yılmaz" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Sınıfı</label>
+                            <input type="text" id="new-student-class" required placeholder="Örn: 10-A" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-end">
+                        <button type="submit" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm transition shadow-md shadow-emerald-600/20 flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Öğrenciyi Ekle
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-gradient-to-r from-slate-800 to-slate-900 text-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-graduation-cap text-sky-400"></i>
+                        <h2 class="font-bold">Öğrenci Listesi (<span id="student-count">0</span>)</h2>
+                    </div>
+                    <div class="w-full sm:w-64">
+                        <input type="text" id="student-list-search" oninput="renderStudentManagementList()" placeholder="Öğrencilerde ara..." class="w-full px-3 py-1.5 text-xs bg-slate-700 text-white placeholder-slate-400 rounded-lg border-0 focus:ring-2 focus:ring-sky-400">
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-100 text-xs font-semibold uppercase text-slate-500 border-b border-slate-200">
+                            <tr>
+                                <th class="px-6 py-3">Öğrenci Adı</th>
+                                <th class="px-6 py-3">Sınıfı</th>
+                                <th class="px-6 py-3">Katılım Durumu</th>
+                                <th class="px-6 py-3 text-right">İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="student-table-body" class="divide-y divide-slate-100">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: ÖĞRETMEN YÖNETİMİ -->
+        <section id="section-teachers" class="tab-content space-y-6 hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex items-center gap-2">
+                    <i class="fa-solid fa-user-tie text-lg"></i>
+                    <h2 class="font-bold">Yeni Öğretmen Ekle</h2>
+                </div>
+                <form onsubmit="handleAddTeacher(event)" class="p-4 sm:p-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Öğretmen Adı Soyadı</label>
+                            <input type="text" id="new-teacher-name" required placeholder="Örn: Ali Öğretmen" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Branşı / Açıklama</label>
+                            <input type="text" id="new-teacher-branch" placeholder="Örn: Matematik Öğretmeni" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-end">
+                        <button type="submit" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl text-sm transition shadow-md shadow-amber-600/20 flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Öğretmen Ekle
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-gradient-to-r from-slate-800 to-slate-900 text-white flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-chalkboard-user text-amber-400"></i>
+                        <h2 class="font-bold">Kayıtlı Öğretmenler (<span id="teacher-count">0</span>)</h2>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-100 text-xs font-semibold uppercase text-slate-500 border-b border-slate-200">
+                            <tr>
+                                <th class="px-6 py-3">Öğretmen Adı</th>
+                                <th class="px-6 py-3">Branşı</th>
+                                <th class="px-6 py-3 text-right">İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teacher-table-body" class="divide-y divide-slate-100">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: GELİŞMİŞ İSTATİSTİKLER, İNTERAKTİF GRAFİKLER & RAPORLAMA -->
+        <section id="section-statistics" class="tab-content space-y-6 hidden">
+            
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4 no-print">
+                <div class="flex items-center gap-2">
+                    <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                        <i class="fa-solid fa-filter text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm">İstatistik Zaman Aralığı</h3>
+                        <p class="text-xs text-slate-400">Verileri dönemsel olarak filtreleyin</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                    <select id="stat-period-select" onchange="onStatPeriodChange()" class="text-xs border border-slate-300 rounded-xl px-3 py-2 bg-slate-50 font-semibold focus:ring-2 focus:ring-indigo-500">
+                        <option value="all">Tüm Dönem (Genel)</option>
+                        <option value="weekly">Son 7 Gün (Haftalık)</option>
+                        <option value="monthly">Son 30 Gün (Aylık)</option>
+                        <option value="custom">Özel Tarih Aralığı</option>
+                    </select>
+
+                    <div id="custom-date-range-container" class="hidden flex items-center gap-2">
+                        <input type="date" id="stat-start-date" onchange="renderStatisticsTab()" class="text-xs border border-slate-300 rounded-xl px-2 py-1.5 bg-slate-50">
+                        <span class="text-xs text-slate-400">ile</span>
+                        <input type="date" id="stat-end-date" onchange="renderStatisticsTab()" class="text-xs border border-slate-300 rounded-xl px-2 py-1.5 bg-slate-50">
+                    </div>
+
+                    <button onclick="exportStatsToCSV()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-excel"></i> Excel İndir
+                    </button>
+                    <button onclick="window.print()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-print"></i> Yazdır
+                    </button>
+                </div>
+            </div>
+
+            <!-- Özet Kartları ve Şampiyon Sınıf -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div class="bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-2xl p-5 shadow-md flex items-center justify-between col-span-1 sm:col-span-2 lg:col-span-1">
+                    <div>
+                        <span class="text-[10px] font-extrabold uppercase tracking-widest text-amber-100">Şampiyon Sınıf</span>
+                        <div id="stat-champion-class" class="text-xl font-black mt-1">-</div>
+                        <span id="stat-champion-rate" class="text-xs text-amber-100 font-semibold">Veri Bekleniyor</span>
+                    </div>
+                    <div class="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+                        <i class="fa-solid fa-trophy text-2xl text-amber-200"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-semibold text-slate-400 uppercase">Toplam Öğrenci</span>
+                        <div id="stat-card-total-students" class="text-2xl font-extrabold text-slate-800 mt-1">0</div>
+                    </div>
+                    <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                        <i class="fa-solid fa-users text-xl"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-semibold text-slate-400 uppercase">Filtrelenen Yoklama</span>
+                        <div id="stat-card-total-records" class="text-2xl font-extrabold text-indigo-600 mt-1">0</div>
+                    </div>
+                    <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                        <i class="fa-solid fa-clipboard-list text-xl"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-semibold text-slate-400 uppercase">Ortalama Katılım</span>
+                        <div id="stat-card-avg-rate" class="text-2xl font-extrabold text-emerald-600 mt-1">0%</div>
+                    </div>
+                    <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                        <i class="fa-solid fa-chart-line text-xl"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-semibold text-slate-400 uppercase">Yıldızlı Öğrenciler</span>
+                        <div id="stat-card-star-students" class="text-2xl font-extrabold text-amber-500 mt-1">0</div>
+                    </div>
+                    <div class="p-3 bg-amber-50 text-amber-500 rounded-xl">
+                        <i class="fa-solid fa-star text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Canlı Grafikler -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="mb-2">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-chart-line text-indigo-600"></i> Dönem Katılım Eğrisi (%)
+                        </h3>
+                        <p class="text-xs text-slate-400">Zamana göre başarı trendi</p>
+                    </div>
+                    <div class="h-56 relative">
+                        <canvas id="attendanceLineChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="mb-2">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-chart-simple text-emerald-600"></i> Ders Bazlı Katılım Oranı
+                        </h3>
+                        <p class="text-xs text-slate-400">Derslerin katılım yüzdesi</p>
+                    </div>
+                    <div class="h-56 relative">
+                        <canvas id="lessonBarChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="mb-2">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-purple-600"></i> Genel Durum Dağılımı
+                        </h3>
+                        <p class="text-xs text-slate-400">Var/Yok/Geç/İzinli oranları</p>
+                    </div>
+                    <div class="h-56 relative flex items-center justify-center">
+                        <canvas id="attendancePieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analiz Panelleri -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+                    <h3 class="font-bold text-slate-800 text-sm mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-star text-amber-500"></i> Kusursuz Yıldızlar
+                    </h3>
+                    <p class="text-xs text-slate-400 mb-3">Devamsızlığı bulunmayanlar</p>
+                    <div id="star-students-list" class="flex-1 overflow-y-auto max-h-[220px] space-y-2 divide-y divide-slate-100 pr-1"></div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+                    <h3 class="font-bold text-slate-800 text-sm mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation text-rose-500"></i> Risk Grubu (%70 Altı)
+                    </h3>
+                    <p class="text-xs text-slate-400 mb-3">Katılımı kritik seviyede</p>
+                    <div id="risk-students-list" class="flex-1 overflow-y-auto max-h-[220px] space-y-2 divide-y divide-slate-100 pr-1"></div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+                    <h3 class="font-bold text-slate-800 text-sm mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-clock text-amber-500"></i> Kronik Geç Kalanlar
+                    </h3>
+                    <p class="text-xs text-slate-400 mb-3">Geç kalma sayısı yüksek</p>
+                    <div id="late-students-list" class="flex-1 overflow-y-auto max-h-[220px] space-y-2 divide-y divide-slate-100 pr-1"></div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+                    <h3 class="font-bold text-slate-800 text-sm mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-calendar-week text-indigo-500"></i> Gün Bazlı Devamsızlık
+                    </h3>
+                    <p class="text-xs text-slate-400 mb-3">Hangi günlerde devamsızlık çok?</p>
+                    <div id="day-trend-list" class="flex-1 overflow-y-auto max-h-[220px] space-y-2 pr-1"></div>
+                </div>
+            </div>
+
+            <!-- Öğrenci Tablosu -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-gradient-to-r from-slate-800 to-indigo-900 text-white flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-list-ol text-sky-400"></i>
+                        <h2 class="font-bold">Öğrenci Bazlı Dönemsel İstatistik Tablosu</h2>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-100 text-xs font-semibold uppercase text-slate-500 border-b border-slate-200">
+                            <tr>
+                                <th class="px-6 py-3">Öğrenci Adı</th>
+                                <th class="px-6 py-3">Sınıfı</th>
+                                <th class="px-6 py-3">Katılan / Toplam Ders</th>
+                                <th class="px-6 py-3">Devamsızlık</th>
+                                <th class="px-6 py-3">Başarı Oranı</th>
+                                <th class="px-6 py-3 text-right">Gelişmiş Karne</th>
+                            </tr>
+                        </thead>
+                        <tbody id="statistics-table-body" class="divide-y divide-slate-100">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: GEÇMİŞ & RAPORLAR -->
+        <section id="section-history" class="tab-content space-y-6 hidden">
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 no-print">
+                <div class="bg-gradient-to-br from-indigo-500 to-indigo-700 p-4 rounded-2xl text-white shadow-md">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-indigo-100 mb-1">
+                        <i class="fa-regular fa-calendar mr-1"></i> Tarihe Göre
+                    </label>
+                    <input type="date" id="history-filter-date" onchange="renderHistoryList()" class="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:ring-2 focus:ring-white/50">
+                </div>
+
+                <div class="bg-gradient-to-br from-purple-500 to-purple-700 p-4 rounded-2xl text-white shadow-md">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-purple-100 mb-1">
+                        <i class="fa-solid fa-book mr-1"></i> Derse Göre
+                    </label>
+                    <select id="history-filter-lesson" onchange="renderHistoryList()" class="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:ring-2 focus:ring-white/50">
+                    </select>
+                </div>
+
+                <div class="bg-gradient-to-br from-amber-500 to-orange-600 p-4 rounded-2xl text-white shadow-md">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-amber-100 mb-1">
+                        <i class="fa-solid fa-chalkboard-user mr-1"></i> Öğretmene Göre
+                    </label>
+                    <select id="history-filter-teacher" onchange="renderHistoryList()" class="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:ring-2 focus:ring-white/50">
+                    </select>
+                </div>
+
+                <div class="bg-gradient-to-br from-slate-700 to-slate-900 p-4 rounded-2xl text-white shadow-md flex flex-col justify-between">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                        <i class="fa-solid fa-file-export mr-1"></i> Raporlama
+                    </label>
+                    <div class="flex gap-2">
+                        <button onclick="window.print()" class="flex-1 bg-white/10 hover:bg-white/20 py-2 rounded-xl text-xs font-semibold transition text-center border border-white/20">
+                            <i class="fa-solid fa-print mr-1"></i> Yazdır / PDF
+                        </button>
+                        <button onclick="resetHistoryFilters()" class="px-3 bg-white/10 hover:bg-white/20 py-2 rounded-xl text-xs font-semibold transition text-center border border-white/20" title="Sıfırla">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="history-records-container" class="space-y-4">
+            </div>
+        </section>
+
+        <!-- TAB 6: AYARLAR -->
+        <section id="section-settings" class="tab-content space-y-6 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white flex items-center gap-2">
+                        <i class="fa-solid fa-heading text-lg"></i>
+                        <h2 class="font-bold">Program Başlığı Ayarları</h2>
+                    </div>
+                    <form onsubmit="handleSaveHeaderSettings(event)" class="p-4 sm:p-6 space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Ana Başlık</label>
+                            <input type="text" id="setting-app-title" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Alt Başlık / Dönem</label>
+                            <input type="text" id="setting-app-subtitle" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                        <div class="flex justify-end">
+                            <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition shadow-md shadow-indigo-600/20 flex items-center gap-2">
+                                <i class="fa-solid fa-floppy-disk"></i> Başlıkları Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex items-center gap-2">
+                        <i class="fa-solid fa-database text-lg"></i>
+                        <h2 class="font-bold">Veri Yedekleme & Geri Yükleme</h2>
+                    </div>
+                    <div class="p-4 sm:p-6 space-y-4">
+                        <p class="text-xs text-slate-500">Tüm öğrencileri, öğretmenleri ve yoklama verilerinizi yedekleyin.</p>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button onclick="exportBackupData()" class="p-4 bg-slate-50 border border-slate-200 hover:border-amber-500 hover:bg-amber-50/50 rounded-xl text-left transition group">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-3 bg-amber-100 text-amber-600 rounded-lg group-hover:bg-amber-500 group-hover:text-white transition">
+                                        <i class="fa-solid fa-download text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-slate-800 text-sm">Yedek İndir</div>
+                                        <div class="text-xs text-slate-500">JSON indir</div>
+                                    </div>
+                                </div>
+                            </button>
+
+                            <label class="p-4 bg-slate-50 border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 rounded-xl text-left transition group cursor-pointer block">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-3 bg-indigo-100 text-indigo-600 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition">
+                                        <i class="fa-solid fa-upload text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-slate-800 text-sm">Geri Yükle</div>
+                                        <div class="text-xs text-slate-500">JSON yükle</div>
+                                    </div>
+                                </div>
+                                <input type="file" id="import-file-input" accept=".json" onchange="importBackupData(event)" class="hidden">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-book-bookmark text-lg"></i>
+                        <h2 class="font-bold">Ders ve Etkinlik Yönetimi</h2>
+                    </div>
+                </div>
+                
+                <div class="p-4 sm:p-6 space-y-6">
+                    <form onsubmit="handleAddLesson(event)" class="flex flex-col sm:flex-row gap-3">
+                        <input type="text" id="new-lesson-name" placeholder="Yeni Ders / Etkinlik Adı" required class="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                        <button type="submit" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl text-sm transition shadow-md shadow-purple-600/20 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Ders Ekle
+                        </button>
+                    </form>
+
+                    <div class="border border-slate-200 rounded-xl overflow-hidden">
+                        <table class="w-full text-left text-sm text-slate-600">
+                            <thead class="bg-slate-100 text-xs font-semibold uppercase text-slate-500 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-4 py-3">Ders / Etkinlik Adı</th>
+                                    <th class="px-4 py-3 text-right">İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lessons-table-body" class="divide-y divide-slate-100">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- GELİŞMİŞ GÖRSEL ÖĞRENCİ KARNESİ MODALI -->
+    <div id="student-stats-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-4xl w-full flex flex-col overflow-hidden max-h-[90vh]">
+            <!-- Modal Header -->
+            <div class="p-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between no-print">
+                <div class="flex items-center gap-3">
+                    <div class="p-3 bg-indigo-600/50 text-sky-400 rounded-2xl border border-indigo-500/30">
+                        <i class="fa-solid fa-id-card text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 id="modal-student-name" class="font-extrabold text-lg">Öğrenci Adı</h3>
+                        <p id="modal-student-class" class="text-xs text-indigo-200">Sınıfı</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.print()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md">
+                        <i class="fa-solid fa-print"></i> Yazdır / PDF
+                    </button>
+                    <button onclick="closeStatsModal()" class="text-slate-400 hover:text-white p-2 rounded-lg transition">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Content Body -->
+            <div class="p-6 space-y-6 overflow-y-auto">
+                
+                <!-- Üst Bilgi & Başarı Skoru ve Rozetler -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Başarı Skoru Kartı -->
+                    <div class="p-5 rounded-2xl bg-gradient-to-br from-indigo-50 to-sky-50 border border-indigo-100 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider block">Dijital Başarı Skoru</span>
+                            <span id="modal-attendance-score" class="text-3xl font-black text-indigo-900 mt-1 block">95 / 100</span>
+                            <span class="text-[10px] text-slate-500">Katılım ve devamlılık puanı</span>
+                        </div>
+                        <div class="p-3 bg-indigo-600 text-white rounded-2xl shadow-md">
+                            <i class="fa-solid fa-award text-2xl"></i>
+                        </div>
+                    </div>
+
+                    <!-- Rozetler Alanı (Gamification) -->
+                    <div class="p-5 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 flex flex-col justify-between md:col-span-2">
+                        <span class="text-xs font-bold text-amber-800 uppercase tracking-wider block mb-2"><i class="fa-solid fa-medal mr-1"></i> Kazanılan Rozetler & Motivasyon</span>
+                        <div id="modal-badges-container" class="flex flex-wrap gap-2">
+                            <!-- Dinamik rozetler buraya gelecek -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MEB Devamsızlık Sınırı Takip İlerleme Çubuğu -->
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                    <div class="flex justify-between items-center text-xs font-bold">
+                        <span class="text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Özürsüz Devamsızlık Sınırı (10 Gün)</span>
+                        <span id="meb-limit-text" class="text-rose-600">0 / 10 Gün</span>
+                    </div>
+                    <div class="w-full bg-slate-200 h-3 rounded-full overflow-hidden">
+                        <div id="meb-limit-bar" class="bg-emerald-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-slate-400">
+                        <span>Güvenli Bölge</span>
+                        <span>Kritik Sınır</span>
+                    </div>
+                </div>
+
+                <!-- İstatistik Kartları ve Mini Grafik Yan Yana -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="space-y-4 md:col-span-1 flex flex-col justify-between">
+                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Başarı Oranı</span>
+                            <span id="stat-weekly-rate" class="text-2xl font-extrabold text-indigo-600 mt-1 block">0%</span>
+                            <span id="stat-weekly-detail" class="text-xs text-slate-500 mt-1 block">0 / 0 Ders</span>
+                        </div>
+
+                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Devamsızlık (Yok)</span>
+                            <span id="stat-monthly-rate" class="text-2xl font-extrabold text-rose-600 mt-1 block">0</span>
+                            <span id="stat-monthly-detail" class="text-xs text-slate-500 mt-1 block">Toplam Yok Günü</span>
+                        </div>
+
+                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Geç Kalma</span>
+                            <span id="stat-yearly-rate" class="text-2xl font-extrabold text-amber-600 mt-1 block">0</span>
+                            <span id="stat-yearly-detail" class="text-xs text-slate-500 mt-1 block">Toplam Geç</span>
+                        </div>
+                    </div>
+
+                    <!-- Öğrenciye Özel Mini Çizgi Grafik -->
+                    <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm md:col-span-2 flex flex-col justify-between">
+                        <div class="mb-2">
+                            <h4 class="font-bold text-xs text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-chart-line text-indigo-600"></i> Öğrenci Katılım Trendi (Son Dersler)
+                            </h4>
+                        </div>
+                        <div class="h-48 relative flex items-center justify-center">
+                            <canvas id="modalStudentChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ÖĞRETMEN GÖZLEM NOTLARI SEKMESİ -->
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-bold text-xs text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-comments text-amber-600"></i> Öğretmen Gözlem Notları & Geri Bildirimler
+                        </h4>
+                    </div>
+                    <!-- Not Ekleme Formu -->
+                    <div class="flex gap-2 no-print">
+                        <input type="text" id="new-teacher-obs-input" placeholder="Öğretmen gözlem notu ekle..." class="flex-1 text-xs px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white">
+                        <button onclick="addStudentObservationNote()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-sm">
+                            <i class="fa-solid fa-plus mr-1"></i> Not Ekle
+                        </button>
+                    </div>
+                    <!-- Notlar Listesi -->
+                    <div id="modal-teacher-notes-list" class="space-y-2 max-h-32 overflow-y-auto pr-1">
+                        <!-- Notlar buraya yüklenecek -->
+                    </div>
+                </div>
+
+                <!-- DERS BAZLI DETAYLI GEÇMİŞ TABLOSU -->
+                <div class="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                    <div class="p-3 bg-slate-100 font-bold text-xs text-slate-700 flex items-center justify-between">
+                        <span><i class="fa-solid fa-clock-rotate-left mr-1.5 text-indigo-600"></i> Öğrencinin Ders Bazlı Katılım Detayları</span>
+                    </div>
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 font-semibold text-slate-600 border-b">
+                            <tr>
+                                <th class="p-3">Tarih</th>
+                                <th class="p-3">Ders / Etkinlik</th>
+                                <th class="p-3">Öğretmen</th>
+                                <th class="p-3">Durum</th>
+                                <th class="p-3">Özel Not</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal-student-logs-table" class="divide-y divide-slate-100 text-slate-700">
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end no-print">
+                <button onclick="closeStatsModal()" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-xl text-xs transition shadow-md">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT & MANTIK -->
+    <script>
+        const DEFAULT_LESSONS = ["Matematik", "Türkçe", "Fen Bilimleri", "Sosyal Bilgiler", "İngilizce", "Beden Eğitimi"];
+        const DEFAULT_STUDENTS = [
+            { id: '1', name: 'Ahmet Yılmaz', studentClass: '10-A' },
+            { id: '2', name: 'Ayşe Demir', studentClass: '10-A' },
+            { id: '3', name: 'Mehmet Kaya', studentClass: '10-B' },
+            { id: '4', name: 'Zeynep Çelik', studentClass: '10-B' },
+            { id: '5', name: 'Can Öztürk', studentClass: '10-A' }
+        ];
+        const DEFAULT_TEACHERS = [
+            { id: 't1', name: 'Ali Öğretmen', branch: 'Sınıf Öğretmeni' },
+            { id: 't2', name: 'Fatma Öğretmen', branch: 'Matematik' }
+        ];
+
+        let state = {
+            appTitle: "Öğrenci Yoklama Sistemi",
+            appSubtitle: "2026 - 2027 Eğitim Öğretim Yılı",
+            students: [],
+            teachers: [],
+            lessons: [],
+            attendanceRecords: [],
+            studentNotes: {}, // { studentId: [{ id, date, text }] }
+            currentAttendance: {}
+        };
+
+        let lineChartInstance = null;
+        let pieChartInstance = null;
+        let barChartInstance = null;
+        let modalStudentChartInstance = null;
+        let activeModalStudentId = null;
+
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFromLocalStorage();
+            
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('attendance-date').value = today;
+            document.getElementById('stat-start-date').value = today;
+            document.getElementById('stat-end-date').value = today;
+
+            renderHeader();
+            renderDropdowns();
+            renderAttendanceClassFilter();
+            resetCurrentAttendanceToUnselected();
+            renderAttendanceList();
+            renderStudentManagementList();
+            renderTeacherManagementList();
+            renderLessonsManagementList();
+            renderHistoryList();
+            renderStatisticsTab();
+        });
+
+        function loadFromLocalStorage() {
+            const savedTitle = localStorage.getItem('att_title');
+            const savedSubtitle = localStorage.getItem('att_subtitle');
+            const savedStudents = localStorage.getItem('att_students');
+            const savedTeachers = localStorage.getItem('att_teachers');
+            const savedLessons = localStorage.getItem('att_lessons');
+            const savedRecords = localStorage.getItem('att_records');
+            const savedNotes = localStorage.getItem('att_student_notes');
+
+            state.appTitle = savedTitle || "Öğrenci Yoklama Sistemi";
+            state.appSubtitle = savedSubtitle || "2026 - 2027 Eğitim Öğretim Yılı";
+            state.students = savedStudents ? JSON.parse(savedStudents) : DEFAULT_STUDENTS;
+            state.teachers = savedTeachers ? JSON.parse(savedTeachers) : DEFAULT_TEACHERS;
+            state.lessons = savedLessons ? JSON.parse(savedLessons) : DEFAULT_LESSONS;
+            state.attendanceRecords = savedRecords ? JSON.parse(savedRecords) : [];
+            state.studentNotes = savedNotes ? JSON.parse(savedNotes) : {};
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('att_title', state.appTitle);
+            localStorage.setItem('att_subtitle', state.appSubtitle);
+            localStorage.setItem('att_students', JSON.stringify(state.students));
+            localStorage.setItem('att_teachers', JSON.stringify(state.teachers));
+            localStorage.setItem('att_lessons', JSON.stringify(state.lessons));
+            localStorage.setItem('att_records', JSON.stringify(state.attendanceRecords));
+            localStorage.setItem('att_student_notes', JSON.stringify(state.studentNotes));
+        }
+
+        function resetCurrentAttendanceToUnselected() {
+            state.currentAttendance = {};
+            state.students.forEach(s => {
+                state.currentAttendance[s.id] = { status: null, note: '' };
+            });
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`section-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-tab').forEach(btn => {
+                btn.className = "nav-tab flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-700/50";
+            });
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            if (activeBtn) {
+                activeBtn.className = "nav-tab flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 bg-indigo-600 text-white shadow-lg shadow-indigo-600/40 ring-2 ring-indigo-400/50";
+            }
+
+            document.querySelectorAll('.lg\\:hidden.flex button').forEach(btn => {
+                btn.className = "flex-1 min-w-[65px] py-3 text-[10px] font-semibold text-slate-400 flex flex-col items-center gap-1";
+            });
+            const activeMobBtn = document.getElementById(`mob-tab-${tabId}`);
+            if (activeMobBtn) {
+                activeMobBtn.className = "flex-1 min-w-[65px] py-3 text-[10px] font-bold text-indigo-400 flex flex-col items-center gap-1 bg-slate-800/80";
+            }
+
+            if (tabId === 'take-attendance') {
+                renderAttendanceClassFilter();
+                resetCurrentAttendanceToUnselected();
+                renderAttendanceList();
+            } else if(tabId === 'history') {
+                renderHistoryList();
+            } else if(tabId === 'students') {
+                renderStudentManagementList();
+            } else if(tabId === 'teachers') {
+                renderTeacherManagementList();
+            } else if(tabId === 'statistics') {
+                renderStatisticsTab();
+            }
+        }
+
+        function renderHeader() {
+            document.getElementById('app-title-display').textContent = state.appTitle;
+            document.getElementById('app-subtitle-display').textContent = state.appSubtitle;
+            document.getElementById('setting-app-title').value = state.appTitle;
+            document.getElementById('setting-app-subtitle').value = state.appSubtitle;
+        }
+
+        function renderDropdowns() {
+            const lessonSelect = document.getElementById('attendance-lesson');
+            const historyLessonSelect = document.getElementById('history-filter-lesson');
+            
+            lessonSelect.innerHTML = '<option value="">Ders / Etkinlik Seçiniz...</option>';
+            historyLessonSelect.innerHTML = '<option value="">Tüm Dersler</option>';
+
+            state.lessons.forEach(lesson => {
+                lessonSelect.innerHTML += `<option value="${lesson}">${lesson}</option>`;
+                historyLessonSelect.innerHTML += `<option value="${lesson}">${lesson}</option>`;
+            });
+
+            const teacherSelect = document.getElementById('attendance-teacher');
+            const historyTeacherSelect = document.getElementById('history-filter-teacher');
+
+            teacherSelect.innerHTML = '<option value="">Öğretmen Seçiniz...</option>';
+            historyTeacherSelect.innerHTML = '<option value="">Tüm Öğretmenler</option>';
+
+            state.teachers.forEach(teacher => {
+                teacherSelect.innerHTML += `<option value="${teacher.name}">${teacher.name}</option>`;
+                historyTeacherSelect.innerHTML += `<option value="${teacher.name}">${teacher.name}</option>`;
+            });
+        }
+
+        function renderAttendanceClassFilter() {
+            const classFilterSelect = document.getElementById('attendance-class-filter');
+            if(!classFilterSelect) return;
+            
+            const currentSelected = classFilterSelect.value;
+            const classes = [...new Set(state.students.map(s => s.studentClass))].sort();
+
+            classFilterSelect.innerHTML = '<option value="">Tüm Sınıflar</option>';
+            classes.forEach(c => {
+                classFilterSelect.innerHTML += `<option value="${c}">${c} Sınıfı</option>`;
+            });
+            classFilterSelect.value = currentSelected;
+        }
+
+        function getSortedStudents() {
+            return [...state.students].sort((a, b) => a.name.localeCompare(b.name, 'tr', { sensitivity: 'base' }));
+        }
+
+        function onStatPeriodChange() {
+            const val = document.getElementById('stat-period-select').value;
+            const customContainer = document.getElementById('custom-date-range-container');
+            if (val === 'custom') {
+                customContainer.classList.remove('hidden');
+            } else {
+                customContainer.classList.add('hidden');
+            }
+            renderStatisticsTab();
+        }
+
+        function getFilteredAttendanceRecords() {
+            const period = document.getElementById('stat-period-select')?.value || 'all';
+            const now = new Date();
+            let startDate = null;
+            let endDate = null;
+
+            if (period === 'weekly') {
+                startDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+            } else if (period === 'monthly') {
+                startDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+            } else if (period === 'custom') {
+                const startVal = document.getElementById('stat-start-date')?.value;
+                const endVal = document.getElementById('stat-end-date')?.value;
+                if (startVal) startDate = new Date(startVal);
+                if (endVal) {
+                    endDate = new Date(endVal);
+                    endDate.setHours(23, 59, 59, 999);
+                }
+            }
+
+            return state.attendanceRecords.filter(rec => {
+                const recDate = new Date(rec.date);
+                if (startDate && recDate < startDate) return false;
+                if (endDate && recDate > endDate) return false;
+                return true;
+            });
+        }
+
+        function getStudentStatsForRecords(studentId, records) {
+            let total = 0, present = 0, absent = 0, late = 0, excused = 0;
+            records.forEach(rec => {
+                const sRec = rec.records.find(r => r.studentId === studentId);
+                if (sRec) {
+                    total++;
+                    if (sRec.status === 'present') present++;
+                    else if (sRec.status === 'absent') absent++;
+                    else if (sRec.status === 'late') late++;
+                    else if (sRec.status === 'excused') excused++;
+                }
+            });
+            const rate = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
+            return { total, present, absent, late, excused, rate };
+        }
+
+        function isStarStudentFiltered(studentId, records) {
+            const stats = getStudentStatsForRecords(studentId, records);
+            return stats.total >= 2 && stats.absent === 0;
+        }
+
+        function renderStatisticsTab() {
+            const filteredRecords = getFilteredAttendanceRecords();
+
+            document.getElementById('stat-card-total-students').textContent = state.students.length;
+            document.getElementById('stat-card-total-records').textContent = filteredRecords.length;
+
+            let starCount = 0;
+            let totalRateSum = 0;
+
+            state.students.forEach(s => {
+                if (isStarStudentFiltered(s.id, filteredRecords)) starCount++;
+                totalRateSum += getStudentStatsForRecords(s.id, filteredRecords).rate;
+            });
+
+            const avgRate = state.students.length > 0 ? Math.round(totalRateSum / state.students.length) : 0;
+            document.getElementById('stat-card-avg-rate').textContent = `${avgRate}%`;
+            document.getElementById('stat-card-star-students').textContent = starCount;
+
+            const classMap = {};
+            state.students.forEach(s => {
+                if (!classMap[s.studentClass]) classMap[s.studentClass] = { totalRate: 0, count: 0 };
+                const st = getStudentStatsForRecords(s.id, filteredRecords);
+                classMap[s.studentClass].totalRate += st.rate;
+                classMap[s.studentClass].count++;
+            });
+
+            const sortedClasses = Object.keys(classMap).map(cName => {
+                const avg = classMap[cName].count > 0 ? Math.round(classMap[cName].totalRate / classMap[cName].count) : 0;
+                return { name: cName, avgRate: avg };
+            }).sort((a, b) => b.avgRate - a.avgRate);
+
+            if (sortedClasses.length > 0 && sortedClasses[0].avgRate > 0) {
+                document.getElementById('stat-champion-class').textContent = `${sortedClasses[0].name} Sınıfı`;
+                document.getElementById('stat-champion-rate').textContent = `%${sortedClasses[0].avgRate} Katılım Oranı`;
+            } else {
+                document.getElementById('stat-champion-class').textContent = `-`;
+                document.getElementById('stat-champion-rate').textContent = `Veri Bekleniyor`;
+            }
+
+            renderCharts(filteredRecords);
+
+            const starContainer = document.getElementById('star-students-list');
+            const starStudents = state.students.filter(s => isStarStudentFiltered(s.id, filteredRecords));
+
+            if (starStudents.length === 0) {
+                starContainer.innerHTML = `<div class="p-3 text-center text-xs text-slate-400 bg-slate-50 rounded-xl">Yıldızlı öğrenci bulunmuyor.</div>`;
+            } else {
+                starContainer.innerHTML = starStudents.map(s => `
+                    <div class="py-2 flex items-center justify-between">
+                        <div>
+                            <div class="font-bold text-xs text-slate-800">${escapeHtml(s.name)}</div>
+                            <div class="text-[10px] text-slate-400">Sınıf: ${escapeHtml(s.studentClass)}</div>
+                        </div>
+                        <span class="bg-amber-100 text-amber-700 font-bold text-[10px] px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <i class="fa-solid fa-star text-amber-500"></i> %100
+                        </span>
+                    </div>
+                `).join('');
+            }
+
+            const riskContainer = document.getElementById('risk-students-list');
+            const riskyStudents = state.students.map(s => {
+                return { ...s, stats: getStudentStatsForRecords(s.id, filteredRecords) };
+            }).filter(s => s.stats.total >= 1 && s.stats.rate < 70);
+
+            if (riskyStudents.length === 0) {
+                riskContainer.innerHTML = `<div class="p-3 text-center text-xs text-emerald-600 bg-emerald-50 rounded-xl">Riskli öğrenci yok.</div>`;
+            } else {
+                riskContainer.innerHTML = riskyStudents.map(s => `
+                    <div class="py-2 flex items-center justify-between">
+                        <div>
+                            <div class="font-bold text-xs text-slate-800">${escapeHtml(s.name)}</div>
+                            <div class="text-[10px] text-slate-400">Sınıf: ${escapeHtml(s.studentClass)}</div>
+                        </div>
+                        <div class="text-right">
+                            <span class="bg-rose-100 text-rose-700 font-extrabold text-xs px-2 py-0.5 rounded-md">%${s.stats.rate}</span>
+                            <div class="text-[10px] text-rose-500 font-medium mt-0.5">${s.stats.absent} Yok</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            const lateContainer = document.getElementById('late-students-list');
+            const lateStudents = state.students.map(s => {
+                return { ...s, stats: getStudentStatsForRecords(s.id, filteredRecords) };
+            }).filter(s => s.stats.late > 0).sort((a, b) => b.stats.late - a.stats.late);
+
+            if (lateStudents.length === 0) {
+                lateContainer.innerHTML = `<div class="p-3 text-center text-xs text-slate-500 bg-slate-50 rounded-xl">Geç kalan yok.</div>`;
+            } else {
+                lateContainer.innerHTML = lateStudents.map(s => `
+                    <div class="py-2 flex items-center justify-between">
+                        <div>
+                            <div class="font-bold text-xs text-slate-800">${escapeHtml(s.name)}</div>
+                            <div class="text-[10px] text-slate-400">Sınıf: ${escapeHtml(s.studentClass)}</div>
+                        </div>
+                        <span class="bg-amber-100 text-amber-800 font-bold text-xs px-2 py-1 rounded-lg">${s.stats.late} Kez Geç</span>
+                    </div>
+                `).join('');
+            }
+
+            const daysOfWeek = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+            const dayCounts = { "Pazartesi": 0, "Salı": 0, "Çarşamba": 0, "Perşembe": 0, "Cuma": 0 };
+
+            filteredRecords.forEach(rec => {
+                const d = new Date(rec.date);
+                const dayName = daysOfWeek[d.getDay()];
+                const absentCount = rec.records.filter(r => r.status === 'absent').length;
+                if (dayCounts[dayName] !== undefined) {
+                    dayCounts[dayName] += absentCount;
+                }
+            });
+
+            const dayTrendContainer = document.getElementById('day-trend-list');
+            dayTrendContainer.innerHTML = Object.keys(dayCounts).map(dName => `
+                <div class="flex items-center justify-between text-xs py-1">
+                    <span class="font-semibold text-slate-700">${dName}</span>
+                    <span class="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-md">${dayCounts[dName]} Devamsızlık</span>
+                </div>
+            `).join('');
+
+            const tbody = document.getElementById('statistics-table-body');
+            const sorted = getSortedStudents();
+
+            if (sorted.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-slate-400">Veri bulunamadı.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = sorted.map(s => {
+                const stats = getStudentStatsForRecords(s.id, filteredRecords);
+                const starBadge = isStarStudentFiltered(s.id, filteredRecords) ? '<span class="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full font-bold ml-2"><i class="fa-solid fa-star text-amber-500"></i> Yıldız</span>' : '';
+
+                return `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-6 py-4 font-bold text-slate-800">${escapeHtml(s.name)} ${starBadge}</td>
+                    <td class="px-6 py-4"><span class="bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-md">${escapeHtml(s.studentClass)}</span></td>
+                    <td class="px-6 py-4 font-semibold text-indigo-600">${stats.present + stats.late} / ${stats.total}</td>
+                    <td class="px-6 py-4 font-semibold text-rose-600">${stats.absent} Yok</td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            <span class="font-extrabold text-xs text-slate-800">${stats.rate}%</span>
+                            <div class="w-16 bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                                <div class="bg-emerald-500 h-1.5" style="width: ${stats.rate}%"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="openStatsModal('${s.id}')" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold transition">
+                            Karne Göster
+                        </button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function renderCharts(filteredRecords) {
+            const sortedRecords = [...filteredRecords].reverse();
+            const labels = sortedRecords.slice(-10).map(r => `${r.date} (${r.lesson})`);
+            const dataPoints = sortedRecords.slice(-10).map(r => {
+                const presentCount = r.records.filter(rec => rec.status === 'present' || rec.status === 'late').length;
+                return r.records.length > 0 ? Math.round((presentCount / r.records.length) * 100) : 0;
+            });
+
+            const ctxLine = document.getElementById('attendanceLineChart').getContext('2d');
+            if (lineChartInstance) lineChartInstance.destroy();
+            
+            lineChartInstance = new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: labels.length > 0 ? labels : ['Kayıt Yok'],
+                    datasets: [{
+                        label: 'Katılım (%)',
+                        data: dataPoints.length > 0 ? dataPoints : [0],
+                        borderColor: '#4F46E5',
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        borderWidth: 3,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { min: 0, max: 100 } }
+                }
+            });
+
+            const lessonStats = {};
+            state.lessons.forEach(l => lessonStats[l] = { total: 0, present: 0 });
+            filteredRecords.forEach(rec => {
+                if (lessonStats[rec.lesson]) {
+                    rec.records.forEach(r => {
+                        lessonStats[rec.lesson].total++;
+                        if (r.status === 'present' || r.status === 'late') lessonStats[rec.lesson].present++;
+                    });
+                }
+            });
+
+            const lessonLabels = Object.keys(lessonStats);
+            const lessonData = lessonLabels.map(l => {
+                const st = lessonStats[l];
+                return st.total > 0 ? Math.round((st.present / st.total) * 100) : 0;
+            });
+
+            const ctxBar = document.getElementById('lessonBarChart').getContext('2d');
+            if (barChartInstance) barChartInstance.destroy();
+
+            barChartInstance = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: lessonLabels,
+                    datasets: [{
+                        label: 'Katılım Oranı (%)',
+                        data: lessonData,
+                        backgroundColor: '#10B981',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { min: 0, max: 100 } }
+                }
+            });
+
+            let totalP = 0, totalA = 0, totalL = 0, totalE = 0;
+            filteredRecords.forEach(rec => {
+                rec.records.forEach(r => {
+                    if (r.status === 'present') totalP++;
+                    else if (r.status === 'absent') totalA++;
+                    else if (r.status === 'late') totalL++;
+                    else if (r.status === 'excused') totalE++;
+                });
+            });
+
+            const ctxPie = document.getElementById('attendancePieChart').getContext('2d');
+            if (pieChartInstance) pieChartInstance.destroy();
+
+            pieChartInstance = new Chart(ctxPie, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Var', 'Yok', 'Geç', 'İzinli'],
+                    datasets: [{
+                        data: [totalP, totalA, totalL, totalE],
+                        backgroundColor: ['#10B981', '#EF4444', '#F59E0B', '#6B7280']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
+
+        function exportStatsToCSV() {
+            const filteredRecords = getFilteredAttendanceRecords();
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+            csvContent += "Ogrenci Adı,Sinifi,Basari Orani (%),Devamsizlik Sayisi,Gec Kalma Sayisi,Toplam Ders\n";
+
+            state.students.forEach(s => {
+                const st = getStudentStatsForRecords(s.id, filteredRecords);
+                csvContent += `"${s.name}","${s.studentClass}",${st.rate},${st.absent},${st.late},${st.total}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Yoklama_Istatistik_Raporu_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+
+        // --- GELİŞMİŞ ÖĞRENCİ KARNESİ VE NOTLAR ---
+        function openStatsModal(studentId) {
+            activeModalStudentId = studentId;
+            const student = state.students.find(s => s.id === studentId);
+            if (!student) return;
+
+            const filteredRecords = getFilteredAttendanceRecords();
+            const stats = getStudentStatsForRecords(studentId, filteredRecords);
+            const starStatus = isStarStudentFiltered(studentId, filteredRecords);
+
+            document.getElementById('modal-student-name').textContent = student.name;
+            document.getElementById('modal-student-class').textContent = `Sınıf: ${student.studentClass}`;
+
+            // Skor ve Rozetler
+            document.getElementById('modal-attendance-score').textContent = `${stats.rate} / 100`;
+            
+            let badgesHTML = '';
+            if (starStatus) badgesHTML += `<span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded-full font-bold flex items-center gap-1 shadow-sm"><i class="fa-solid fa-star text-amber-500"></i> Kusursuz Katılım Yıldızı</span>`;
+            if (stats.late === 0 && stats.total >= 1) badgesHTML += `<span class="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-1 rounded-full font-bold flex items-center gap-1 shadow-sm"><i class="fa-solid fa-shield-halved"></i> Dakik / Zamanında</span>`;
+            if (stats.rate >= 80) badgesHTML += `<span class="bg-indigo-100 text-indigo-800 text-xs px-2.5 py-1 rounded-full font-bold flex items-center gap-1 shadow-sm"><i class="fa-solid fa-medal"></i> İstikrarlı Devam</span>`;
+            if (!badgesHTML) badgesHTML = `<span class="text-xs text-slate-400 italic">Henüz rozet kazanılmadı. Daha aktif katılım bekleniyor.</span>`;
+            document.getElementById('modal-badges-container').innerHTML = badgesHTML;
+
+            // MEB Devamsızlık Sınırı Progress Bar (Örnek Limit: 10 gün)
+            const maxLimit = 10;
+            const currentAbsent = stats.absent;
+            const percentLimit = Math.min(Math.round((currentAbsent / maxLimit) * 100), 100);
+            document.getElementById('meb-limit-text').textContent = `${currentAbsent} / ${maxLimit} Gün`;
+            const barEl = document.getElementById('meb-limit-bar');
+            barEl.style.width = `${percentLimit}%`;
+            if (currentAbsent < 5) barEl.className = "bg-emerald-500 h-3 rounded-full transition-all duration-500";
+            else if (currentAbsent < 8) barEl.className = "bg-amber-500 h-3 rounded-full transition-all duration-500";
+            else barEl.className = "bg-rose-500 h-3 rounded-full transition-all duration-500";
+
+            document.getElementById('stat-weekly-rate').textContent = `${stats.rate}%`;
+            document.getElementById('stat-weekly-detail').textContent = `${stats.present + stats.late} / ${stats.total} Ders`;
+            document.getElementById('stat-monthly-rate').textContent = stats.absent;
+            document.getElementById('stat-monthly-detail').textContent = `Toplam Yok`;
+            document.getElementById('stat-yearly-rate').textContent = stats.late;
+            document.getElementById('stat-yearly-detail').textContent = `Toplam Geç`;
+
+            // Mini Çizgi Grafik (Öğrenciye özel)
+            renderModalStudentChart(studentId, filteredRecords);
+
+            // Öğretmen Gözlem Notları Render
+            renderStudentNotesModal(studentId);
+
+            // Ders Log Tablosu
+            let studentLogsHTML = '';
+            filteredRecords.forEach(rec => {
+                const sRec = rec.records.find(r => r.studentId === studentId);
+                if (sRec) {
+                    studentLogsHTML += `
+                        <tr>
+                            <td class="p-3 font-semibold">${rec.date}</td>
+                            <td class="p-3">${escapeHtml(rec.lesson)}</td>
+                            <td class="p-3">${escapeHtml(rec.teacher)}</td>
+                            <td class="p-3">${getStatusBadge(sRec.status)}</td>
+                            <td class="p-3 text-slate-400 italic">${escapeHtml(sRec.note || '-')}</td>
+                        </tr>
+                    `;
+                }
+            });
+            document.getElementById('modal-student-logs-table').innerHTML = studentLogsHTML || `<tr><td colspan="5" class="p-4 text-center text-slate-400">Bu periyotta kayıt bulunamadı.</td></tr>`;
+
+            document.getElementById('student-stats-modal').classList.remove('hidden');
+        }
+
+        function renderModalStudentChart(studentId, records) {
+            const studentRecords = [...records].reverse().slice(-7); // Son 7 ders kaydı
+            const labels = studentRecords.map(r => r.date);
+            const dataPoints = studentRecords.map(r => {
+                const sRec = r.records.find(item => item.studentId === studentId);
+                if (!sRec) return null;
+                if (sRec.status === 'present') return 100;
+                if (sRec.status === 'late') return 75;
+                if (sRec.status === 'excused') return 50;
+                return 0; // absent
+            });
+
+            const ctx = document.getElementById('modalStudentChart').getContext('2d');
+            if (modalStudentChartInstance) modalStudentChartInstance.destroy();
+
+            modalStudentChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels.length > 0 ? labels : ['Kayıt Yok'],
+                    datasets: [{
+                        label: 'Performans (100:Var, 0:Yok)',
+                        data: dataPoints.length > 0 ? dataPoints : [0],
+                        borderColor: '#6366F1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        borderWidth: 2,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { min: 0, max: 100 } }
+                }
+            });
+        }
+
+        function addStudentObservationNote() {
+            const input = document.getElementById('new-teacher-obs-input');
+            const text = input.value.trim();
+            if(!text || !activeModalStudentId) return;
+
+            if(!state.studentNotes[activeModalStudentId]) {
+                state.studentNotes[activeModalStudentId] = [];
+            }
+
+            state.studentNotes[activeModalStudentId].unshift({
+                id: Date.now().toString(),
+                date: new Date().toISOString().split('T')[0],
+                text: text
+            });
+
+            saveToLocalStorage();
+            input.value = '';
+            renderStudentNotesModal(activeModalStudentId);
+            Toast.fire({ icon: 'success', title: 'Gözlem notu eklendi.' });
+        }
+
+        function renderStudentNotesModal(studentId) {
+            const notesContainer = document.getElementById('modal-teacher-notes-list');
+            const notes = state.studentNotes[studentId] || [];
+
+            if(notes.length === 0) {
+                notesContainer.innerHTML = `<div class="text-[11px] text-slate-400 italic text-center py-2">Henüz girilmiş gözlem notu yok.</div>`;
+                return;
+            }
+
+            notesContainer.innerHTML = notes.map(n => `
+                <div class="bg-white p-2.5 rounded-xl border border-slate-200 flex justify-between items-center text-xs">
+                    <div>
+                        <span class="font-bold text-indigo-600 mr-2">${n.date}:</span>
+                        <span class="text-slate-700">${escapeHtml(n.text)}</span>
+                    </div>
+                    <button onclick="deleteStudentNote('${studentId}', '${n.id}')" class="text-rose-400 hover:text-rose-600 p-1"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+                </div>
+            `).join('');
+        }
+
+        function deleteStudentNote(studentId, noteId) {
+            if(state.studentNotes[studentId]) {
+                state.studentNotes[studentId] = state.studentNotes[studentId].filter(n => n.id !== noteId);
+                saveToLocalStorage();
+                renderStudentNotesModal(studentId);
+                Toast.fire({ icon: 'success', title: 'Not silindi.' });
+            }
+        }
+
+        function closeStatsModal() {
+            document.getElementById('student-stats-modal').classList.add('hidden');
+        }
+
+        function renderAttendanceList() {
+            const container = document.getElementById('attendance-list');
+            const searchQuery = document.getElementById('attendance-search').value.toLowerCase();
+            const classFilter = document.getElementById('attendance-class-filter')?.value || '';
+            const sortedStudents = getSortedStudents();
+
+            const filteredStudents = sortedStudents.filter(s => {
+                const matchesSearch = s.name.toLowerCase().includes(searchQuery) || s.studentClass.toLowerCase().includes(searchQuery);
+                const matchesClass = classFilter === '' || s.studentClass === classFilter;
+                return matchesSearch && matchesClass;
+            });
+
+            if (filteredStudents.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full py-12 text-center text-slate-400">
+                        <i class="fa-solid fa-user-slash text-3xl mb-2"></i>
+                        <p class="text-sm font-medium">Gösterilebilecek öğrenci bulunamadı.</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = filteredStudents.map(student => {
+                const att = state.currentAttendance[student.id] || { status: null, note: '' };
+                const starBadge = isStarStudentFiltered(student.id, state.attendanceRecords) ? '<i class="fa-solid fa-star text-amber-400 ml-1" title="Kusursuz Katılım Yıldızı"></i>' : '';
+
+                return `
+                <div class="p-3 sm:p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:shadow-md transition flex flex-col justify-between space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="font-bold text-slate-800 text-sm sm:text-base flex items-center">
+                                ${escapeHtml(student.name)} ${starBadge}
+                            </div>
+                            <div class="text-xs text-indigo-600 font-semibold bg-indigo-50 px-2 py-0.5 rounded-md inline-block mt-0.5">Sınıfı: ${escapeHtml(student.studentClass)}</div>
+                        </div>
+                        <input type="text" placeholder="Not..." value="${escapeHtml(att.note || '')}" 
+                            onchange="updateStudentNote('${student.id}', this.value)"
+                            class="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-white focus:ring-1 focus:ring-indigo-500 focus:outline-none w-28 sm:w-32">
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-1.5 pt-1">
+                        <button onclick="setStudentStatus('${student.id}', 'present')" 
+                            class="py-1.5 px-2 rounded-lg text-xs font-semibold border transition ${att.status === 'present' ? 'status-btn-active-present' : 'bg-white border-slate-200 text-slate-600 hover:bg-emerald-50'}">
+                            Var
+                        </button>
+                        <button onclick="setStudentStatus('${student.id}', 'absent')" 
+                            class="py-1.5 px-2 rounded-lg text-xs font-semibold border transition ${att.status === 'absent' ? 'status-btn-active-absent' : 'bg-white border-slate-200 text-slate-600 hover:bg-rose-50'}">
+                            Yok
+                        </button>
+                        <button onclick="setStudentStatus('${student.id}', 'late')" 
+                            class="py-1.5 px-2 rounded-lg text-xs font-semibold border transition ${att.status === 'late' ? 'status-btn-active-late' : 'bg-white border-slate-200 text-slate-600 hover:bg-amber-50'}">
+                            Geç
+                        </button>
+                        <button onclick="setStudentStatus('${student.id}', 'excused')" 
+                            class="py-1.5 px-2 rounded-lg text-xs font-semibold border transition ${att.status === 'excused' ? 'status-btn-active-excused' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'}">
+                            İzinli
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function setStudentStatus(studentId, status) {
+            if (!state.currentAttendance[studentId]) {
+                state.currentAttendance[studentId] = { status: null, note: '' };
+            }
+            state.currentAttendance[studentId].status = status;
+            renderAttendanceList();
+        }
+
+        function updateStudentNote(studentId, note) {
+            if (!state.currentAttendance[studentId]) {
+                state.currentAttendance[studentId] = { status: null, note: '' };
+            }
+            state.currentAttendance[studentId].note = note;
+        }
+
+        function setAllAttendance(status) {
+            const classFilter = document.getElementById('attendance-class-filter')?.value || '';
+            const sortedStudents = getSortedStudents();
+
+            sortedStudents.forEach(s => {
+                if (classFilter === '' || s.studentClass === classFilter) {
+                    if (!state.currentAttendance[s.id]) {
+                        state.currentAttendance[s.id] = { status: status, note: '' };
+                    } else {
+                        state.currentAttendance[s.id].status = status;
+                    }
+                }
+            });
+            renderAttendanceList();
+        }
+
+        function saveAttendance() {
+            const date = document.getElementById('attendance-date').value;
+            const lesson = document.getElementById('attendance-lesson').value;
+            const teacher = document.getElementById('attendance-teacher').value;
+
+            if (!date) {
+                Swal.fire({ icon: 'warning', title: 'Tarih Eksik', text: 'Lütfen geçerli bir tarih seçiniz.', confirmColor: '#4F46E5' });
+                return;
+            }
+            if (!lesson) {
+                Swal.fire({ icon: 'warning', title: 'Ders Seçilmedi', text: 'Lütfen bir Ders veya Etkinlik seçiniz.', confirmColor: '#4F46E5' });
+                return;
+            }
+            if (!teacher) {
+                Swal.fire({ icon: 'warning', title: 'Öğretmen Seçilmedi', text: 'Lütfen yoklamayı alan öğretmeni seçiniz.', confirmColor: '#4F46E5' });
+                return;
+            }
+
+            const markedStudents = state.students.filter(s => state.currentAttendance[s.id]?.status !== null);
+
+            if (markedStudents.length === 0) {
+                Swal.fire({ icon: 'info', title: 'Öğrenci İşaretlenmedi', text: 'Lütfen en az bir öğrenci için durum seçiniz.', confirmColor: '#4F46E5' });
+                return;
+            }
+
+            const records = markedStudents.map(s => {
+                const att = state.currentAttendance[s.id];
+                return {
+                    studentId: s.id,
+                    studentName: s.name,
+                    studentClass: s.studentClass,
+                    status: att.status,
+                    note: att.note || ''
+                };
+            });
+
+            const newRecord = {
+                id: Date.now().toString(),
+                date: date,
+                lesson: lesson,
+                teacher: teacher,
+                timestamp: new Date().toISOString(),
+                records: records
+            };
+
+            state.attendanceRecords.unshift(newRecord);
+            saveToLocalStorage();
+
+            Toast.fire({ icon: 'success', title: 'Yoklama başarıyla kaydedildi!' });
+            resetCurrentAttendanceToUnselected();
+            switchTab('history');
+        }
+
+        function renderStudentManagementList() {
+            const tbody = document.getElementById('student-table-body');
+            const searchQuery = document.getElementById('student-list-search').value.toLowerCase();
+            const countDisplay = document.getElementById('student-count');
+
+            const sortedStudents = getSortedStudents();
+            const filtered = sortedStudents.filter(s => 
+                s.name.toLowerCase().includes(searchQuery) || 
+                s.studentClass.toLowerCase().includes(searchQuery)
+            );
+
+            countDisplay.textContent = state.students.length;
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-slate-400">Öğrenci bulunamadı.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map((s) => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-6 py-4 font-bold text-slate-800">${escapeHtml(s.name)}</td>
+                    <td class="px-6 py-4"><span class="bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-md">${escapeHtml(s.studentClass)}</span></td>
+                    <td class="px-6 py-4 text-xs">
+                        ${isStarStudentFiltered(s.id, state.attendanceRecords) ? '<span class="text-amber-600 font-bold"><i class="fa-solid fa-star mr-1"></i>%100 Katılım Yıldızı</span>' : '<span class="text-slate-400">Normal</span>'}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="deleteStudent('${s.id}')" class="text-rose-500 hover:text-rose-700 p-2 rounded-lg hover:bg-rose-50 transition">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function handleAddStudent(e) {
+            e.preventDefault();
+            const nameInput = document.getElementById('new-student-name');
+            const classInput = document.getElementById('new-student-class');
+
+            const name = nameInput.value.trim();
+            const studentClass = classInput.value.trim();
+
+            if (!name || !studentClass) return;
+
+            const newStudent = { id: Date.now().toString(), name, studentClass };
+            state.students.push(newStudent);
+            state.currentAttendance[newStudent.id] = { status: null, note: '' };
+            
+            saveToLocalStorage();
+            nameInput.value = ''; classInput.value = '';
+
+            Toast.fire({ icon: 'success', title: 'Yeni öğrenci eklendi.' });
+            renderAttendanceClassFilter();
+            renderStudentManagementList();
+            renderAttendanceList();
+        }
+
+        function deleteStudent(id) {
+            const student = state.students.find(s => s.id === id);
+            Swal.fire({
+                title: 'Öğrenci Silinsin mi?',
+                text: `"${student?.name}" isimli öğrenci sistemden tamamen kaldırılacak.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmColor: '#EF4444',
+                cancelColor: '#6B7280',
+                confirmButtonText: 'Evet, Sil',
+                cancelButtonText: 'Vazgeç'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    state.students = state.students.filter(s => s.id !== id);
+                    delete state.currentAttendance[id];
+                    saveToLocalStorage();
+                    renderAttendanceClassFilter();
+                    renderStudentManagementList();
+                    renderAttendanceList();
+                    Toast.fire({ icon: 'success', title: 'Öğrenci silindi.' });
+                }
+            });
+        }
+
+        function renderTeacherManagementList() {
+            const tbody = document.getElementById('teacher-table-body');
+            document.getElementById('teacher-count').textContent = state.teachers.length;
+
+            if (state.teachers.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-slate-400">Öğretmen bulunamadı.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = state.teachers.map((t) => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-6 py-4 font-bold text-slate-800">${escapeHtml(t.name)}</td>
+                    <td class="px-6 py-4"><span class="bg-amber-50 text-amber-700 text-xs font-semibold px-2.5 py-1 rounded-md">${escapeHtml(t.branch || '-')}</span></td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="deleteTeacher('${t.id}')" class="text-rose-500 hover:text-rose-700 p-2 rounded-lg hover:bg-rose-50 transition">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function handleAddTeacher(e) {
+            e.preventDefault();
+            const nameInput = document.getElementById('new-teacher-name');
+            const branchInput = document.getElementById('new-teacher-branch');
+
+            const name = nameInput.value.trim();
+            const branch = branchInput.value.trim();
+
+            if (!name) return;
+
+            const newTeacher = { id: Date.now().toString(), name, branch };
+            state.teachers.push(newTeacher);
+            
+            saveToLocalStorage();
+            renderDropdowns();
+            renderTeacherManagementList();
+
+            nameInput.value = ''; branchInput.value = '';
+            Toast.fire({ icon: 'success', title: 'Yeni öğretmen kaydı yapıldı.' });
+        }
+
+        function deleteTeacher(id) {
+            if (state.teachers.length <= 1) {
+                Swal.fire({ icon: 'error', title: 'İşlem Engellendi', text: 'Sistemde en az bir öğretmen bulunmalıdır.', confirmColor: '#4F46E5' });
+                return;
+            }
+            const teacher = state.teachers.find(t => t.id === id);
+            Swal.fire({
+                title: 'Öğretmen Silinsin mi?',
+                text: `"${teacher?.name}" sistemden kaldırılacak.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmColor: '#EF4444',
+                cancelColor: '#6B7280',
+                confirmButtonText: 'Evet, Sil',
+                cancelButtonText: 'İptal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    state.teachers = state.teachers.filter(t => t.id !== id);
+                    saveToLocalStorage();
+                    renderDropdowns();
+                    renderTeacherManagementList();
+                    Toast.fire({ icon: 'success', title: 'Öğretmen silindi.' });
+                }
+            });
+        }
+
+        function renderHistoryList() {
+            const container = document.getElementById('history-records-container');
+            const filterDate = document.getElementById('history-filter-date').value;
+            const filterLesson = document.getElementById('history-filter-lesson').value;
+            const filterTeacher = document.getElementById('history-filter-teacher').value;
+
+            let records = state.attendanceRecords;
+
+            if (filterDate) records = records.filter(r => r.date === filterDate);
+            if (filterLesson) records = records.filter(r => r.lesson === filterLesson);
+            if (filterTeacher) records = records.filter(r => r.teacher === filterTeacher);
+
+            if (records.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl p-12 text-center text-slate-400 border border-slate-200">
+                        <i class="fa-solid fa-folder-open text-4xl mb-3"></i>
+                        <p class="font-medium text-base">Kayıtlı yoklama bulunamadı.</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = records.map(record => {
+                const total = record.records.length;
+                const present = record.records.filter(r => r.status === 'present').length;
+                const absent = record.records.filter(r => r.status === 'absent').length;
+                const late = record.records.filter(r => r.status === 'late').length;
+                const excused = record.records.filter(r => r.status === 'excused').length;
+
+                const sortedRecords = [...record.records].sort((a, b) => a.studentName.localeCompare(b.studentName, 'tr', { sensitivity: 'base' }));
+
+                return `
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 bg-slate-800 text-white flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-indigo-600 text-white p-2.5 rounded-xl text-center font-bold text-xs uppercase min-w-[60px]">
+                                ${formatDateShort(record.date)}
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-base text-white">${escapeHtml(record.lesson)}</h3>
+                                <p class="text-xs text-slate-300">Öğretmen: <span class="font-semibold text-amber-400">${escapeHtml(record.teacher || 'Belirtilmedi')}</span> | Toplam ${total} Öğrenci</p>
+                            </div>
+                        </div>
+
+                        <button onclick="deleteHistoryRecord('${record.id}')" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 no-print self-start sm:self-auto">
+                            <i class="fa-solid fa-trash"></i> Sil
+                        </button>
+                    </div>
+
+                    <div class="p-3 bg-slate-50 border-b border-slate-200 flex flex-wrap gap-3 text-xs font-semibold">
+                        <span class="text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-md">Var: ${present}</span>
+                        <span class="text-rose-700 bg-rose-100 px-2.5 py-1 rounded-md">Yok: ${absent}</span>
+                        <span class="text-amber-700 bg-amber-100 px-2.5 py-1 rounded-md">Geç: ${late}</span>
+                        <span class="text-slate-700 bg-slate-200 px-2.5 py-1 rounded-md">İzinli: ${excused}</span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-600">
+                            <thead class="bg-slate-100 text-slate-500 font-semibold border-b border-slate-200">
+                                <tr>
+                                    <th class="px-4 py-2">Öğrenci</th>
+                                    <th class="px-4 py-2">Sınıf</th>
+                                    <th class="px-4 py-2">Durum</th>
+                                    <th class="px-4 py-2">Not</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                ${sortedRecords.map(r => `
+                                    <tr>
+                                        <td class="px-4 py-2 font-medium text-slate-800">${escapeHtml(r.studentName)}</td>
+                                        <td class="px-4 py-2"><span class="bg-indigo-50 text-indigo-700 text-[10px] font-semibold px-2 py-0.5 rounded-md">${escapeHtml(r.studentClass)}</span></td>
+                                        <td class="px-4 py-2">${getStatusBadge(r.status)}</td>
+                                        <td class="px-4 py-2 text-slate-400 italic">${escapeHtml(r.note || '-')}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function resetHistoryFilters() {
+            document.getElementById('history-filter-date').value = '';
+            document.getElementById('history-filter-lesson').value = '';
+            document.getElementById('history-filter-teacher').value = '';
+            renderHistoryList();
+        }
+
+        function deleteHistoryRecord(id) {
+            Swal.fire({
+                title: 'Yoklama Kaydı Silinsin mi?',
+                text: 'Bu yoklama kaydı kalıcı olarak silinecek.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmColor: '#EF4444',
+                cancelColor: '#6B7280',
+                confirmButtonText: 'Evet, Sil',
+                cancelButtonText: 'İptal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    state.attendanceRecords = state.attendanceRecords.filter(r => r.id !== id);
+                    saveToLocalStorage();
+                    renderHistoryList();
+                    Toast.fire({ icon: 'success', title: 'Yoklama kaydı silindi.' });
+                }
+            });
+        }
+
+        function handleSaveHeaderSettings(e) {
+            e.preventDefault();
+            state.appTitle = document.getElementById('setting-app-title').value.trim();
+            state.appSubtitle = document.getElementById('setting-app-subtitle').value.trim();
+            saveToLocalStorage();
+            renderHeader();
+            Toast.fire({ icon: 'success', title: 'Program başlıkları güncellendi.' });
+        }
+
+        function handleAddLesson(e) {
+            e.preventDefault();
+            const input = document.getElementById('new-lesson-name');
+            const lessonName = input.value.trim();
+
+            if (lessonName && !state.lessons.includes(lessonName)) {
+                state.lessons.push(lessonName);
+                saveToLocalStorage();
+                renderDropdowns();
+                renderLessonsManagementList();
+                input.value = '';
+                Toast.fire({ icon: 'success', title: 'Yeni ders eklendi.' });
+            }
+        }
+
+        function renderLessonsManagementList() {
+            const tbody = document.getElementById('lessons-table-body');
+            tbody.innerHTML = state.lessons.map((lesson) => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-4 py-3 font-semibold text-slate-700">${escapeHtml(lesson)}</td>
+                    <td class="px-4 py-3 text-right">
+                        <button onclick="deleteLesson('${lesson}')" class="text-rose-500 hover:text-rose-700 p-1 rounded transition">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function deleteLesson(lessonName) {
+            if (state.lessons.length <= 1) {
+                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir ders tanımı kalmalıdır.', confirmColor: '#4F46E5' });
+                return;
+            }
+            Swal.fire({
+                title: 'Ders Silinsin mi?',
+                text: `"${lessonName}" dersini silmek istediğinize emin misiniz?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmColor: '#EF4444',
+                cancelColor: '#6B7280',
+                confirmButtonText: 'Evet, Sil',
+                cancelButtonText: 'İptal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    state.lessons = state.lessons.filter(l => l !== lessonName);
+                    saveToLocalStorage();
+                    renderDropdowns();
+                    renderLessonsManagementList();
+                    Toast.fire({ icon: 'success', title: 'Ders silindi.' });
+                }
+            });
+        }
+
+        function exportBackupData() {
+            const backupData = {
+                appTitle: state.appTitle,
+                appSubtitle: state.appSubtitle,
+                students: state.students,
+                teachers: state.teachers,
+                lessons: state.lessons,
+                attendanceRecords: state.attendanceRecords,
+                studentNotes: state.studentNotes,
+                exportDate: new Date().toISOString()
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `Yoklama_Yedek_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importBackupData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (importedData.students && importedData.lessons) {
+                        state.appTitle = importedData.appTitle || state.appTitle;
+                        state.appSubtitle = importedData.appSubtitle || state.appSubtitle;
+                        state.students = importedData.students || [];
+                        state.teachers = importedData.teachers || [];
+                        state.lessons = importedData.lessons || [];
+                        state.attendanceRecords = importedData.attendanceRecords || [];
+                        state.studentNotes = importedData.studentNotes || {};
+
+                        saveToLocalStorage();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Yedek Yüklendi',
+                            text: 'Veriler başarıyla yüklendi. Sayfa yenileniyor...',
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => location.reload());
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Hata', text: 'Geçersiz yedek dosyası formatı!', confirmColor: '#4F46E5' });
+                    }
+                } catch (err) {
+                    Swal.fire({ icon: 'error', title: 'Hata', text: 'Dosya okunurken hata oluştu!', confirmColor: '#4F46E5' });
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function formatDateShort(dateStr) {
+            const d = new Date(dateStr);
+            const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+            return `<span class="text-base font-extrabold block leading-none">${d.getDate()}</span><span class="text-[10px] uppercase font-semibold">${months[d.getMonth()]}</span>`;
+        }
+
+        function getStatusBadge(status) {
+            switch (status) {
+                case 'present': return '<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded">VAR</span>';
+                case 'absent': return '<span class="bg-rose-100 text-rose-800 text-[10px] font-bold px-2 py-0.5 rounded">YOK</span>';
+                case 'late': return '<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded">GEÇ</span>';
+                case 'excused': return '<span class="bg-slate-200 text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded">İZİNLİ</span>';
+                default: return '-';
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
