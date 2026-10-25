@@ -802,7 +802,7 @@
                     </div>
                 </form>
 
-                <!-- Gizli Tutulan Kayıt Kartı (Kutucuk gösterilmeyecek) -->
+                <!-- Aktif Kayıtlı Firebase Konfigürasyonu Kartı -->
                 <div id="firebase-saved-card" class="mx-4 mb-4 sm:mx-6 sm:mb-6 p-4 rounded-xl bg-slate-50 border border-slate-200 hidden">
                     <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200 flex-wrap gap-2">
                         <h3 class="text-xs font-bold uppercase text-slate-700 flex items-center gap-1.5">
@@ -3376,7 +3376,12 @@
         function renderFirebaseSection() {
             const savedCard = document.getElementById('firebase-saved-card');
             if (savedCard) {
-                savedCard.classList.add('hidden'); // Kaydedildikten sonra kutucuğun görünmemesi için gizli tutuluyor
+                if (state.firebaseConfig && state.firebaseConfig.apiKey) {
+                    savedCard.classList.remove('hidden');
+                    document.getElementById('saved-fb-root-display').textContent = state.firebaseRootNode || "okul_yoklama_sistemi";
+                } else {
+                    savedCard.classList.add('hidden');
+                }
             }
 
             if (state.firebaseConfig && state.firebaseConfig.apiKey) {
