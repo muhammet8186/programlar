@@ -46,8 +46,41 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
 
+    <!-- LOGIN MODAL -->
+    <div id="login-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100">
+            <div class="p-6 bg-gradient-to-r from-slate-900 to-indigo-950 text-white text-center">
+                <div class="inline-flex p-3 bg-white/10 rounded-2xl mb-3 text-sky-400 border border-white/20">
+                    <i class="fa-solid fa-lock text-2xl"></i>
+                </div>
+                <h2 class="text-xl font-extrabold">Sistem Girişi</h2>
+                <p class="text-xs text-slate-300 mt-1">Devam etmek için lütfen giriş yapınız</p>
+            </div>
+            <form onsubmit="handleLogin(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Kullanıcı Adı</label>
+                    <input type="text" id="login-username" required placeholder="Kullanıcı adınızı girin" class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Şifre</label>
+                    <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20 transition duration-150 flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-right-to-bracket"></i>
+                        <span>Giriş Yap</span>
+                    </button>
+                </div>
+                <div class="text-[11px] text-slate-400 text-center mt-2">
+                    Varsayılan Yönetici: <span class="font-semibold text-slate-600">admin</span> / Şifre: <span class="font-semibold text-slate-600">123</span><br>
+                    Varsayılan Kullanıcı: <span class="font-semibold text-slate-600">user</span> / Şifre: <span class="font-semibold text-slate-600">123</span>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Top Navigation Header -->
-    <header class="bg-gradient-to-r from-slate-800 to-indigo-900 border-b border-slate-700 text-white shadow-md sticky top-0 z-50 no-print transition-all">
+    <header class="bg-gradient-to-r from-slate-800 to-indigo-900 border-b border-slate-700 text-white shadow-md sticky top-0 z-40 no-print transition-all">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-20">
                 <div class="flex items-center space-x-3">
@@ -61,55 +94,26 @@
                 </div>
 
                 <!-- Navigation Tabs -->
-                <nav class="hidden lg:flex space-x-1 bg-slate-900/60 p-1.5 rounded-xl border border-slate-700 shadow-inner">
-                    <button onclick="switchTab('take-attendance')" id="tab-take-attendance" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
-                        <i class="fa-solid fa-clipboard-user"></i>
-                        <span>Yoklama Al</span>
-                    </button>
-                    <button onclick="switchTab('history')" id="tab-history" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800">
-                        <i class="fa-solid fa-clock-rotate-left text-purple-400"></i>
-                        <span>Geçmiş</span>
-                    </button>
-                    <button onclick="switchTab('students')" id="tab-students" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800">
-                        <i class="fa-solid fa-graduation-cap text-emerald-400"></i>
-                        <span>Öğrenciler</span>
-                    </button>
-                    <button onclick="switchTab('teachers')" id="tab-teachers" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800">
-                        <i class="fa-solid fa-chalkboard-user text-amber-400"></i>
-                        <span>Öğretmenler</span>
-                    </button>
-                    <button onclick="switchTab('statistics')" id="tab-statistics" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800">
-                        <i class="fa-solid fa-chart-line text-blue-400"></i>
-                        <span>İstatistik</span>
-                    </button>
-                    <button onclick="switchTab('settings')" id="tab-settings" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800">
-                        <i class="fa-solid fa-gear text-rose-400"></i>
-                        <span>Ayarlar</span>
-                    </button>
+                <nav id="desktop-nav" class="hidden lg:flex space-x-1 bg-slate-900/60 p-1.5 rounded-xl border border-slate-700 shadow-inner">
+                    <!-- Dinamik olarak rollerine göre doldurulur -->
                 </nav>
+
+                <!-- User Profile & Logout -->
+                <div class="flex items-center gap-3">
+                    <div class="hidden sm:block text-right">
+                        <div id="current-user-name" class="text-xs font-bold text-white">-</div>
+                        <div id="current-user-role" class="text-[10px] text-sky-400 font-semibold uppercase">-</div>
+                    </div>
+                    <button onclick="handleLogout()" class="p-2.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 rounded-xl text-xs font-semibold transition" title="Çıkış Yap">
+                        <i class="fa-solid fa-power-off text-sm"></i>
+                    </button>
+                </div>
             </div>
         </div>
 
         <!-- Mobile Navigation Bar -->
-        <div class="lg:hidden flex border-t border-slate-800 bg-slate-900 divide-x divide-slate-800 text-center overflow-x-auto shadow-sm">
-            <button onclick="switchTab('take-attendance')" id="mob-tab-take-attendance" class="flex-1 min-w-[60px] py-3 text-[10px] font-bold text-sky-400 flex flex-col items-center gap-1 bg-slate-800/80">
-                <i class="fa-solid fa-clipboard-user text-sm text-sky-400"></i> Yoklama
-            </button>
-            <button onclick="switchTab('history')" id="mob-tab-history" class="flex-1 min-w-[60px] py-3 text-[10px] font-semibold text-slate-300 flex flex-col items-center gap-1">
-                <i class="fa-solid fa-clock-rotate-left text-sm text-purple-400"></i> Geçmiş
-            </button>
-            <button onclick="switchTab('students')" id="mob-tab-students" class="flex-1 min-w-[60px] py-3 text-[10px] font-semibold text-slate-300 flex flex-col items-center gap-1">
-                <i class="fa-solid fa-graduation-cap text-sm text-emerald-400"></i> Öğrenci
-            </button>
-            <button onclick="switchTab('teachers')" id="mob-tab-teachers" class="flex-1 min-w-[60px] py-3 text-[10px] font-semibold text-slate-300 flex flex-col items-center gap-1">
-                <i class="fa-solid fa-chalkboard-user text-sm text-amber-400"></i> Öğretmen
-            </button>
-            <button onclick="switchTab('statistics')" id="mob-tab-statistics" class="flex-1 min-w-[60px] py-3 text-[10px] font-semibold text-slate-300 flex flex-col items-center gap-1">
-                <i class="fa-solid fa-chart-line text-sm text-blue-400"></i> İstatistik
-            </button>
-            <button onclick="switchTab('settings')" id="mob-tab-settings" class="flex-1 min-w-[60px] py-3 text-[10px] font-semibold text-slate-300 flex flex-col items-center gap-1">
-                <i class="fa-solid fa-gear text-sm text-rose-400"></i> Ayarlar
-            </button>
+        <div id="mobile-nav" class="lg:hidden flex border-t border-slate-800 bg-slate-900 divide-x divide-slate-800 text-center overflow-x-auto shadow-sm">
+            <!-- Dinamik olarak rollerine göre doldurulur -->
         </div>
     </header>
 
@@ -245,7 +249,7 @@
             </div>
         </section>
 
-        <!-- TAB 3: ÖĞRENCİ YÖNETİMİ -->
+        <!-- TAB 3: ÖĞRENCİ YÖNETİMİ (Sadece Admin) -->
         <section id="section-students" class="tab-content space-y-6 hidden">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-4 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center gap-2">
@@ -308,7 +312,7 @@
             </div>
         </section>
 
-        <!-- TAB 4: ÖĞRETMEN YÖNETİMİ -->
+        <!-- TAB 4: ÖĞRETMEN YÖNETİMİ (Sadece Admin) -->
         <section id="section-teachers" class="tab-content space-y-6 hidden">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex items-center gap-2">
@@ -516,7 +520,7 @@
 
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
                     <h3 class="font-bold text-slate-800 text-sm mb-1 flex items-center gap-2">
-                        <i class="fa-solid fa-calendar-week text-indigo-500"></i> Gün Bazlı Devamsızlık (Hafta Sonu Dahil)
+                        <i class="fa-solid fa-calendar-week text-indigo-500"></i> Gün Bazlı Devamsızlık
                     </h3>
                     <p class="text-xs text-slate-400 mb-3">Hangi günlerde devamsızlık çok?</p>
                     <div id="day-trend-list" class="flex-1 overflow-y-auto max-h-[220px] space-y-2 pr-1"></div>
@@ -552,7 +556,7 @@
             </div>
         </section>
 
-        <!-- TAB 6: AYARLAR -->
+        <!-- TAB 6: AYARLAR (Sadece Admin) -->
         <section id="section-settings" class="tab-content space-y-6 hidden">
             
             <!-- Program Başlığı Ayarları -->
@@ -576,6 +580,51 @@
                         </button>
                     </div>
                 </form>
+            </div>
+
+            <!-- Kullanıcı Yönetimi Bölümü -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white flex items-center gap-2">
+                    <i class="fa-solid fa-users-gear text-lg"></i>
+                    <h2 class="font-bold">Kullanıcı Yönetimi (Yönetici & Kullanıcı)</h2>
+                </div>
+                <div class="p-4 sm:p-6 space-y-4">
+                    <form onsubmit="handleAddUser(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Kullanıcı Adı</label>
+                            <input type="text" id="new-user-username" required placeholder="ornek_user" class="w-full px-3 py-2 text-xs border rounded-lg bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Şifre</label>
+                            <input type="password" id="new-user-password" required placeholder="Şifre" class="w-full px-3 py-2 text-xs border rounded-lg bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Rol</label>
+                            <select id="new-user-role" class="w-full px-3 py-2 text-xs border rounded-lg bg-white">
+                                <option value="user">Kullanıcı (Yoklama, Geçmiş, İstatistik)</option>
+                                <option value="admin">Yönetici (Tam Yetkili)</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button type="submit" class="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-xs transition shadow-sm">
+                                <i class="fa-solid fa-user-plus mr-1"></i> Kullanıcı Ekle
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="border border-slate-200 rounded-xl overflow-hidden">
+                        <table class="w-full text-left text-xs text-slate-600">
+                            <thead class="bg-slate-100 font-bold uppercase text-slate-500 border-b">
+                                <tr>
+                                    <th class="px-4 py-3">Kullanıcı Adı</th>
+                                    <th class="px-4 py-3">Rolü</th>
+                                    <th class="px-4 py-3 text-right">İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <!-- Ders/Etkinlik, Sınıf Yönetimi ve Seviye Yönetimi -->
@@ -650,14 +699,14 @@
                 </div>
             </div>
 
-            <!-- Firebase Ayarları Kartı (Kayıt Formu ve Silme Özellikli) -->
+            <!-- Tekil Firebase Ayarları Kartı (Kayıt Formu ve Silme Özellikli) -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex items-center gap-2">
                     <i class="fa-solid fa-fire text-lg text-yellow-200"></i>
-                    <h2 class="font-bold">Firebase Bulut Senkronizasyon Ayarları</h2>
+                    <h2 class="font-bold">Firebase Bulut Senkronizasyon Ayarları (Tekil Kayıt)</h2>
                 </div>
-                <form onsubmit="handleSaveFirebaseSettings(event)" class="p-4 sm:p-6 space-y-4">
-                    <p class="text-xs text-slate-500">Verilerinizi Firebase üzerinde saklamak için kök düğüm başlığını ve konfigürasyon JSON nesnesini giriniz.</p>
+                <form id="firebase-form" onsubmit="handleSaveFirebaseSettings(event)" class="p-4 sm:p-6 space-y-4">
+                    <p class="text-xs text-slate-500">Sistemde yalnızca 1 adet Firebase konfigürasyonu saklanır. Yeni bilgi girildiğinde eskisinin üzerine yazılır.</p>
                     
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Kök Düğüm Başlığı</label>
@@ -666,15 +715,14 @@
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Firebase Konfigürasyon Nesnesi (JSON)</label>
-                        <textarea id="fb-config-json" rows="6" placeholder='{
+                        <textarea id="fb-config-json" rows="5" placeholder='{
   "apiKey": "",
   "authDomain": "",
   "databaseURL": "",
   "projectId": "",
   "storageBucket": "",
   "messagingSenderId": "",
-  "appId": "",
-  "measurementId": ""
+  "appId": ""
 }' class="w-full px-3 py-2 text-xs font-mono border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none bg-slate-50"></textarea>
                     </div>
 
@@ -688,10 +736,10 @@
                     </div>
                 </form>
 
-                <!-- Kayıtlı Firebase Bilgileri Formu ve Silme Butonu -->
+                <!-- Kayıtlı Tekil Firebase Bilgileri Formu ve Silme Butonu -->
                 <div id="firebase-saved-card" class="mx-4 mb-4 sm:mx-6 sm:mb-6 p-4 rounded-xl bg-slate-50 border border-slate-200 hidden">
                     <h3 class="text-xs font-bold uppercase text-slate-700 mb-2 flex items-center gap-1.5">
-                        <i class="fa-solid fa-file-lines text-amber-600"></i> Kayıtlı Firebase Konfigürasyon Formu
+                        <i class="fa-solid fa-file-lines text-amber-600"></i> Aktif Kayıtlı Firebase Konfigürasyon Formu
                     </h3>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs mb-3">
                         <div class="bg-white p-3 rounded-lg border border-slate-200">
@@ -904,6 +952,10 @@
             { id: 't1', name: 'Ali Öğretmen', branch: 'Sınıf Öğretmeni' },
             { id: 't2', name: 'Fatma Öğretmen', branch: 'Matematik' }
         ];
+        const DEFAULT_USERS = [
+            { id: 'u1', username: 'admin', password: '123', role: 'admin', name: 'Sistem Yöneticisi' },
+            { id: 'u2', username: 'user', password: '123', role: 'user', name: 'Yoklama Kullanıcısı' }
+        ];
 
         let state = {
             appTitle: "Öğrenci Yoklama Sistemi",
@@ -916,6 +968,8 @@
             attendanceRecords: [],
             studentNotes: {},
             currentAttendance: {},
+            users: [],
+            currentUser: null,
             firebaseRootNode: "okul_yoklama_sistemi",
             firebaseConfig: {}
         };
@@ -936,7 +990,113 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             loadFromLocalStorage();
+            checkLoginState();
+        });
+
+        function loadFromLocalStorage() {
+            const savedTitle = localStorage.getItem('att_title');
+            const savedSubtitle = localStorage.getItem('att_subtitle');
+            const savedStudents = localStorage.getItem('att_students');
+            const savedTeachers = localStorage.getItem('att_teachers');
+            const savedLessons = localStorage.getItem('att_lessons');
+            const savedLevels = localStorage.getItem('att_levels');
+            const savedClasses = localStorage.getItem('att_classes');
+            const savedRecords = localStorage.getItem('att_records');
+            const savedNotes = localStorage.getItem('att_student_notes');
+            const savedRootNode = localStorage.getItem('att_fb_root');
+            const savedFb = localStorage.getItem('att_firebase');
+            const savedUsers = localStorage.getItem('att_users');
+            const savedCurrentSession = localStorage.getItem('att_current_user');
+
+            state.appTitle = savedTitle || "Öğrenci Yoklama Sistemi";
+            state.appSubtitle = savedSubtitle || "2026 - 2027 Eğitim Öğretim Yılı";
+            state.students = savedStudents ? JSON.parse(savedStudents) : DEFAULT_STUDENTS;
+            state.teachers = savedTeachers ? JSON.parse(savedTeachers) : DEFAULT_TEACHERS;
+            state.lessons = savedLessons ? JSON.parse(savedLessons) : DEFAULT_LESSONS;
+            state.levels = savedLevels ? JSON.parse(savedLevels) : DEFAULT_LEVELS;
+            state.classes = savedClasses ? JSON.parse(savedClasses) : DEFAULT_CLASSES;
+            state.attendanceRecords = savedRecords ? JSON.parse(savedRecords) : [];
+            state.studentNotes = savedNotes ? JSON.parse(savedNotes) : {};
+            state.users = savedUsers ? JSON.parse(savedUsers) : DEFAULT_USERS;
+            state.firebaseRootNode = savedRootNode || "okul_yoklama_sistemi";
             
+            document.getElementById('fb-root-node').value = state.firebaseRootNode;
+
+            if (savedFb) {
+                try {
+                    state.firebaseConfig = JSON.parse(savedFb);
+                    document.getElementById('fb-config-json').value = JSON.stringify(state.firebaseConfig, null, 2);
+                } catch(e) {}
+            }
+
+            if (savedCurrentSession) {
+                try {
+                    state.currentUser = JSON.parse(savedCurrentSession);
+                } catch(e) {}
+            }
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('att_title', state.appTitle);
+            localStorage.setItem('att_subtitle', state.appSubtitle);
+            localStorage.setItem('att_students', JSON.stringify(state.students));
+            localStorage.setItem('att_teachers', JSON.stringify(state.teachers));
+            localStorage.setItem('att_lessons', JSON.stringify(state.lessons));
+            localStorage.setItem('att_levels', JSON.stringify(state.levels));
+            localStorage.setItem('att_classes', JSON.stringify(state.classes));
+            localStorage.setItem('att_records', JSON.stringify(state.attendanceRecords));
+            localStorage.setItem('att_student_notes', JSON.stringify(state.studentNotes));
+            localStorage.setItem('att_users', JSON.stringify(state.users));
+            localStorage.setItem('att_fb_root', state.firebaseRootNode);
+            localStorage.setItem('att_firebase', JSON.stringify(state.firebaseConfig));
+            if (state.currentUser) {
+                localStorage.setItem('att_current_user', JSON.stringify(state.currentUser));
+            } else {
+                localStorage.removeItem('att_current_user');
+            }
+        }
+
+        function checkLoginState() {
+            const loginModal = document.getElementById('login-modal');
+            if (!state.currentUser) {
+                loginModal.classList.remove('hidden');
+            } else {
+                loginModal.classList.add('hidden');
+                initAppAfterLogin();
+            }
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const usernameInput = document.getElementById('login-username').value.trim();
+            const passwordInput = document.getElementById('login-password').value.trim();
+
+            const foundUser = state.users.find(u => u.username === usernameInput && u.password === passwordInput);
+            if (foundUser) {
+                state.currentUser = foundUser;
+                saveToLocalStorage();
+                document.getElementById('login-modal').classList.add('hidden');
+                Toast.fire({ icon: 'success', title: `Hoş geldiniz, ${foundUser.name}` });
+                initAppAfterLogin();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Hatalı Giriş', text: 'Kullanıcı adı veya şifre yanlış!', confirmButtonColor: '#4F46E5' });
+            }
+        }
+
+        function handleLogout() {
+            state.currentUser = null;
+            localStorage.removeItem('att_current_user');
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+            document.getElementById('login-modal').classList.remove('hidden');
+        }
+
+        function initAppAfterLogin() {
+            document.getElementById('current-user-name').textContent = state.currentUser.name;
+            document.getElementById('current-user-role').textContent = state.currentUser.role === 'admin' ? 'Yönetici' : 'Kullanıcı';
+
+            renderNavigation();
+
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('attendance-date').value = today;
             document.getElementById('stat-start-date').value = today;
@@ -952,57 +1112,93 @@
             renderLessonsManagementList();
             renderClassesManagementList();
             renderLevelsManagementList();
+            renderUsersManagementList();
             renderHistoryList();
             renderStatisticsTab();
             renderFirebaseSection();
-        });
 
-        function loadFromLocalStorage() {
-            const savedTitle = localStorage.getItem('att_title');
-            const savedSubtitle = localStorage.getItem('att_subtitle');
-            const savedStudents = localStorage.getItem('att_students');
-            const savedTeachers = localStorage.getItem('att_teachers');
-            const savedLessons = localStorage.getItem('att_lessons');
-            const savedLevels = localStorage.getItem('att_levels');
-            const savedClasses = localStorage.getItem('att_classes');
-            const savedRecords = localStorage.getItem('att_records');
-            const savedNotes = localStorage.getItem('att_student_notes');
-            const savedRootNode = localStorage.getItem('att_fb_root');
-            const savedFb = localStorage.getItem('att_firebase');
-
-            state.appTitle = savedTitle || "Öğrenci Yoklama Sistemi";
-            state.appSubtitle = savedSubtitle || "2026 - 2027 Eğitim Öğretim Yılı";
-            state.students = savedStudents ? JSON.parse(savedStudents) : DEFAULT_STUDENTS;
-            state.teachers = savedTeachers ? JSON.parse(savedTeachers) : DEFAULT_TEACHERS;
-            state.lessons = savedLessons ? JSON.parse(savedLessons) : DEFAULT_LESSONS;
-            state.levels = savedLevels ? JSON.parse(savedLevels) : DEFAULT_LEVELS;
-            state.classes = savedClasses ? JSON.parse(savedClasses) : DEFAULT_CLASSES;
-            state.attendanceRecords = savedRecords ? JSON.parse(savedRecords) : [];
-            state.studentNotes = savedNotes ? JSON.parse(savedNotes) : {};
-            state.firebaseRootNode = savedRootNode || "okul_yoklama_sistemi";
-            
-            document.getElementById('fb-root-node').value = state.firebaseRootNode;
-
-            if (savedFb) {
-                try {
-                    state.firebaseConfig = JSON.parse(savedFb);
-                    document.getElementById('fb-config-json').value = JSON.stringify(state.firebaseConfig, null, 2);
-                } catch(e) {}
+            // Eğer kullanıcı rolündeyse ve yasaklı bir sekmedeyse ilk sekmesine yönlendir
+            const activeSec = document.querySelector('.tab-content:not(.hidden)');
+            if (state.currentUser.role === 'user') {
+                if (activeSec && (activeSec.id === 'section-students' || activeSec.id === 'section-teachers' || activeSec.id === 'section-settings')) {
+                    switchTab('take-attendance');
+                }
             }
         }
 
-        function saveToLocalStorage() {
-            localStorage.setItem('att_title', state.appTitle);
-            localStorage.setItem('att_subtitle', state.appSubtitle);
-            localStorage.setItem('att_students', JSON.stringify(state.students));
-            localStorage.setItem('att_teachers', JSON.stringify(state.teachers));
-            localStorage.setItem('att_lessons', JSON.stringify(state.lessons));
-            localStorage.setItem('att_levels', JSON.stringify(state.levels));
-            localStorage.setItem('att_classes', JSON.stringify(state.classes));
-            localStorage.setItem('att_records', JSON.stringify(state.attendanceRecords));
-            localStorage.setItem('att_student_notes', JSON.stringify(state.studentNotes));
-            localStorage.setItem('att_fb_root', state.firebaseRootNode);
-            localStorage.setItem('att_firebase', JSON.stringify(state.firebaseConfig));
+        function renderNavigation() {
+            const desktopNav = document.getElementById('desktop-nav');
+            const mobileNav = document.getElementById('mobile-nav');
+
+            let dNavHTML = `
+                <button onclick="switchTab('take-attendance')" id="tab-take-attendance" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
+                    <i class="fa-solid fa-clipboard-user"></i>
+                    <span>Yoklama Al</span>
+                </button>
+                <button onclick="switchTab('history')" id="tab-history" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800">
+                    <i class="fa-solid fa-clock-rotate-left text-purple-400"></i>
+                    <span>Geçmiş</span>
+                </button>
+            `;
+
+            let mNavHTML = `
+                <button onclick="switchTab('take-attendance')" id="mob-tab-take-attendance" class="flex-1 min-w-[60px] py-3 text-[10px] font-bold text-sky-400 flex flex-col items-center gap-1 bg-slate-800/80">
+                    <i class="fa-solid fa-clipboard-user text-sm text-sky-400"></i> Yoklama
+                </button>
+                <button onclick="switchTab('history')" id="mob-tab-history" class="flex-1 min-w-[60px] py-3 text-[10px] font-semibold text-slate-300 flex flex-col items-center gap-1">
+                    <i class="fa-solid fa-clock-rotate-left text-sm text-purple-400"></i> Geçmiş
+                </button>
+            `;
+
+            if (state.currentUser && state.currentUser.role === 'admin') {
+                dNavHTML += `
+                    <button onclick="switchTab('students')" id="tab-students" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800">
+                        <i class="fa-solid fa-graduation-cap text-emerald-400"></i>
+                        <span>Öğrenciler</span>
+                    </button>
+                    <button onclick="switchTab('teachers')" id="tab-teachers" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800">
+                        <i class="fa-solid fa-chalkboard-user text-amber-400"></i>
+                        <span>Öğretmenler</span>
+                    </button>
+                `;
+                mNavHTML += `
+                    <button onclick="switchTab('students')" id="mob-tab-students" class="flex-1 min-w-[60px] py-3 text-[10px] font-semibold text-slate-300 flex flex-col items-center gap-1">
+                        <i class="fa-solid fa-graduation-cap text-sm text-emerald-400"></i> Öğrenci
+                    </button>
+                    <button onclick="switchTab('teachers')" id="mob-tab-teachers" class="flex-1 min-w-[60px] py-3 text-[10px] font-semibold text-slate-300 flex flex-col items-center gap-1">
+                        <i class="fa-solid fa-chalkboard-user text-sm text-amber-400"></i> Öğretmen
+                    </button>
+                `;
+            }
+
+            dNavHTML += `
+                <button onclick="switchTab('statistics')" id="tab-statistics" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800">
+                    <i class="fa-solid fa-chart-line text-blue-400"></i>
+                    <span>İstatistik</span>
+                </button>
+            `;
+            mNavHTML += `
+                <button onclick="switchTab('statistics')" id="mob-tab-statistics" class="flex-1 min-w-[60px] py-3 text-[10px] font-semibold text-slate-300 flex flex-col items-center gap-1">
+                    <i class="fa-solid fa-chart-line text-sm text-blue-400"></i> İstatistik
+                </button>
+            `;
+
+            if (state.currentUser && state.currentUser.role === 'admin') {
+                dNavHTML += `
+                    <button onclick="switchTab('settings')" id="tab-settings" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800">
+                        <i class="fa-solid fa-gear text-rose-400"></i>
+                        <span>Ayarlar</span>
+                    </button>
+                `;
+                mNavHTML += `
+                    <button onclick="switchTab('settings')" id="mob-tab-settings" class="flex-1 min-w-[60px] py-3 text-[10px] font-semibold text-slate-300 flex flex-col items-center gap-1">
+                        <i class="fa-solid fa-gear text-sm text-rose-400"></i> Ayarlar
+                    </button>
+                `;
+            }
+
+            desktopNav.innerHTML = dNavHTML;
+            mobileNav.innerHTML = mNavHTML;
         }
 
         function handleSaveFirebaseSettings(e) {
@@ -1025,7 +1221,7 @@
             saveToLocalStorage();
             renderFirebaseSection();
 
-            Toast.fire({ icon: 'success', title: 'Firebase ayarları kaydedildi.' });
+            Toast.fire({ icon: 'success', title: 'Firebase ayarları tekil olarak kaydedildi.' });
         }
 
         function renderFirebaseSection() {
@@ -1049,7 +1245,7 @@
         function deleteFirebaseSettings() {
             Swal.fire({
                 title: 'Firebase Ayarları Silinsin mi?',
-                text: 'Kayıtlı Firebase bağlantı konfigürasyonu kaldırılacak.',
+                text: 'Kayıtlı tekil Firebase bağlantı konfigürasyonu kaldırılacak.',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#EF4444',
@@ -1069,6 +1265,80 @@
             });
         }
 
+        // Kullanıcı Yönetimi İşlemleri
+        function renderUsersManagementList() {
+            const tbody = document.getElementById('users-table-body');
+            if(!tbody) return;
+
+            tbody.innerHTML = state.users.map(u => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-4 py-3 font-bold text-slate-800">${escapeHtml(u.username)} <span class="text-[11px] font-normal text-slate-400">(${escapeHtml(u.name)})</span></td>
+                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}">${u.role.toUpperCase()}</span></td>
+                    <td class="px-4 py-3 text-right">
+                        ${u.username !== 'admin' ? `<button onclick="deleteUser('${u.id}')" class="text-rose-500 hover:text-rose-700 p-1"><i class="fa-solid fa-trash-can"></i></button>` : '<span class="text-slate-300 text-[10px]">Kilitli</span>'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function handleAddUser(e) {
+            e.preventDefault();
+            const usernameInput = document.getElementById('new-user-username');
+            const passwordInput = document.getElementById('new-user-password');
+            const roleSelect = document.getElementById('new-user-role');
+
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+            const role = roleSelect.value;
+
+            if (state.users.some(u => u.username === username)) {
+                Swal.fire({ icon: 'error', title: 'Hata', text: 'Bu kullanıcı adı zaten kullanımda!', confirmButtonColor: '#4F46E5' });
+                return;
+            }
+
+            const newUser = {
+                id: Date.now().toString(),
+                username: username,
+                password: password,
+                role: role,
+                name: username === 'admin' ? 'Yönetici' : 'Kullanıcı'
+            };
+
+            state.users.push(newUser);
+            saveToLocalStorage();
+            renderUsersManagementList();
+
+            usernameInput.value = '';
+            passwordInput.value = '';
+            Toast.fire({ icon: 'success', title: 'Yeni kullanıcı eklendi.' });
+        }
+
+        function deleteUser(userId) {
+            const user = state.users.find(u => u.id === userId);
+            if (user && user.username === 'admin') {
+                Swal.fire({ icon: 'error', title: 'İşlem Engellendi', text: 'Ana yönetici hesabı silinemez!', confirmButtonColor: '#4F46E5' });
+                return;
+            }
+
+            Swal.fire({
+                title: 'Kullanıcı Silinsin mi?',
+                text: `"${user?.username}" kullanıcısının erişimi kaldırılacak.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#EF4444',
+                cancelColor: '#6B7280',
+                confirmButtonText: 'Evet, Sil',
+                cancelButtonText: 'İptal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    state.users = state.users.filter(u => u.id !== userId);
+                    saveToLocalStorage();
+                    renderUsersManagementList();
+                    Toast.fire({ icon: 'success', title: 'Kullanıcı silindi.' });
+                }
+            });
+        }
+
         function resetCurrentAttendanceToUnselected() {
             state.currentAttendance = {};
             state.students.forEach(s => {
@@ -1077,8 +1347,17 @@
         }
 
         function switchTab(tabId) {
+            // Kullanıcı yetki kontrolü
+            if (state.currentUser && state.currentUser.role === 'user') {
+                if (['students', 'teachers', 'settings'].includes(tabId)) {
+                    Swal.fire({ icon: 'warning', title: 'Yetkisiz Erişim', text: 'Bu sayfaya erişim yetkiniz bulunmamaktadır.', confirmButtonColor: '#4F46E5' });
+                    return;
+                }
+            }
+
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`section-${tabId}`).classList.remove('hidden');
+            const targetSec = document.getElementById(`section-${tabId}`);
+            if (targetSec) targetSec.classList.remove('hidden');
 
             document.querySelectorAll('.nav-tab').forEach(btn => {
                 btn.className = "nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800";
@@ -1088,7 +1367,7 @@
                 activeBtn.className = "nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 bg-indigo-600 text-white shadow-md shadow-indigo-600/30";
             }
 
-            document.querySelectorAll('.lg\\:hidden.flex button').forEach(btn => {
+            document.querySelectorAll('#mobile-nav button').forEach(btn => {
                 btn.className = "flex-1 min-w-[60px] py-3 text-[10px] font-semibold text-slate-300 flex flex-col items-center gap-1";
             });
             const activeMobBtn = document.getElementById(`mob-tab-${tabId}`);
@@ -1102,44 +1381,48 @@
                 renderAttendanceList();
             } else if(tabId === 'history') {
                 renderHistoryList();
-            } else if(tabId === 'students') {
+            } else if(tabId === 'students' && state.currentUser.role === 'admin') {
                 renderDropdowns();
                 renderStudentManagementList();
-            } else if(tabId === 'teachers') {
+            } else if(tabId === 'teachers' && state.currentUser.role === 'admin') {
                 renderTeacherManagementList();
             } else if(tabId === 'statistics') {
                 renderStatisticsTab();
+            } else if(tabId === 'settings' && state.currentUser.role === 'admin') {
+                renderUsersManagementList();
             }
         }
 
         function renderHeader() {
             document.getElementById('app-title-display').textContent = state.appTitle;
             document.getElementById('app-subtitle-display').textContent = state.appSubtitle;
-            document.getElementById('setting-app-title').value = state.appTitle;
-            document.getElementById('setting-app-subtitle').value = state.appSubtitle;
+            const titleInput = document.getElementById('setting-app-title');
+            const subtitleInput = document.getElementById('setting-app-subtitle');
+            if(titleInput) titleInput.value = state.appTitle;
+            if(subtitleInput) subtitleInput.value = state.appSubtitle;
         }
 
         function renderDropdowns() {
             const lessonSelect = document.getElementById('attendance-lesson');
             const historyLessonSelect = document.getElementById('history-filter-lesson');
             
-            lessonSelect.innerHTML = '<option value="">Ders / Etkinlik Seçiniz...</option>';
-            historyLessonSelect.innerHTML = '<option value="">Tüm Dersler</option>';
+            if(lessonSelect) lessonSelect.innerHTML = '<option value="">Ders / Etkinlik Seçiniz...</option>';
+            if(historyLessonSelect) historyLessonSelect.innerHTML = '<option value="">Tüm Dersler</option>';
 
             state.lessons.forEach(lesson => {
-                lessonSelect.innerHTML += `<option value="${lesson}">${lesson}</option>`;
-                historyLessonSelect.innerHTML += `<option value="${lesson}">${lesson}</option>`;
+                if(lessonSelect) lessonSelect.innerHTML += `<option value="${lesson}">${lesson}</option>`;
+                if(historyLessonSelect) historyLessonSelect.innerHTML += `<option value="${lesson}">${lesson}</option>`;
             });
 
             const teacherSelect = document.getElementById('attendance-teacher');
             const historyTeacherSelect = document.getElementById('history-filter-teacher');
 
-            teacherSelect.innerHTML = '<option value="">Öğretmen Seçiniz...</option>';
-            historyTeacherSelect.innerHTML = '<option value="">Tüm Öğretmenler</option>';
+            if(teacherSelect) teacherSelect.innerHTML = '<option value="">Öğretmen Seçiniz...</option>';
+            if(historyTeacherSelect) historyTeacherSelect.innerHTML = '<option value="">Tüm Öğretmenler</option>';
 
             state.teachers.forEach(teacher => {
-                teacherSelect.innerHTML += `<option value="${teacher.name}">${teacher.name}</option>`;
-                historyTeacherSelect.innerHTML += `<option value="${teacher.name}">${teacher.name}</option>`;
+                if(teacherSelect) teacherSelect.innerHTML += `<option value="${teacher.name}">${teacher.name}</option>`;
+                if(historyTeacherSelect) historyTeacherSelect.innerHTML += `<option value="${teacher.name}">${teacher.name}</option>`;
             });
 
             const studentClassSelect = document.getElementById('new-student-class');
@@ -1527,7 +1810,6 @@
             link.remove();
         }
 
-        // GEÇMİŞ KAYIT DÜZENLEME (Yoklama Al sayfasındaki gibi interaktif butonlu)
         function editHistoryRecord(recordId) {
             const record = state.attendanceRecords.find(r => r.id === recordId);
             if (!record) return;
@@ -1977,6 +2259,7 @@
 
         function renderStudentManagementList() {
             const tbody = document.getElementById('student-table-body');
+            if(!tbody) return;
             const searchQuery = document.getElementById('student-list-search').value.toLowerCase();
             const countDisplay = document.getElementById('student-count');
 
@@ -2064,6 +2347,7 @@
 
         function renderTeacherManagementList() {
             const tbody = document.getElementById('teacher-table-body');
+            if(!tbody) return;
             document.getElementById('teacher-count').textContent = state.teachers.length;
 
             if (state.teachers.length === 0) {
@@ -2273,6 +2557,7 @@
 
         function renderLessonsManagementList() {
             const tbody = document.getElementById('lessons-table-body');
+            if(!tbody) return;
             tbody.innerHTML = state.lessons.map((lesson) => `
                 <tr class="hover:bg-slate-50 transition">
                     <td class="px-4 py-2.5 font-semibold text-slate-700">${escapeHtml(lesson)}</td>
@@ -2329,6 +2614,7 @@
 
         function renderClassesManagementList() {
             const tbody = document.getElementById('classes-table-body');
+            if(!tbody) return;
             tbody.innerHTML = state.classes.map((cls) => `
                 <tr class="hover:bg-slate-50 transition">
                     <td class="px-4 py-2.5 font-semibold text-slate-700">${escapeHtml(cls)}</td>
@@ -2386,6 +2672,7 @@
 
         function renderLevelsManagementList() {
             const tbody = document.getElementById('levels-table-body');
+            if(!tbody) return;
             tbody.innerHTML = state.levels.map((lvl) => `
                 <tr class="hover:bg-slate-50 transition">
                     <td class="px-4 py-2.5 font-semibold text-slate-700">${escapeHtml(lvl)}</td>
@@ -2435,6 +2722,7 @@
                 classes: state.classes,
                 attendanceRecords: state.attendanceRecords,
                 studentNotes: state.studentNotes,
+                users: state.users,
                 firebaseRootNode: state.firebaseRootNode,
                 firebaseConfig: state.firebaseConfig,
                 exportDate: new Date().toISOString()
@@ -2467,6 +2755,7 @@
                         state.classes = importedData.classes || DEFAULT_CLASSES;
                         state.attendanceRecords = importedData.attendanceRecords || [];
                         state.studentNotes = importedData.studentNotes || {};
+                        state.users = importedData.users || DEFAULT_USERS;
                         state.firebaseRootNode = importedData.firebaseRootNode || "okul_yoklama_sistemi";
                         state.firebaseConfig = importedData.firebaseConfig || {};
 
@@ -2486,135 +2775,6 @@
                 }
             };
             reader.readAsText(file);
-        }
-
-        // GEÇMİŞ KAYIT DÜZENLEME (Yoklama Al sayfasındaki gibi interaktif butonlu ve tam liste)
-        function editHistoryRecord(recordId) {
-            const record = state.attendanceRecords.find(r => r.id === recordId);
-            if (!record) return;
-
-            window.tempEditAttendance = {};
-            window.tempEditNotes = {};
-
-            state.students.forEach(s => {
-                const existing = record.records.find(item => item.studentId === s.id);
-                window.tempEditAttendance[s.id] = {
-                    status: existing ? existing.status : null,
-                    note: existing ? (existing.note || '') : ''
-                };
-                window.tempEditNotes[s.id] = window.tempEditAttendance[s.id].note;
-            });
-
-            let htmlContent = `
-                <div class="text-left space-y-3 max-h-[65vh] overflow-y-auto p-1">
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Tarih</label>
-                            <input type="date" id="swal-edit-date" value="${record.date}" class="w-full text-xs border rounded-lg p-2">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Ders</label>
-                            <input type="text" id="swal-edit-lesson" value="${record.lesson}" readonly class="w-full text-xs border rounded-lg p-2 bg-slate-100">
-                        </div>
-                    </div>
-                    <div class="border-t pt-2 mt-2">
-                        <span class="text-xs font-bold text-slate-700 block mb-2">Öğrenci Listesi ve Durumları:</span>
-                        <div class="space-y-2">
-            `;
-
-            state.students.forEach(student => {
-                const att = window.tempEditAttendance[student.id];
-                htmlContent += `
-                    <div class="p-3 rounded-xl border border-slate-200 bg-slate-50 flex flex-col justify-between space-y-2">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <div class="font-bold text-slate-800 text-xs">${escapeHtml(student.name)}</div>
-                                <div class="text-[10px] text-slate-500">${escapeHtml(student.studentClass)} • ${escapeHtml(student.level || '')}</div>
-                            </div>
-                            <input type="text" placeholder="Not..." value="${escapeHtml(att.note)}" 
-                                oninput="window.tempEditNotes['${student.id}'] = this.value"
-                                class="text-[11px] border border-slate-200 rounded-lg px-2 py-1 bg-white focus:outline-none w-28">
-                        </div>
-                        <div class="grid grid-cols-4 gap-1">
-                            <button type="button" onclick="setSwalEditStatus('${student.id}', 'present')" id="swal-btn-${student.id}-present" 
-                                class="py-1 px-2 rounded-lg text-[11px] font-semibold border transition ${att.status === 'present' ? 'status-btn-active-present' : 'bg-white border-slate-200 text-slate-600 hover:bg-emerald-50'}">Var</button>
-                            <button type="button" onclick="setSwalEditStatus('${student.id}', 'absent')" id="swal-btn-${student.id}-absent" 
-                                class="py-1 px-2 rounded-lg text-[11px] font-semibold border transition ${att.status === 'absent' ? 'status-btn-active-absent' : 'bg-white border-slate-200 text-slate-600 hover:bg-rose-50'}">Yok</button>
-                            <button type="button" onclick="setSwalEditStatus('${student.id}', 'late')" id="swal-btn-${student.id}-late" 
-                                class="py-1 px-2 rounded-lg text-[11px] font-semibold border transition ${att.status === 'late' ? 'status-btn-active-late' : 'bg-white border-slate-200 text-slate-600 hover:bg-amber-50'}">Geç</button>
-                            <button type="button" onclick="setSwalEditStatus('${student.id}', 'excused')" id="swal-btn-${student.id}-excused" 
-                                class="py-1 px-2 rounded-lg text-[11px] font-semibold border transition ${att.status === 'excused' ? 'status-btn-active-excused' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'}">İzinli</button>
-                        </div>
-                    </div>
-                `;
-            });
-
-            htmlContent += `</div></div></div>`;
-
-            Swal.fire({
-                title: 'Yoklama Kaydını Düzenle',
-                html: htmlContent,
-                showCancelButton: true,
-                confirmButtonText: 'Kaydet',
-                cancelButtonText: 'İptal',
-                confirmButtonColor: '#4F46E5',
-                width: '650px',
-                preConfirm: () => {
-                    const newDate = document.getElementById('swal-edit-date').value;
-                    const updatedRecords = [];
-
-                    state.students.forEach(s => {
-                        const att = window.tempEditAttendance[s.id];
-                        const note = window.tempEditNotes[s.id] || '';
-                        if (att.status !== null) {
-                            updatedRecords.push({
-                                studentId: s.id,
-                                studentName: s.name,
-                                studentClass: s.studentClass,
-                                level: s.level || '',
-                                status: att.status,
-                                note: note
-                            });
-                        }
-                    });
-
-                    return { date: newDate, records: updatedRecords };
-                }
-            }).then((result) => {
-                if (result.isConfirmed && result.value) {
-                    const idx = state.attendanceRecords.findIndex(r => r.id === recordId);
-                    if (idx !== -1) {
-                        state.attendanceRecords[idx].date = result.value.date;
-                        state.attendanceRecords[idx].records = result.value.records;
-                        saveToLocalStorage();
-                        renderHistoryList();
-                        renderStatisticsTab();
-                        Toast.fire({ icon: 'success', title: 'Yoklama kaydı güncellendi.' });
-                    }
-                }
-            });
-        }
-
-        function setSwalEditStatus(studentId, status) {
-            if (!window.tempEditAttendance[studentId]) {
-                window.tempEditAttendance[studentId] = { status: null, note: '' };
-            }
-            window.tempEditAttendance[studentId].status = status;
-
-            ['present', 'absent', 'late', 'excused'].forEach(st => {
-                const btn = document.getElementById(`swal-btn-${studentId}-${st}`);
-                if (btn) {
-                    btn.className = "py-1 px-2 rounded-lg text-[11px] font-semibold border transition ";
-                    if (st === status) {
-                        if (st === 'present') btn.className += "status-btn-active-present";
-                        else if (st === 'absent') btn.className += "status-btn-active-absent";
-                        else if (st === 'late') btn.className += "status-btn-active-late";
-                        else if (st === 'excused') btn.className += "status-btn-active-excused";
-                    } else {
-                        btn.className += "bg-white border-slate-200 text-slate-600 hover:bg-slate-50";
-                    }
-                }
-            });
         }
 
         function formatDateShort(dateStr) {
