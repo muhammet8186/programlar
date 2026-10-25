@@ -249,14 +249,22 @@
                     <h2 class="font-bold">Yeni Öğrenci Ekle</h2>
                 </div>
                 <form id="add-student-form" onsubmit="handleAddStudent(event)" class="p-4 sm:p-6">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Adı Soyadı</label>
                             <input type="text" id="new-student-name" required placeholder="Örn: Ahmet Yılmaz" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                         </div>
                         <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Seviyesi</label>
+                            <select id="new-student-level" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white">
+                                <option value="">Seviye Seçiniz...</option>
+                            </select>
+                        </div>
+                        <div>
                             <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Sınıfı</label>
-                            <input type="text" id="new-student-class" required placeholder="Örn: 10-A" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <select id="new-student-class" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white">
+                                <option value="">Sınıf Seçiniz...</option>
+                            </select>
                         </div>
                     </div>
                     <div class="mt-4 flex justify-end">
@@ -283,6 +291,7 @@
                         <thead class="bg-slate-100 text-xs font-semibold uppercase text-slate-500 border-b border-slate-200">
                             <tr>
                                 <th class="px-6 py-3">Öğrenci Adı</th>
+                                <th class="px-6 py-3">Seviyesi</th>
                                 <th class="px-6 py-3">Sınıfı</th>
                                 <th class="px-6 py-3">Katılım Durumu</th>
                                 <th class="px-6 py-3 text-right">İşlemler</th>
@@ -524,6 +533,7 @@
                         <thead class="bg-slate-100 text-xs font-semibold uppercase text-slate-500 border-b border-slate-200">
                             <tr>
                                 <th class="px-6 py-3">Öğrenci Adı</th>
+                                <th class="px-6 py-3">Seviyesi</th>
                                 <th class="px-6 py-3">Sınıfı</th>
                                 <th class="px-6 py-3">Katılan / Toplam Ders</th>
                                 <th class="px-6 py-3">Devamsızlık</th>
@@ -633,36 +643,78 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="p-4 bg-gradient-to-r from-teal-600 to-emerald-700 text-white flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-book-bookmark text-lg"></i>
-                        <h2 class="font-bold">Ders ve Etkinlik Yönetimi</h2>
+            <!-- Ders, Sınıf ve Seviye Yönetim Grid Paneli -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Ders Yönetimi -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                    <div class="p-4 bg-gradient-to-r from-teal-600 to-emerald-700 text-white flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-book-bookmark text-lg"></i>
+                            <h2 class="font-bold text-sm">Ders / Etkinlikler</h2>
+                        </div>
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col space-y-4">
+                        <form onsubmit="handleAddLesson(event)" class="flex gap-2">
+                            <input type="text" id="new-lesson-name" placeholder="Yeni Ders Adı" required class="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                            <button type="submit" class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-xl text-xs transition shadow-sm">
+                                <i class="fa-solid fa-plus"></i> Ekle
+                            </button>
+                        </form>
+                        <div class="border border-slate-200 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+                            <table class="w-full text-left text-xs text-slate-600">
+                                <tbody id="lessons-table-body" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="p-4 sm:p-6 space-y-6">
-                    <form onsubmit="handleAddLesson(event)" class="flex flex-col sm:flex-row gap-3">
-                        <input type="text" id="new-lesson-name" placeholder="Yeni Ders / Etkinlik Adı" required class="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none">
-                        <button type="submit" class="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-xl text-sm transition shadow-md shadow-teal-600/20 flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-plus"></i> Ders Ekle
-                        </button>
-                    </form>
 
-                    <div class="border border-slate-200 rounded-xl overflow-hidden">
-                        <table class="w-full text-left text-sm text-slate-600">
-                            <thead class="bg-slate-100 text-xs font-semibold uppercase text-slate-500 border-b border-slate-200">
-                                <tr>
-                                    <th class="px-4 py-3">Ders / Etkinlik Adı</th>
-                                    <th class="px-4 py-3 text-right">İşlem</th>
-                                </tr>
-                            </thead>
-                            <tbody id="lessons-table-body" class="divide-y divide-slate-100">
-                            </tbody>
-                        </table>
+                <!-- Seviye Yönetimi -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                    <div class="p-4 bg-gradient-to-r from-purple-600 to-indigo-700 text-white flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-lg"></i>
+                            <h2 class="font-bold text-sm">Seviye Yönetimi</h2>
+                        </div>
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col space-y-4">
+                        <form onsubmit="handleAddLevel(event)" class="flex gap-2">
+                            <input type="text" id="new-level-name" placeholder="Örn: 10. Sınıf" required class="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                            <button type="submit" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl text-xs transition shadow-sm">
+                                <i class="fa-solid fa-plus"></i> Ekle
+                            </button>
+                        </form>
+                        <div class="border border-slate-200 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+                            <table class="w-full text-left text-xs text-slate-600">
+                                <tbody id="levels-table-body" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sınıf Yönetimi -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                    <div class="p-4 bg-gradient-to-r from-sky-600 to-blue-700 text-white flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-school text-lg"></i>
+                            <h2 class="font-bold text-sm">Sınıf Yönetimi</h2>
+                        </div>
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col space-y-4">
+                        <form onsubmit="handleAddClass(event)" class="flex gap-2">
+                            <input type="text" id="new-class-name" placeholder="Örn: 10-A" required class="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <button type="submit" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl text-xs transition shadow-sm">
+                                <i class="fa-solid fa-plus"></i> Ekle
+                            </button>
+                        </form>
+                        <div class="border border-slate-200 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+                            <table class="w-full text-left text-xs text-slate-600">
+                                <tbody id="classes-table-body" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
+
         </section>
 
     </main>
@@ -805,12 +857,14 @@
     <!-- JAVASCRIPT & MANTIK -->
     <script>
         const DEFAULT_LESSONS = ["Matematik", "Türkçe", "Fen Bilimleri", "Sosyal Bilgiler", "İngilizce", "Beden Eğitimi"];
+        const DEFAULT_LEVELS = ["9. Sınıf", "10. Sınıf", "11. Sınıf", "12. Sınıf"];
+        const DEFAULT_CLASSES = ["10-A", "10-B", "9-A", "11-A"];
         const DEFAULT_STUDENTS = [
-            { id: '1', name: 'Ahmet Yılmaz', studentClass: '10-A' },
-            { id: '2', name: 'Ayşe Demir', studentClass: '10-A' },
-            { id: '3', name: 'Mehmet Kaya', studentClass: '10-B' },
-            { id: '4', name: 'Zeynep Çelik', studentClass: '10-B' },
-            { id: '5', name: 'Can Öztürk', studentClass: '10-A' }
+            { id: '1', name: 'Ahmet Yılmaz', level: '10. Sınıf', studentClass: '10-A' },
+            { id: '2', name: 'Ayşe Demir', level: '10. Sınıf', studentClass: '10-A' },
+            { id: '3', name: 'Mehmet Kaya', level: '10. Sınıf', studentClass: '10-B' },
+            { id: '4', name: 'Zeynep Çelik', level: '10. Sınıf', studentClass: '10-B' },
+            { id: '5', name: 'Can Öztürk', level: '9. Sınıf', studentClass: '9-A' }
         ];
         const DEFAULT_TEACHERS = [
             { id: 't1', name: 'Ali Öğretmen', branch: 'Sınıf Öğretmeni' },
@@ -823,6 +877,8 @@
             students: [],
             teachers: [],
             lessons: [],
+            levels: [],
+            classes: [],
             attendanceRecords: [],
             studentNotes: {},
             currentAttendance: {},
@@ -859,6 +915,8 @@
             renderStudentManagementList();
             renderTeacherManagementList();
             renderLessonsManagementList();
+            renderLevelsManagementList();
+            renderClassesManagementList();
             renderHistoryList();
             renderStatisticsTab();
         });
@@ -869,6 +927,8 @@
             const savedStudents = localStorage.getItem('att_students');
             const savedTeachers = localStorage.getItem('att_teachers');
             const savedLessons = localStorage.getItem('att_lessons');
+            const savedLevels = localStorage.getItem('att_levels');
+            const savedClasses = localStorage.getItem('att_classes');
             const savedRecords = localStorage.getItem('att_records');
             const savedNotes = localStorage.getItem('att_student_notes');
             const savedFb = localStorage.getItem('att_firebase');
@@ -878,6 +938,8 @@
             state.students = savedStudents ? JSON.parse(savedStudents) : DEFAULT_STUDENTS;
             state.teachers = savedTeachers ? JSON.parse(savedTeachers) : DEFAULT_TEACHERS;
             state.lessons = savedLessons ? JSON.parse(savedLessons) : DEFAULT_LESSONS;
+            state.levels = savedLevels ? JSON.parse(savedLevels) : DEFAULT_LEVELS;
+            state.classes = savedClasses ? JSON.parse(savedClasses) : DEFAULT_CLASSES;
             state.attendanceRecords = savedRecords ? JSON.parse(savedRecords) : [];
             state.studentNotes = savedNotes ? JSON.parse(savedNotes) : {};
             
@@ -898,6 +960,8 @@
             localStorage.setItem('att_students', JSON.stringify(state.students));
             localStorage.setItem('att_teachers', JSON.stringify(state.teachers));
             localStorage.setItem('att_lessons', JSON.stringify(state.lessons));
+            localStorage.setItem('att_levels', JSON.stringify(state.levels));
+            localStorage.setItem('att_classes', JSON.stringify(state.classes));
             localStorage.setItem('att_records', JSON.stringify(state.attendanceRecords));
             localStorage.setItem('att_student_notes', JSON.stringify(state.studentNotes));
             localStorage.setItem('att_firebase', JSON.stringify(state.firebaseConfig));
@@ -956,6 +1020,7 @@
             } else if(tabId === 'history') {
                 renderHistoryList();
             } else if(tabId === 'students') {
+                renderDropdowns(); // Öğrenci kayıt formundaki level/class selectlerini güncellemek için
                 renderStudentManagementList();
             } else if(tabId === 'teachers') {
                 renderTeacherManagementList();
@@ -993,6 +1058,23 @@
                 teacherSelect.innerHTML += `<option value="${teacher.name}">${teacher.name}</option>`;
                 historyTeacherSelect.innerHTML += `<option value="${teacher.name}">${teacher.name}</option>`;
             });
+
+            // Öğrenci ekleme formu için Seviye ve Sınıf dropdownları
+            const studentLevelSelect = document.getElementById('new-student-level');
+            if(studentLevelSelect) {
+                studentLevelSelect.innerHTML = '<option value="">Seviye Seçiniz...</option>';
+                state.levels.forEach(lvl => {
+                    studentLevelSelect.innerHTML += `<option value="${lvl}">${lvl}</option>`;
+                });
+            }
+
+            const studentClassSelect = document.getElementById('new-student-class');
+            if(studentClassSelect) {
+                studentClassSelect.innerHTML = '<option value="">Sınıf Seçiniz...</option>';
+                state.classes.forEach(cls => {
+                    studentClassSelect.innerHTML += `<option value="${cls}">${cls}</option>`;
+                });
+            }
         }
 
         function renderAttendanceClassFilter() {
@@ -1000,10 +1082,8 @@
             if(!classFilterSelect) return;
             
             const currentSelected = classFilterSelect.value;
-            const classes = [...new Set(state.students.map(s => s.studentClass))].sort();
-
             classFilterSelect.innerHTML = '<option value="">Tüm Sınıflar</option>';
-            classes.forEach(c => {
+            state.classes.forEach(c => {
                 classFilterSelect.innerHTML += `<option value="${c}">${c} Sınıfı</option>`;
             });
             classFilterSelect.value = currentSelected;
@@ -1092,6 +1172,8 @@
             document.getElementById('stat-card-star-students').textContent = starCount;
 
             const classMap = {};
+            state.classes.forEach(cName => { classMap[cName] = { totalRate: 0, count: 0 }; });
+            
             state.students.forEach(s => {
                 if (!classMap[s.studentClass]) classMap[s.studentClass] = { totalRate: 0, count: 0 };
                 const st = getStudentStatsForRecords(s.id, filteredRecords);
@@ -1124,7 +1206,7 @@
                     <div class="py-2 flex items-center justify-between">
                         <div>
                             <div class="font-bold text-xs text-slate-800">${escapeHtml(s.name)}</div>
-                            <div class="text-[10px] text-slate-400">Sınıf: ${escapeHtml(s.studentClass)}</div>
+                            <div class="text-[10px] text-slate-400">${escapeHtml(s.level || '')} | ${escapeHtml(s.studentClass)}</div>
                         </div>
                         <span class="bg-amber-100 text-amber-700 font-bold text-[10px] px-2 py-0.5 rounded-md flex items-center gap-1">
                             <i class="fa-solid fa-star text-amber-500"></i> %100
@@ -1145,7 +1227,7 @@
                     <div class="py-2 flex items-center justify-between">
                         <div>
                             <div class="font-bold text-xs text-slate-800">${escapeHtml(s.name)}</div>
-                            <div class="text-[10px] text-slate-400">Sınıf: ${escapeHtml(s.studentClass)}</div>
+                            <div class="text-[10px] text-slate-400">${escapeHtml(s.level || '')} | ${escapeHtml(s.studentClass)}</div>
                         </div>
                         <div class="text-right">
                             <span class="bg-rose-100 text-rose-700 font-extrabold text-xs px-2 py-0.5 rounded-md">%${s.stats.rate}</span>
@@ -1167,7 +1249,7 @@
                     <div class="py-2 flex items-center justify-between">
                         <div>
                             <div class="font-bold text-xs text-slate-800">${escapeHtml(s.name)}</div>
-                            <div class="text-[10px] text-slate-400">Sınıf: ${escapeHtml(s.studentClass)}</div>
+                            <div class="text-[10px] text-slate-400">${escapeHtml(s.level || '')} | ${escapeHtml(s.studentClass)}</div>
                         </div>
                         <span class="bg-amber-100 text-amber-800 font-bold text-xs px-2 py-1 rounded-lg">${s.stats.late} Kez Geç</span>
                     </div>
@@ -1202,7 +1284,7 @@
             const sorted = getSortedStudents();
 
             if (sorted.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-slate-400">Veri bulunamadı.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-8 text-center text-slate-400">Veri bulunamadı.</td></tr>`;
                 return;
             }
 
@@ -1213,6 +1295,7 @@
                 return `
                 <tr class="hover:bg-slate-50 transition">
                     <td class="px-6 py-4 font-bold text-slate-800">${escapeHtml(s.name)} ${starBadge}</td>
+                    <td class="px-6 py-4"><span class="bg-purple-50 text-purple-700 text-xs font-semibold px-2.5 py-1 rounded-md">${escapeHtml(s.level || '-')}</span></td>
                     <td class="px-6 py-4"><span class="bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-md">${escapeHtml(s.studentClass)}</span></td>
                     <td class="px-6 py-4 font-semibold text-indigo-600">${stats.present + stats.late} / ${stats.total}</td>
                     <td class="px-6 py-4 font-semibold text-rose-600">${stats.absent} Yok</td>
@@ -1337,11 +1420,11 @@
         function exportStatsToCSV() {
             const filteredRecords = getFilteredAttendanceRecords();
             let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-            csvContent += "Ogrenci Adı,Sinifi,Basari Orani (%),Devamsizlik Sayisi,Gec Kalma Sayisi,Toplam Ders\n";
+            csvContent += "Ogrenci Adi,Seviyesi,Sinifi,Basari Orani (%),Devamsizlik Sayisi,Gec Kalma Sayisi,Toplam Ders\n";
 
             state.students.forEach(s => {
                 const st = getStudentStatsForRecords(s.id, filteredRecords);
-                csvContent += `"${s.name}","${s.studentClass}",${st.rate},${st.absent},${st.late},${st.total}\n`;
+                csvContent += `"${s.name}","${s.level || ''}","${s.studentClass}",${st.rate},${st.absent},${st.late},${st.total}\n`;
             });
 
             const encodedUri = encodeURI(csvContent);
@@ -1458,7 +1541,7 @@
             const starStatus = isStarStudentFiltered(studentId, filteredRecords);
 
             document.getElementById('modal-student-name').textContent = student.name;
-            document.getElementById('modal-student-class').textContent = `Sınıf: ${student.studentClass}`;
+            document.getElementById('modal-student-class').textContent = `${student.level || ''} | Sınıf: ${student.studentClass}`;
 
             document.getElementById('modal-attendance-score').textContent = `${stats.rate} / 100`;
             
@@ -1608,7 +1691,7 @@
             const sortedStudents = getSortedStudents();
 
             const filteredStudents = sortedStudents.filter(s => {
-                const matchesSearch = s.name.toLowerCase().includes(searchQuery) || s.studentClass.toLowerCase().includes(searchQuery);
+                const matchesSearch = s.name.toLowerCase().includes(searchQuery) || s.studentClass.toLowerCase().includes(searchQuery) || (s.level && s.level.toLowerCase().includes(searchQuery));
                 const matchesClass = classFilter === '' || s.studentClass === classFilter;
                 return matchesSearch && matchesClass;
             });
@@ -1633,7 +1716,9 @@
                             <div class="font-bold text-slate-800 text-sm sm:text-base flex items-center">
                                 ${escapeHtml(student.name)} ${starBadge}
                             </div>
-                            <div class="text-xs text-indigo-600 font-semibold bg-indigo-50 px-2 py-0.5 rounded-md inline-block mt-0.5">Sınıfı: ${escapeHtml(student.studentClass)}</div>
+                            <div class="text-[11px] text-slate-500 font-medium mt-0.5">
+                                <span class="text-purple-600 font-semibold">${escapeHtml(student.level || '')}</span> • <span class="text-indigo-600 font-semibold">${escapeHtml(student.studentClass)}</span>
+                            </div>
                         </div>
                         <input type="text" placeholder="Not..." value="${escapeHtml(att.note || '')}" 
                             onchange="updateStudentNote('${student.id}', this.value)"
@@ -1724,6 +1809,7 @@
                     studentId: s.id,
                     studentName: s.name,
                     studentClass: s.studentClass,
+                    level: s.level || '',
                     status: att.status,
                     note: att.note || ''
                 };
@@ -1754,19 +1840,21 @@
             const sortedStudents = getSortedStudents();
             const filtered = sortedStudents.filter(s => 
                 s.name.toLowerCase().includes(searchQuery) || 
-                s.studentClass.toLowerCase().includes(searchQuery)
+                s.studentClass.toLowerCase().includes(searchQuery) ||
+                (s.level && s.level.toLowerCase().includes(searchQuery))
             );
 
             countDisplay.textContent = state.students.length;
 
             if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-slate-400">Öğrenci bulunamadı.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400">Öğrenci bulunamadı.</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = filtered.map((s) => `
                 <tr class="hover:bg-slate-50 transition">
                     <td class="px-6 py-4 font-bold text-slate-800">${escapeHtml(s.name)}</td>
+                    <td class="px-6 py-4"><span class="bg-purple-50 text-purple-700 text-xs font-semibold px-2.5 py-1 rounded-md">${escapeHtml(s.level || '-')}</span></td>
                     <td class="px-6 py-4"><span class="bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-md">${escapeHtml(s.studentClass)}</span></td>
                     <td class="px-6 py-4 text-xs">
                         ${isStarStudentFiltered(s.id, state.attendanceRecords) ? '<span class="text-amber-600 font-bold"><i class="fa-solid fa-star mr-1"></i>%100 Katılım Yıldızı</span>' : '<span class="text-slate-400">Normal</span>'}
@@ -1783,19 +1871,23 @@
         function handleAddStudent(e) {
             e.preventDefault();
             const nameInput = document.getElementById('new-student-name');
-            const classInput = document.getElementById('new-student-class');
+            const levelSelect = document.getElementById('new-student-level');
+            const classSelect = document.getElementById('new-student-class');
 
             const name = nameInput.value.trim();
-            const studentClass = classInput.value.trim();
+            const level = levelSelect.value;
+            const studentClass = classSelect.value;
 
-            if (!name || !studentClass) return;
+            if (!name || !level || !studentClass) return;
 
-            const newStudent = { id: Date.now().toString(), name, studentClass };
+            const newStudent = { id: Date.now().toString(), name, level, studentClass };
             state.students.push(newStudent);
             state.currentAttendance[newStudent.id] = { status: null, note: '' };
             
             saveToLocalStorage();
-            nameInput.value = ''; classInput.value = '';
+            nameInput.value = ''; 
+            levelSelect.value = '';
+            classSelect.value = '';
 
             Toast.fire({ icon: 'success', title: 'Yeni öğrenci eklendi.' });
             renderAttendanceClassFilter();
@@ -1961,6 +2053,7 @@
                             <thead class="bg-slate-100 text-slate-500 font-semibold border-b border-slate-200">
                                 <tr>
                                     <th class="px-4 py-2">Öğrenci</th>
+                                    <th class="px-4 py-2">Seviye</th>
                                     <th class="px-4 py-2">Sınıf</th>
                                     <th class="px-4 py-2">Durum</th>
                                     <th class="px-4 py-2">Not</th>
@@ -1970,6 +2063,7 @@
                                 ${sortedRecords.map(r => `
                                     <tr>
                                         <td class="px-4 py-2 font-medium text-slate-800">${escapeHtml(r.studentName)}</td>
+                                        <td class="px-4 py-2"><span class="bg-purple-50 text-purple-700 text-[10px] font-semibold px-2 py-0.5 rounded-md">${escapeHtml(r.level || '-')}</span></td>
                                         <td class="px-4 py-2"><span class="bg-indigo-50 text-indigo-700 text-[10px] font-semibold px-2 py-0.5 rounded-md">${escapeHtml(r.studentClass)}</span></td>
                                         <td class="px-4 py-2">${getStatusBadge(r.status)}</td>
                                         <td class="px-4 py-2 text-slate-400 italic">${escapeHtml(r.note || '-')}</td>
@@ -2018,6 +2112,7 @@
             Toast.fire({ icon: 'success', title: 'Program başlıkları güncellendi.' });
         }
 
+        // Ders Yönetimi Fonksiyonları
         function handleAddLesson(e) {
             e.preventDefault();
             const input = document.getElementById('new-lesson-name');
@@ -2037,8 +2132,8 @@
             const tbody = document.getElementById('lessons-table-body');
             tbody.innerHTML = state.lessons.map((lesson) => `
                 <tr class="hover:bg-slate-50 transition">
-                    <td class="px-4 py-3 font-semibold text-slate-700">${escapeHtml(lesson)}</td>
-                    <td class="px-4 py-3 text-right">
+                    <td class="px-4 py-2.5 font-semibold text-slate-700">${escapeHtml(lesson)}</td>
+                    <td class="px-4 py-2.5 text-right">
                         <button onclick="deleteLesson('${lesson}')" class="text-rose-500 hover:text-rose-700 p-1 rounded transition">
                             <i class="fa-solid fa-trash-can"></i>
                         </button>
@@ -2072,6 +2167,118 @@
             });
         }
 
+        // Seviye Yönetimi Fonksiyonları
+        function handleAddLevel(e) {
+            e.preventDefault();
+            const input = document.getElementById('new-level-name');
+            const levelName = input.value.trim();
+
+            if (levelName && !state.levels.includes(levelName)) {
+                state.levels.push(levelName);
+                saveToLocalStorage();
+                renderDropdowns();
+                renderLevelsManagementList();
+                input.value = '';
+                Toast.fire({ icon: 'success', title: 'Yeni seviye eklendi.' });
+            }
+        }
+
+        function renderLevelsManagementList() {
+            const tbody = document.getElementById('levels-table-body');
+            tbody.innerHTML = state.levels.map((lvl) => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-4 py-2.5 font-semibold text-slate-700">${escapeHtml(lvl)}</td>
+                    <td class="px-4 py-2.5 text-right">
+                        <button onclick="deleteLevel('${lvl}')" class="text-rose-500 hover:text-rose-700 p-1 rounded transition">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function deleteLevel(levelName) {
+            if (state.levels.length <= 1) {
+                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir seviye tanımı kalmalıdır.', confirmColor: '#4F46E5' });
+                return;
+            }
+            Swal.fire({
+                title: 'Seviye Silinsin mi?',
+                text: `"${levelName}" seviyesini silmek istediğinize emin misiniz?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmColor: '#EF4444',
+                cancelColor: '#6B7280',
+                confirmButtonText: 'Evet, Sil',
+                cancelButtonText: 'İptal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    state.levels = state.levels.filter(l => l !== levelName);
+                    saveToLocalStorage();
+                    renderDropdowns();
+                    renderLevelsManagementList();
+                    Toast.fire({ icon: 'success', title: 'Seviye silindi.' });
+                }
+            });
+        }
+
+        // Sınıf Yönetimi Fonksiyonları
+        function handleAddClass(e) {
+            e.preventDefault();
+            const input = document.getElementById('new-class-name');
+            const className = input.value.trim();
+
+            if (className && !state.classes.includes(className)) {
+                state.classes.push(className);
+                saveToLocalStorage();
+                renderAttendanceClassFilter();
+                renderDropdowns();
+                renderClassesManagementList();
+                input.value = '';
+                Toast.fire({ icon: 'success', title: 'Yeni sınıf eklendi.' });
+            }
+        }
+
+        function renderClassesManagementList() {
+            const tbody = document.getElementById('classes-table-body');
+            tbody.innerHTML = state.classes.map((cls) => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-4 py-2.5 font-semibold text-slate-700">${escapeHtml(cls)}</td>
+                    <td class="px-4 py-2.5 text-right">
+                        <button onclick="deleteClass('${cls}')" class="text-rose-500 hover:text-rose-700 p-1 rounded transition">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function deleteClass(className) {
+            if (state.classes.length <= 1) {
+                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir sınıf tanımı kalmalıdır.', confirmColor: '#4F46E5' });
+                return;
+            }
+            Swal.fire({
+                title: 'Sınıf Silinsin mi?',
+                text: `"${className}" sınıfını silmek istediğinize emin misiniz?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmColor: '#EF4444',
+                cancelColor: '#6B7280',
+                confirmButtonText: 'Evet, Sil',
+                cancelButtonText: 'İptal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    state.classes = state.classes.filter(c => c !== className);
+                    saveToLocalStorage();
+                    renderAttendanceClassFilter();
+                    renderDropdowns();
+                    renderClassesManagementList();
+                    Toast.fire({ icon: 'success', title: 'Sınıf silindi.' });
+                }
+            });
+        }
+
         function exportBackupData() {
             const backupData = {
                 appTitle: state.appTitle,
@@ -2079,6 +2286,8 @@
                 students: state.students,
                 teachers: state.teachers,
                 lessons: state.lessons,
+                levels: state.levels,
+                classes: state.classes,
                 attendanceRecords: state.attendanceRecords,
                 studentNotes: state.studentNotes,
                 firebaseConfig: state.firebaseConfig,
@@ -2108,6 +2317,8 @@
                         state.students = importedData.students || [];
                         state.teachers = importedData.teachers || [];
                         state.lessons = importedData.lessons || [];
+                        state.levels = importedData.levels || DEFAULT_LEVELS;
+                        state.classes = importedData.classes || DEFAULT_CLASSES;
                         state.attendanceRecords = importedData.attendanceRecords || [];
                         state.studentNotes = importedData.studentNotes || {};
                         state.firebaseConfig = importedData.firebaseConfig || { apiKey: '', projectId: '' };
