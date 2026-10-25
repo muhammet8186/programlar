@@ -707,12 +707,12 @@
                     </div>
                 </div>
 
-                <!-- Sınıf Yönetimi (5. Sınıftan 12. Sınıfa) -->
+                <!-- Sınıf Yönetimi (Sadece Sınıf Yönetimi başlığı) -->
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
                     <div class="p-4 bg-gradient-to-r from-sky-600 to-blue-700 text-white flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <i class="fa-solid fa-school text-lg"></i>
-                            <h2 class="font-bold text-sm">Sınıf Yönetimi (5 - 12)</h2>
+                            <h2 class="font-bold text-sm">Sınıf Yönetimi</h2>
                         </div>
                     </div>
                     <div class="p-4 flex-1 flex flex-col space-y-4">
@@ -1019,11 +1019,12 @@
             "12. Sınıf"
         ];
 
+        // Örnek öğrenci sınıfları 5-12 aralığına uygun olarak güncellendi
         const DEFAULT_STUDENTS = [
             { id: '1', name: 'Ahmet Yılmaz', studentClass: '5. Sınıf', level: 'Seviye 1' },
-            { id: '2', name: 'Ayşe Demir', studentClass: '6. Sınıf', level: 'Seviye 1' },
-            { id: '3', name: 'Mehmet Kaya', studentClass: '9. Sınıf', level: 'Seviye 2' },
-            { id: '4', name: 'Zeynep Çelik', studentClass: '10. Sınıf', level: 'Seviye 2' },
+            { id: '2', name: 'Ayşe Demir', studentClass: '7. Sınıf', level: 'Seviye 1' },
+            { id: '3', name: 'Mehmet Kaya', studentClass: '8. Sınıf', level: 'Seviye 2' },
+            { id: '4', name: 'Zeynep Çelik', studentClass: '11. Sınıf', level: 'Seviye 2' },
             { id: '5', name: 'Can Öztürk', studentClass: '12. Sınıf', level: 'Seviye 3' }
         ];
 
@@ -1111,10 +1112,19 @@
             state.studentNotes = savedNotes ? JSON.parse(savedNotes) : {};
             state.users = savedUsers ? JSON.parse(savedUsers) : DEFAULT_USERS;
             state.firebaseRootNode = savedRootNode || VARS_FIREBASE_KOK_DUGUM;
-            state.firebaseConfig = savedFb ? JSON.parse(savedFb) : VARS_FIREBASE_KONFIGURASYON;
+            state.firebaseConfig = savedFb ? JSON.parse(savedFb) : { apiKey: "", authDomain: "", databaseURL: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: "" };
             
             document.getElementById('fb-root-node').value = state.firebaseRootNode;
-            document.getElementById('fb-config-json').value = JSON.stringify(state.firebaseConfig, null, 2);
+            
+            // Konfigürasyon kutucuğu boş olsun, kayıtlı varsa doldursun
+            const configInput = document.getElementById('fb-config-json');
+            if (configInput) {
+                if (state.firebaseConfig && state.firebaseConfig.apiKey) {
+                    configInput.value = JSON.stringify(state.firebaseConfig, null, 2);
+                } else {
+                    configInput.value = '';
+                }
+            }
             
             const limitInput = document.getElementById('setting-unexcused-limit');
             if(limitInput) limitInput.value = state.unexcusedLimit;
@@ -3063,6 +3073,7 @@
             });
         }
 
+        // Format kontrolü: JSON uygun değilse ayarları kaydetmez
         function handleSaveFirebaseSettings(e) {
             e.preventDefault();
             if (!checkAdminPermission()) return;
@@ -3070,13 +3081,18 @@
             const jsonText = document.getElementById('fb-config-json').value.trim();
 
             let parsedConfig = {};
-            try {
-                if (jsonText) {
+            if (jsonText) {
+                try {
                     parsedConfig = JSON.parse(jsonText);
+                } catch (err) {
+                    Swal.fire({ 
+                        icon: 'error', 
+                        title: 'Geçersiz JSON Formatı', 
+                        text: 'Girdiğiniz Firebase konfigürasyonu geçerli bir JSON formatında değil! Ayarlar kaydedilmedi.', 
+                        confirmButtonColor: '#4F46E5' 
+                    });
+                    return; // Format uygun değilse kaydetme işlemini durdur
                 }
-            } catch (err) {
-                Swal.fire({ icon: 'error', title: 'JSON Hatası', text: 'Firebase konfigürasyon JSON formatı geçerli değil!', confirmColor: '#4F46E5' });
-                return;
             }
 
             state.firebaseRootNode = rootNode;
@@ -3178,7 +3194,7 @@
                         state.studentNotes = importedData.studentNotes || {};
                         state.users = importedData.users || DEFAULT_USERS;
                         state.firebaseRootNode = importedData.firebaseRootNode || VARS_FIREBASE_KOK_DUGUM;
-                        state.firebaseConfig = importedData.firebaseConfig || VARS_FIREBASE_KONFIGURASYON;
+                        state.firebaseConfig = importedData.firebaseConfig || { apiKey: "", authDomain: "", databaseURL: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: "" };
 
                         saveToLocalStorage();
                         Swal.fire({
