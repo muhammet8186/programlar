@@ -717,7 +717,7 @@
                     </div>
                     <div class="p-4 flex-1 flex flex-col space-y-4">
                         <form onsubmit="handleAddClass(event)" class="flex gap-2">
-                            <input type="text" id="new-class-name" placeholder="Örn: 5. Sınıf" required class="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <input type="text" id="new-class-name" placeholder="Örn: 5.Sınıf" required class="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none">
                             <button type="submit" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl text-xs transition shadow-sm">
                                 <i class="fa-solid fa-plus"></i> Ekle
                             </button>
@@ -1007,25 +1007,25 @@
         const DEFAULT_LESSONS = ["Matematik", "Türkçe", "Fen Bilimleri", "Sosyal Bilgiler", "İngilizce", "Beden Eğitimi"];
         const DEFAULT_LEVELS = ["Seviye 1", "Seviye 2", "Seviye 3", "Seviye 4"];
         
-        // Sınıflar 5. Sınıftan 12. Sınıfa Kadar Şeklinde Ayarlandı
+        // Sınıflar "5.Sınıf", "6.Sınıf" formatında ayarlandı
         const DEFAULT_CLASSES = [
-            "5. Sınıf", 
-            "6. Sınıf", 
-            "7. Sınıf", 
-            "8. Sınıf", 
-            "9. Sınıf", 
-            "10. Sınıf", 
-            "11. Sınıf", 
-            "12. Sınıf"
+            "5.Sınıf", 
+            "6.Sınıf", 
+            "7.Sınıf", 
+            "8.Sınıf", 
+            "9.Sınıf", 
+            "10.Sınıf", 
+            "11.Sınıf", 
+            "12.Sınıf"
         ];
 
-        // Örnek öğrenci sınıfları 5-12 aralığına uygun olarak güncellendi
+        // Örnek öğrenci sınıfları boşluksuz formata uygun güncellendi
         const DEFAULT_STUDENTS = [
-            { id: '1', name: 'Ahmet Yılmaz', studentClass: '5. Sınıf', level: 'Seviye 1' },
-            { id: '2', name: 'Ayşe Demir', studentClass: '7. Sınıf', level: 'Seviye 1' },
-            { id: '3', name: 'Mehmet Kaya', studentClass: '8. Sınıf', level: 'Seviye 2' },
-            { id: '4', name: 'Zeynep Çelik', studentClass: '11. Sınıf', level: 'Seviye 2' },
-            { id: '5', name: 'Can Öztürk', studentClass: '12. Sınıf', level: 'Seviye 3' }
+            { id: '1', name: 'Ahmet Yılmaz', studentClass: '5.Sınıf', level: 'Seviye 1' },
+            { id: '2', name: 'Ayşe Demir', studentClass: '7.Sınıf', level: 'Seviye 1' },
+            { id: '3', name: 'Mehmet Kaya', studentClass: '8.Sınıf', level: 'Seviye 2' },
+            { id: '4', name: 'Zeynep Çelik', studentClass: '11.Sınıf', level: 'Seviye 2' },
+            { id: '5', name: 'Can Öztürk', studentClass: '12.Sınıf', level: 'Seviye 3' }
         ];
 
         const DEFAULT_TEACHERS = [
@@ -1931,8 +1931,8 @@
         function downloadStudentExcelTemplate() {
             const wsData = [
                 ["Adı Soyadı", "Sınıfı", "Seviyesi"],
-                ["Örnek Ahmet", "5. Sınıf", "Seviye 1"],
-                ["Örnek Ayşe", "6. Sınıf", "Seviye 2"]
+                ["Örnek Ahmet", "5.Sınıf", "Seviye 1"],
+                ["Örnek Ayşe", "6.Sınıf", "Seviye 2"]
             ];
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(wsData);
@@ -1957,7 +1957,7 @@
                         const row = json[i];
                         if (row && row[0]) {
                             const name = String(row[0]).trim();
-                            const studentClass = row[1] ? String(row[1]).trim() : (state.classes[0] || "5. Sınıf");
+                            const studentClass = row[1] ? String(row[1]).trim() : (state.classes[0] || "5.Sınıf");
                             const level = row[2] ? String(row[2]).trim() : (state.levels[0] || "Seviye 1");
 
                             if (name) {
@@ -3073,26 +3073,35 @@
             });
         }
 
-        // Format kontrolü: JSON uygun değilse ayarları kaydetmez
+        // Format kontrolü ve konfigürasyon boşsa kaydetmeme kontrolü
         function handleSaveFirebaseSettings(e) {
             e.preventDefault();
             if (!checkAdminPermission()) return;
             const rootNode = document.getElementById('fb-root-node').value.trim() || "okul_yoklama_sistemi";
             const jsonText = document.getElementById('fb-config-json').value.trim();
 
+            // Konfigürasyon kutucuğu boşsa kaydetmesin
+            if (!jsonText) {
+                Swal.fire({ 
+                    icon: 'warning', 
+                    title: 'Boş Konfigürasyon', 
+                    text: 'Konfigürasyon kutucuğu boşken ayarlar kaydedilemez!', 
+                    confirmButtonColor: '#4F46E5' 
+                });
+                return;
+            }
+
             let parsedConfig = {};
-            if (jsonText) {
-                try {
-                    parsedConfig = JSON.parse(jsonText);
-                } catch (err) {
-                    Swal.fire({ 
-                        icon: 'error', 
-                        title: 'Geçersiz JSON Formatı', 
-                        text: 'Girdiğiniz Firebase konfigürasyonu geçerli bir JSON formatında değil! Ayarlar kaydedilmedi.', 
-                        confirmButtonColor: '#4F46E5' 
-                    });
-                    return; // Format uygun değilse kaydetme işlemini durdur
-                }
+            try {
+                parsedConfig = JSON.parse(jsonText);
+            } catch (err) {
+                Swal.fire({ 
+                    icon: 'error', 
+                    title: 'Geçersiz JSON Formatı', 
+                    text: 'Girdiğiniz Firebase konfigürasyonu geçerli bir JSON formatında değil! Ayarlar kaydedilmedi.', 
+                    confirmButtonColor: '#4F46E5' 
+                });
+                return;
             }
 
             state.firebaseRootNode = rootNode;
