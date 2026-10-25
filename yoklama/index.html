@@ -46,8 +46,9 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
 
-    <!-- Top Navigation Header (Açık ve Renkli Tema) -->
-    <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 text-slate-800 shadow-sm sticky top-0 z-40 no-print">
+    <!-- Top Navigation Header (Belirgin ve Sabit) -->
+    <header class="bg-white/95 backdrop-blur-md border-b-2 border-indigo-500/20 text-slate-800 shadow-md sticky top-0 z-50 no-print transition-all">
+        <div class="h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 w-full"></div>
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-20">
                 <div class="flex items-center space-x-3">
@@ -551,24 +552,32 @@
         <!-- TAB 6: AYARLAR -->
         <section id="section-settings" class="tab-content space-y-6 hidden">
             
-            <!-- Firebase Ayarları Kartı -->
+            <!-- Firebase Ayarları Kartı (Kök Düğüm ve Konfigürasyon JSON) -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex items-center gap-2">
                     <i class="fa-solid fa-fire text-lg text-yellow-200"></i>
                     <h2 class="font-bold">Firebase Bulut Senkronizasyon Ayarları</h2>
                 </div>
                 <form onsubmit="handleSaveFirebaseSettings(event)" class="p-4 sm:p-6 space-y-4">
-                    <p class="text-xs text-slate-500">Yoklama ve öğrenci verilerinizi Firebase bulut sunucusunda güvenle saklamak için ayarlarınızı yapın.</p>
+                    <p class="text-xs text-slate-500">Verilerinizi Firebase üzerinde saklamak için kök düğüm başlığını ve konfigürasyon JSON nesnesini giriniz.</p>
                     
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">API Key</label>
-                            <input type="text" id="fb-api-key" placeholder="AIzaSy..." class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Project ID</label>
-                            <input type="text" id="fb-project-id" placeholder="proje-adi-firebase" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                        </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Kök Düğüm Başlığı</label>
+                        <input type="text" id="fb-root-node" placeholder="Örn: okul_yoklama_sistemi" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Firebase Konfigürasyon Nesnesi (JSON)</label>
+                        <textarea id="fb-config-json" rows="6" placeholder='{
+  "apiKey": "",
+  "authDomain": "",
+  "databaseURL": "",
+  "projectId": "",
+  "storageBucket": "",
+  "messagingSenderId": "",
+  "appId": "",
+  "measurementId": ""
+}' class="w-full px-3 py-2 text-xs font-mono border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none bg-slate-50"></textarea>
                     </div>
 
                     <div class="flex items-center justify-between pt-2">
@@ -882,7 +891,8 @@
             attendanceRecords: [],
             studentNotes: {},
             currentAttendance: {},
-            firebaseConfig: { apiKey: '', projectId: '' }
+            firebaseRootNode: "okul_yoklama_sistemi",
+            firebaseConfig: {}
         };
 
         let lineChartInstance = null;
@@ -931,6 +941,7 @@
             const savedClasses = localStorage.getItem('att_classes');
             const savedRecords = localStorage.getItem('att_records');
             const savedNotes = localStorage.getItem('att_student_notes');
+            const savedRootNode = localStorage.getItem('att_fb_root');
             const savedFb = localStorage.getItem('att_firebase');
 
             state.appTitle = savedTitle || "Öğrenci Yoklama Sistemi";
@@ -942,15 +953,19 @@
             state.classes = savedClasses ? JSON.parse(savedClasses) : DEFAULT_CLASSES;
             state.attendanceRecords = savedRecords ? JSON.parse(savedRecords) : [];
             state.studentNotes = savedNotes ? JSON.parse(savedNotes) : {};
+            state.firebaseRootNode = savedRootNode || "okul_yoklama_sistemi";
             
+            document.getElementById('fb-root-node').value = state.firebaseRootNode;
+
             if (savedFb) {
-                state.firebaseConfig = JSON.parse(savedFb);
-                document.getElementById('fb-api-key').value = state.firebaseConfig.apiKey || '';
-                document.getElementById('fb-project-id').value = state.firebaseConfig.projectId || '';
-                if(state.firebaseConfig.apiKey) {
-                    document.getElementById('fb-status-dot').className = "fa-solid fa-circle text-emerald-500 mr-1";
-                    document.getElementById('fb-status-text').textContent = "Firebase Yapılandırıldı";
-                }
+                try {
+                    state.firebaseConfig = JSON.parse(savedFb);
+                    document.getElementById('fb-config-json').value = JSON.stringify(state.firebaseConfig, null, 2);
+                    if(state.firebaseConfig.apiKey) {
+                        document.getElementById('fb-status-dot').className = "fa-solid fa-circle text-emerald-500 mr-1";
+                        document.getElementById('fb-status-text').textContent = "Firebase Yapılandırıldı";
+                    }
+                } catch(e) {}
             }
         }
 
@@ -964,18 +979,30 @@
             localStorage.setItem('att_classes', JSON.stringify(state.classes));
             localStorage.setItem('att_records', JSON.stringify(state.attendanceRecords));
             localStorage.setItem('att_student_notes', JSON.stringify(state.studentNotes));
+            localStorage.setItem('att_fb_root', state.firebaseRootNode);
             localStorage.setItem('att_firebase', JSON.stringify(state.firebaseConfig));
         }
 
         function handleSaveFirebaseSettings(e) {
             e.preventDefault();
-            const apiKey = document.getElementById('fb-api-key').value.trim();
-            const projectId = document.getElementById('fb-project-id').value.trim();
+            const rootNode = document.getElementById('fb-root-node').value.trim() || "okul_yoklama_sistemi";
+            const jsonText = document.getElementById('fb-config-json').value.trim();
 
-            state.firebaseConfig = { apiKey, projectId };
+            let parsedConfig = {};
+            try {
+                if (jsonText) {
+                    parsedConfig = JSON.parse(jsonText);
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'JSON Hatası', text: 'Firebase konfigürasyon JSON formatı geçerli değil!', confirmColor: '#4F46E5' });
+                return;
+            }
+
+            state.firebaseRootNode = rootNode;
+            state.firebaseConfig = parsedConfig;
             saveToLocalStorage();
 
-            if(apiKey) {
+            if (parsedConfig && parsedConfig.apiKey) {
                 document.getElementById('fb-status-dot').className = "fa-solid fa-circle text-emerald-500 mr-1";
                 document.getElementById('fb-status-text').textContent = "Firebase Yapılandırıldı ve Aktif";
             } else {
@@ -1020,7 +1047,7 @@
             } else if(tabId === 'history') {
                 renderHistoryList();
             } else if(tabId === 'students') {
-                renderDropdowns(); // Öğrenci kayıt formundaki level/class selectlerini güncellemek için
+                renderDropdowns();
                 renderStudentManagementList();
             } else if(tabId === 'teachers') {
                 renderTeacherManagementList();
@@ -1059,7 +1086,6 @@
                 historyTeacherSelect.innerHTML += `<option value="${teacher.name}">${teacher.name}</option>`;
             });
 
-            // Öğrenci ekleme formu için Seviye ve Sınıf dropdownları
             const studentLevelSelect = document.getElementById('new-student-level');
             if(studentLevelSelect) {
                 studentLevelSelect.innerHTML = '<option value="">Seviye Seçiniz...</option>';
@@ -1496,6 +1522,7 @@
                             studentId: sId,
                             studentName: originalRec ? originalRec.studentName : 'Öğrenci',
                             studentClass: originalRec ? originalRec.studentClass : '',
+                            level: originalRec ? originalRec.level : '',
                             status: status,
                             note: originalRec ? originalRec.note : ''
                         });
@@ -2290,6 +2317,7 @@
                 classes: state.classes,
                 attendanceRecords: state.attendanceRecords,
                 studentNotes: state.studentNotes,
+                firebaseRootNode: state.firebaseRootNode,
                 firebaseConfig: state.firebaseConfig,
                 exportDate: new Date().toISOString()
             };
@@ -2321,7 +2349,8 @@
                         state.classes = importedData.classes || DEFAULT_CLASSES;
                         state.attendanceRecords = importedData.attendanceRecords || [];
                         state.studentNotes = importedData.studentNotes || {};
-                        state.firebaseConfig = importedData.firebaseConfig || { apiKey: '', projectId: '' };
+                        state.firebaseRootNode = importedData.firebaseRootNode || "okul_yoklama_sistemi";
+                        state.firebaseConfig = importedData.firebaseConfig || {};
 
                         saveToLocalStorage();
                         Swal.fire({
