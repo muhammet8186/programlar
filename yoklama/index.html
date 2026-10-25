@@ -46,8 +46,8 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
 
-    <!-- Top Navigation Header -->
-    <header class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-lg sticky top-0 z-30 no-print">
+    <!-- Top Navigation Header (Sabit / Sticky Header) -->
+    <header class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-lg sticky top-0 z-40 no-print backdrop-blur-md bg-opacity-95">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-20">
                 <div class="flex items-center space-x-3">
@@ -60,7 +60,7 @@
                     </div>
                 </div>
 
-                <!-- Navigation Tabs (Geçmiş Yoklama Al'ın hemen yanında) -->
+                <!-- Navigation Tabs -->
                 <nav class="hidden lg:flex space-x-1 bg-slate-800/80 p-1.5 rounded-xl border border-slate-700/60 backdrop-blur-md">
                     <button onclick="switchTab('take-attendance')" id="tab-take-attendance" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 bg-indigo-600 text-white shadow-lg shadow-indigo-600/40 ring-2 ring-indigo-400/50">
                         <i class="fa-solid fa-clipboard-user"></i>
@@ -90,7 +90,7 @@
             </div>
         </div>
 
-        <!-- Mobile Navigation Bar (Geçmiş Yoklama Al'ın hemen yanında) -->
+        <!-- Mobile Navigation Bar -->
         <div class="lg:hidden flex border-t border-slate-800/80 bg-slate-900/95 divide-x divide-slate-800 text-center overflow-x-auto">
             <button onclick="switchTab('take-attendance')" id="mob-tab-take-attendance" class="flex-1 min-w-[60px] py-3 text-[10px] font-bold text-indigo-400 flex flex-col items-center gap-1 bg-slate-800/80">
                 <i class="fa-solid fa-clipboard-user text-sm"></i> Yoklama
@@ -118,18 +118,6 @@
 
         <!-- TAB 1: YOKLAMA AL -->
         <section id="section-take-attendance" class="tab-content space-y-6">
-            
-            <!-- Düzenleme Modu Bilgi Banneri -->
-            <div id="editing-mode-banner" class="hidden bg-amber-500 text-white p-4 rounded-2xl shadow-md flex justify-between items-center">
-                <div class="flex items-center gap-2 text-sm font-bold">
-                    <i class="fa-solid fa-pen-to-square text-lg"></i>
-                    <span id="editing-banner-text">Yoklama Düzenleme Modu Aktif</span>
-                </div>
-                <button onclick="cancelEditingMode()" class="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-xl text-xs font-semibold transition">
-                    Düzenlemeyi İptal Et
-                </button>
-            </div>
-
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 no-print">
                 <div class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-4 text-white shadow-lg flex flex-col justify-between">
                     <label class="block text-xs font-semibold uppercase tracking-wider text-blue-100 mb-1">
@@ -200,15 +188,15 @@
                     <div class="text-xs text-slate-500 font-medium">
                         * Durumu işaretlenmeyen öğrenciler yoklama kaydına eklenmez.
                     </div>
-                    <button id="save-attendance-btn" onclick="saveAttendance()" class="w-full sm:w-auto px-8 py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-xl shadow-md shadow-indigo-500/20 transition duration-150 flex items-center justify-center space-x-2">
+                    <button onclick="saveAttendance()" class="w-full sm:w-auto px-8 py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-xl shadow-md shadow-indigo-500/20 transition duration-150 flex items-center justify-center space-x-2">
                         <i class="fa-solid fa-floppy-disk text-lg"></i>
-                        <span id="save-attendance-btn-text">Yoklamayı Kaydet</span>
+                        <span>Yoklamayı Kaydet</span>
                     </button>
                 </div>
             </div>
         </section>
 
-        <!-- TAB 2: GEÇMİŞ & RAPORLAR (Artık Yoklama Al'ın hemen yanında) -->
+        <!-- TAB 2: GEÇMİŞ & RAPORLAR -->
         <section id="section-history" class="tab-content space-y-6 hidden">
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 no-print">
                 <div class="bg-gradient-to-br from-indigo-500 to-indigo-700 p-4 rounded-2xl text-white shadow-md">
@@ -670,8 +658,20 @@
                 </div>
             </div>
 
+            <!-- KARNE GÖRÜNÜM TERCİHLERİ (NE OLSUN OLMASIN SEÇ) -->
+            <div class="p-3 bg-slate-100 border-b border-slate-200 flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-700 no-print">
+                <span class="text-slate-500 uppercase tracking-wider text-[10px] font-bold"><i class="fa-solid fa-sliders mr-1"></i> Karne Alanları:</span>
+                <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="toggle-score" checked onchange="toggleModalSections()" class="rounded text-indigo-600 focus:ring-indigo-500"> Skor & Rozet</label>
+                <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="toggle-meb" checked onchange="toggleModalSections()" class="rounded text-indigo-600 focus:ring-indigo-500"> MEB Limit</label>
+                <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="toggle-stats" checked onchange="toggleModalSections()" class="rounded text-indigo-600 focus:ring-indigo-500"> İstatistik & Grafik</label>
+                <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="toggle-notes" checked onchange="toggleModalSections()" class="rounded text-indigo-600 focus:ring-indigo-500"> Gözlem Notları</label>
+                <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="toggle-logs" checked onchange="toggleModalSections()" class="rounded text-indigo-600 focus:ring-indigo-500"> Ders Detayları</label>
+            </div>
+
             <div class="p-6 space-y-6 overflow-y-auto">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                
+                <!-- BÖLÜM 1: Skor ve Rozetler -->
+                <div id="section-score-badges" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="p-5 rounded-2xl bg-gradient-to-br from-indigo-50 to-sky-50 border border-indigo-100 flex items-center justify-between">
                         <div>
                             <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider block">Dijital Başarı Skoru</span>
@@ -689,7 +689,8 @@
                     </div>
                 </div>
 
-                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                <!-- BÖLÜM 2: MEB Sınırı -->
+                <div id="section-meb-limit" class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                     <div class="flex justify-between items-center text-xs font-bold">
                         <span class="text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Özürsüz Devamsızlık Sınırı (10 Gün)</span>
                         <span id="meb-limit-text" class="text-rose-600">0 / 10 Gün</span>
@@ -699,7 +700,8 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- BÖLÜM 3: İstatistik Kartları ve Çizgi Grafik -->
+                <div id="section-stats-chart" class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="space-y-4 md:col-span-1 flex flex-col justify-between">
                         <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center">
                             <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Başarı Oranı</span>
@@ -732,7 +734,8 @@
                     </div>
                 </div>
 
-                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <!-- BÖLÜM 4: Öğretmen Gözlem Notları -->
+                <div id="section-teacher-notes" class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                     <div class="flex items-center justify-between">
                         <h4 class="font-bold text-xs text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                             <i class="fa-solid fa-comments text-amber-600"></i> Öğretmen Gözlem Notları & Geri Bildirimler
@@ -747,7 +750,8 @@
                     <div id="modal-teacher-notes-list" class="space-y-2 max-h-32 overflow-y-auto pr-1"></div>
                 </div>
 
-                <div class="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                <!-- BÖLÜM 5: Ders Bazlı Detay Tablosu -->
+                <div id="section-lesson-logs" class="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
                     <div class="p-3 bg-slate-100 font-bold text-xs text-slate-700 flex items-center justify-between">
                         <span><i class="fa-solid fa-clock-rotate-left mr-1.5 text-indigo-600"></i> Öğrencinin Ders Bazlı Katılım Detayları</span>
                     </div>
@@ -797,8 +801,6 @@
             studentNotes: {},
             currentAttendance: {}
         };
-
-        let editingRecordId = null; // Geçmiş yoklama düzenleme durumu
 
         let lineChartInstance = null;
         let pieChartInstance = null;
@@ -891,7 +893,7 @@
 
             if (tabId === 'take-attendance') {
                 renderAttendanceClassFilter();
-                if (!editingRecordId) resetCurrentAttendanceToUnselected();
+                resetCurrentAttendanceToUnselected();
                 renderAttendanceList();
             } else if(tabId === 'history') {
                 renderHistoryList();
@@ -1289,50 +1291,109 @@
             link.remove();
         }
 
-        // --- GEÇMİŞ YOKLAMAYI DÜZENLEME FONKSİYONLARI ---
+        // --- MODERN BİLDİRİM (SWEETALERT2) İLE GEÇMİŞ DÜZENLEME ---
         function editHistoryRecord(recordId) {
             const record = state.attendanceRecords.find(r => r.id === recordId);
             if (!record) return;
 
-            editingRecordId = recordId;
+            // Düzenleme formunu dinamik oluştur
+            let htmlContent = `
+                <div class="text-left space-y-3 max-h-[60vh] overflow-y-auto p-1">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Tarih</label>
+                            <input type="date" id="swal-edit-date" value="${record.date}" class="w-full text-xs border rounded-lg p-2">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Ders</label>
+                            <input type="text" id="swal-edit-lesson" value="${record.lesson}" readonly class="w-full text-xs border rounded-lg p-2 bg-slate-100">
+                        </div>
+                    </div>
+                    <div class="border-t pt-2 mt-2">
+                        <span class="text-xs font-bold text-slate-700 block mb-2">Öğrenci Durumları:</span>
+                        <div id="swal-students-container" class="space-y-2">
+            `;
 
-            // Alanları doldur
-            document.getElementById('attendance-date').value = record.date;
-            document.getElementById('attendance-lesson').value = record.lesson;
-            document.getElementById('attendance-teacher').value = record.teacher;
-
-            // Öğrenci durumlarını aktar
-            resetCurrentAttendanceToUnselected();
             record.records.forEach(r => {
-                state.currentAttendance[r.studentId] = {
-                    status: r.status,
-                    note: r.note || ''
-                };
+                htmlContent += `
+                    <div class="flex items-center justify-between bg-slate-50 p-2 rounded-lg border text-xs" data-studentid="${r.studentId}">
+                        <span class="font-bold text-slate-800">${escapeHtml(r.studentName)}</span>
+                        <div class="flex gap-1">
+                            <select class="swal-status-select border rounded px-1.5 py-1 text-xs font-semibold bg-white" data-id="${r.studentId}">
+                                <option value="present" ${r.status === 'present' ? 'selected' : ''}>Var</option>
+                                <option value="absent" ${r.status === 'absent' ? 'selected' : ''}>Yok</option>
+                                <option value="late" ${r.status === 'late' ? 'selected' : ''}>Geç</option>
+                                <option value="excused" ${r.status === 'excused' ? 'selected' : ''}>İzinli</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
             });
 
-            // Banner göster
-            document.getElementById('editing-mode-banner').classList.remove('hidden');
-            document.getElementById('editing-banner-text').textContent = `Düzenleniyor: ${record.lesson} (${record.date})`;
-            document.getElementById('save-attendance-btn-text').textContent = 'Değişiklikleri Kaydet';
+            htmlContent += `</div></div></div>`;
 
-            // Yoklama Al sekmesine git
-            switchTab('take-attendance');
-            Toast.fire({ icon: 'info', title: 'Yoklama düzenleme moduna alındı.' });
+            Swal.fire({
+                title: 'Yoklama Kaydını Düzenle',
+                html: htmlContent,
+                showCancelButton: true,
+                confirmButtonText: 'Kaydet',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#4F46E5',
+                width: '600px',
+                preConfirm: () => {
+                    const newDate = document.getElementById('swal-edit-date').value;
+                    const selects = document.querySelectorAll('.swal-status-select');
+                    const updatedRecords = [];
+
+                    selects.forEach(sel => {
+                        const sId = sel.getAttribute('data-id');
+                        const status = sel.value;
+                        const originalRec = record.records.find(item => item.studentId === sId);
+                        updatedRecords.push({
+                            studentId: sId,
+                            studentName: originalRec ? originalRec.studentName : 'Öğrenci',
+                            studentClass: originalRec ? originalRec.studentClass : '',
+                            status: status,
+                            note: originalRec ? originalRec.note : ''
+                        });
+                    });
+
+                    return { date: newDate, records: updatedRecords };
+                }
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    const idx = state.attendanceRecords.findIndex(r => r.id === recordId);
+                    if (idx !== -1) {
+                        state.attendanceRecords[idx].date = result.value.date;
+                        state.attendanceRecords[idx].records = result.value.records;
+                        saveToLocalStorage();
+                        renderHistoryList();
+                        renderStatisticsTab();
+                        Toast.fire({ icon: 'success', title: 'Yoklama kaydı güncellendi.' });
+                    }
+                }
+            });
         }
 
-        function cancelEditingMode() {
-            editingRecordId = null;
-            document.getElementById('editing-mode-banner').classList.add('hidden');
-            document.getElementById('save-attendance-btn-text').textContent = 'Yoklamayı Kaydet';
-            resetCurrentAttendanceToUnselected();
-            renderAttendanceList();
-            Toast.fire({ icon: 'info', title: 'Düzenleme iptal edildi.' });
+        // --- KARNE BÖLÜM TERCİHLERİ GÖSTER/GİZLE ---
+        function toggleModalSections() {
+            document.getElementById('section-score-badges').style.display = document.getElementById('toggle-score').checked ? 'grid' : 'none';
+            document.getElementById('section-meb-limit').style.display = document.getElementById('toggle-meb').checked ? 'block' : 'none';
+            document.getElementById('section-stats-chart').style.display = document.getElementById('toggle-stats').checked ? 'grid' : 'none';
+            document.getElementById('section-teacher-notes').style.display = document.getElementById('toggle-notes').checked ? 'block' : 'none';
+            document.getElementById('section-lesson-logs').style.display = document.getElementById('toggle-logs').checked ? 'block' : 'none';
         }
 
         function openStatsModal(studentId) {
             activeModalStudentId = studentId;
             const student = state.students.find(s => s.id === studentId);
             if (!student) return;
+
+            // Varsayılan olarak tümü seçili gelsin
+            ['toggle-score', 'toggle-meb', 'toggle-stats', 'toggle-notes', 'toggle-logs'].forEach(id => {
+                document.getElementById(id).checked = true;
+            });
+            toggleModalSections();
 
             const filteredRecords = getFilteredAttendanceRecords();
             const stats = getStudentStatsForRecords(studentId, filteredRecords);
@@ -1610,37 +1671,19 @@
                 };
             });
 
-            if (editingRecordId) {
-                // Güncelleme işlemi
-                const idx = state.attendanceRecords.findIndex(r => r.id === editingRecordId);
-                if (idx !== -1) {
-                    state.attendanceRecords[idx] = {
-                        ...state.attendanceRecords[idx],
-                        date: date,
-                        lesson: lesson,
-                        teacher: teacher,
-                        records: records
-                    };
-                }
-                editingRecordId = null;
-                document.getElementById('editing-mode-banner').classList.add('hidden');
-                document.getElementById('save-attendance-btn-text').textContent = 'Yoklamayı Kaydet';
-                Toast.fire({ icon: 'success', title: 'Yoklama kaydı güncellendi!' });
-            } else {
-                // Yeni kayıt ekleme
-                const newRecord = {
-                    id: Date.now().toString(),
-                    date: date,
-                    lesson: lesson,
-                    teacher: teacher,
-                    timestamp: new Date().toISOString(),
-                    records: records
-                };
-                state.attendanceRecords.unshift(newRecord);
-                Toast.fire({ icon: 'success', title: 'Yoklama başarıyla kaydedildi!' });
-            }
+            const newRecord = {
+                id: Date.now().toString(),
+                date: date,
+                lesson: lesson,
+                teacher: teacher,
+                timestamp: new Date().toISOString(),
+                records: records
+            };
 
+            state.attendanceRecords.unshift(newRecord);
             saveToLocalStorage();
+
+            Toast.fire({ icon: 'success', title: 'Yoklama başarıyla kaydedildi!' });
             resetCurrentAttendanceToUnselected();
             switchTab('history');
         }
