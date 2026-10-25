@@ -1020,6 +1020,15 @@
             timerProgressBar: true
         });
 
+        // Yönetici Yetki Kontrolü (Silme ve Ayar işlemleri için)
+        function checkAdminPermission() {
+            if (!state.currentUser || state.currentUser.role !== 'admin') {
+                Swal.fire({ icon: 'error', title: 'Yetkisiz İşlem', text: 'Bu işlemi yalnızca yöneticiler gerçekleştirebilir!', confirmButtonColor: '#4F46E5' });
+                return false;
+            }
+            return true;
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             loadFromLocalStorage();
             checkLoginState();
@@ -1249,6 +1258,8 @@
             const tbody = document.getElementById('users-table-body');
             if(!tbody) return;
 
+            const isAdmin = state.currentUser && state.currentUser.role === 'admin';
+
             tbody.innerHTML = state.users.map(u => {
                 const permsStr = (u.permissions || []).map(p => {
                     switch(p) {
@@ -1269,8 +1280,8 @@
                     <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}">${u.role.toUpperCase()}</span></td>
                     <td class="px-4 py-3 text-[11px] text-slate-500">${permsStr || 'Hiçbiri'}</td>
                     <td class="px-4 py-3 text-right space-x-1">
-                        <button onclick="openEditUserModal('${u.id}')" class="text-indigo-600 hover:text-indigo-800 p-1" title="Düzenle"><i class="fa-solid fa-pen-to-square"></i></button>
-                        ${u.username !== 'admin' ? `<button onclick="deleteUser('${u.id}')" class="text-rose-500 hover:text-rose-700 p-1" title="Sil"><i class="fa-solid fa-trash-can"></i></button>` : '<span class="text-slate-300 text-[10px]">Kilitli</span>'}
+                        ${isAdmin ? `<button onclick="openEditUserModal('${u.id}')" class="text-indigo-600 hover:text-indigo-800 p-1" title="Düzenle"><i class="fa-solid fa-pen-to-square"></i></button>` : ''}
+                        ${isAdmin && u.username !== 'admin' ? `<button onclick="deleteUser('${u.id}')" class="text-rose-500 hover:text-rose-700 p-1" title="Sil"><i class="fa-solid fa-trash-can"></i></button>` : '<span class="text-slate-300 text-[10px]">Kısıtlı</span>'}
                     </td>
                 </tr>
             `;
@@ -1279,6 +1290,7 @@
 
         function handleAddUser(e) {
             e.preventDefault();
+            if (!checkAdminPermission()) return;
             const usernameInput = document.getElementById('new-user-username');
             const passwordInput = document.getElementById('new-user-password');
             const roleSelect = document.getElementById('new-user-role');
@@ -1314,6 +1326,7 @@
         }
 
         function openEditUserModal(userId) {
+            if (!checkAdminPermission()) return;
             const user = state.users.find(u => u.id === userId);
             if (!user) return;
 
@@ -1395,6 +1408,7 @@
         }
 
         function deleteUser(userId) {
+            if (!checkAdminPermission()) return;
             const user = state.users.find(u => u.id === userId);
             if (user && user.username === 'admin') {
                 Swal.fire({ icon: 'error', title: 'İşlem Engellendi', text: 'Ana admin hesabı silinemez!', confirmButtonColor: '#4F46E5' });
@@ -1422,6 +1436,7 @@
 
         function handleSaveLimitSettings(e) {
             e.preventDefault();
+            if (!checkAdminPermission()) return;
             const val = parseInt(document.getElementById('setting-unexcused-limit').value, 10);
             if (isNaN(val) || val < 1) {
                 Swal.fire({ icon: 'error', title: 'Geçersiz Değer', text: 'Lütfen geçerli bir sınır sayısı giriniz.', confirmButtonColor: '#4F46E5' });
@@ -1857,6 +1872,7 @@
         }
 
         function editHistoryRecord(recordId) {
+            if (!checkAdminPermission()) return;
             const record = state.attendanceRecords.find(r => r.id === recordId);
             if (!record) return;
 
@@ -2121,6 +2137,7 @@
         function renderStudentNotesModal(studentId) {
             const notesContainer = document.getElementById('modal-teacher-notes-list');
             const notes = state.studentNotes[studentId] || [];
+            const isAdmin = state.currentUser && state.currentUser.role === 'admin';
 
             if(notes.length === 0) {
                 notesContainer.innerHTML = `<div class="text-[11px] text-slate-400 italic text-center py-2">Henüz girilmiş gözlem notu yok.</div>`;
@@ -2133,12 +2150,13 @@
                         <span class="font-bold text-indigo-600 mr-2">${n.date}:</span>
                         <span class="text-slate-700">${escapeHtml(n.text)}</span>
                     </div>
-                    <button onclick="deleteStudentNote('${studentId}', '${n.id}')" class="text-rose-400 hover:text-rose-600 p-1"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+                    ${isAdmin ? `<button onclick="deleteStudentNote('${studentId}', '${n.id}')" class="text-rose-400 hover:text-rose-600 p-1"><i class="fa-solid fa-trash-can text-[10px]"></i></button>` : ''}
                 </div>
             `).join('');
         }
 
         function deleteStudentNote(studentId, noteId) {
+            if (!checkAdminPermission()) return;
             if(state.studentNotes[studentId]) {
                 state.studentNotes[studentId] = state.studentNotes[studentId].filter(n => n.id !== noteId);
                 saveToLocalStorage();
@@ -2309,6 +2327,7 @@
             if(!tbody) return;
             const searchQuery = document.getElementById('student-list-search').value.toLowerCase();
             const countDisplay = document.getElementById('student-count');
+            const isAdmin = state.currentUser && state.currentUser.role === 'admin';
 
             const sortedStudents = getSortedStudents();
             const filtered = sortedStudents.filter(s => 
@@ -2333,9 +2352,11 @@
                         ${isStarStudentFiltered(s.id, state.attendanceRecords) ? '<span class="text-amber-600 font-bold"><i class="fa-solid fa-star mr-1"></i>%100 Katılım Yıldızı</span>' : '<span class="text-slate-400">Normal</span>'}
                     </td>
                     <td class="px-6 py-4 text-right">
-                        <button onclick="deleteStudent('${s.id}')" class="text-rose-500 hover:text-rose-700 p-2 rounded-lg hover:bg-rose-50 transition">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
+                        ${isAdmin ? `
+                            <button onclick="deleteStudent('${s.id}')" class="text-rose-500 hover:text-rose-700 p-2 rounded-lg hover:bg-rose-50 transition">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        ` : '<span class="text-slate-300 text-xs">Kısıtlı</span>'}
                     </td>
                 </tr>
             `).join('');
@@ -2369,6 +2390,7 @@
         }
 
         function deleteStudent(id) {
+            if (!checkAdminPermission()) return;
             const student = state.students.find(s => s.id === id);
             Swal.fire({
                 title: 'Öğrenci Silinsin mi?',
@@ -2396,6 +2418,7 @@
             const tbody = document.getElementById('teacher-table-body');
             if(!tbody) return;
             document.getElementById('teacher-count').textContent = state.teachers.length;
+            const isAdmin = state.currentUser && state.currentUser.role === 'admin';
 
             if (state.teachers.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-slate-400">Öğretmen bulunamadı.</td></tr>`;
@@ -2407,9 +2430,11 @@
                     <td class="px-6 py-4 font-bold text-slate-800">${escapeHtml(t.name)}</td>
                     <td class="px-6 py-4"><span class="bg-amber-50 text-amber-700 text-xs font-semibold px-2.5 py-1 rounded-md">${escapeHtml(t.branch || '-')}</span></td>
                     <td class="px-6 py-4 text-right">
-                        <button onclick="deleteTeacher('${t.id}')" class="text-rose-500 hover:text-rose-700 p-2 rounded-lg hover:bg-rose-50 transition">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
+                        ${isAdmin ? `
+                            <button onclick="deleteTeacher('${t.id}')" class="text-rose-500 hover:text-rose-700 p-2 rounded-lg hover:bg-rose-50 transition">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        ` : '<span class="text-slate-300 text-xs">Kısıtlı</span>'}
                     </td>
                 </tr>
             `).join('');
@@ -2437,6 +2462,7 @@
         }
 
         function deleteTeacher(id) {
+            if (!checkAdminPermission()) return;
             if (state.teachers.length <= 1) {
                 Swal.fire({ icon: 'error', title: 'İşlem Engellendi', text: 'Sistemde en az bir öğretmen bulunmalıdır.', confirmButtonColor: '#4F46E5' });
                 return;
@@ -2467,6 +2493,7 @@
             const filterDate = document.getElementById('history-filter-date').value;
             const filterLesson = document.getElementById('history-filter-lesson').value;
             const filterTeacher = document.getElementById('history-filter-teacher').value;
+            const isAdmin = state.currentUser && state.currentUser.role === 'admin';
 
             let records = state.attendanceRecords;
 
@@ -2506,12 +2533,14 @@
                         </div>
 
                         <div class="flex items-center gap-2 no-print self-start sm:self-auto">
-                            <button onclick="editHistoryRecord('${record.id}')" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
-                                <i class="fa-solid fa-pen-to-square"></i> Düzenle
-                            </button>
-                            <button onclick="deleteHistoryRecord('${record.id}')" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
-                                <i class="fa-solid fa-trash"></i> Sil
-                            </button>
+                            ${isAdmin ? `
+                                <button onclick="editHistoryRecord('${record.id}')" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
+                                    <i class="fa-solid fa-pen-to-square"></i> Düzenle
+                                </button>
+                                <button onclick="deleteHistoryRecord('${record.id}')" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
+                                    <i class="fa-solid fa-trash"></i> Sil
+                                </button>
+                            ` : '<span class="text-slate-400 text-xs italic">Sadece Görüntüleme</span>'}
                         </div>
                     </div>
 
@@ -2558,6 +2587,7 @@
         }
 
         function deleteHistoryRecord(id) {
+            if (!checkAdminPermission()) return;
             Swal.fire({
                 title: 'Yoklama Kaydı Silinsin mi?',
                 text: 'Bu yoklama kaydı kalıcı olarak silinecek.',
@@ -2579,6 +2609,7 @@
 
         function handleSaveHeaderSettings(e) {
             e.preventDefault();
+            if (!checkAdminPermission()) return;
             state.appTitle = document.getElementById('setting-app-title').value.trim();
             state.appSubtitle = document.getElementById('setting-app-subtitle').value.trim();
             saveToLocalStorage();
@@ -2604,21 +2635,25 @@
         function renderLessonsManagementList() {
             const tbody = document.getElementById('lessons-table-body');
             if(!tbody) return;
+            const isAdmin = state.currentUser && state.currentUser.role === 'admin';
             tbody.innerHTML = state.lessons.map((lesson) => `
                 <tr class="hover:bg-slate-50 transition">
                     <td class="px-4 py-2.5 font-semibold text-slate-700">${escapeHtml(lesson)}</td>
                     <td class="px-4 py-2.5 text-right">
-                        <button onclick="deleteLesson('${lesson}')" class="text-rose-500 hover:text-rose-700 p-1 rounded transition">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
+                        ${isAdmin ? `
+                            <button onclick="deleteLesson('${lesson}')" class="text-rose-500 hover:text-rose-700 p-1 rounded transition">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        ` : '<span class="text-slate-300 text-xs">Kısıtlı</span>'}
                     </td>
                 </tr>
             `).join('');
         }
 
         function deleteLesson(lessonName) {
+            if (!checkAdminPermission()) return;
             if (state.lessons.length <= 1) {
-                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir ders tanımı kalmalıdır.', confirmButtonColor: '#4F46E5' });
+                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir ders tanımı kalmalıdır.', confirmColor: '#4F46E5' });
                 return;
             }
             Swal.fire({
@@ -2660,21 +2695,25 @@
         function renderClassesManagementList() {
             const tbody = document.getElementById('classes-table-body');
             if(!tbody) return;
+            const isAdmin = state.currentUser && state.currentUser.role === 'admin';
             tbody.innerHTML = state.classes.map((cls) => `
                 <tr class="hover:bg-slate-50 transition">
                     <td class="px-4 py-2.5 font-semibold text-slate-700">${escapeHtml(cls)}</td>
                     <td class="px-4 py-2.5 text-right">
-                        <button onclick="deleteClass('${cls}')" class="text-rose-500 hover:text-rose-700 p-1 rounded transition">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
+                        ${isAdmin ? `
+                            <button onclick="deleteClass('${cls}')" class="text-rose-500 hover:text-rose-700 p-1 rounded transition">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        ` : '<span class="text-slate-300 text-xs">Kısıtlı</span>'}
                     </td>
                 </tr>
             `).join('');
         }
 
         function deleteClass(className) {
+            if (!checkAdminPermission()) return;
             if (state.classes.length <= 1) {
-                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir sınıf tanımı kalmalıdır.', confirmButtonColor: '#4F46E5' });
+                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir sınıf tanımı kalmalıdır.', confirmColor: '#4F46E5' });
                 return;
             }
             Swal.fire({
@@ -2717,21 +2756,25 @@
         function renderLevelsManagementList() {
             const tbody = document.getElementById('levels-table-body');
             if(!tbody) return;
+            const isAdmin = state.currentUser && state.currentUser.role === 'admin';
             tbody.innerHTML = state.levels.map((lvl) => `
                 <tr class="hover:bg-slate-50 transition">
                     <td class="px-4 py-2.5 font-semibold text-slate-700">${escapeHtml(lvl)}</td>
                     <td class="px-4 py-2.5 text-right">
-                        <button onclick="deleteLevel('${lvl}')" class="text-rose-500 hover:text-rose-700 p-1 rounded transition">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
+                        ${isAdmin ? `
+                            <button onclick="deleteLevel('${lvl}')" class="text-rose-500 hover:text-rose-700 p-1 rounded transition">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        ` : '<span class="text-slate-300 text-xs">Kısıtlı</span>'}
                     </td>
                 </tr>
             `).join('');
         }
 
         function deleteLevel(levelName) {
+            if (!checkAdminPermission()) return;
             if (state.levels.length <= 1) {
-                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir seviye tanımı kalmalıdır.', confirmButtonColor: '#4F46E5' });
+                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir seviye tanımı kalmalıdır.', confirmColor: '#4F46E5' });
                 return;
             }
             Swal.fire({
@@ -2757,6 +2800,7 @@
 
         function handleSaveFirebaseSettings(e) {
             e.preventDefault();
+            if (!checkAdminPermission()) return;
             const rootNode = document.getElementById('fb-root-node').value.trim() || "okul_yoklama_sistemi";
             const jsonText = document.getElementById('fb-config-json').value.trim();
 
@@ -2797,6 +2841,7 @@
         }
 
         function deleteFirebaseSettings() {
+            if (!checkAdminPermission()) return;
             Swal.fire({
                 title: 'Firebase Ayarları Silinsin mi?',
                 text: 'Kayıtlı tekil Firebase bağlantı konfigürasyonu kaldırılacak.',
@@ -2847,6 +2892,7 @@
         }
 
         function importBackupData(event) {
+            if (!checkAdminPermission()) return;
             const file = event.target.files[0];
             if (!file) return;
 
