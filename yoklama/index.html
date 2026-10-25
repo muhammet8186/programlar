@@ -46,7 +46,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
 
-    <!-- LOGIN MODAL (Sadece Şifre ile Giriş) -->
+    <!-- LOGIN MODAL (Şifre ile Giriş) -->
     <div id="login-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100">
             <div class="p-6 bg-gradient-to-r from-slate-900 to-indigo-950 text-white text-center">
@@ -550,7 +550,7 @@
             </div>
         </section>
 
-        <!-- TAB 6: AYARLAR (Şifrelerin Göründüğü & Bölüm Yetkilerinin Seçildiği Kullanıcı Yönetimi ile) -->
+        <!-- TAB 6: AYARLAR -->
         <section id="section-settings" class="tab-content space-y-6 hidden">
             
             <!-- Program Başlığı Ayarları -->
@@ -576,7 +576,27 @@
                 </form>
             </div>
 
-            <!-- Kullanıcı Yönetimi Bölümü (Şifrelerin Görüldüğü ve Bölüm Yetkilerinin Tanımlandığı Panel) -->
+            <!-- Devamsızlık Sınırı Ayarı (Özürsüz Sınır) -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-gradient-to-r from-rose-600 to-pink-700 text-white flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+                    <h2 class="font-bold">Devamsızlık Sınırı Ayarı</h2>
+                </div>
+                <form onsubmit="handleSaveLimitSettings(event)" class="p-4 sm:p-6 space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Özürsüz Devamsızlık Sınırı (Gün)</label>
+                        <p class="text-xs text-slate-400 mb-2">Öğrenci karnelerinde baz alınacak maksimum devamsızlık sınır gün sayısını belirleyin.</p>
+                        <input type="number" id="setting-unexcused-limit" min="1" max="100" required class="w-full sm:w-64 px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-bold">
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl text-sm transition shadow-md shadow-rose-600/20 flex items-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> Sınırı Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Kullanıcı Yönetimi ve Bölüm Yetkilendirme -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white flex items-center gap-2">
                     <i class="fa-solid fa-users-gear text-lg"></i>
@@ -838,7 +858,7 @@
             <div class="p-3 bg-slate-100 border-b border-slate-200 flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-700 no-print">
                 <span class="text-slate-500 uppercase tracking-wider text-[10px] font-bold"><i class="fa-solid fa-sliders mr-1"></i> Karne Alanları:</span>
                 <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="toggle-score" checked onchange="toggleModalSections()" class="rounded text-indigo-600 focus:ring-indigo-500"> Skor & Rozet</label>
-                <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="toggle-meb" checked onchange="toggleModalSections()" class="rounded text-indigo-600 focus:ring-indigo-500"> MEB Limit</label>
+                <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="toggle-meb" checked onchange="toggleModalSections()" class="rounded text-indigo-600 focus:ring-indigo-500"> Devamsızlık Limit</label>
                 <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="toggle-stats" checked onchange="toggleModalSections()" class="rounded text-indigo-600 focus:ring-indigo-500"> İstatistik & Grafik</label>
                 <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="toggle-notes" checked onchange="toggleModalSections()" class="rounded text-indigo-600 focus:ring-indigo-500"> Gözlem Notları</label>
                 <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="toggle-logs" checked onchange="toggleModalSections()" class="rounded text-indigo-600 focus:ring-indigo-500"> Ders Detayları</label>
@@ -865,7 +885,7 @@
 
                 <div id="section-meb-limit" class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                     <div class="flex justify-between items-center text-xs font-bold">
-                        <span class="text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Özürsüz Devamsızlık Sınırı (10 Gün)</span>
+                        <span class="text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Devamsızlık Sınırı (<span id="modal-limit-display">10</span> Gün)</span>
                         <span id="meb-limit-text" class="text-rose-600">0 / 10 Gün</span>
                     </div>
                     <div class="w-full bg-slate-200 h-3 rounded-full overflow-hidden">
@@ -963,7 +983,6 @@
             { id: 't2', name: 'Fatma Öğretmen', branch: 'Matematik' }
         ];
 
-        // Varsayılan Kullanıcılar (Yönetici şifresi: 1234, Kullanıcı şifresi: 1111)
         const DEFAULT_USERS = [
             { id: 'u1', username: 'admin', password: '1234', role: 'admin', name: 'Sistem Yöneticisi', permissions: ['take-attendance', 'history', 'students', 'teachers', 'statistics', 'settings'] },
             { id: 'u2', username: 'user', password: '1111', role: 'user', name: 'Yoklama Kullanıcısı', permissions: ['take-attendance', 'history', 'statistics'] }
@@ -972,6 +991,7 @@
         let state = {
             appTitle: "Öğrenci Yoklama Sistemi",
             appSubtitle: "2026 - 2027 Eğitim Öğretim Yılı",
+            unexcusedLimit: 10,
             students: [],
             teachers: [],
             lessons: [],
@@ -1008,6 +1028,7 @@
         function loadFromLocalStorage() {
             const savedTitle = localStorage.getItem('att_title');
             const savedSubtitle = localStorage.getItem('att_subtitle');
+            const savedLimit = localStorage.getItem('att_unexcused_limit');
             const savedStudents = localStorage.getItem('att_students');
             const savedTeachers = localStorage.getItem('att_teachers');
             const savedLessons = localStorage.getItem('att_lessons');
@@ -1022,6 +1043,7 @@
 
             state.appTitle = savedTitle || "Öğrenci Yoklama Sistemi";
             state.appSubtitle = savedSubtitle || "2026 - 2027 Eğitim Öğretim Yılı";
+            state.unexcusedLimit = savedLimit ? parseInt(savedLimit, 10) : 10;
             state.students = savedStudents ? JSON.parse(savedStudents) : DEFAULT_STUDENTS;
             state.teachers = savedTeachers ? JSON.parse(savedTeachers) : DEFAULT_TEACHERS;
             state.lessons = savedLessons ? JSON.parse(savedLessons) : DEFAULT_LESSONS;
@@ -1033,6 +1055,8 @@
             state.firebaseRootNode = savedRootNode || "okul_yoklama_sistemi";
             
             document.getElementById('fb-root-node').value = state.firebaseRootNode;
+            const limitInput = document.getElementById('setting-unexcused-limit');
+            if(limitInput) limitInput.value = state.unexcusedLimit;
 
             if (savedFb) {
                 try {
@@ -1051,6 +1075,7 @@
         function saveToLocalStorage() {
             localStorage.setItem('att_title', state.appTitle);
             localStorage.setItem('att_subtitle', state.appSubtitle);
+            localStorage.setItem('att_unexcused_limit', state.unexcusedLimit);
             localStorage.setItem('att_students', JSON.stringify(state.students));
             localStorage.setItem('att_teachers', JSON.stringify(state.teachers));
             localStorage.setItem('att_lessons', JSON.stringify(state.lessons));
@@ -1078,7 +1103,6 @@
             }
         }
 
-        // Sadece Şifre ile Giriş Kontrolü
         function handleLogin(e) {
             e.preventDefault();
             const passwordInput = document.getElementById('login-password').value.trim();
@@ -1128,7 +1152,6 @@
             renderStatisticsTab();
             renderFirebaseSection();
 
-            // Eğer kullanıcının mevcut açık sekmeye izni yoksa yetkili olduğu ilk sekmeye yönlendir
             const activeSec = document.querySelector('.tab-content:not(.hidden)');
             const currentTabId = activeSec ? activeSec.id.replace('section-', '') : '';
             const userPerms = state.currentUser.permissions || [];
@@ -1138,7 +1161,6 @@
             }
         }
 
-        // Kullanıcının Yetkilerine Göre Dinamik Navigasyon
         function renderNavigation() {
             const desktopNav = document.getElementById('desktop-nav');
             const mobileNav = document.getElementById('mobile-nav');
@@ -1160,7 +1182,7 @@
             let mNavHTML = '';
 
             allowedTabs.forEach((tab, index) => {
-                const isActive = index === 0; // ilk izinli sekme varsayılan aktif
+                const isActive = index === 0;
                 dNavHTML += `
                     <button onclick="switchTab('${tab.id}')" id="tab-${tab.id}" class="nav-tab flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ${isActive ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'text-slate-300 hover:text-white hover:bg-slate-800'}">
                         <i class="fa-solid ${tab.icon}"></i>
@@ -1223,7 +1245,6 @@
             }
         }
 
-        // Kullanıcı Şifrelerinin Gözüktüğü & Yetki Ayarlarının Yapıldığı Yönetim Paneli
         function renderUsersManagementList() {
             const tbody = document.getElementById('users-table-body');
             if(!tbody) return;
@@ -1292,7 +1313,6 @@
             Toast.fire({ icon: 'success', title: 'Yeni kullanıcı başarıyla eklendi.' });
         }
 
-        // Kullanıcı Düzenleme Modalı
         function openEditUserModal(userId) {
             const user = state.users.find(u => u.id === userId);
             if (!user) return;
@@ -1398,6 +1418,18 @@
                     Toast.fire({ icon: 'success', title: 'Kullanıcı silindi.' });
                 }
             });
+        }
+
+        function handleSaveLimitSettings(e) {
+            e.preventDefault();
+            const val = parseInt(document.getElementById('setting-unexcused-limit').value, 10);
+            if (isNaN(val) || val < 1) {
+                Swal.fire({ icon: 'error', title: 'Geçersiz Değer', text: 'Lütfen geçerli bir sınır sayısı giriniz.', confirmButtonColor: '#4F46E5' });
+                return;
+            }
+            state.unexcusedLimit = val;
+            saveToLocalStorage();
+            Toast.fire({ icon: 'success', title: 'Devamsızlık sınırı güncellendi.' });
         }
 
         function resetCurrentAttendanceToUnselected() {
@@ -1986,14 +2018,15 @@
             if (!badgesHTML) badgesHTML = `<span class="text-xs text-slate-400 italic">Henüz rozet kazanılmadı. Daha aktif katılım bekleniyor.</span>`;
             document.getElementById('modal-badges-container').innerHTML = badgesHTML;
 
-            const maxLimit = 10;
+            const maxLimit = state.unexcusedLimit || 10;
+            document.getElementById('modal-limit-display').textContent = maxLimit;
             const currentAbsent = stats.absent;
             const percentLimit = Math.min(Math.round((currentAbsent / maxLimit) * 100), 100);
             document.getElementById('meb-limit-text').textContent = `${currentAbsent} / ${maxLimit} Gün`;
             const barEl = document.getElementById('meb-limit-bar');
             barEl.style.width = `${percentLimit}%`;
-            if (currentAbsent < 5) barEl.className = "bg-emerald-500 h-3 rounded-full transition-all duration-500";
-            else if (currentAbsent < 8) barEl.className = "bg-amber-500 h-3 rounded-full transition-all duration-500";
+            if (currentAbsent < (maxLimit * 0.5)) barEl.className = "bg-emerald-500 h-3 rounded-full transition-all duration-500";
+            else if (currentAbsent < (maxLimit * 0.8)) barEl.className = "bg-amber-500 h-3 rounded-full transition-all duration-500";
             else barEl.className = "bg-rose-500 h-3 rounded-full transition-all duration-500";
 
             document.getElementById('stat-weekly-rate').textContent = `${stats.rate}%`;
@@ -2553,7 +2586,6 @@
             Toast.fire({ icon: 'success', title: 'Program başlıkları güncellendi.' });
         }
 
-        // Ders / Etkinlik Yönetimi
         function handleAddLesson(e) {
             e.preventDefault();
             const input = document.getElementById('new-lesson-name');
@@ -2586,7 +2618,7 @@
 
         function deleteLesson(lessonName) {
             if (state.lessons.length <= 1) {
-                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir ders tanımı kalmalıdır.', confirmColor: '#4F46E5' });
+                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir ders tanımı kalmalıdır.', confirmButtonColor: '#4F46E5' });
                 return;
             }
             Swal.fire({
@@ -2609,7 +2641,6 @@
             });
         }
 
-        // Sınıf Yönetimi
         function handleAddClass(e) {
             e.preventDefault();
             const input = document.getElementById('new-class-name');
@@ -2643,7 +2674,7 @@
 
         function deleteClass(className) {
             if (state.classes.length <= 1) {
-                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir sınıf tanımı kalmalıdır.', confirmColor: '#4F46E5' });
+                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir sınıf tanımı kalmalıdır.', confirmButtonColor: '#4F46E5' });
                 return;
             }
             Swal.fire({
@@ -2667,7 +2698,6 @@
             });
         }
 
-        // Seviye Yönetimi
         function handleAddLevel(e) {
             e.preventDefault();
             const input = document.getElementById('new-level-name');
@@ -2701,7 +2731,7 @@
 
         function deleteLevel(levelName) {
             if (state.levels.length <= 1) {
-                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir seviye tanımı kalmalıdır.', confirmColor: '#4F46E5' });
+                Swal.fire({ icon: 'error', title: 'Silinemez', text: 'En az bir seviye tanımı kalmalıdır.', confirmButtonColor: '#4F46E5' });
                 return;
             }
             Swal.fire({
@@ -2793,6 +2823,7 @@
             const backupData = {
                 appTitle: state.appTitle,
                 appSubtitle: state.appSubtitle,
+                unexcusedLimit: state.unexcusedLimit,
                 students: state.students,
                 teachers: state.teachers,
                 lessons: state.lessons,
@@ -2826,6 +2857,7 @@
                     if (importedData.students && importedData.lessons) {
                         state.appTitle = importedData.appTitle || state.appTitle;
                         state.appSubtitle = importedData.appSubtitle || state.appSubtitle;
+                        state.unexcusedLimit = importedData.unexcusedLimit || 10;
                         state.students = importedData.students || [];
                         state.teachers = importedData.teachers || [];
                         state.lessons = importedData.lessons || [];
