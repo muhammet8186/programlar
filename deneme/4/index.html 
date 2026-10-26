@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AetherCom - Ultra Modern Web Telsizi</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            900: '#0a0d14',
+                            800: '#121824',
+                            700: '#1b2333',
+                            600: '#263248',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- PeerJS CDN -->
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .glass {
+            background: rgba(18, 24, 36, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-panel {
+            background: rgba(27, 35, 51, 0.5);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(10, 13, 20, 0.5); }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset 0 0 15px rgba(255, 255, 255, 0.2); }
+            50% { box-shadow: 0 0 35px rgba(239, 68, 68, 0.8), inset 0 0 25px rgba(255, 255, 255, 0.4); }
+        .ptt-active { animation: pulseGlow 1.5s infinite; }
+    </style>
+</head>
+<body class="bg-dark-900 text-gray-100 min-h-screen flex flex-col items-center justify-between p-3 md:p-6 overflow-x-hidden selection:bg-amber-500 selection:text-white">
+
+    <!-- Header / Nav -->
+    <header class="w-full max-w-5xl flex justify-between items-center glass px-6 py-4 rounded-2xl shadow-xl mb-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-red-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                <i class="fa-solid fa-walkie-talkie text-white text-lg"></i>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-lg md:text-xl tracking-tight bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">AETHERCOM</h1>
+                <p class="text-[10px] md:text-xs text-amber-400/90 font-medium tracking-widest uppercase">PMR Mesh Transceiver</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl glass-panel text-xs">
+                <span id="pingIndicator" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span id="pingText" class="font-mono text-gray-300">Sinyal: Mükemmel</span>
+            </div>
+            <button onclick="toggleSettingsModal()" class="w-10 h-10 rounded-xl glass-panel hover:bg-white/10 flex items-center justify-center transition cursor-pointer" title="Ayarlar">
+                <i class="fa-solid fa-gear text-gray-300"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-4 mb-4 flex-1">
+        
+        <!-- Sol Kolon: Kanal ve Kullanıcı Listesi -->
+        <div class="lg:col-span-4 flex flex-col gap-4">
+            
+            <!-- Kanal Yönetimi -->
+            <div class="glass rounded-2xl p-5 shadow-lg flex flex-col gap-3">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-2">
+                        <i class="fa-solid fa-tower-broadcast text-amber-500"></i> Kanal / Oda Seçimi
+                    </h2>
+                    <span id="activeChannelBadge" class="px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded-md text-[10px] font-mono font-bold">#kanal-1</span>
+                </div>
+                
+                <div class="flex gap-2">
+                    <input type="text" id="roomInput" placeholder="Kanal adı..." value="kanal-1" class="flex-1 bg-dark-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono transition">
+                    <button id="joinRoomBtn" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold px-4 py-2 rounded-xl text-xs transition cursor-pointer shadow-lg shadow-amber-600/30 flex items-center gap-1.5">
+                        <i class="fa-solid fa-right-to-bracket"></i> Bağlan
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2 mt-1">
+                    <input type="password" id="roomPassword" placeholder="Kanal Şifresi (Opsiyonel)" class="w-full bg-dark-900 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500 font-mono transition">
+                </div>
+            </div>
+
+            <!-- Odadaki Kullanıcılar -->
+            <div class="glass rounded-2xl p-5 shadow-lg flex flex-col gap-3 flex-1 min-h-[220px]">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-2">
+                        <i class="fa-solid fa-users text-blue-400"></i> Aktif İstasyonlar
+                    </h2>
+                    <span id="peerCountBadge" class="text-xs font-mono font-bold text-gray-400">1 Online</span>
+                </div>
+                <div id="peerListContainer" class="flex flex-col gap-2 overflow-y-auto max-h-[200px] pr-1">
+                    <div class="flex items-center justify-between p-2.5 rounded-xl glass-panel text-xs">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs" id="userAvatarInitial">S</div>
+                            <span id="userNameDisplay" class="font-bold text-gray-200">Siz (Bağlanıyor...)</span>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 font-mono">Dinliyor</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Sağ Kolon: Telsiz Gövdesi ve Kontroller -->
+        <div class="lg:col-span-8 flex flex-col gap-4">
+            
+            <!-- Telsiz Donanım Paneli (Glassmorphic Walkie-Talkie) -->
+            <div class="glass rounded-3xl p-6 shadow-2xl relative flex flex-col items-center justify-between gap-6 border-2 border-white/10 overflow-hidden">
+                
+                <!-- Üst Durum & LEDler -->
+                <div class="w-full flex justify-between items-center z-10">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/50 animate-pulse" id="pwrLed" title="Cihaz Açık"></span>
+                        <span class="text-[10px] font-mono tracking-widest text-gray-400">POWER</span>
+                    </div>
+                    
+                    <!-- Audio Visualizer Kanvası -->
+                    <div class="flex-1 mx-4 h-8 bg-dark-900/80 rounded-xl border border-white/5 overflow-hidden flex items-center justify-center relative">
+                        <canvas id="visualizerCanvas" class="w-full h-full"></canvas>
+                        <span id="visualizerText" class="absolute text-[10px] font-mono text-gray-500 tracking-wider">SES DALGASI BEKLENİYOR</span>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <div class="flex flex-col items-end">
+                            <span class="text-[9px] font-mono text-gray-400">TX</span>
+                            <span id="ledTx" class="w-3 h-3 rounded-full bg-gray-700 shadow transition-colors duration-200"></span>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span class="text-[9px] font-mono text-gray-400">RX</span>
+                            <span id="ledRx" class="w-3 h-3 rounded-full bg-gray-700 shadow transition-colors duration-200"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LCD Ekran -->
+                <div class="w-full bg-black/80 border border-emerald-500/30 rounded-2xl p-4 shadow-inner flex flex-col items-center justify-center relative min-h-[100px] z-10">
+                    <div class="absolute top-2 left-3 flex items-center gap-2">
+                        <span class="text-[10px] font-mono text-emerald-600">KANAL: <span id="lcdChannel" class="text-emerald-400 font-bold">kanal-1</span></span>
+                    </div>
+                    <div class="absolute top-2 right-3">
+                        <span id="lcdMode" class="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">MANUEL PTT</span>
+                    </div>
+
+                    <div class="text-center my-2">
+                        <div id="lcdStatus" class="text-xl md:text-2xl font-black font-mono tracking-widest text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]">BEKLEMEDE</div>
+                        <div id="lcdSubStatus" class="text-[11px] font-mono text-emerald-600 mt-1">SİSTEM HAZIR</div>
+                    </div>
+                </div>
+
+                <!-- PTT ve Kontrol Butonları -->
+                <div class="w-full flex flex-col sm:flex-row items-center justify-around gap-6 z-10 my-2">
+                    
+                    <!-- Sol Ekstra Butonlar: Hands-Free / Kilit -->
+                    <div class="flex sm:flex-col gap-3">
+                        <button id="handsFreeBtn" class="w-12 h-12 rounded-2xl glass-panel hover:bg-white/10 flex flex-col items-center justify-center text-gray-400 hover:text-white transition cursor-pointer" title="Eller Serbest (VOX / Sürekli Açık)">
+                            <i class="fa-solid fa-lock-open text-base" id="handsFreeIcon"></i>
+                            <span class="text-[8px] font-mono mt-0.5">KİLİT</span>
+                        </button>
+                        <button id="squelchBtn" class="w-12 h-12 rounded-2xl glass-panel hover:bg-white/10 flex flex-col items-center justify-center text-emerald-400 transition cursor-pointer" title="Squelch (Gürültü Kapısı)">
+                            <i class="fa-solid fa-shield-halved text-base"></i>
+                            <span class="text-[8px] font-mono mt-0.5">SQL</span>
+                        </button>
+                    </div>
+
+                    <!-- Büyük Ana PTT Butonu -->
+                    <div class="flex flex-col items-center">
+                        <button id="pttBtn" class="w-36 h-36 md:w-40 md:h-40 rounded-full bg-gradient-to-b from-red-600 via-red-700 to-red-900 hover:from-red-500 hover:to-red-800 active:scale-95 shadow-2xl border-8 border-red-950 flex flex-col items-center justify-center text-white transition-all cursor-pointer select-none group relative">
+                            <div class="absolute inset-2 rounded-full border border-red-500/30 pointer-events-none"></div>
+                            <i class="fa-solid fa-microphone text-3xl md:text-4xl text-red-100 group-hover:scale-110 transition-transform mb-1"></i>
+                            <span class="text-lg md:text-xl font-black tracking-widest drop-shadow">PTT</span>
+                            <span class="text-[9px] font-mono text-red-200 tracking-wider">BAS - KONUŞ</span>
+                        </button>
+                        <span class="text-[10px] font-mono text-gray-400 mt-2">Kısayol: <kbd class="px-1.5 py-0.5 bg-white/10 rounded text-gray-300">BOŞLUK</kbd> veya <kbd class="px-1.5 py-0.5 bg-white/10 rounded text-gray-300">T</kbd></span>
+                    </div>
+
+                    <!-- Sağ Ekstra Butonlar: Ses Efekti / Roger Beep -->
+                    <div class="flex sm:flex-col gap-3">
+                        <button id="filterToggleBtn" class="w-12 h-12 rounded-2xl glass-panel bg-amber-500/20 border-amber-500/30 flex flex-col items-center justify-center text-amber-400 hover:bg-amber-500/30 transition cursor-pointer" title="Telsiz Ses Efekti (Bandpass)">
+                            <i class="fa-solid fa-sliders text-base"></i>
+                            <span class="text-[8px] font-mono mt-0.5">FİLTRE</span>
+                        </button>
+                        <button id="muteAudioBtn" class="w-12 h-12 rounded-2xl glass-panel hover:bg-white/10 flex flex-col items-center justify-center text-gray-400 hover:text-white transition cursor-pointer" title="Hoparlör Sessiz">
+                            <i class="fa-solid fa-volume-high text-base" id="muteIcon"></i>
+                            <span class="text-[8px] font-mono mt-0.5">SES</span>
+                        </button>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Hızlı Tepkiler ve Oda Mesajlaşması -->
+            <div class="glass rounded-2xl p-4 shadow-lg flex flex-col gap-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-2">
+                        <i class="fa-solid fa-comment-dots text-amber-500"></i> Hızlı Reaksiyonlar & Mesajlar
+                    </span>
+                    <div class="flex gap-1.5">
+                        <button onclick="sendReaction('over')" class="px-2.5 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-mono transition">OVER 📻</button>
+                        <button onclick="sendReaction('copy')" class="px-2.5 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-mono transition">COPY 🟢</button>
+                        <button onclick="sendReaction('sos')" class="px-2.5 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-xs font-mono transition">🚨 SOS</button>
+                    </div>
+                </div>
+                
+                <div class="flex gap-2">
+                    <input type="text" id="chatInput" placeholder="Kanal içi kısa mesaj yaz..." class="flex-1 bg-dark-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 font-mono transition">
+                    <button onclick="sendChatMessage()" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer">Gönder</button>
+                </div>
+                <div id="chatLog" class="bg-dark-900/60 rounded-xl p-2.5 h-16 overflow-y-auto text-[11px] font-mono flex flex-col gap-1 border border-white/5">
+                    <div class="text-gray-500 italic">Sistem: Kanal akışı başlatıldı. İyi görüşmeler!</div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer Bilgilendirme -->
+    <footer class="w-full max-w-5xl text-center text-gray-500 text-xs py-2">
+        AetherCom WebRTC Mesh Transceiver System &bull; Secure P2P Audio
+    </footer>
+
+    <!-- Ayarlar Modalı -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="glass max-w-md w-full rounded-3xl p-6 shadow-2xl flex flex-col gap-4 border border-white/10">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2"><i class="fa-solid fa-sliders text-amber-500"></i> Ses ve İstasyon Ayarları</h3>
+                <button onclick="toggleSettingsModal()" class="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="flex flex-col gap-4 py-2">
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-semibold text-gray-300">Kullanıcı Adınız:</label>
+                    <input type="text" id="settingsNameInput" class="bg-dark-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                    <div class="flex justify-between text-xs font-semibold text-gray-300">
+                        <span>Hoparlör Ses Seviyesi:</span>
+                        <span id="volumeVal" class="font-mono text-amber-400">100%</span>
+                    </div>
+                    <input type="range" id="volumeSlider" min="0" max="150" value="100" class="w-full accent-amber-500 cursor-pointer">
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                    <div class="flex justify-between text-xs font-semibold text-gray-300">
+                        <span>Mikrofon Kazancı (Gain):</span>
+                        <span id="gainVal" class="font-mono text-amber-400">100%</span>
+                    </div>
+                    <input type="range" id="gainSlider" min="50" max="250" value="100" class="w-full accent-amber-500 cursor-pointer">
+                </div>
+            </div>
+
+            <button onclick="saveSettings()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl text-xs transition cursor-pointer shadow-lg shadow-amber-600/30">Ayarları Kaydet</button>
+        </div>
+    </div>
+
+    <!-- Uzak Sesleri Oynatmak İçin Gizli Audio Konteynerı -->
+    <div id="audioContainer" class="hidden"></div>
+
+    <!-- Bildirim Kutusu (Özel alert alternatifi) -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-dark-800 border border-amber-500/40 text-gray-200 px-4 py-3 rounded-2xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3 text-xs font-mono">
+        <i class="fa-solid fa-circle-info text-amber-400 text-base"></i>
+        <span id="toastMsg">Bildirim mesajı</span>
+    </div>
+
+    <!-- Uygulama Mantığı Scripti -->
+    <script>
+        // --- Durum Değişkenleri ---
+        let peer = null;
+        let localStream = null;
+        let audioCtx = null;
+        let analyser = null;
+        let microphoneNode = null;
+        let gainNode = null;
+        let bandpassFilter = null;
+        let destinationNode = null;
+        
+        let activeCalls = {}; // peerId -> mediaConnection
+        let connectedPeersMap = {}; // peerId -> { name, status }
+        
+        let userName = "Kullanıcı_" + Math.floor(Math.random() * 899 + 100);
+        let roomName = "kanal-1";
+        let roomPassword = "";
+        
+        let isTransmitting = false;
+        let isHandsFreeLocked = false;
+        let isFilterActive = true;
+        let isMuted = false;
+        let isSquelchActive = true;
+        let speakerVolume = 1.0;
+        let micGainValue = 1.0;
+
+        let animationFrameId = null;
+
+        // DOM Elementleri
+        const roomInput = document.getElementById('roomInput');
+        const roomPasswordInput = document.getElementById('roomPassword');
+        const joinRoomBtn = document.getElementById('joinRoomBtn');
+        const activeChannelBadge = document.getElementById('activeChannelBadge');
+        const lcdChannel = document.getElementById('lcdChannel');
+        const lcdStatus = document.getElementById('lcdStatus');
+        const lcdSubStatus = document.getElementById('lcdSubStatus');
+        const lcdMode = document.getElementById('lcdMode');
+        const ledTx = document.getElementById('ledTx');
+        const ledRx = document.getElementById('ledRx');
+        const pttBtn = document.getElementById('pttBtn');
+        const handsFreeBtn = document.getElementById('handsFreeBtn');
+        const handsFreeIcon = document.getElementById('handsFreeIcon');
+        const filterToggleBtn = document.getElementById('filterToggleBtn');
+        const muteAudioBtn = document.getElementById('muteAudioBtn');
+        const muteIcon = document.getElementById('muteIcon');
+        const peerListContainer = document.getElementById('peerListContainer');
+        const peerCountBadge = document.getElementById('peerCountBadge');
+        const userNameDisplay = document.getElementById('userNameDisplay');
+        const userAvatarInitial = document.getElementById('userAvatarInitial');
+        const chatInput = document.getElementById('chatInput');
+        const chatLog = document.getElementById('chatLog');
+        const audioContainer = document.getElementById('audioContainer');
+
+        // Başlangıç Ayarları
+        document.getElementById('settingsNameInput').value = userName;
+        userNameDisplay.innerText = userName;
+        userAvatarInitial.innerText = userName.charAt(0).toUpperCase();
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3500);
+        }
+
+        function toggleSettingsModal() {
+            const modal = document.getElementById('settingsModal');
+            modal.classList.toggle('hidden');
+            modal.classList.toggle('flex');
+        }
+
+        function saveSettings() {
+            const nameInput = document.getElementById('settingsNameInput').value.trim();
+            if (nameInput) {
+                userName = nameInput;
+                userNameDisplay.innerText = userName;
+                userAvatarInitial.innerText = userName.charAt(0).toUpperCase();
+            }
+            toggleSettingsModal();
+            showToast("Ayarlar kaydedildi.");
+        }
+
+        // Ses Seviyesi ve Kazanç Kontrolleri
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumeVal = document.getElementById('volumeVal');
+        volumeSlider.addEventListener('input', (e) => {
+            speakerVolume = e.target.value / 100;
+            volumeVal.innerText = e.target.value + '%';
+            // Mevcut audio elemanlarının sesini güncelle
+            document.querySelectorAll('audio').forEach(a => a.volume = speakerVolume);
+        });
+
+        const gainSlider = document.getElementById('gainSlider');
+        const gainVal = document.getElementById('gainVal');
+        gainSlider.addEventListener('input', (e) => {
+            micGainValue = e.target.value / 100;
+            gainVal.innerText = e.target.value + '%';
+            if (gainNode && audioCtx) {
+                gainNode.gain.setValueAtTime(micGainValue, audioCtx.currentTime);
+            }
+        });
+
+        // --- Web Audio API & Telsiz Ses Efektleri ---
+        function initAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playTone(freq1, freq2, duration) {
+            try {
+                initAudioContext();
+                let now = audioCtx.currentTime;
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq1, now);
+                if (freq2) osc.frequency.setValueAtTime(freq2, now + duration / 2);
+                
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.start(now);
+                osc.stop(now + duration);
+            } catch(e) {}
+        }
+
+        function playRogerBeep() {
+            playTone(1800, 1200, 0.12);
+        }
+
+        function playStartBeep() {
+            playTone(1000, 1500, 0.08);
+        }
+
+        function playChannelChangeSound() {
+            playTone(800, 600, 0.06);
+        }
+
+        // --- Mikrofon ve Ses İşleme Hattı (Pipeline) ---
+        async function setupMicrophone() {
+            if (localStream) return;
+            try {
+                initAudioContext();
+                const rawStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, 
+                    video: false 
+                });
+                
+                // Web Audio Graph kurulumu
+                microphoneNode = audioCtx.createMediaStreamSource(rawStream);
+                gainNode = audioCtx.createGain();
+                gainNode.gain.setValueAtTime(micGainValue, audioCtx.currentTime);
+                
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 256;
+
+                // Telsiz ses filtresi (Bandpass simülasyonu: 300Hz - 3400Hz)
+                bandpassFilter = audioCtx.createBiquadFilter();
+                bandpassFilter.type = 'bandpass';
+                bandpassFilter.frequency.value = 1800;
+                bandpassFilter.Q.value = 1.0;
+
+                const destination = audioCtx.createMediaStreamDestination();
+                
+                // Bağlantıları kur
+                microphoneNode.connect(gainNode);
+                if (isFilterActive) {
+                    gainNode.connect(bandpassFilter);
+                    bandpassFilter.connect(analyser);
+                    bandpassFilter.connect(destination);
+                } else {
+                    gainNode.connect(analyser);
+                    gainNode.connect(destination);
+                }
+
+                localStream = destination.stream;
+                // Başlangıçta mikrofonu sessize al (PTT mantığı)
+                localStream.getAudioTracks()[0].enabled = false;
+
+                startVisualizer();
+                lcdSubStatus.innerText = "MİKROFON HAZIR";
+            } catch(err) {
+                console.error("Mikrofon hatası:", err);
+                lcdSubStatus.innerText = "MİKROFON HATASI!";
+                showToast("Mikrofon izni alınamadı.");
+            }
+        }
+
+        // Ses Dalgası Görselleştiricisi (Visualizer)
+        function startVisualizer() {
+            const canvas = document.getElementById('visualizerCanvas');
+            const canvasCtx = canvas.getContext('2d');
+            const visualizerText = document.getElementById('visualizerText');
+
+            function resizeCanvas() {
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+            }
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            const bufferLength = analyser ? analyser.frequencyBinCount : 64;
+            const dataArray = new Uint8Array(bufferLength);
+
+            function draw() {
+                animationFrameId = requestAnimationFrame(draw);
+                if (!analyser) return;
+
+                analyser.getByteFrequencyData(dataArray);
+
+                canvasCtx.fillStyle = 'rgba(10, 13, 20, 0.3)';
+                canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+                let sum = 0;
+                for (let i = 0; i < bufferLength; i++) {
+                    sum += dataArray[i];
+                }
+                let avg = sum / bufferLength;
+
+                if (avg > 5 && (isTransmitting || isRxActive())) {
+                    visualizerText.style.opacity = '0';
+                    let barWidth = (canvas.width / bufferLength) * 2.5;
+                    let barHeight;
+                    let x = 0;
+
+                    for (let i = 0; i < bufferLength; i++) {
+                        barHeight = (dataArray[i] / 255) * canvas.height;
+                        
+                        let r = isTransmitting ? 239 : 16;
+                        let g = isTransmitting ? 68 : 185;
+                        let b = isTransmitting ? 68 : 129;
+                        
+                        canvasCtx.fillStyle = `rgb(${r},${g},${b})`;
+                        canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+
+                        x += barWidth + 1;
+                    }
+                } else {
+                    visualizerText.style.opacity = '1';
+                    canvasCtx.fillStyle = '#10b981';
+                    // Durgun yatay çizgi animasyonu
+                    let centerY = canvas.height / 2;
+                    canvasCtx.fillRect(0, centerY - 1, canvas.width, 2);
+                }
+            }
+            draw();
+        }
+
+        function isRxActive() {
+            return Object.values(activeCalls).some(c => c && c.open);
+        }
+
+        // --- PeerJS Mesh Ağı ve Oda Yönetimi ---
+        joinRoomBtn.addEventListener('click', () => {
+            const newRoom = roomInput.value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '');
+            if (!newRoom) {
+                showToast("Geçerli bir kanal adı girin.");
+                return;
+            }
+            roomName = newRoom;
+            roomPassword = roomPasswordInput.value;
+            
+            playChannelChangeSound();
+            activeChannelBadge.innerText = "#" + roomName;
+            lcdChannel.innerText = roomName;
+            
+            connectToMeshNetwork();
+        });
+
+        function connectToMeshNetwork() {
+            if (peer) {
+                peer.destroy();
+                activeCalls = {};
+            }
+
+            lcdStatus.innerText = "BAĞLANILIYOR";
+            lcdSubStatus.innerText = "KANAL TARaniyor...";
+            showToast("Kanala bağlanılıyor: " + roomName);
+
+            // Benzersiz Peer ID üret (Kanal adı + kullanıcı adı hash)
+            const uniqueId = 'aether-' + roomName + '-' + Math.random().toString(36.substring(2, 7));
+
+            peer = new Peer(uniqueId, {
+                config: {'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }]}
+            });
+
+            peer.on('open', (id) => {
+                lcdStatus.innerText = "BEKLEMEDE";
+                lcdSubStatus.innerText = "KANAL AKTİF";
+                showToast("Kanala başarıyla katıldınız!");
+                
+                // Odadaki diğer kişileri keşfetmek için merkezi host veya oda havuzu mantığı yerine
+                // PeerJS odaya özel ID yapısıyla broadcast simülasyonu yapıyoruz.
+                // Gerçek mesh için odadaki her yeni katılımcı belirli bir aralıkta peer taraması yapar.
+                startPeerDiscovery();
+            });
+
+            peer.on('call', (call) => {
+                setupIncomingCall(call);
+            });
+
+            peer.on('error', (err) => {
+                console.error("PeerJS Hatası:", err);
+                lcdSubStatus.innerText = "BAĞLANTI HATASI";
+            });
+        }
+
+        // Basit Mesh Keşif Mekanizması (Simüle edilmiş oda taraması)
+        function startPeerDiscovery() {
+            // Oda içindeki olası diğer ID'leri tetikle
+            setInterval(() => {
+                if (!peer || peer.destroyed) return;
+                // Rastgele denemeler veya ortak oda havuzu kontrolü
+            }, 10000);
+        }
+
+        function setupIncomingCall(call) {
+            setupMicrophone().then(() => {
+                call.answer(localStream);
+                handleCallEvents(call);
+            });
+        }
+
+        function callPeer(peerId) {
+            if (activeCalls[peerId]) return;
+            setupMicrophone().then(() => {
+                let call = peer.call(peerId, localStream);
+                if (call) {
+                    handleCallEvents(call);
+                }
+            });
+        }
+
+        function handleCallEvents(call) {
+            activeCalls[call.peer] = call;
+            
+            call.on('stream', (remoteStream) => {
+                playRxState(true);
+                let audioId = 'audio-' + call.peer;
+                let audioElement = document.getElementById(audioId);
+                if (!audioElement) {
+                    audioElement = document.createElement('audio');
+                    audioElement.id = audioId;
+                    audioElement.autoplay = true;
+                    audioElement.playsInline = true;
+                    audioElement.volume = speakerVolume;
+                    audioContainer.appendChild(audioElement);
+                }
+                audioElement.srcObject = remoteStream;
+                audioElement.play().catch(e => console.log(e));
+                
+                updatePeerList(call.peer, "Konuşuyor");
+            });
+
+            call.on('close', () => {
+                removeCall(call.peer);
+            });
+
+            call.on('error', () => {
+                removeCall(call.peer);
+            });
+        }
+
+        function removeCall(peerId) {
+            delete activeCalls[peerId];
+            let audioEl = document.getElementById('audio-' + peerId);
+            if (audioEl) audioEl.remove();
+            playRxState(false);
+            updatePeerList(peerId, "Ayrıldı");
+        }
+
+        function playRxState(active) {
+            if (active) {
+                ledRx.className = "w-3 h-3 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/50 animate-pulse";
+                lcdStatus.innerText = "ALINIYOR";
+                lcdSubStatus.innerText = "YAYIN AKTİF";
+            } else {
+                if (!isRxActive()) {
+                    ledRx.className = "w-3 h-3 rounded-full bg-gray-700 shadow";
+                    lcdStatus.innerText = "BEKLEMEDE";
+                    lcdSubStatus.innerText = "KANAL AKTİF";
+                }
+            }
+        }
+
+        function updatePeerList(peerId, status) {
+            // Kullanıcı listesi arayüzünü güncelle
+            connectedPeersMap[peerId] = { status: status };
+            let count = Object.keys(connectedPeersMap).length + 1; // +1 kendimiz
+            peerCountBadge.innerText = count + " Online";
+        }
+
+        // --- PTT (Bas-Konuş) Kontrolleri ---
+        function startTransmission() {
+            if (!localStream) {
+                setupMicrophone().then(() => executeStartTransmission());
+                return;
+            }
+            executeStartTransmission();
+        }
+
+        function executeStartTransmission() {
+            if (isTransmitting) return;
+            isTransmitting = true;
+            
+            playStartBeep();
+            localStream.getAudioTracks()[0].enabled = true;
+
+            ledTx.className = "w-3 h-3 rounded-full bg-red-500 shadow-lg shadow-red-500/50 animate-pulse";
+            lcdStatus.innerText = "YAYINDA";
+            lcdSubStatus.innerText = "GÖNDERİLİYOR...";
+            pttBtn.classList.add('ptt-active');
+
+            // Kanaldaki diğer peer'lara çağrı başlat (Eğer çağrı yoksa)
+            // Not: Tam mesh için PeerJS sunucusu üzerinden oda listesi sorgulanır.
+        }
+
+        function stopTransmission() {
+            if (!isTransmitting) return;
+            if (isHandsFreeLocked) return; // Eller serbest kilitliyse bırakma
+
+            isTransmitting = false;
+            localStream.getAudioTracks()[0].enabled = false;
+
+            playRogerBeep();
+            ledTx.className = "w-3 h-3 rounded-full bg-gray-700 shadow";
+            lcdStatus.innerText = "BEKLEMEDE";
+            lcdSubStatus.innerText = "KANAL AKTİF";
+            pttBtn.classList.remove('ptt-active');
+        }
+
+        // Mouse & Touch Olayları
+        pttBtn.addEventListener('mousedown', startTransmission);
+        window.addEventListener('mouseup', stopTransmission);
+
+        pttBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startTransmission(); });
+        window.addEventListener('touchend', (e) => { e.preventDefault(); stopTransmission(); });
+
+        // Klavye Kısayolları (Space veya T)
+        window.addEventListener('keydown', (e) => {
+            if ((e.code === 'Space' || e.code === 'KeyT') && !isTransmitting && document.activeElement.tagName !== 'INPUT') {
+                e.preventDefault();
+                startTransmission();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if ((e.code === 'Space' || e.code === 'KeyT') && !isHandsFreeLocked) {
+                e.preventDefault();
+                stopTransmission();
+            }
+        });
+
+        // Eller Serbest (Hands-Free / VOX Kilit) Tuşu
+        handsFreeBtn.addEventListener('click', () => {
+            isHandsFreeLocked = !isHandsFreeLocked;
+            if (isHandsFreeLocked) {
+                handsFreeBtn.classList.add('bg-amber-500/20', 'border-amber-500/30', 'text-amber-400');
+                handsFreeIcon.className = "fa-solid fa-lock text-base";
+                lcdMode.innerText = "ELLER SERBEST (KİLİTLİ)";
+                startTransmission();
+                showToast("Eller serbest mod aktif (Sürekli Yayın).");
+            } else {
+                handsFreeBtn.classList.remove('bg-amber-500/20', 'border-amber-500/30', 'text-amber-400');
+                handsFreeIcon.className = "fa-solid fa-lock-open text-base";
+                lcdMode.innerText = "MANUEL PTT";
+                stopTransmission();
+                showToast("Eller serbest mod kapatıldı.");
+            }
+        });
+
+        // Filtre Aç/Kapat
+        filterToggleBtn.addEventListener('click', () => {
+            isFilterActive = !isFilterActive;
+            if (isFilterActive) {
+                filterToggleBtn.classList.add('bg-amber-500/20', 'border-amber-500/30', 'text-amber-400');
+                showToast("Telsiz ses filtresi (Bandpass) aktif.");
+            } else {
+                filterToggleBtn.classList.remove('bg-amber-500/20', 'border-amber-500/30', 'text-amber-400');
+                showToast("Saf ses modu aktif (Filtre kapalı).");
+            }
+        });
+
+        // Hoparlör Mute
+        muteAudioBtn.addEventListener('click', () => {
+            isMuted = !isMuted;
+            document.querySelectorAll('audio').forEach(a => a.muted = isMuted);
+            if (isMuted) {
+                muteAudioBtn.classList.add('bg-red-500/20', 'text-red-400');
+                muteIcon.className = "fa-solid fa-volume-xmark text-base";
+                showToast("Hoparlör sesleri kapatıldı.");
+            } else {
+                muteAudioBtn.classList.remove('bg-red-500/20', 'text-red-400');
+                muteIcon.className = "fa-solid fa-volume-high text-base";
+                showToast("Hoparlör sesleri açıldı.");
+            }
+        });
+
+        // Oda İçi Tepki ve Mesajlaşma
+        function sendReaction(type) {
+            let msg = "";
+            if (type === 'over') msg = "🎙️ OVER (Konuşma bitti, sıra sizde)";
+            if (type === 'copy') msg = "🟢 COPY (Anlaşıldı / Tamam)";
+            if (type === 'sos') msg = "🚨 ACİL DURUM (SOS / Dikkat!)";
+            
+            appendChatLog(userName, msg);
+            showToast("Tepki gönderildi: " + type.toUpperCase());
+        }
+
+        function sendChatMessage() {
+            const txt = chatInput.value.trim();
+            if (!txt) return;
+            appendChatLog(userName, txt);
+            chatInput.value = "";
+        }
+
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendChatMessage();
+        });
+
+        function appendChatLog(sender, text) {
+            const div = document.createElement('div');
+            div.innerHTML = `<span class="text-amber-400 font-bold">${sender}:</span> <span class="text-gray-300">${text}</span>`;
+            chatLog.appendChild(div);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        // Sayfa Yüklendiğinde Otomatik Kanal Bağlantısı Hazırlığı
+        window.addEventListener('load', () => {
+            // İlk açılışta varsayılan kanala bağlan
+            setTimeout(() => {
+                connectToMeshNetwork();
+            }, 800);
+        });
+    </script>
+</body>
+</html>
