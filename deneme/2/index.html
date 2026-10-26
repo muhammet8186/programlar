@@ -3,50 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>İnternet Telsiz Programı</title>
+    <title>PMR İnternet Telsizi</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center p-4">
-    <div class="max-w-md w-full bg-gray-800 rounded-2xl shadow-2xl p-6 border border-gray-700 flex flex-col gap-6">
+<body class="bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white min-h-screen flex flex-col items-center justify-center p-3 select-none">
+
+    <!-- Telsiz Gövdesi -->
+    <div class="max-w-xs w-full bg-gradient-to-b from-gray-700 to-gray-900 rounded-3xl shadow-2xl p-5 border-4 border-gray-600 flex flex-col gap-4 relative overflow-hidden">
         
-        <!-- Başlık ve Durum -->
-        <div class="text-center">
-            <h1 class="text-2xl font-black tracking-wider text-amber-500">PMR İNTERNET TELSİZİ</h1>
-            <p id="statusText" class="text-xs text-yellow-400 mt-1">Mikrofon izni bekleniyor...</p>
+        <!-- Anten -->
+        <div class="absolute -top-10 right-8 w-4 h-16 bg-gradient-to-r from-gray-800 via-gray-600 to-gray-900 rounded-t-lg border border-gray-500 shadow-lg"></div>
+
+        <!-- Üst Kısım: Hoparlör Izgarası Efekti ve Marka -->
+        <div class="flex justify-between items-center px-1">
+            <span class="text-[10px] tracking-widest font-bold text-gray-400">PMR-446 TRANSCEIVER</span>
+            <div class="flex gap-1.5">
+                <span id="ledTx" class="w-2.5 h-2.5 rounded-full bg-gray-600 shadow" title="TX"></span>
+                <span id="ledRx" class="w-2.5 h-2.5 rounded-full bg-gray-600 shadow" title="RX"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500 shadow animate-pulse" title="PWR"></span>
+            </div>
         </div>
 
-        <!-- KANAL / ODA DEĞİŞTİRME PANELİ (Çok Net Görünür Alan) -->
-        <div class="bg-gray-900 p-4 rounded-xl border-2 border-amber-500/50 flex flex-col gap-3 shadow-lg">
-            <label class="text-sm font-bold text-amber-400">Kanal / Oda Adı:</label>
+        <!-- Kanal Değiştirme Paneli -->
+        <div class="bg-gray-950/80 p-3 rounded-xl border border-gray-700 flex flex-col gap-2">
+            <div class="flex justify-between items-center">
+                <label class="text-xs font-bold text-amber-400">Kanal / Oda:</label>
+                <span id="statusText" class="text-[10px] text-yellow-400 truncate max-w-[120px]">Bekleniyor...</span>
+            </div>
             <div class="flex gap-2">
-                <input type="text" id="roomInput" value="telsiz-kanal-1" class="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-500 text-sm font-bold">
-                <button id="changeChannelBtn" class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition shadow cursor-pointer">Kanalı Değiştir</button>
-            </div>
-            <div class="text-xs text-gray-400 flex justify-between">
-                <span>Aktif Oda: <strong id="currentRoomDisplay" class="text-amber-400">telsiz-kanal-1</strong></span>
+                <input type="text" id="roomInput" value="telsiz-kanal-1" class="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-white text-xs focus:outline-none focus:border-amber-500 font-bold">
+                <button id="changeChannelBtn" class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-3 py-1.5 rounded text-xs transition cursor-pointer">Değiştir</button>
             </div>
         </div>
 
-        <!-- Telsiz Ekranı / LCD -->
-        <div class="bg-black border-4 border-gray-700 rounded-lg p-4 text-green-400 font-mono shadow-inner relative flex flex-col items-center justify-center h-28">
-            <div class="absolute top-2 left-2 flex gap-2">
-                <span id="ledTx" class="w-3 h-3 rounded-full bg-gray-600 shadow" title="TX (Gönderim)"></span>
-                <span id="ledRx" class="w-3 h-3 rounded-full bg-gray-600 shadow" title="RX (Alım)"></span>
-            </div>
-            <div class="text-center">
-                <div id="lcdStatus" class="text-lg font-bold tracking-widest">BEKLEMEDE</div>
-                <div id="lcdFreq" class="text-xs text-green-600 mt-1">446.000 MHz (PMR)</div>
+        <!-- LCD Ekran -->
+        <div class="bg-black border-2 border-gray-600 rounded-lg p-3 text-green-400 font-mono shadow-inner flex flex-col items-center justify-center h-20 relative">
+            <div class="text-[10px] text-green-600 absolute top-1 left-2">CH: <span id="currentRoomDisplay" class="text-green-400 font-bold">telsiz-kanal-1</span></div>
+            <div class="text-center mt-2">
+                <div id="lcdStatus" class="text-base font-black tracking-wider">BEKLEMEDE</div>
+                <div class="text-[9px] text-green-600">446.000 MHz (WEB-RTC)</div>
             </div>
         </div>
 
-        <!-- PTT (Bas-Konuş) Butonu -->
-        <div class="flex flex-col items-center justify-center my-2">
-            <button id="pttBtn" class="w-32 h-32 rounded-full bg-gradient-to-b from-red-600 to-red-800 hover:from-red-500 hover:to-red-700 active:scale-95 shadow-2xl border-4 border-red-900 flex flex-col items-center justify-center text-white transition transform select-none cursor-pointer">
-                <span class="text-xl font-black tracking-widest">PTT</span>
-                <span class="text-[10px] text-red-200 mt-1">BAS - KONUŞ</span>
+        <!-- Hoparlör Izgarası (Görsel Estetik) -->
+        <div class="flex flex-col gap-1.5 px-6 my-1">
+            <div class="h-1 bg-gray-900 rounded-full border-b border-gray-700"></div>
+            <div class="h-1 bg-gray-900 rounded-full border-b border-gray-700"></div>
+            <div class="h-1 bg-gray-900 rounded-full border-b border-gray-700"></div>
+        </div>
+
+        <!-- PTT (Bas-Konuş) Tuşu -->
+        <div class="flex flex-col items-center justify-center mb-1">
+            <button id="pttBtn" class="w-28 h-28 rounded-full bg-gradient-to-b from-red-600 to-red-900 hover:from-red-500 hover:to-red-800 active:scale-95 shadow-xl border-4 border-red-950 flex flex-col items-center justify-center text-white transition cursor-pointer">
+                <span class="text-lg font-black tracking-widest">PTT</span>
+                <span class="text-[9px] text-red-200">BAS - KONUŞ</span>
             </button>
-            <p class="text-xs text-gray-400 mt-3 text-center">Telefon ekranında bu tuşa <b>basılı tutarak</b> konuşun.</p>
         </div>
 
     </div>
@@ -98,22 +110,21 @@
         navigator.mediaDevices.getUserMedia({ audio: true, video: false })
             .then(stream => {
                 localStream = stream;
-                statusText.innerText = "Mikrofon Hazır. Kanala Bağlanabilirsiniz.";
-                statusText.className = "text-xs text-green-400 mt-1";
+                statusText.innerText = "Hazır";
+                statusText.className = "text-[10px] text-green-400 truncate max-w-[120px]";
             })
             .catch(err => {
-                statusText.innerText = "Mikrofon İzni Reddedildi!";
-                statusText.className = "text-xs text-red-500 mt-1";
-                alert("Telsiz için mikrofon izni vermelisiniz!");
+                statusText.innerText = "Mikrofon Yok!";
+                statusText.className = "text-[10px] text-red-500 truncate max-w-[120px]";
             });
 
         function connectToRoom(newRoom) {
             if (peer) {
                 peer.destroy();
             }
-            roomName = newRoom.trim().toLowerCase().replace(/\\s+/g, '-');
+            roomName = newRoom.trim().toLowerCase().replace(/\s+/g, '-');
             currentRoomDisplay.innerText = roomName;
-            statusText.innerText = "Kanala bağlanılıyor...";
+            statusText.innerText = "Bağlanıyor...";
 
             const peerId = 'telsiz-' + roomName + '-' + Math.floor(Math.random() * 10000);
 
@@ -122,8 +133,8 @@
             });
 
             peer.on('open', (id) => {
-                statusText.innerText = "Bağlantı Başarılı: " + roomName;
-                statusText.className = "text-xs text-green-400 mt-1";
+                statusText.innerText = "Bağlandı";
+                statusText.className = "text-[10px] text-green-400 truncate max-w-[120px]";
                 lcdStatus.innerText = "KANAL HAZIR";
             });
 
@@ -131,18 +142,12 @@
                 call.answer(localStream);
                 setupCallEvents(call);
             });
-
-            peer.on('error', (err) => {
-                console.error(err);
-                statusText.innerText = "Bağlantı Hatası!";
-                statusText.className = "text-xs text-red-500 mt-1";
-            });
         }
 
         function setupCallEvents(call) {
             currentCall = call;
-            ledRx.className = "w-3 h-3 rounded-full bg-green-500 shadow animate-pulse";
-            lcdStatus.innerText = "ALINIYOR (RX)";
+            ledRx.className = "w-2.5 h-2.5 rounded-full bg-green-500 shadow animate-pulse";
+            lcdStatus.innerText = "ALINIYOR";
 
             call.on('stream', (remoteStream) => {
                 remoteAudio.srcObject = remoteStream;
@@ -155,12 +160,11 @@
         }
 
         function resetRxState() {
-            ledRx.className = "w-3 h-3 rounded-full bg-gray-600 shadow";
+            ledRx.className = "w-2.5 h-2.5 rounded-full bg-gray-600 shadow";
             lcdStatus.innerText = "BEKLEMEDE";
             remoteAudio.srcObject = null;
         }
 
-        // Butona tıklandığında kanalı değiştir
         changeChannelBtn.addEventListener('click', () => {
             let val = roomInput.value;
             if(val) {
@@ -168,27 +172,22 @@
             }
         });
 
-        // PTT Bas-Konuş
         function startTransmission() {
             if (!localStream) {
-                alert("Mikrofon izni alınamadı!");
+                alert("Mikrofon izni gerekli!");
                 return;
             }
             initAudioContext();
             isTransmitting = true;
-            let targetRoomId = 'telsiz-' + roomName + '-';
             
-            ledTx.className = "w-3 h-3 rounded-full bg-red-500 shadow animate-pulse";
-            lcdStatus.innerText = "YAYINDA (TX)";
-            
-            // Peer arama ve ses gönderme tetikleyicisi
-            // İki telefon aynı odayı girdiğinde peer listesi üzerinden birbirine çağrı başlatır
+            ledTx.className = "w-2.5 h-2.5 rounded-full bg-red-500 shadow animate-pulse";
+            lcdStatus.innerText = "YAYINDA";
         }
 
         function stopTransmission() {
             if (!isTransmitting) return;
             isTransmitting = false;
-            ledTx.className = "w-3 h-3 rounded-full bg-gray-600 shadow";
+            ledTx.className = "w-2.5 h-2.5 rounded-full bg-gray-600 shadow";
             lcdStatus.innerText = "BEKLEMEDE";
             playRogerBeep();
 
