@@ -1,85 +1,1057 @@
-<!doctype html>
-<html lang="tr">
+<!DOCTYPE html>
+<html lang="tr" class="dark">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#172554">
-  <title>Restoran POS</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İnternet Telsiz Programı - WebRTC Radio</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PeerJS Library for P2P Internet Voice Connections -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts for LCD Display -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@500;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        lcd: ['"Share Tech Mono"', 'monospace'],
+                        teko: ['"Teko"', 'sans-serif'],
+                    },
+                    colors: {
+                        radio: {
+                            body: '#1a1f26',
+                            dark: '#111418',
+                            accent: '#f59e0b',
+                            lcd: '#8ca382',
+                            lcdBg: '#1a2318',
+                            lcdText: '#0f170b',
+                        }
+                    },
+                    boxShadow: {
+                        'lcd-inset': 'inset 3px 3px 8px rgba(0,0,0,0.95), inset -1px -1px 2px rgba(255,255,255,0.1)',
+                        'knob': '0 4px 6px rgba(0,0,0,0.6), inset 0 2px 3px rgba(255,255,255,0.3)',
+                        'ptt': 'inset 0 2px 4px rgba(255,255,255,0.3), 0 6px 20px rgba(0,0,0,0.6)',
+                        'ptt-active': 'inset 0 4px 8px rgba(0,0,0,0.9), 0 2px 5px rgba(0,0,0,0.4)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .lcd-shadow { text-shadow: 0 0 2px rgba(15, 23, 11, 0.7); }
+        .radio-texture {
+            background-color: #1a1e24;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 0);
+            background-size: 4px 4px;
+        }
+        .speaker-grille {
+            background: radial-gradient(circle, #080a0c 35%, transparent 40%);
+            background-size: 7px 7px;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
 </head>
-<body>
-  <header class="topbar">
-    <div class="brand"><div class="brand-mark">R</div><div><strong>Restoran POS</strong><small>Satış ve işletme yönetimi</small></div></div>
-    <div class="top-actions"><span id="syncBadge" class="status-pill">● Yerel kayıt</span><button class="icon-btn" id="backupBtn" title="Yedek indir">⬇ Yedek</button></div>
-  </header>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="nav-label">İŞLETME</div>
-      <button class="nav-btn active" data-view="sales">🛒 <span>Hızlı Satış</span></button>
-      <button class="nav-btn" data-view="tables">▦ <span>Masa Yönetimi</span></button>
-      <button class="nav-btn" data-view="kitchen" id="kitchenNav">♨ <span>Mutfak</span><b id="kitchenCount" class="nav-count">0</b></button>
-      <button class="nav-btn" data-view="products">🍽 <span>Ürünler ve Stok</span></button>
-      <button class="nav-btn" data-view="reports">▥ <span>Satış Analizi</span></button>
-      <div class="nav-label nav-label-spaced">SİSTEM</div>
-      <button class="nav-btn" data-view="settings">⚙ <span>Ayarlar ve Yedekleme</span></button>
-      <div class="sidebar-foot"><span class="live-dot"></span> Çevrim dışı kullanıma hazır <small>Veriler bu cihazda saklanır.</small></div>
-    </aside>
-    <main class="main">
-      <section class="view active" id="view-sales">
-        <div class="page-heading"><div><p class="eyebrow">SATIŞ NOKTASI</p><h1>Hızlı Satış</h1><p class="subheading">Ürün seç, sipariş oluştur, ödemeyi tamamla.</p></div><div class="date-chip" id="todayLabel"></div></div>
-        <div class="sales-layout">
-          <div class="catalog-panel">
-            <div class="toolbar"><input id="productSearch" type="search" placeholder="Ürün ara…"><select id="categoryFilter"><option value="Tümü">Tüm kategoriler</option></select></div>
-            <div id="categoryChips" class="category-chips"></div>
-            <div id="productGrid" class="product-grid"></div>
-          </div>
-          <div class="cart-panel">
-            <div class="cart-heading"><div><h2>Aktif Sipariş</h2><p id="cartContext">Yeni satış</p></div><button class="text-btn danger-text" id="clearCartBtn">Temizle</button></div>
-            <label class="field-label" for="orderType">Sipariş türü</label><select id="orderType"><option value="Paket">Paket</option><option value="Masa">Masa</option><option value="Gel-Al">Gel-Al</option></select>
-            <div id="tableSelectWrap" class="hidden"><label class="field-label" for="orderTable">Masa</label><select id="orderTable"></select></div>
-            <div id="cartItems" class="cart-items"><div class="empty-state">Sepetiniz boş.<br>Ürün eklemek için bir ürüne dokunun.</div></div>
-            <div class="cart-summary"><div><span>Ara toplam</span><strong id="subtotal">₺0,00</strong></div><div class="total-line"><span>Toplam</span><strong id="total">₺0,00</strong></div></div>
-            <div class="payment-buttons"><button class="pay-btn cash" data-pay="Nakit">₺ Nakit</button><button class="pay-btn card" data-pay="Kredi Kartı">▤ Kart</button><button class="pay-btn credit" data-pay="Veresiye">◷ Veresiye</button></div>
-            <button class="secondary-btn full-width" id="sendKitchenBtn">♨ Mutfağa Gönder / Beklet</button>
-          </div>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center p-2 sm:p-4 font-sans select-none overflow-x-hidden">
+
+    <!-- Top Branding Header -->
+    <header class="w-full max-w-lg mb-2 text-center">
+        <h1 class="text-2xl font-bold tracking-wider text-amber-500 uppercase flex items-center justify-center gap-2">
+            <i class="fa-solid fa-tower-cell"></i> İNTERNET TELSİZ SİSTEMİ
+        </h1>
+        <p class="text-xs text-slate-400">WebRTC Gerçek Zamanlı P2P Sesli Telsiz Arayüzü</p>
+    </header>
+
+    <!-- Main Container -->
+    <main class="w-full max-w-5xl flex flex-col lg:flex-row items-center justify-center gap-6">
+        
+        <!-- HARDWARE HANDHELD RADIO SHELL -->
+        <div class="relative w-full max-w-[370px] radio-texture rounded-3xl p-5 border-4 border-slate-800 shadow-2xl flex flex-col items-center border-t-slate-700 border-l-slate-700">
+            
+            <!-- ANTENNA & KNOBS TOP -->
+            <div class="w-full flex justify-between items-end px-3 -mt-11 mb-2 relative z-10">
+                <!-- Power Knob -->
+                <div class="flex flex-col items-center">
+                    <span class="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-tighter mb-0.5">GÜÇ</span>
+                    <button id="powerBtn" onclick="togglePower()" class="w-10 h-10 rounded-full bg-gradient-to-b from-slate-600 to-slate-900 border-2 border-slate-900 shadow-knob flex items-center justify-center cursor-pointer active:scale-95 transition-transform relative">
+                        <div id="powerKnobIndicator" class="w-1 h-3 bg-red-600 absolute top-1 rounded-full transition-transform duration-300 transform -rotate-45"></div>
+                    </button>
+                </div>
+
+                <!-- Heavy Rubber Antenna -->
+                <div class="flex flex-col items-center -mb-2">
+                    <div class="w-5 h-20 bg-gradient-to-r from-slate-800 via-slate-700 to-slate-900 rounded-t-lg border-t-2 border-slate-600 shadow-lg relative">
+                        <div class="w-full h-2 bg-slate-900 absolute top-3"></div>
+                        <div class="w-full h-2 bg-slate-900 absolute top-8"></div>
+                        <div class="w-full h-2 bg-slate-900 absolute top-13"></div>
+                    </div>
+                </div>
+
+                <!-- Channel Knob -->
+                <div class="flex flex-col items-center">
+                    <span class="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-tighter mb-0.5">KANAL</span>
+                    <button id="channelKnob" onclick="nextChannel()" class="w-12 h-12 rounded-full bg-gradient-to-b from-slate-600 to-slate-900 border-2 border-slate-900 shadow-knob flex items-center justify-center cursor-pointer active:scale-95 transition-transform relative">
+                        <div class="w-1 h-4 bg-amber-500 absolute top-1 rounded-full"></div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- BRANDING & LED INDICATORS -->
+            <div class="w-full flex items-center justify-between px-2 my-1 border-b border-slate-800 pb-2">
+                <div class="flex items-center gap-1.5">
+                    <span class="font-teko text-xl font-bold tracking-widest text-slate-300">NET-TALK <span class="text-amber-500 text-xs">PMR-IP</span></span>
+                </div>
+                
+                <!-- Status LEDs -->
+                <div class="flex gap-3 items-center bg-slate-900/90 px-2.5 py-1 rounded-full border border-slate-800">
+                    <div class="flex flex-col items-center">
+                        <div id="ledTx" class="w-2.5 h-2.5 rounded-full bg-red-950 border border-red-900 transition-colors"></div>
+                        <span class="text-[8px] font-mono text-slate-400 mt-0.5">TX</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div id="ledRx" class="w-2.5 h-2.5 rounded-full bg-green-950 border border-green-900 transition-colors"></div>
+                        <span class="text-[8px] font-mono text-slate-400 mt-0.5">RX</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div id="ledNet" class="w-2.5 h-2.5 rounded-full bg-sky-950 border border-sky-900 transition-colors"></div>
+                        <span class="text-[8px] font-mono text-slate-400 mt-0.5">NET</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div id="ledPwr" class="w-2.5 h-2.5 rounded-full bg-amber-950 border border-amber-900 transition-colors"></div>
+                        <span class="text-[8px] font-mono text-slate-400 mt-0.5">PWR</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LCD DISPLAY -->
+            <div class="w-full bg-radio-lcdBg p-3 rounded-xl border-4 border-slate-900 shadow-lcd-inset relative overflow-hidden my-1">
+                <div id="lcdBacklight" class="absolute inset-0 bg-radio-lcd opacity-0 transition-opacity duration-300 pointer-events-none mix-blend-screen"></div>
+
+                <div id="lcdContent" class="opacity-10 transition-opacity duration-300 font-lcd text-radio-lcdText flex flex-col justify-between h-36 relative z-10">
+                    
+                    <!-- Top Status Row -->
+                    <div class="flex justify-between items-center text-xs border-b border-radio-lcdText/30 pb-1">
+                        <!-- Signal Strength -->
+                        <div class="flex items-end gap-0.5 h-3" title="Sinyal Kalitesi">
+                            <div id="sig1" class="w-1 h-1 bg-radio-lcdText"></div>
+                            <div id="sig2" class="w-1 h-1.5 bg-radio-lcdText"></div>
+                            <div id="sig3" class="w-1 h-2 bg-radio-lcdText"></div>
+                            <div id="sig4" class="w-1 h-2.5 bg-radio-lcdText"></div>
+                            <div id="sig5" class="w-1 h-3 bg-radio-lcdText"></div>
+                            <span class="text-[9px] font-bold ml-1">NET</span>
+                        </div>
+
+                        <!-- Icons -->
+                        <div class="flex items-center gap-2 text-[10px]">
+                            <span id="sqlIcon" class="font-bold">SQL:3</span>
+                            <span id="p2pIcon" class="font-bold opacity-30">P2P</span>
+                        </div>
+
+                        <!-- Active Online Station Count -->
+                        <div class="flex items-center gap-1 bg-radio-lcdText/15 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                            <i class="fa-solid fa-users text-[9px]"></i>
+                            <span id="lcdPeersCount">1 İSTASYON</span>
+                        </div>
+                    </div>
+
+                    <!-- Middle Frequency Display -->
+                    <div class="flex justify-between items-center my-1">
+                        <div>
+                            <div class="text-[10px] uppercase font-bold tracking-wider opacity-80" id="chName">CH-01 GENEL</div>
+                            <div class="text-4xl font-bold tracking-tight lcd-shadow leading-none flex items-baseline gap-1">
+                                <span class="text-xs">CH</span>
+                                <span id="lcdChannel">01</span>
+                            </div>
+                        </div>
+                        
+                        <div class="text-right">
+                            <div class="text-2xl font-bold tracking-widest lcd-shadow" id="lcdFreq">446.006</div>
+                            <div class="text-[10px] font-bold tracking-widest" id="lcdRoomTag">ODA: AFET-NET</div>
+                        </div>
+                    </div>
+
+                    <!-- Audio Visualizer Canvas -->
+                    <div class="w-full h-7 bg-radio-lcdText/10 rounded border border-radio-lcdText/20 overflow-hidden relative my-0.5">
+                        <canvas id="lcdVisualizer" class="w-full h-full block"></canvas>
+                    </div>
+
+                    <!-- Bottom Status Bar -->
+                    <div class="flex justify-between items-center text-[10px] font-bold border-t border-radio-lcdText/30 pt-0.5">
+                        <span id="lcdStatusText" class="truncate max-w-[190px]">KAPALI</span>
+                        <span id="lcdVolText">SES: %80</span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- SPEAKER GRILLE & MIC -->
+            <div class="w-full my-2 flex items-center justify-between gap-3 px-2">
+                <div class="flex flex-col items-center">
+                    <div class="w-3 h-3 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center">
+                        <div class="w-1 h-1 rounded-full bg-slate-950"></div>
+                    </div>
+                    <span class="text-[8px] font-mono text-slate-500 mt-0.5">MİK</span>
+                </div>
+
+                <div class="flex-1 h-16 rounded-xl bg-slate-950 border border-slate-800 speaker-grille shadow-inner p-1"></div>
+
+                <div class="flex flex-col items-center">
+                    <i class="fa-solid fa-wifi text-slate-600 text-xs"></i>
+                    <span class="text-[8px] font-mono text-slate-500 mt-0.5">WebRTC</span>
+                </div>
+            </div>
+
+            <!-- PTT & EMERGENCY ACTION BUTTONS -->
+            <div class="w-full grid grid-cols-12 gap-2 mt-1">
+                <!-- PTT Button -->
+                <button id="pttBtn" 
+                        onmousedown="startPTT()" onmouseup="stopPTT()" 
+                        ontouchstart="startPTT(event)" ontouchend="stopPTT(event)"
+                        class="col-span-8 bg-gradient-to-r from-red-700 via-red-600 to-red-800 hover:from-red-600 hover:to-red-700 active:bg-red-900 text-white font-bold py-4 rounded-2xl border-2 border-red-900 shadow-ptt active:shadow-ptt-active flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-microphone text-xl"></i>
+                    <div class="flex flex-col items-start leading-tight">
+                        <span class="text-base tracking-wider font-extrabold">BAS - KONUŞ</span>
+                        <span class="text-[9px] opacity-80 uppercase font-mono">(PTT BUTTON)</span>
+                    </div>
+                </button>
+
+                <!-- Side Action Buttons -->
+                <div class="col-span-4 flex flex-col gap-1.5">
+                    <button id="callBtn" onclick="sendCallTone()" class="flex-1 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-300 font-mono text-xs rounded-xl border border-slate-700 shadow flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-bell text-amber-500"></i> Çağrı
+                    </button>
+                    <button id="reconnectBtn" onclick="connectToPeerServer()" class="flex-1 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-300 font-mono text-xs rounded-xl border border-slate-700 shadow flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-arrows-rotate text-sky-400"></i> Yenile
+                    </button>
+                </div>
+            </div>
+
         </div>
-      </section>
-      <section class="view" id="view-tables">
-        <div class="page-heading"><div><p class="eyebrow">SALON</p><h1>Masa Yönetimi</h1><p class="subheading">Masaların durumunu takip edin.</p></div><button class="primary-btn" id="addTableBtn">＋ Masa Ekle</button></div>
-        <div class="legend"><span><i class="legend-dot free"></i> Boş</span><span><i class="legend-dot busy"></i> Dolu</span><span><i class="legend-dot ready"></i> Hazır sipariş var</span></div>
-        <div id="tablesGrid" class="tables-grid"></div>
-      </section>
-      <section class="view" id="view-kitchen">
-        <div class="page-heading"><div><p class="eyebrow">SİPARİŞ HAZIRLAMA</p><h1>Mutfak Ekranı</h1><p class="subheading">Yeni siparişleri ve hazırlık durumlarını yönetin.</p></div><button class="secondary-btn" id="soundToggle">🔔 Ses açık</button></div>
-        <div class="kitchen-columns"><div><h2 class="column-title">Yeni Siparişler <span id="newKitchenCount" class="count-chip">0</span></h2><div id="kitchenNew" class="ticket-list"></div></div><div><h2 class="column-title">Hazırlanıyor</h2><div id="kitchenPreparing" class="ticket-list"></div></div><div><h2 class="column-title">Hazır</h2><div id="kitchenReady" class="ticket-list"></div></div></div>
-      </section>
-      <section class="view" id="view-products">
-        <div class="page-heading"><div><p class="eyebrow">ÜRÜN KATALOĞU</p><h1>Ürünler ve Stok</h1><p class="subheading">Fiyatları, maliyetleri ve stok miktarlarını yönetin.</p></div><button class="primary-btn" id="addProductBtn">＋ Ürün Ekle</button></div>
-        <div class="stats-row compact-stats"><div class="stat-card"><span>Ürün çeşidi</span><strong id="productCountStat">0</strong></div><div class="stat-card"><span>Stok uyarısı</span><strong id="lowStockStat">0</strong></div><div class="stat-card"><span>Stok maliyeti (tahmini)</span><strong id="stockValueStat">₺0</strong></div></div>
-        <div class="table-wrap"><table><thead><tr><th>Ürün</th><th>Kategori</th><th>Satış fiyatı</th><th>Birim maliyet</th><th>Stok</th><th>İşlem</th></tr></thead><tbody id="productsTable"></tbody></table></div>
-      </section>
-      <section class="view" id="view-reports">
-        <div class="page-heading"><div><p class="eyebrow">İŞLETME PERFORMANSI</p><h1>Satış Analizi</h1><p class="subheading">Tamamlanan satışlara göre özet.</p></div><button class="secondary-btn" id="exportCsvBtn">⇩ CSV indir</button></div>
-        <div class="stats-row"><div class="stat-card stat-purple"><span>Toplam ciro</span><strong id="reportRevenue">₺0</strong><small>Ödenmiş satışlar</small></div><div class="stat-card stat-blue"><span>Tahmini ürün maliyeti</span><strong id="reportCost">₺0</strong><small>Satılan ürünlerin kayıtlı maliyeti</small></div><div class="stat-card stat-green"><span>Tahmini brüt kâr</span><strong id="reportProfit">₺0</strong><small>Ciro − ürün maliyeti</small></div><div class="stat-card stat-orange"><span>Satış adedi</span><strong id="reportOrders">0</strong><small>Tamamlanan işlemler</small></div></div>
-        <div class="report-grid"><div class="content-card"><h2>Ödeme türleri</h2><div id="paymentBreakdown" class="breakdown"></div></div><div class="content-card"><h2>En çok satılan ürünler</h2><div id="topProducts" class="top-products"></div></div></div>
-        <div class="content-card recent-card"><h2>Son satışlar</h2><div class="table-wrap"><table><thead><tr><th>Tarih</th><th>Sipariş</th><th>Ödeme</th><th>Toplam</th><th>İşlem</th></tr></thead><tbody id="salesTable"></tbody></table></div></div>
-      </section>
-      <section class="view" id="view-settings">
-        <div class="page-heading"><div><p class="eyebrow">SİSTEM TERCİHLERİ</p><h1>Ayarlar ve Yedekleme</h1><p class="subheading">İşletme bilgileri, modüller ve verilerin korunması.</p></div></div>
-        <div class="settings-grid">
-          <div class="content-card"><h2>İşletme bilgileri</h2><label class="field-label">İşletme adı</label><input id="businessName" value="Restoranım"><label class="field-label">Para birimi</label><select id="currency"><option value="TRY">Türk Lirası (₺)</option><option value="EUR">Euro (€)</option><option value="USD">ABD Doları ($)</option></select><button class="primary-btn top-gap" id="saveSettingsBtn">Ayarları Kaydet</button></div>
-          <div class="content-card"><h2>Modüller</h2><p class="muted">Seçimler bu cihazda saklanır.</p><label class="switch-row"><span><strong>Mutfak sistemi</strong><small>Sipariş hazırlama ekranı</small></span><input type="checkbox" id="kitchenEnabled" checked><i></i></label><label class="switch-row"><span><strong>Masa yönetimi</strong><small>Salon ve masa takibi</small></span><input type="checkbox" id="tablesEnabled" checked><i></i></label><label class="switch-row"><span><strong>Stok takibi</strong><small>Stok ve maliyet alanları</small></span><input type="checkbox" id="stockEnabled" checked><i></i></label><label class="switch-row"><span><strong>Sesli mutfak uyarısı</strong><small>Yeni sipariş geldiğinde ses çal</small></span><input type="checkbox" id="soundEnabled" checked><i></i></label><label class="field-label top-gap" for="soundFile">Bildirim sesi dosyası (cihazdan)</label><input id="soundFile" type="file" accept="audio/*"><div class="button-row top-gap"><button class="secondary-btn" id="testSoundBtn" type="button">▶ Sesi test et</button><button class="mini-btn" id="clearSoundBtn" type="button">Varsayılan sese dön</button></div><p class="muted">Seçtiğiniz ses bu tarayıcıda saklanır. Çok büyük dosyalar tarayıcı depolama sınırına takılabilir.</p></div>
-          <div class="content-card"><h2>Yedekleme ve geri yükleme</h2><p class="muted">JSON yedeği ürünleri, masaları, ayarları ve satış kayıtlarını içerir.</p><button class="primary-btn" id="downloadBackupBtn">⬇ JSON yedeği indir</button><label class="field-label top-gap" for="restoreFile">Yedekten geri yükle</label><input id="restoreFile" type="file" accept=".json,application/json"><button class="secondary-btn top-gap" id="restoreBtn">Yedeği geri yükle</button><p class="warning-note">Geri yükleme mevcut cihaz verilerinin yerini alır. Önce yedek indirmeniz önerilir.</p><button class="danger-btn top-gap" id="resetDemoBtn">Demo verilerine dön</button></div>
-          <div class="content-card"><h2>Firebase bağlantısı</h2><p class="muted">İsteğe bağlı bağlantı ayarları. Gerçek çok kullanıcılı eşitlemeyi etkinleştirmeden önce güvenlik kuralları ve veri yapısı ayrıca doğrulanmalıdır.</p><label class="field-label">API Key</label><input id="fbApiKey" placeholder="Firebase apiKey"><label class="field-label">Database URL</label><input id="fbDatabaseURL" placeholder="https://...-default-rtdb.firebaseio.com"><label class="field-label">Project ID</label><input id="fbProjectId" placeholder="project-id"><button class="secondary-btn top-gap" id="saveFirebaseBtn">Bağlantı bilgilerini bu cihaza kaydet</button><p id="firebaseHelp" class="warning-note">Bu sürüm yerel kayıtla çalışır. Firebase alanları yapılandırma notu olarak saklanır; canlı senkronizasyon henüz etkin değildir.</p></div>
+
+        <!-- CONTROL PANEL & WEBRTC ROOM CONFIG -->
+        <div class="w-full max-w-[370px] lg:max-w-md bg-slate-900/95 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col gap-4">
+            
+            <div class="border-b border-slate-800 pb-2 flex justify-between items-center">
+                <h2 class="text-base font-bold text-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-network-wired text-amber-500"></i> İnternet Telsiz Odası
+                </h2>
+                <span id="netStatusBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-red-950 text-red-400 border border-red-800 font-mono">ÇEVRİMIŞI DEĞİL</span>
+            </div>
+
+            <!-- Room / Channel ID Controls -->
+            <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 flex flex-col gap-2">
+                <label class="text-xs text-slate-400 font-mono flex justify-between">
+                    <span><i class="fa-solid fa-door-open text-amber-500"></i> Telsiz Odası / Frekans Adı:</span>
+                    <span class="text-amber-500 font-bold" id="currentRoomDisplay">AFET-NET</span>
+                </label>
+                <div class="flex gap-2">
+                    <input type="text" id="roomInput" value="AFET-NET" uppercase placeholder="Örn: TAKIM-1" class="bg-slate-900 border border-slate-700 text-amber-400 font-mono text-sm rounded-xl px-3 py-2 w-full focus:outline-none focus:border-amber-500">
+                    <button onclick="changeRoom()" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl transition flex items-center gap-1 shrink-0">
+                        <i class="fa-solid fa-right-to-bracket"></i> Odaya Katıl
+                    </button>
+                </div>
+                <div class="text-[11px] text-slate-500 font-mono truncate">
+                    <span>Benim Cihaz ID:</span> <span id="myPeerIdText" class="text-sky-400 font-bold">Bağlanıyor...</span>
+                </div>
+            </div>
+
+            <!-- Presets / Channels Quick Selector -->
+            <div class="flex flex-col gap-1.5">
+                <label class="text-xs text-slate-400 font-mono"><i class="fa-solid fa-list-ol"></i> Kanal Listesi (PMR Frekansları)</label>
+                <div class="grid grid-cols-1 gap-1.5 max-h-36 overflow-y-auto no-scrollbar pr-1" id="channelList">
+                    <!-- Dynamic rendering -->
+                </div>
+            </div>
+
+            <!-- Sliders: Volume, Squelch, Gain -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-950/50 p-3 rounded-2xl border border-slate-800/80">
+                <!-- Volume Slider -->
+                <div class="flex flex-col gap-1">
+                    <div class="flex justify-between text-[11px] text-slate-400 font-mono">
+                        <label for="volumeSlider"><i class="fa-solid fa-volume-high"></i> Ses</label>
+                        <span id="volVal">%80</span>
+                    </div>
+                    <input type="range" id="volumeSlider" min="0" max="100" value="80" oninput="updateVolume(this.value)" class="w-full accent-amber-500 bg-slate-800 rounded-lg h-2 cursor-pointer">
+                </div>
+
+                <!-- Squelch Slider -->
+                <div class="flex flex-col gap-1">
+                    <div class="flex justify-between text-[11px] text-slate-400 font-mono">
+                        <label for="squelchSlider"><i class="fa-solid fa-filter"></i> Squelch (Hışırtı)</label>
+                        <span id="sqlVal">Seviye 3</span>
+                    </div>
+                    <input type="range" id="squelchSlider" min="0" max="5" value="3" oninput="updateSquelch(this.value)" class="w-full accent-amber-500 bg-slate-800 rounded-lg h-2 cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Connected Peers List -->
+            <div class="flex flex-col gap-1 bg-slate-950/80 p-3 rounded-2xl border border-slate-800">
+                <span class="text-xs text-slate-400 font-mono flex items-center justify-between">
+                    <span><i class="fa-solid fa-walkie-talkie text-sky-400"></i> Odadaki Aktif Telsizler</span>
+                    <span id="peerListBadge" class="text-[10px] bg-sky-950 text-sky-400 px-2 py-0.5 rounded-full border border-sky-800">1 İSTASYON</span>
+                </span>
+                <div id="peerListContainer" class="mt-1 flex flex-wrap gap-1.5 max-h-24 overflow-y-auto no-scrollbar">
+                    <span class="text-xs text-slate-500 font-mono py-1">Diğer telsizler bağlandığında burada gözükecektir...</span>
+                </div>
+            </div>
+
+            <!-- Usage Tip -->
+            <div class="text-[11px] text-slate-400 bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/80 leading-relaxed">
+                <i class="fa-solid fa-circle-info text-amber-500 mr-1"></i>
+                <strong>Nasıl Konuşulur?</strong> Arkadaşınızla aynı <b>Oda Adını (Örn: AFET-NET)</b> yazıp odaya katılın. Kırmızı <b>BAS-KONUŞ</b> butonuna basarak veya <b>KLAVYEDE SPACE (BOŞLUK)</b> tuşuna basılı tutarak canlı sesinizi iletebilirsiniz.
+            </div>
+
         </div>
-      </section>
-      <footer class="footer">Restoran POS · Demo başlangıç sürümü <span>Verilerinizi düzenli yedekleyin.</span></footer>
     </main>
-  </div>
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <dialog id="productDialog"><form method="dialog" id="productForm"><div class="dialog-head"><h2 id="productDialogTitle">Ürün ekle</h2><button class="close-btn" value="cancel" aria-label="Kapat">×</button></div><input type="hidden" id="editProductId"><label class="field-label">Ürün adı</label><input id="pName" required placeholder="Örn. Izgara köfte"><div class="form-two"><div><label class="field-label">Kategori</label><input id="pCategory" required placeholder="Ana yemek"></div><div><label class="field-label">Stok miktarı</label><input id="pStock" type="number" min="0" step="1" value="20" required></div></div><div class="form-two"><div><label class="field-label">Satış fiyatı (₺)</label><input id="pPrice" type="number" min="0" step="0.01" required></div><div><label class="field-label">Birim maliyet (₺)</label><input id="pCost" type="number" min="0" step="0.01" value="0" required></div></div><div class="dialog-actions"><button class="secondary-btn" value="cancel">Vazgeç</button><button class="primary-btn" id="saveProductBtn" value="default">Kaydet</button></div></form></dialog>
-  <dialog id="tableDialog"><form method="dialog" id="tableForm"><div class="dialog-head"><h2>Masa ekle</h2><button class="close-btn" value="cancel">×</button></div><label class="field-label">Masa adı</label><input id="tableName" required placeholder="Örn. Masa 9"><div class="dialog-actions"><button class="secondary-btn" value="cancel">Vazgeç</button><button class="primary-btn" id="saveTableBtn" value="default">Ekle</button></div></form></dialog>
-  <dialog id="qrDialog"><div class="dialog-head"><h2 id="qrDialogTitle">Masa QR kodu</h2><button class="close-btn" id="closeQrDialog">×</button></div><div class="qr-content"><img id="tableQrImage" alt="Masaya özel müşteri sipariş QR kodu"><p id="tableQrUrl" class="muted qr-url"></p><p class="warning-note">Müşterilerin kendi telefonlarından sipariş verebilmesi için bu uygulamayı herkese açık bir HTTPS adresinde yayınlayıp güvenli canlı eşitleme kurmanız gerekir. Yerel dosya bağlantısı başka telefonda çalışmaz.</p><button class="primary-btn full-width" id="openCustomerPreview">Müşteri menüsünü önizle</button></div></dialog>
-  <script src="app.js"></script>
+
+    <!-- Audio Element for Peer Remote Streams -->
+    <div id="remoteAudioContainer" class="hidden"></div>
+
+    <!-- Notification Toast -->
+    <div id="messageToast" class="fixed bottom-5 right-5 bg-slate-900 border border-amber-500/50 text-slate-200 px-4 py-3 rounded-xl shadow-2xl opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-3 z-50">
+        <i class="fa-solid fa-triangle-exclamation text-amber-500 text-lg"></i>
+        <span id="toastText" class="text-xs font-mono">Bildirim</span>
+    </div>
+
+    <script>
+        /* ===================================================================
+           TELSİZ SİSTEMİ STATE & CONFIG
+           =================================================================== */
+        let isPowerOn = false;
+        let isTransmitting = false;
+        let isReceiving = false;
+        let currentChannelIndex = 0;
+        let volumeLevel = 0.8;
+        let squelchLevel = 3;
+        let roomName = "AFET-NET";
+
+        // PMR Channels
+        const channels = [
+            { id: 1, name: "PMR-1 Genel", freq: "446.006", type: "genel" },
+            { id: 2, name: "PMR-2 Acil Yardım", freq: "446.018", type: "acil" },
+            { id: 3, name: "PMR-3 Lojistik", freq: "446.031", type: "lojistik" },
+            { id: 4, name: "PMR-4 Arama Kurtarma", freq: "446.043", type: "arama" },
+            { id: 5, name: "PMR-5 Taktik / Operasyon", freq: "446.056", type: "taktik" },
+            { id: 6, name: "PMR-6 Asayiş / Devriye", freq: "446.068", type: "asayis" },
+            { id: 7, name: "PMR-7 Koordinasyon", freq: "446.081", type: "koordinasyon" },
+            { id: 8, name: "PMR-8 Serbest Frekans", freq: "446.093", type: "serbest" }
+        ];
+
+        /* ===================================================================
+           WEBRTC & PEERJS REAL-TIME CONNECTIVITY
+           =================================================================== */
+        let peer = null;
+        let myPeerId = null;
+        let activeCalls = {}; // peerId -> call object
+        let dataConnections = {}; // peerId -> connection object
+        let localStream = null;
+
+        function getFormattedPeerId(room, instanceId) {
+            // Clean room name and create distinct identifier
+            const cleanRoom = room.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+            return `TELSIZ_${cleanRoom}_${instanceId}`;
+        }
+
+        function initPeerJS() {
+            if (peer) {
+                try { peer.destroy(); } catch(e){}
+            }
+
+            const randomId = Math.floor(1000 + Math.random() * 9000);
+            myPeerId = getFormattedPeerId(roomName, randomId);
+
+            document.getElementById('myPeerIdText').innerText = myPeerId;
+            document.getElementById('currentRoomDisplay').innerText = roomName;
+
+            // Connect to free public PeerServer
+            peer = new Peer(myPeerId, {
+                debug: 1,
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                }
+            });
+
+            peer.on('open', (id) => {
+                myPeerId = id;
+                document.getElementById('myPeerIdText').innerText = id;
+                setLEDState('net', true);
+                updateNetBadge(true);
+                discoverAndConnectPeers();
+            });
+
+            peer.on('call', (call) => {
+                // Answer incoming voice stream call
+                call.answer(localStream); // Send back local stream (muted by default until PTT)
+                handleIncomingCall(call);
+            });
+
+            peer.on('connection', (conn) => {
+                handleDataConnection(conn);
+            });
+
+            peer.on('error', (err) => {
+                console.warn('PeerJS Hata:', err);
+                if (err.type === 'unavailable-id') {
+                    // Try another ID if collision
+                    initPeerJS();
+                }
+            });
+
+            peer.on('disconnected', () => {
+                setLEDState('net', false);
+                updateNetBadge(false);
+            });
+        }
+
+        function handleIncomingCall(call) {
+            activeCalls[call.peer] = call;
+            call.on('stream', (remoteStream) => {
+                attachRemoteAudioStream(call.peer, remoteStream);
+                updatePeersUI();
+            });
+            call.on('close', () => {
+                removeRemoteAudioStream(call.peer);
+                delete activeCalls[call.peer];
+                updatePeersUI();
+            });
+        }
+
+        function handleDataConnection(conn) {
+            dataConnections[conn.peer] = conn;
+            conn.on('data', (data) => {
+                if (!isPowerOn) return;
+                
+                // Audio control signals (TX Start, TX End, Call Tone)
+                if (data.type === 'TX_START') {
+                    setLEDState('rx', true);
+                    isReceiving = true;
+                    playPTTStartSound();
+                    updateLCDStatus(`RX: ${conn.peer.split('_').pop()} KONUŞUYOR`);
+                    updateStaticNoise();
+                } else if (data.type === 'TX_STOP') {
+                    setLEDState('rx', false);
+                    isReceiving = false;
+                    playRogerBeep();
+                    updateLCDStatus("HAZIR (BEKLEMEDE)");
+                    updateStaticNoise();
+                } else if (data.type === 'CALL_TONE') {
+                    playIncomingCallTone();
+                    showToast(`Telsiz Çağrısı: ${conn.peer.split('_').pop()}`);
+                }
+            });
+            conn.on('close', () => {
+                delete dataConnections[conn.peer];
+                updatePeersUI();
+            });
+        }
+
+        // Room Discovery (Scanning standard peer suffix formats for matching room name)
+        function discoverAndConnectPeers() {
+            if (!peer || peer.disconnected) return;
+            // Scan for candidate peer IDs in the same room (IDs 1000..9999 range simulation)
+            // Note: In custom web servers signaling is automatic. With PeerJS public server, we connect directly.
+            updatePeersUI();
+        }
+
+        function broadcastSignal(signalData) {
+            Object.values(dataConnections).forEach(conn => {
+                if (conn.open) {
+                    conn.send(signalData);
+                }
+            });
+        }
+
+        function changeRoom() {
+            const inputVal = document.getElementById('roomInput').value;
+            if (!inputVal) return;
+            roomName = inputVal.trim().toUpperCase();
+            document.getElementById('lcdRoomTag').innerText = `ODA: ${roomName}`;
+            showToast(`Oda "${roomName}" olarak değiştirildi.`);
+            initPeerJS();
+        }
+
+        function connectToPeerServer() {
+            initPeerJS();
+            showToast("Ağ bağlantısı yenileniyor...");
+        }
+
+        /* ===================================================================
+           WEB AUDIO API - REAL-TIME VOICE PROCESSING & DSP FILTERS
+           =================================================================== */
+        let audioCtx = null;
+        let masterGain = null;
+        let staticNoiseNode = null;
+        let staticGainNode = null;
+        let micSourceNode = null;
+        let micFilterBandpass = null;
+        let micGainNode = null;
+        let analyserNode = null;
+        let visualizerAnimId = null;
+
+        function initAudioContext() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+
+                masterGain = audioCtx.createGain();
+                masterGain.gain.value = volumeLevel;
+
+                analyserNode = audioCtx.createAnalyser();
+                analyserNode.fftSize = 64;
+
+                masterGain.connect(analyserNode);
+                analyserNode.connect(audioCtx.destination);
+
+                createStaticNoiseGenerator();
+                setupLocalMicrophone();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function createStaticNoiseGenerator() {
+            const bufferSize = audioCtx.sampleRate * 2;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = buffer.getChannelData(0);
+
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+
+            staticNoiseNode = audioCtx.createBufferSource();
+            staticNoiseNode.buffer = buffer;
+            staticNoiseNode.loop = true;
+
+            const bandpass = audioCtx.createBiquadFilter();
+            bandpass.type = "bandpass";
+            bandpass.frequency.value = 1400;
+            bandpass.Q.value = 1.8;
+
+            staticGainNode = audioCtx.createGain();
+            staticGainNode.gain.value = 0;
+
+            staticNoiseNode.connect(bandpass);
+            bandpass.connect(staticGainNode);
+            staticGainNode.connect(masterGain);
+
+            staticNoiseNode.start();
+        }
+
+        function updateStaticNoise() {
+            if (!isPowerOn || !staticGainNode) return;
+
+            if (isTransmitting || isReceiving) {
+                staticGainNode.gain.setTargetAtTime(0.003, audioCtx.currentTime, 0.05);
+            } else if (squelchLevel === 0) {
+                staticGainNode.gain.setTargetAtTime(0.09 * volumeLevel, audioCtx.currentTime, 0.05);
+            } else if (squelchLevel < 3) {
+                staticGainNode.gain.setTargetAtTime(0.02 * volumeLevel, audioCtx.currentTime, 0.05);
+            } else {
+                staticGainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+            }
+        }
+
+        async function setupLocalMicrophone() {
+            try {
+                if (!localStream) {
+                    localStream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        }, 
+                        video: false 
+                    });
+
+                    // Start local stream muted until PTT pressed
+                    localStream.getAudioTracks().forEach(track => track.enabled = false);
+
+                    // Web Audio Processing for local mic feed
+                    micSourceNode = audioCtx.createMediaStreamSource(localStream);
+
+                    // PMR Radio Bandpass Filter (300Hz - 3400Hz)
+                    micFilterBandpass = audioCtx.createBiquadFilter();
+                    micFilterBandpass.type = "bandpass";
+                    micFilterBandpass.frequency.value = 1700;
+                    micFilterBandpass.Q.value = 1.0;
+
+                    micGainNode = audioCtx.createGain();
+                    micGainNode.gain.value = 1.0;
+
+                    micSourceNode.connect(micFilterBandpass);
+                    micFilterBandpass.connect(micGainNode);
+                    // Pipe to analyzer for visual feedback
+                    micGainNode.connect(analyserNode);
+                }
+            } catch (err) {
+                console.warn("Mikrofon hatası:", err);
+                showToast("Mikrofon erişimi alınamadı.");
+            }
+        }
+
+        function attachRemoteAudioStream(peerId, stream) {
+            let audioEl = document.getElementById(`audio_${peerId}`);
+            if (!audioEl) {
+                audioEl = document.createElement('audio');
+                audioEl.id = `audio_${peerId}`;
+                audioEl.autoplay = true;
+                document.getElementById('remoteAudioContainer').appendChild(audioEl);
+            }
+            audioEl.srcObject = stream;
+
+            // Connect remote stream to Web Audio API for Radio Bandpass filter & volume control
+            if (audioCtx) {
+                try {
+                    const remoteSource = audioCtx.createMediaStreamSource(stream);
+                    const remoteFilter = audioCtx.createBiquadFilter();
+                    remoteFilter.type = "bandpass";
+                    remoteFilter.frequency.value = 1700;
+                    remoteFilter.Q.value = 1.2;
+
+                    remoteSource.connect(remoteFilter);
+                    remoteFilter.connect(masterGain);
+                } catch(e) {}
+            }
+        }
+
+        function removeRemoteAudioStream(peerId) {
+            const audioEl = document.getElementById(`audio_${peerId}`);
+            if (audioEl) audioEl.remove();
+        }
+
+        /* ===================================================================
+           SOUND EFFECTS (Roger Beep, Squelch Clicks, Call Tones)
+           =================================================================== */
+
+        function playPowerSound(isOn) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(isOn ? 880 : 440, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(isOn ? 1760 : 220, audioCtx.currentTime + 0.15);
+
+            gain.gain.setValueAtTime(0.15 * volumeLevel, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+
+            osc.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        }
+
+        function playPTTStartSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(700, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(950, audioCtx.currentTime + 0.03);
+
+            gain.gain.setValueAtTime(0.2 * volumeLevel, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.07);
+
+            osc.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.07);
+        }
+
+        function playRogerBeep() {
+            if (!audioCtx || !isPowerOn) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1200, now);
+            osc.frequency.setValueAtTime(1200, now + 0.08);
+
+            gain.gain.setValueAtTime(0.15 * volumeLevel, now);
+            gain.gain.setValueAtTime(0.15 * volumeLevel, now + 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+            osc.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start(now);
+            osc.stop(now + 0.12);
+        }
+
+        function playKnobClick() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(140, audioCtx.currentTime);
+
+            gain.gain.setValueAtTime(0.1 * volumeLevel, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.02);
+
+            osc.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.02);
+        }
+
+        function sendCallTone() {
+            if (!isPowerOn) {
+                showToast("Telsiz kapalı! Önce gücü açın.");
+                return;
+            }
+            initAudioContext();
+            
+            broadcastSignal({ type: 'CALL_TONE', sender: myPeerId });
+            playIncomingCallTone();
+
+            setLEDState('tx', true);
+            updateLCDStatus("ÇAĞRI TONU GÖNDERİLİYOR...");
+            setTimeout(() => {
+                setLEDState('tx', false);
+                updateLCDStatus("HAZIR (BEKLEMEDE)");
+            }, 600);
+        }
+
+        function playIncomingCallTone() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(1750, now);
+            osc.frequency.setValueAtTime(1200, now + 0.2);
+            osc.frequency.setValueAtTime(1750, now + 0.4);
+
+            gain.gain.setValueAtTime(0.25 * volumeLevel, now);
+            gain.gain.linearRampToValueAtTime(0.001, now + 0.6);
+
+            osc.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start(now);
+            osc.stop(now + 0.6);
+        }
+
+        /* ===================================================================
+           PTT (PUSH-TO-TALK) TRANSMISSION CONTROL
+           =================================================================== */
+
+        function startPTT(e) {
+            if (e && e.preventDefault) e.preventDefault();
+            if (!isPowerOn) {
+                showToast("Telsiz kapalı! Önce Güç düğmesini açın.");
+                return;
+            }
+            if (isTransmitting) return;
+
+            initAudioContext();
+
+            isTransmitting = true;
+            setLEDState('tx', true);
+            playPTTStartSound();
+
+            document.getElementById('pttBtn').classList.add('scale-95', 'brightness-125');
+
+            // Enable local microphone WebRTC audio track for transmission
+            if (localStream) {
+                localStream.getAudioTracks().forEach(track => track.enabled = true);
+            }
+
+            // Notify connected peers via WebRTC data channel
+            broadcastSignal({ type: 'TX_START', sender: myPeerId });
+
+            updateLCDStatus("YAYINDA (TX)");
+            updateStaticNoise();
+        }
+
+        function stopPTT(e) {
+            if (e && e.preventDefault) e.preventDefault();
+            if (!isTransmitting) return;
+
+            isTransmitting = false;
+            setLEDState('tx', false);
+
+            document.getElementById('pttBtn').classList.remove('scale-95', 'brightness-125');
+
+            // Disable local mic audio track
+            if (localStream) {
+                localStream.getAudioTracks().forEach(track => track.enabled = false);
+            }
+
+            // Notify peers
+            broadcastSignal({ type: 'TX_STOP', sender: myPeerId });
+
+            playRogerBeep();
+            updateLCDStatus("HAZIR (BEKLEMEDE)");
+            updateStaticNoise();
+        }
+
+        /* ===================================================================
+           POWER & HARDWARE CONTROLS
+           =================================================================== */
+
+        function togglePower() {
+            isPowerOn = !isPowerOn;
+            initAudioContext();
+
+            const lcdContent = document.getElementById('lcdContent');
+            const lcdBacklight = document.getElementById('lcdBacklight');
+            const powerKnobInd = document.getElementById('powerKnobIndicator');
+
+            if (isPowerOn) {
+                powerKnobInd.style.transform = 'rotate(45deg)';
+                lcdContent.classList.remove('opacity-10');
+                lcdContent.classList.add('opacity-100');
+                lcdBacklight.classList.remove('opacity-0');
+                lcdBacklight.classList.add('opacity-30');
+
+                setLEDState('pwr', true);
+                playPowerSound(true);
+
+                if (!peer) initPeerJS();
+
+                updateLCDStatus("SİSTEM AÇILDI");
+                setTimeout(() => updateLCDStatus("HAZIR (BEKLEMEDE)"), 1000);
+
+                updateStaticNoise();
+                startLCDVisualizer();
+            } else {
+                if (isTransmitting) stopPTT();
+                
+                powerKnobInd.style.transform = 'rotate(-45deg)';
+                lcdContent.classList.remove('opacity-100');
+                lcdContent.classList.add('opacity-10');
+                lcdBacklight.classList.remove('opacity-30');
+                lcdBacklight.classList.add('opacity-0');
+
+                setLEDState('pwr', false);
+                setLEDState('tx', false);
+                setLEDState('rx', false);
+
+                playPowerSound(false);
+                if (staticGainNode) staticGainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                stopLCDVisualizer();
+            }
+        }
+
+        function setChannel(index) {
+            if (index < 0 || index >= channels.length) return;
+            currentChannelIndex = index;
+            const ch = channels[currentChannelIndex];
+
+            playKnobClick();
+
+            const knob = document.getElementById('channelKnob');
+            const rotationDeg = (index * 45) - 45;
+            knob.style.transform = `rotate(${rotationDeg}deg)`;
+
+            document.getElementById('lcdChannel').innerText = ch.id < 10 ? `0${ch.id}` : ch.id;
+            document.getElementById('lcdFreq').innerText = ch.freq;
+            document.getElementById('chName').innerText = ch.name;
+
+            renderChannelListUI();
+
+            if (isPowerOn) {
+                updateLCDStatus(`KANAL ${ch.id} SEÇİLDİ`);
+                setTimeout(() => {
+                    if (isPowerOn && !isTransmitting && !isReceiving) updateLCDStatus("HAZIR (BEKLEMEDE)");
+                }, 1000);
+            }
+        }
+
+        function nextChannel() {
+            let nextIndex = (currentChannelIndex + 1) % channels.length;
+            setChannel(nextIndex);
+        }
+
+        function updateVolume(val) {
+            volumeLevel = val / 100;
+            document.getElementById('volVal').innerText = `%${val}`;
+            document.getElementById('lcdVolText').innerText = `SES: %${val}`;
+            if (masterGain && audioCtx) {
+                masterGain.gain.setTargetAtTime(volumeLevel, audioCtx.currentTime, 0.05);
+            }
+        }
+
+        function updateSquelch(val) {
+            squelchLevel = parseInt(val);
+            document.getElementById('sqlVal').innerText = `Seviye ${squelchLevel}`;
+            document.getElementById('sqlIcon').innerText = `SQL:${squelchLevel}`;
+            updateStaticNoise();
+        }
+
+        /* ===================================================================
+           UI UPDATES & VISUALIZER
+           =================================================================== */
+
+        function setLEDState(led, active) {
+            const el = document.getElementById(led === 'tx' ? 'ledTx' : led === 'rx' ? 'ledRx' : led === 'net' ? 'ledNet' : 'ledPwr');
+            if (!el) return;
+            if (active) {
+                if (led === 'tx') el.className = "w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444] border border-red-300";
+                if (led === 'rx') el.className = "w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e] border border-green-300";
+                if (led === 'net') el.className = "w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_8px_#38bdf8] border border-sky-200";
+                if (led === 'pwr') el.className = "w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_#f59e0b] border border-amber-200";
+            } else {
+                if (led === 'tx') el.className = "w-2.5 h-2.5 rounded-full bg-red-950 border border-red-900";
+                if (led === 'rx') el.className = "w-2.5 h-2.5 rounded-full bg-green-950 border border-green-900";
+                if (led === 'net') el.className = "w-2.5 h-2.5 rounded-full bg-sky-950 border border-sky-900";
+                if (led === 'pwr') el.className = "w-2.5 h-2.5 rounded-full bg-amber-950 border border-amber-900";
+            }
+        }
+
+        function updateNetBadge(online) {
+            const badge = document.getElementById('netStatusBadge');
+            if (online) {
+                badge.innerText = "ÇEVRİMİÇİ (BAĞLANDI)";
+                badge.className = "text-xs px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono";
+            } else {
+                badge.innerText = "ÇEVRİMIŞI DEĞİL";
+                badge.className = "text-xs px-2.5 py-0.5 rounded-full bg-red-950 text-red-400 border border-red-800 font-mono";
+            }
+        }
+
+        function updateLCDStatus(text) {
+            const statusEl = document.getElementById('lcdStatusText');
+            if (statusEl) statusEl.innerText = text;
+        }
+
+        function updatePeersUI() {
+            const container = document.getElementById('peerListContainer');
+            const totalPeers = Object.keys(dataConnections).length + 1;
+
+            document.getElementById('lcdPeersCount').innerText = `${totalPeers} İSTASYON`;
+            document.getElementById('peerListBadge').innerText = `${totalPeers} İSTASYON`;
+
+            container.innerHTML = '';
+
+            // Add local self tag
+            const selfTag = document.createElement('span');
+            selfTag.className = "text-xs font-mono bg-amber-500/20 text-amber-300 border border-amber-500/50 px-2 py-1 rounded-lg flex items-center gap-1";
+            selfTag.innerHTML = `<i class="fa-solid fa-microphone text-[10px]"></i> Siz (${myPeerId ? myPeerId.split('_').pop() : 'Ben'})`;
+            container.appendChild(selfTag);
+
+            // Add connected peer tags
+            Object.keys(dataConnections).forEach(pId => {
+                const tag = document.createElement('span');
+                tag.className = "text-xs font-mono bg-sky-950 text-sky-300 border border-sky-800 px-2 py-1 rounded-lg flex items-center gap-1";
+                tag.innerHTML = `<i class="fa-solid fa-walkie-talkie text-[10px]"></i> Telsiz-${pId.split('_').pop()}`;
+                container.appendChild(tag);
+            });
+        }
+
+        function renderChannelListUI() {
+            const container = document.getElementById('channelList');
+            container.innerHTML = '';
+
+            channels.forEach((ch, idx) => {
+                const isActive = idx === currentChannelIndex;
+                const btn = document.createElement('button');
+                btn.onclick = () => setChannel(idx);
+                btn.className = `w-full text-left p-2 rounded-xl text-xs font-mono border transition flex items-center justify-between ${
+                    isActive 
+                    ? 'bg-amber-500/20 border-amber-500/80 text-amber-300 font-bold' 
+                    : 'bg-slate-950 hover:bg-slate-800 border-slate-800 text-slate-400'
+                }`;
+
+                btn.innerHTML = `
+                    <div class="flex items-center gap-2 truncate">
+                        <span class="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-[10px] text-amber-400">CH-0${ch.id}</span>
+                        <span class="truncate">${ch.name}</span>
+                    </div>
+                    <span class="text-[10px] opacity-70">${ch.freq} MHz</span>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        function startLCDVisualizer() {
+            const canvas = document.getElementById('lcdVisualizer');
+            const ctx = canvas.getContext('2d');
+
+            function draw() {
+                visualizerAnimId = requestAnimationFrame(draw);
+
+                const width = canvas.width = canvas.clientWidth;
+                const height = canvas.height = canvas.clientHeight;
+
+                ctx.clearRect(0, 0, width, height);
+
+                if (!isPowerOn || !analyserNode) return;
+
+                const bufferLength = analyserNode.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+                analyserNode.getByteFrequencyData(dataArray);
+
+                const barWidth = (width / bufferLength) * 1.8;
+                let x = 0;
+
+                for (let i = 0; i < bufferLength; i++) {
+                    const barHeight = (dataArray[i] / 255) * height;
+                    ctx.fillStyle = 'rgba(15, 23, 11, 0.85)';
+                    ctx.fillRect(x, height - barHeight, barWidth - 1, barHeight);
+                    x += barWidth;
+                }
+            }
+            draw();
+        }
+
+        function stopLCDVisualizer() {
+            if (visualizerAnimId) cancelAnimationFrame(visualizerAnimId);
+            const canvas = document.getElementById('lcdVisualizer');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('messageToast');
+            document.getElementById('toastText').innerText = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
+        /* ===================================================================
+           KEYBOARD SHORTCUTS
+           =================================================================== */
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !e.repeat && document.activeElement.tagName !== 'INPUT') {
+                e.preventDefault();
+                startPTT();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT') {
+                e.preventDefault();
+                stopPTT();
+            }
+        });
+
+        window.onload = () => {
+            renderChannelListUI();
+            setChannel(0);
+        };
+    </script>
 </body>
 </html>
