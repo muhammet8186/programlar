@@ -768,7 +768,7 @@
                     </div>
                 </div>
                 <form id="firebase-form" onsubmit="handleSaveFirebaseSettings(event)" class="p-4 sm:p-6 space-y-4">
-                    <p class="text-xs text-slate-500">Firebase kök düğüm başlığını ve konfigürasyon ayarlarını buradan yönetin. Tüm veriler Türkçe anahtarlarla buluta otomatik eşitlenecektir.</p>
+                    <p class="text-xs text-slate-500">Firebase kök düğüm başlığını ve konfigürasyon ayarlarını buradan yönetin veya doğrudan kod içerisindeki sabit değişkenler üzerinden güncelleyin.</p>
                     
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Firebase Kök Düğüm Başlığı</label>
@@ -1031,6 +1031,7 @@
 
     <!-- JAVASCRIPT MANTIK VE YAPILANDIRMA -->
     <script>
+        // KOD İÇERİSİNDEN MANUEL DEĞİŞTİRME İÇİN SABİTLER:
         const VARS_FIREBASE_KOK_DUGUM = "okul_yoklama_sistemi";
         const VARS_FIREBASE_KONFIGURASYON = {
             apiKey: "",
@@ -1184,10 +1185,29 @@
             state.attendanceRecords = savedRecords ? JSON.parse(savedRecords) : [];
             state.studentNotes = savedNotes ? JSON.parse(savedNotes) : {};
             state.users = savedUsers ? JSON.parse(savedUsers) : DEFAULT_USERS;
-            state.firebaseRootNode = savedRootNode || VARS_FIREBASE_KOK_DUGUM;
-            state.firebaseConfig = savedFb ? JSON.parse(savedFb) : { apiKey: "", authDomain: "", databaseURL: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: "" };
             
-            document.getElementById('fb-root-node').value = state.firebaseRootNode;
+            // Firebase Kök Düğüm Önceliği: Kod Sabiti doluysa ve localStorage'da varsayılan harici kayıt yoksa koddakini al
+            state.firebaseRootNode = savedRootNode ? savedRootNode : VARS_FIREBASE_KOK_DUGUM;
+
+            // Firebase Konfigürasyon Önceliği: Kod içinde manuel girilmiş bilgi varsa ve tarayıcıda boş/kayıtsızsa kodu baz al
+            let parsedSavedFb = null;
+            try {
+                parsedSavedFb = savedFb ? JSON.parse(savedFb) : null;
+            } catch(e) {}
+
+            const codeHasConfig = VARS_FIREBASE_KONFIGURASYON && VARS_FIREBASE_KONFIGURASYON.apiKey && VARS_FIREBASE_KONFIGURASYON.apiKey.trim() !== "";
+            const savedHasConfig = parsedSavedFb && parsedSavedFb.apiKey && parsedSavedFb.apiKey.trim() !== "";
+
+            if (codeHasConfig && !savedHasConfig) {
+                state.firebaseConfig = VARS_FIREBASE_KONFIGURASYON;
+            } else if (savedHasConfig) {
+                state.firebaseConfig = parsedSavedFb;
+            } else {
+                state.firebaseConfig = VARS_FIREBASE_KONFIGURASYON;
+            }
+            
+            const rootInput = document.getElementById('fb-root-node');
+            if(rootInput) rootInput.value = state.firebaseRootNode;
             
             const configInput = document.getElementById('fb-config-json');
             if (configInput) {
@@ -1463,7 +1483,7 @@
                         case 'manage-students': return 'Öğrenci Ekle/Sil';
                         case 'manage-teachers': return 'Öğretmen Ekle/Sil';
                         case 'students': return 'Öğrenci Liste';
-                        case 'teachers': return 'Öğretmen Liste';
+                        case 'teachers': return 'Öğretmenler Liste';
                         case 'statistics': return 'İstatistik';
                         case 'settings': return 'Ayarlar';
                         default: return p;
