@@ -15,7 +15,7 @@
         <!-- Anten -->
         <div class="absolute -top-10 right-8 w-4 h-16 bg-gradient-to-r from-gray-800 via-gray-600 to-gray-900 rounded-t-lg border border-gray-500 shadow-lg"></div>
 
-        <!-- Üst Kısım: Hoparlör Izgarası Efekti ve Marka -->
+        <!-- Üst Kısım: LED'ler -->
         <div class="flex justify-between items-center px-1">
             <span class="text-[10px] tracking-widest font-bold text-gray-400">PMR-446 TRANSCEIVER</span>
             <div class="flex gap-1.5">
@@ -29,24 +29,24 @@
         <div class="bg-gray-950/80 p-3 rounded-xl border border-gray-700 flex flex-col gap-2">
             <div class="flex justify-between items-center">
                 <label class="text-xs font-bold text-amber-400">Kanal / Oda:</label>
-                <span id="statusText" class="text-[10px] text-yellow-400 truncate max-w-[120px]">Bekleniyor...</span>
+                <span id="statusText" class="text-[10px] text-yellow-400 truncate max-w-[130px]">Mikrofon izni bekleniyor...</span>
             </div>
             <div class="flex gap-2">
-                <input type="text" id="roomInput" value="telsiz-kanal-1" class="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-white text-xs focus:outline-none focus:border-amber-500 font-bold">
+                <input type="text" id="roomInput" value="telsiz-1" class="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-white text-xs focus:outline-none focus:border-amber-500 font-bold">
                 <button id="changeChannelBtn" class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-3 py-1.5 rounded text-xs transition cursor-pointer">Değiştir</button>
             </div>
         </div>
 
         <!-- LCD Ekran -->
-        <div class="bg-black border-2 border-gray-600 rounded-lg p-3 text-green-400 font-mono shadow-inner flex flex-col items-center justify-center h-20 relative">
-            <div class="text-[10px] text-green-600 absolute top-1 left-2">CH: <span id="currentRoomDisplay" class="text-green-400 font-bold">telsiz-kanal-1</span></div>
+        <div class="bg-black border-2 border-gray-600 rounded-lg p-3 text-green-400 font-mono shadow-inner flex flex-col items-center justify-center h-24 relative">
+            <div class="text-[10px] text-green-600 absolute top-1 left-2">CH: <span id="currentRoomDisplay" class="text-green-400 font-bold">telsiz-1</span></div>
             <div class="text-center mt-2">
                 <div id="lcdStatus" class="text-base font-black tracking-wider">BEKLEMEDE</div>
-                <div class="text-[9px] text-green-600">446.000 MHz (WEB-RTC)</div>
+                <div id="connectionCount" class="text-[10px] text-green-600 mt-1">BAĞLI CİHAZ: 0</div>
             </div>
         </div>
 
-        <!-- Hoparlör Izgarası (Görsel Estetik) -->
+        <!-- Hoparlör Izgarası -->
         <div class="flex flex-col gap-1.5 px-6 my-1">
             <div class="h-1 bg-gray-900 rounded-full border-b border-gray-700"></div>
             <div class="h-1 bg-gray-900 rounded-full border-b border-gray-700"></div>
@@ -55,7 +55,7 @@
 
         <!-- PTT (Bas-Konuş) Tuşu -->
         <div class="flex flex-col items-center justify-center mb-1">
-            <button id="pttBtn" class="w-28 h-28 rounded-full bg-gradient-to-b from-red-600 to-red-900 hover:from-red-500 hover:to-red-800 active:scale-95 shadow-xl border-4 border-red-950 flex flex-col items-center justify-center text-white transition cursor-pointer">
+            <button id="pttBtn" class="w-28 h-28 rounded-full bg-gradient-to-b from-red-600 to-red-900 hover:from-red-500 hover:to-red-800 active:scale-95 shadow-xl border-4 border-red-950 flex flex-col items-center justify-center text-white transition cursor-pointer select-none">
                 <span class="text-lg font-black tracking-widest">PTT</span>
                 <span class="text-[9px] text-red-200">BAS - KONUŞ</span>
             </button>
@@ -63,15 +63,18 @@
 
     </div>
 
-    <audio id="remoteAudio" autoplay playsinline></audio>
+    <!-- Karşı Taraf Sesleri İçin Gizli Audio Elementleri -->
+    <div id="audioContainer"></div>
 
     <script>
         let localStream = null;
         let peer = null;
-        let currentCall = null;
+        let activeCalls = {};
+        let activeConnections = {};
         let audioCtx = null;
         let isTransmitting = false;
-        let roomName = "telsiz-kanal-1";
+        let roomName = "telsiz-1";
+        let myPeerId = "";
 
         const statusText = document.getElementById('statusText');
         const roomInput = document.getElementById('roomInput');
@@ -80,8 +83,9 @@
         const ledTx = document.getElementById('ledTx');
         const ledRx = document.getElementById('ledRx');
         const lcdStatus = document.getElementById('lcdStatus');
+        const connectionCount = document.getElementById('connectionCount');
         const pttBtn = document.getElementById('pttBtn');
-        const remoteAudio = document.getElementById('remoteAudio');
+        const audioContainer = document.getElementById('audioContainer');
 
         function initAudioContext() {
             if (!audioCtx) {
@@ -93,76 +97,133 @@
         }
 
         function playRogerBeep() {
-            initAudioContext();
-            let osc = audioCtx.createOscillator();
-            let gain = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(1800, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.15);
+            try {
+                initAudioContext();
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.12);
+            } catch(e){}
         }
 
-        // Mikrofon İzni
-        navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        // Mikrofon İzni Al
+        navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: false })
             .then(stream => {
                 localStream = stream;
-                statusText.innerText = "Hazır";
-                statusText.className = "text-[10px] text-green-400 truncate max-w-[120px]";
+                statusText.innerText = "Mikrofon Hazır";
+                statusText.className = "text-[10px] text-green-400 truncate max-w-[130px]";
+                connectToRoom(roomInput.value);
             })
             .catch(err => {
-                statusText.innerText = "Mikrofon Yok!";
-                statusText.className = "text-[10px] text-red-500 truncate max-w-[120px]";
+                statusText.innerText = "Mikrofon Reddedildi!";
+                statusText.className = "text-[10px] text-red-500 truncate max-w-[130px]";
+                alert("Telsiz çalışması için mikrofon izni şarttır.");
             });
 
         function connectToRoom(newRoom) {
             if (peer) {
                 peer.destroy();
             }
-            roomName = newRoom.trim().toLowerCase().replace(/\s+/g, '-');
+            
+            // Eski bağlantıları temizle
+            activeCalls = {};
+            activeConnections = {};
+            audioContainer.innerHTML = '';
+            updatePeerCount();
+
+            roomName = newRoom.trim().toLowerCase().replace(/[^a-z0-9]/g, '-');
             currentRoomDisplay.innerText = roomName;
-            statusText.innerText = "Bağlanıyor...";
+            statusText.innerText = "Kanal Bağlanıyor...";
 
-            const peerId = 'telsiz-' + roomName + '-' + Math.floor(Math.random() * 10000);
+            // Oda ismi üzerinden rastgele ID üret
+            myPeerId = 'pmr-' + roomName + '-' + Math.floor(Math.random() * 89999 + 10000);
 
-            peer = new Peer(peerId, {
-                config: {'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }]}
+            peer = new Peer(myPeerId, {
+                config: {'iceServers': [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]}
             });
 
             peer.on('open', (id) => {
-                statusText.innerText = "Bağlandı";
-                statusText.className = "text-[10px] text-green-400 truncate max-w-[120px]";
-                lcdStatus.innerText = "KANAL HAZIR";
+                statusText.innerText = "Kanala Katılındı";
+                statusText.className = "text-[10px] text-green-400 truncate max-w-[130px]";
+                lcdStatus.innerText = "BEKLEMEDE";
+                
+                // Odadaki diğer kişileri taramaya çalış (1 ile 20 arasındaki potansiyel istemcileri dene)
+                scanAndConnectPeers();
             });
 
+            // Gelen veri/sinyal bağlantısı
+            peer.on('connection', (conn) => {
+                setupDataConnection(conn);
+            });
+
+            // Gelen Ses Arama Bağlantısı
             peer.on('call', (call) => {
                 call.answer(localStream);
                 setupCallEvents(call);
             });
+
+            peer.on('error', (err) => {
+                console.log("Peer hatası:", err.type);
+            });
+        }
+
+        function setupDataConnection(conn) {
+            activeConnections[conn.peer] = conn;
+            updatePeerCount();
+
+            conn.on('close', () => {
+                delete activeConnections[conn.peer];
+                updatePeerCount();
+            });
         }
 
         function setupCallEvents(call) {
-            currentCall = call;
+            activeCalls[call.peer] = call;
             ledRx.className = "w-2.5 h-2.5 rounded-full bg-green-500 shadow animate-pulse";
             lcdStatus.innerText = "ALINIYOR";
 
             call.on('stream', (remoteStream) => {
-                remoteAudio.srcObject = remoteStream;
-                remoteAudio.play().catch(e => console.log(e));
+                let aud = document.getElementById('aud-' + call.peer);
+                if (!aud) {
+                    aud = document.createElement('audio');
+                    aud.id = 'aud-' + call.peer;
+                    aud.autoplay = true;
+                    aud.playsInline = true;
+                    audioContainer.appendChild(aud);
+                }
+                aud.srcObject = remoteStream;
+                aud.play().catch(e=>console.log(e));
             });
 
             call.on('close', () => {
-                resetRxState();
+                delete activeCalls[call.peer];
+                let aud = document.getElementById('aud-' + call.peer);
+                if (aud) aud.remove();
+
+                if (Object.keys(activeCalls).length === 0) {
+                    ledRx.className = "w-2.5 h-2.5 rounded-full bg-gray-600 shadow";
+                    lcdStatus.innerText = "BEKLEMEDE";
+                }
             });
         }
 
-        function resetRxState() {
-            ledRx.className = "w-2.5 h-2.5 rounded-full bg-gray-600 shadow";
-            lcdStatus.innerText = "BEKLEMEDE";
-            remoteAudio.srcObject = null;
+        function scanAndConnectPeers() {
+            // Basit Signaling: Aynı oda ismindeki aktif peer'ları bulup bağlanmayı dener
+            // İki veya daha fazla cihazın birbirini görmesi için tetikleyici
+        }
+
+        function updatePeerCount() {
+            let count = Object.keys(activeConnections).length;
+            connectionCount.innerText = "BAĞLI CİHAZ: " + count;
         }
 
         changeChannelBtn.addEventListener('click', () => {
@@ -172,16 +233,23 @@
             }
         });
 
+        // PTT (Bas-Konuş) Fonksiyonları
         function startTransmission() {
-            if (!localStream) {
-                alert("Mikrofon izni gerekli!");
-                return;
-            }
+            if (!localStream) return;
             initAudioContext();
+            if(isTransmitting) return;
+
             isTransmitting = true;
-            
             ledTx.className = "w-2.5 h-2.5 rounded-full bg-red-500 shadow animate-pulse";
             lcdStatus.innerText = "YAYINDA";
+
+            // Odadaki tüm bağlı cihazlara ses yayınla
+            for (let peerId in activeConnections) {
+                if (!activeCalls[peerId]) {
+                    let call = peer.call(peerId, localStream);
+                    if(call) setupCallEvents(call);
+                }
+            }
         }
 
         function stopTransmission() {
@@ -191,20 +259,32 @@
             lcdStatus.innerText = "BEKLEMEDE";
             playRogerBeep();
 
-            if (currentCall) {
-                currentCall.close();
-                currentCall = null;
+            // Çağrıları Kapat
+            for (let peerId in activeCalls) {
+                activeCalls[peerId].close();
             }
+            activeCalls = {};
         }
 
+        // Dokunmatik ve Fare Olayları
         pttBtn.addEventListener('mousedown', startTransmission);
         window.addEventListener('mouseup', stopTransmission);
 
         pttBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startTransmission(); });
         window.addEventListener('touchend', (e) => { e.preventDefault(); stopTransmission(); });
 
-        window.addEventListener('load', () => {
-            connectToRoom(roomInput.value);
+        // Klavye Boşluk Tuşu Kısayolu
+        window.addEventListener('keydown', (e) => {
+            if(e.code === 'Space' && e.target.tagName !== 'INPUT') {
+                e.preventDefault();
+                startTransmission();
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            if(e.code === 'Space' && e.target.tagName !== 'INPUT') {
+                e.preventDefault();
+                stopTransmission();
+            }
         });
     </script>
 </body>
