@@ -667,6 +667,8 @@
         });
 
         modeToggleBtn.addEventListener('click', () => {
+            initAudioContext();
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
             if (currentMode === 'PTT') {
                 currentMode = 'VOX';
                 modeToggleBtn.innerText = "VOX";
@@ -743,7 +745,9 @@
             broadcastData({ type: 'call_tone', sender: userName });
             lcdStatus.innerText = "ZİL ÇALINDI!";
             showToast("Kanal üyelerine arama zili gönderildi.", "success");
-            setTimeout(() => { if (!isTransmitting) lcdStatus.innerText = "BEKLEMEDE"; }, 2000);
+            setTimeout(() => {
+                if (!isTransmitting && !remoteAudio.srcObject && isPowerOn) lcdStatus.innerText = "BEKLEMEDE";
+            }, 2000);
         });
 
         sosBtn.addEventListener('click', () => {
@@ -824,9 +828,17 @@
                     analyser.getByteFrequencyData(dataArray);
                     
                     if (type === 'mic') {
-                        let sum = 0;
-                        for (let i = 0; i < dataArray.length; i++) { sum += dataArray[i]; }
-                        let avg = sum / dataArray.length;
+                        // VOX için zaman alanı RMS ölçümü: frekans ortalaması sessiz/normal konuşmada
+                        // çoğu telefonda eşiği geçemediği için VOX hiç açılmayabiliyordu.
+                        const timeData = new Uint8Array(analyser.fftSize);
+                        analyser.getByteTimeDomainData(timeData);
+                        let squares = 0;
+                        for (let i = 0; i < timeData.length; i++) {
+                            const centered = (timeData[i] - 128) / 128;
+                            squares += centered * centered;
+                        }
+                        const rms = Math.sqrt(squares / timeData.length);
+                        const voxThreshold = 0.008 + (squelchThreshold * 0.00035);
 
                         // Mikrofon gönderim kanalını ses ölçümünün her anlık değişiminde kapatmayın.
                         // PTT/VOX yayın başlatıp durdururken track'i açıp kapatır; aksi hâlde ilk hece kesilebilir.
@@ -834,13 +846,13 @@
                             localStream.getAudioTracks()[0].enabled = !!(isTransmitting && !isMutedByAdmin);
                         }
 
-                        if (currentMode === 'VOX' && isConnected && !isMutedByAdmin) {
-                            if (avg > (squelchThreshold + 10)) {
+                        if (currentMode === 'VOX' && isConnected && !isMutedByAdmin && isPowerOn) {
+                            if (rms > voxThreshold) {
                                 if (!isTransmitting) startTransmission();
                                 if (voxSilenceTimer) clearTimeout(voxSilenceTimer);
                                 voxSilenceTimer = setTimeout(() => {
                                     if (isTransmitting && currentMode === 'VOX') stopTransmission();
-                                }, 1000);
+                                }, 1200);
                             }
                         }
                     }
@@ -1330,8 +1342,17 @@
                 });
 
                 peer.on('call', (call) => {
-                    call.answer(localStream);
-                    setupCallEvents(call);
+                    if (!localStream || !localStream.getAudioTracks().length) {
+                        showToast('Mikrofon hazır değil; cihazın mikrofon iznini kontrol edin.', 'error');
+                        return;
+                    }
+                    try {
+                        call.answer(localStream);
+                        setupCallEvents(call);
+                    } catch (err) {
+                        console.error('Gelen ses çağrısı cevaplanamadı:', err);
+                        showToast('Ses çağrısı başlatılamadı. Kanalı yeniden kurup deneyin.', 'error');
+                    }
                 });
             });
 
@@ -1516,8 +1537,20 @@
 
             call.on('error', (err) => {
                 console.error('Peer audio call error:', err);
-                showToast("Ses bağlantısı hatası. İki cihazın da aynı kanala bağlı ve internet erişimi olduğundan emin olun.", "error");
+                statusText.innerText = 'Ses bağlantısı hatası';
+                showToast("Ses bağlantısı hatası. İki cihazın aynı kanalda olduğundan, mikrofon izninin açık olduğundan ve internet bağlantısının çalıştığından emin olun.", "error");
             });
+            try {
+                if (call.peerConnection) {
+                    call.peerConnection.addEventListener('connectionstatechange', () => {
+                        const state = call.peerConnection.connectionState;
+                        if (state === 'failed' || state === 'disconnected') {
+                            statusText.innerText = state === 'failed' ? 'Ses bağlantısı başarısız' : 'Ses bağlantısı kesildi';
+                            showToast('Ses bağlantısı ' + (state === 'failed' ? 'başarısız oldu' : 'kesildi') + '. İnternet/Wi-Fi bağlantısını kontrol edin.', 'warning');
+                        }
+                    });
+                }
+            } catch (e) {}
 
             call.on('close', () => {
                 if (currentCall === call) currentCall = null;
