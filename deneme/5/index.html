@@ -205,17 +205,14 @@
 
         <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 mt-4">
           <div class="font-bold mb-3">MİKROFON TESTİ VE KAYIT</div>
-          <div class="grid grid-cols-2 gap-2">
-            <button id="micTestButton" type="button" class="rounded-xl border border-sky-700 bg-sky-950 py-3 text-sm font-bold text-sky-200">MİKROFONU TEST ET</button>
-            <button id="micRecordButton" type="button" class="rounded-xl border border-red-800 bg-red-950 py-3 text-sm font-bold text-red-200">● KAYDI BAŞLAT</button>
-          </div>
-          <div class="grid grid-cols-2 gap-2 mt-2">
-            <button id="micStopRecordButton" type="button" disabled class="rounded-xl border border-slate-700 bg-slate-800 py-3 text-sm font-bold text-slate-400 disabled:opacity-40">KAYDI DURDUR</button>
-            <button id="micPlayRecordButton" type="button" disabled class="rounded-xl border border-emerald-800 bg-emerald-950 py-3 text-sm font-bold text-emerald-200 disabled:opacity-40">KAYDI ÇAL</button>
-          </div>
-          <div id="micTestResult" class="text-xs text-slate-400 mt-3">Test için mikrofonu açın ve konuşun.</div>
+          <button id="micTestButton" type="button" class="w-full rounded-xl border border-sky-700 bg-sky-950 py-3 text-sm font-bold text-sky-200">MİKROFONU TEST ET</button>
+          <button id="micRecordButton" type="button" class="mt-2 w-full select-none touch-none rounded-2xl border-2 border-red-500 bg-red-950 py-5 text-base font-black tracking-wide text-red-100 active:scale-[.99]">
+            BASILI TUT: KAYDET
+            <span class="mt-1 block text-xs font-semibold text-red-300">BIRAKINCA OTOMATİK ÇALAR</span>
+          </button>
+          <div id="micTestResult" class="text-xs text-slate-400 mt-3">Kayıt için düğmeye basılı tutun; bıraktığınızda kayıt seçili hoparlörden çalar.</div>
           <audio id="localMicAudio" autoplay playsinline class="hidden"></audio>
-          <audio id="micRecordingPlayback" controls class="hidden w-full mt-3"></audio>
+          <audio id="micRecordingPlayback" playsinline class="hidden"></audio>
         </div>
 
         <button id="micBackToMenu" type="button" class="mt-5 w-full rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800 py-3 font-bold">ANA MENÜYE DÖN</button>
@@ -1992,8 +1989,6 @@
         const micTestButton = document.getElementById('micTestButton');
         const micTestResult = document.getElementById('micTestResult');
         const micRecordButton = document.getElementById('micRecordButton');
-        const micStopRecordButton = document.getElementById('micStopRecordButton');
-        const micPlayRecordButton = document.getElementById('micPlayRecordButton');
         const micRecordingPlayback = document.getElementById('micRecordingPlayback');
 
         let localMonitorStream = null, localMonitorActive = false;
@@ -2099,7 +2094,10 @@
             }
             try {
                 await localMicAudio.setSinkId(deviceId || '');
-                micTestResult.textContent = 'Ses çıkış cihazı güncellendi.';
+                if (typeof micRecordingPlayback.setSinkId === 'function') {
+                    await micRecordingPlayback.setSinkId(deviceId || '');
+                }
+                micTestResult.textContent = 'Ses çıkış cihazı güncellendi. Kayıtlar da bu çıkıştan çalacak.';
             } catch (e) {
                 micTestResult.textContent = 'Ses çıkışı değiştirilemedi: ' + e.message;
             }
@@ -2242,41 +2240,74 @@
                 micTestResult.textContent = localMicRms > .006 ? 'Test başarılı: mikrofon ses algılıyor.' : 'Ses algılanmadı. Mikrofon iznini ve giriş cihazını kontrol edin.';
             }, 5000);
         });
-        micRecordButton.addEventListener('click', async () => {
+        let micRecordPressActive = false;
+        async function beginMicPressRecord(e) {
+            if (micRecordPressActive) return;
+            if (e && e.cancelable) e.preventDefault();
+            micRecordPressActive = true;
             if (!localMonitorActive) await startLocalMonitor();
-            if (!localMonitorActive || !localMonitorDestination) return;
-            if (!window.MediaRecorder) { micTestResult.textContent = 'Bu tarayıcı ses kaydını desteklemiyor.'; return; }
+            // Kullanıcı izin penceresi/başlatma sırasında düğmeyi bırakmışsa kayıt başlatma.
+            if (!micRecordPressActive || !localMonitorActive || !localMonitorStream) return;
+            if (!window.MediaRecorder) {
+                micTestResult.textContent = 'Bu tarayıcı ses kaydını desteklemiyor.';
+                return;
+            }
             try {
+                if (localMicRecorder && localMicRecorder.state !== 'inactive') return;
                 localMicChunks = [];
-                const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : '';
-                localMicRecorder = new MediaRecorder(localMonitorDestination.stream, mime ? {mimeType:mime} : {});
-                localMicRecorder.ondataavailable = e => { if (e.data && e.data.size) localMicChunks.push(e.data); };
-                localMicRecorder.onstop = () => {
-                    const blob = new Blob(localMicChunks, {type: localMicRecorder.mimeType || 'audio/webm'});
+                const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                    ? 'audio/webm;codecs=opus'
+                    : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '');
+                // Ham mikrofon akışı kaydedilir; kayıt, PTT/sürekli dinleme ayarından bağımsızdır.
+                localMicRecorder = new MediaRecorder(localMonitorStream, mime ? { mimeType: mime } : {});
+                localMicRecorder.ondataavailable = ev => {
+                    if (ev.data && ev.data.size) localMicChunks.push(ev.data);
+                };
+                localMicRecorder.onstop = async () => {
+                    const blob = new Blob(localMicChunks, { type: localMicRecorder.mimeType || 'audio/webm' });
+                    if (!blob.size) {
+                        micTestResult.textContent = 'Kayıt boş. Tekrar basılı tutup konuşun.';
+                        micRecordButton.innerHTML = 'BASILI TUT: KAYDET<span class="mt-1 block text-xs font-semibold text-red-300">BIRAKINCA OTOMATİK ÇALAR</span>';
+                        return;
+                    }
                     if (localMicRecordingUrl) URL.revokeObjectURL(localMicRecordingUrl);
                     localMicRecordingUrl = URL.createObjectURL(blob);
                     micRecordingPlayback.src = localMicRecordingUrl;
-                    micRecordingPlayback.classList.remove('hidden');
-                    micPlayRecordButton.disabled = false;
-                    micTestResult.textContent = 'Kayıt hazır. ÇAL düğmesiyle dinleyebilirsiniz.';
-                    micRecordButton.textContent = '● KAYDI BAŞLAT';
-                    micStopRecordButton.disabled = true;
+                    try {
+                        const selectedOutput = micOutputSelect.value || '';
+                        if (typeof micRecordingPlayback.setSinkId === 'function') {
+                            await micRecordingPlayback.setSinkId(selectedOutput);
+                        }
+                        await micRecordingPlayback.play();
+                        micTestResult.textContent = 'Kayıt tamamlandı ve seçili ses çıkışından çalınıyor.';
+                    } catch (err) {
+                        micTestResult.textContent = 'Kayıt alındı ancak otomatik çalınamadı: ' + err.message;
+                    }
+                    micRecordButton.classList.remove('border-emerald-400', 'bg-emerald-950');
+                    micRecordButton.classList.add('border-red-500', 'bg-red-950');
+                    micRecordButton.innerHTML = 'BASILI TUT: KAYDET<span class="mt-1 block text-xs font-semibold text-red-300">BIRAKINCA OTOMATİK ÇALAR</span>';
                 };
                 localMicRecorder.start();
-                micRecordButton.textContent = '● KAYITTA';
-                micStopRecordButton.disabled = false;
-                micPlayRecordButton.disabled = true;
-                micTestResult.textContent = 'Ses kaydediliyor…';
-            } catch (e) { micTestResult.textContent = 'Kayıt başlatılamadı: ' + e.message; }
-        });
-        micStopRecordButton.addEventListener('click', () => {
-            if (localMicRecorder && localMicRecorder.state !== 'inactive') localMicRecorder.stop();
-        });
-        micPlayRecordButton.addEventListener('click', async () => {
-            if (!localMicRecordingUrl) return;
-            try { await micRecordingPlayback.play(); }
-            catch (e) { micTestResult.textContent = 'Kayıt çalınamadı: ' + e.message; }
-        });
+                micRecordButton.classList.remove('border-red-500', 'bg-red-950');
+                micRecordButton.classList.add('border-emerald-400', 'bg-emerald-950');
+                micRecordButton.innerHTML = '● KAYIT YAPILIYOR<span class="mt-1 block text-xs font-semibold text-emerald-200">KAYDI BİTİRMEK VE ÇALMAK İÇİN BIRAKIN</span>';
+                micTestResult.textContent = 'Ses kaydediliyor… konuşun.';
+            } catch (err) {
+                micRecordPressActive = false;
+                micTestResult.textContent = 'Kayıt başlatılamadı: ' + err.message;
+            }
+        }
+        function endMicPressRecord() {
+            if (!micRecordPressActive) return;
+            micRecordPressActive = false;
+            if (localMicRecorder && localMicRecorder.state !== 'inactive') {
+                micTestResult.textContent = 'Kayıt tamamlanıyor…';
+                localMicRecorder.stop();
+            }
+        }
+        micRecordButton.addEventListener('pointerdown', beginMicPressRecord);
+        window.addEventListener('pointerup', endMicPressRecord);
+        window.addEventListener('pointercancel', endMicPressRecord);
         micOutputSelect.addEventListener('change', applyMicOutputDevice);
         if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
             navigator.mediaDevices.addEventListener('devicechange', refreshMicOutputDevices);
