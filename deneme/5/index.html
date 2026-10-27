@@ -828,9 +828,10 @@
                         for (let i = 0; i < dataArray.length; i++) { sum += dataArray[i]; }
                         let avg = sum / dataArray.length;
 
+                        // Mikrofon gönderim kanalını ses ölçümünün her anlık değişiminde kapatmayın.
+                        // PTT/VOX yayın başlatıp durdururken track'i açıp kapatır; aksi hâlde ilk hece kesilebilir.
                         if (localStream && localStream.getAudioTracks()[0]) {
-                            let allowed = (avg >= squelchThreshold) && (isTransmitting || (currentMode === 'VOX' && isConnected)) && !isMutedByAdmin;
-                            localStream.getAudioTracks()[0].enabled = allowed;
+                            localStream.getAudioTracks()[0].enabled = !!(isTransmitting && !isMutedByAdmin);
                         }
 
                         if (currentMode === 'VOX' && isConnected && !isMutedByAdmin) {
@@ -1498,12 +1499,28 @@
             activeSpeaker.innerText = "Ses Alınıyor...";
 
             call.on('stream', (remoteStream) => {
+                remoteAudio.autoplay = true;
+                remoteAudio.playsInline = true;
+                remoteAudio.muted = false;
+                remoteAudio.volume = Number(volumeSlider?.value || 1);
                 remoteAudio.srcObject = remoteStream;
-                remoteAudio.play().catch(e => console.log(e));
+                const playPromise = remoteAudio.play();
+                if (playPromise && typeof playPromise.catch === 'function') {
+                    playPromise.catch(() => {
+                        showToast("Karşı tarafın sesi engellendi. Ekrana dokunup ses iznini/oynatmayı tekrar deneyin.", "warning");
+                    });
+                }
                 drawVisualizer(remoteStream, 'rx');
+                showToast("Karşı cihazdan ses bağlantısı kuruldu.", "success");
+            });
+
+            call.on('error', (err) => {
+                console.error('Peer audio call error:', err);
+                showToast("Ses bağlantısı hatası. İki cihazın da aynı kanala bağlı ve internet erişimi olduğundan emin olun.", "error");
             });
 
             call.on('close', () => {
+                if (currentCall === call) currentCall = null;
                 resetRxState();
             });
         }
@@ -1528,8 +1545,13 @@
             initAudioContext();
             if (isTransmitting) return;
 
+            const micTrack = localStream && localStream.getAudioTracks()[0];
+            if (!micTrack) {
+                showToast("Mikrofon akışı bulunamadı. Kanaldan çıkıp yeniden bağlanın.", "error");
+                return;
+            }
             isTransmitting = true;
-            localStream.getAudioTracks()[0].enabled = true;
+            micTrack.enabled = true;
             playStartBeep();
 
             pttBtn.classList.add('btn-pressed');
@@ -1549,7 +1571,9 @@
             if (!isTransmitting || !isPowerOn) return;
             isTransmitting = false;
             headsetToggleState = false;
-            if (localStream) localStream.getAudioTracks()[0].enabled = false;
+            if (localStream && localStream.getAudioTracks()[0]) {
+                localStream.getAudioTracks()[0].enabled = false;
+            }
 
             pttBtn.classList.remove('btn-pressed');
             ledTx.className = "w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-700";
@@ -1574,6 +1598,11 @@
         const ledRx = document.getElementById('ledRx');
         const remoteAudio = document.getElementById('remoteAudio');
         const volumeSlider = document.getElementById('volumeSlider');
+        if (volumeSlider) {
+            volumeSlider.addEventListener('input', () => {
+                remoteAudio.volume = Math.max(0, Math.min(1, Number(volumeSlider.value)));
+            });
+        }
 
         pttBtn.addEventListener('pointerdown', (e) => { if (currentMode === 'PTT') startTransmission(e); });
         window.addEventListener('pointerup', (e) => { if (currentMode === 'PTT') stopTransmission(e); });
