@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>PMR Tactical Pro - Commander Edition</title>
-    <!-- PeerJS Yedekli CDN Bağlantısı -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -206,10 +205,10 @@
             <div id="paneChannel" class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col gap-2">
                     <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
-                        <span class="text-[11px] font-bold text-slate-400 font-lcd">ODADAKİLER</span>
+                        <span class="text-[11px] font-bold text-slate-400 font-lcd">ODADAKİLER (YETKİ PANELİ)</span>
                         <span id="userCountBadge" class="text-[10px] bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-800 font-bold">0 Kişi</span>
                     </div>
-                    <ul id="userList" class="flex flex-col gap-1 max-h-32 overflow-y-auto pr-1 text-xs">
+                    <ul id="userList" class="flex flex-col gap-1 max-h-36 overflow-y-auto pr-1 text-xs">
                         <li class="text-slate-500 italic text-center py-3">Henüz bağlanılmadı</li>
                     </ul>
 
@@ -232,20 +231,15 @@
 
                 <div class="flex flex-col gap-2.5">
                     <div>
-                        <label class="text-[11px] font-bold text-slate-400 mb-1 block">Giriş Türü</label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button id="roleGuestBtn" type="button" class="py-2 px-2 rounded-xl border border-amber-500 bg-amber-500/20 text-amber-300 font-bold text-xs font-lcd cursor-pointer transition">KANALA KATIL</button>
-                            <button id="roleHostBtn" type="button" class="py-2 px-2 rounded-xl border border-slate-700 bg-slate-950 text-slate-400 font-bold text-xs font-lcd cursor-pointer transition">ODA KUR (HOST)</button>
-                        </div>
-                    </div>
-
-                    <div>
                         <label class="text-[11px] font-bold text-slate-400 mb-1 block">Çağrı Kodunuz / Adınız</label>
                         <input type="text" id="usernameInput" value="Operatör-1" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 font-bold">
                     </div>
 
                     <div>
-                        <label class="text-[11px] font-bold text-slate-400 mb-1 block">Kanal / Oda İsmi</label>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-[11px] font-bold text-slate-400">Kanal / Oda İsmi</label>
+                            <button id="randomRoomBtn" type="button" class="text-[10px] text-amber-400 hover:underline cursor-pointer font-lcd">[ Rastgele İsim ]</button>
+                        </div>
                         <input type="text" id="roomInput" value="telsiz-1" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 font-bold uppercase">
                     </div>
 
@@ -254,7 +248,11 @@
                         <input type="password" id="roomPassword" placeholder="Şifresiz oda için boş bırakın" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
                     </div>
 
-                    <button id="applyChannelBtn" type="button" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black py-2.5 rounded-xl text-xs transition cursor-pointer font-lcd mt-1 shadow-lg active:scale-95">BAĞLAN & KAYDET</button>
+                    <!-- İŞLEM BUTONLARI -->
+                    <div class="grid grid-cols-2 gap-2 mt-1">
+                        <button id="applyHostBtn" type="button" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black py-2.5 px-2 rounded-xl text-xs transition cursor-pointer font-lcd shadow-lg active:scale-95 text-center">ODA KUR & BAĞLAN</button>
+                        <button id="applyGuestBtn" type="button" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-black py-2.5 px-2 rounded-xl text-xs transition cursor-pointer font-lcd shadow-lg active:scale-95 text-center">KANALA KATIL</button>
+                    </div>
                 </div>
             </div>
 
@@ -323,6 +321,7 @@
         let activeUsers = [];
         let guestConnections = {};
         let pingInterval = null;
+        let isMutedByAdmin = false;
 
         let currentMode = 'PTT';
         let voxSilenceTimer = null;
@@ -353,16 +352,15 @@
             }, 4000);
         }
 
-        // Elementler
         const powerBtn = document.getElementById('powerBtn');
         const powerLed = document.getElementById('powerLed');
         const powerText = document.getElementById('powerText');
         const openChannelModalBtn = document.getElementById('openChannelModalBtn');
         const closeChannelModalBtn = document.getElementById('closeChannelModalBtn');
         const channelModal = document.getElementById('channelModal');
-        const applyChannelBtn = document.getElementById('applyChannelBtn');
-        const roleGuestBtn = document.getElementById('roleGuestBtn');
-        const roleHostBtn = document.getElementById('roleHostBtn');
+        const applyHostBtn = document.getElementById('applyHostBtn');
+        const applyGuestBtn = document.getElementById('applyGuestBtn');
+        const randomRoomBtn = document.getElementById('randomRoomBtn');
         const sosBtn = document.getElementById('sosBtn');
         const callToneBtn = document.getElementById('callToneBtn');
         const themeSelector = document.getElementById('themeSelector');
@@ -389,6 +387,12 @@
         const startRecBtn = document.getElementById('startRecBtn');
         const stopRecBtn = document.getElementById('stopRecBtn');
         const recordingResult = document.getElementById('recordingResult');
+
+        randomRoomBtn.addEventListener('click', () => {
+            let randNum = Math.floor(Math.random() * 8999 + 1000);
+            roomInput.value = "telsiz-" + randNum;
+            showToast("Rastgele oda adı oluşturuldu: " + roomInput.value, "info");
+        });
 
         tabChannelBtn.addEventListener('click', () => {
             tabChannelBtn.className = "py-1.5 rounded-lg bg-amber-500 text-slate-950 transition cursor-pointer";
@@ -466,18 +470,6 @@
         window.addEventListener('pointerdown', initAudioContext, { once: true, passive: true });
         window.addEventListener('touchstart', initAudioContext, { once: true, passive: true });
 
-        roleGuestBtn.addEventListener('click', () => {
-            forceHostMode = false;
-            roleGuestBtn.className = "py-2 px-2 rounded-xl border border-amber-500 bg-amber-500/20 text-amber-300 font-bold text-xs font-lcd cursor-pointer transition";
-            roleHostBtn.className = "py-2 px-2 rounded-xl border border-slate-700 bg-slate-950 text-slate-400 font-bold text-xs font-lcd cursor-pointer transition";
-        });
-
-        roleHostBtn.addEventListener('click', () => {
-            forceHostMode = true;
-            roleHostBtn.className = "py-2 px-2 rounded-xl border border-amber-500 bg-amber-500/20 text-amber-300 font-bold text-xs font-lcd cursor-pointer transition";
-            roleGuestBtn.className = "py-2 px-2 rounded-xl border border-slate-700 bg-slate-950 text-slate-400 font-bold text-xs font-lcd cursor-pointer transition";
-        });
-
         function playTone(freq, type, duration, gainVal = 0.08) {
             if (!isPowerOn) return;
             try {
@@ -541,9 +533,11 @@
 
         function broadcastData(dataObj) {
             if (isHost) {
-                Object.values(guestConnections).forEach(conn => conn.send(dataObj));
+                Object.values(guestConnections).forEach(conn => {
+                    if (conn.open) conn.send(dataObj);
+                });
             } else if (peer && roomName) {
-                let conn = peer.connect('full-pmr-' + roomName + '-host');
+                let conn = peer.connect('pmr-tactical-' + roomName + '-host');
                 conn.on('open', () => conn.send(dataObj));
             }
         }
@@ -602,10 +596,11 @@
                         let avg = sum / dataArray.length;
 
                         if (localStream && localStream.getAudioTracks()[0]) {
-                            localStream.getAudioTracks()[0].enabled = (avg >= squelchThreshold) && (isTransmitting || (currentMode === 'VOX' && isConnected));
+                            let allowed = (avg >= squelchThreshold) && (isTransmitting || (currentMode === 'VOX' && isConnected)) && !isMutedByAdmin;
+                            localStream.getAudioTracks()[0].enabled = allowed;
                         }
 
-                        if (currentMode === 'VOX' && isConnected) {
+                        if (currentMode === 'VOX' && isConnected && !isMutedByAdmin) {
                             if (avg > (squelchThreshold + 10)) {
                                 if (!isTransmitting) startTransmission();
                                 if (voxSilenceTimer) clearTimeout(voxSilenceTimer);
@@ -728,15 +723,33 @@
                 li.className = "flex justify-between items-center bg-slate-900 border border-slate-800 p-2 rounded-lg gap-2";
                 
                 let isSelfText = user.isSelf ? ' (Siz)' : '';
-                let kickButtonHTML = (isHost && !user.isSelf) 
-                    ? `<button type="button" onclick="kickUser('${user.name}')" class="text-[10px] bg-red-950 text-red-400 hover:bg-red-900 border border-red-800 px-2 py-0.5 rounded font-bold cursor-pointer transition">At</button>`
-                    : '';
+                
+                let adminButtonsHTML = '';
+                if (isHost && !user.isSelf) {
+                    let roleBtnText = user.role === 'Yetkili' ? 'Normal Yap' : 'Yetkili Yap';
+                    let muteBtnText = user.isMuted ? 'Sesi Aç' : 'Sustur';
+                    
+                    adminButtonsHTML = `
+                        <div class="flex items-center gap-1">
+                            <button type="button" onclick="toggleUserMute('${user.name}')" class="text-[9px] bg-amber-950 text-amber-400 hover:bg-amber-900 border border-amber-800 px-1.5 py-0.5 rounded font-bold cursor-pointer transition">${muteBtnText}</button>
+                            <button type="button" onclick="toggleUserRole('${user.name}')" class="text-[9px] bg-blue-950 text-blue-400 hover:bg-blue-900 border border-blue-800 px-1.5 py-0.5 rounded font-bold cursor-pointer transition">${roleBtnText}</button>
+                            <button type="button" onclick="kickUser('${user.name}')" class="text-[9px] bg-red-950 text-red-400 hover:bg-red-900 border border-red-800 px-1.5 py-0.5 rounded font-bold cursor-pointer transition">At</button>
+                        </div>
+                    `;
+                }
+
+                let roleBadgeColor = 'text-emerald-400 border-emerald-900 bg-emerald-950';
+                if (user.role === 'Yönetici') roleBadgeColor = 'text-red-400 border-red-900 bg-red-950';
+                if (user.role === 'Yetkili') roleBadgeColor = 'text-blue-400 border-blue-900 bg-blue-950';
+                if (user.isMuted) roleBadgeColor = 'text-amber-400 border-amber-900 bg-amber-950';
+
+                let displayRole = user.isMuted ? 'Susturuldu' : user.role;
 
                 li.innerHTML = `
                     <span class="font-bold truncate ${user.isSelf ? 'text-amber-400' : 'text-slate-200'}">${user.name}${isSelfText}</span>
                     <div class="flex items-center gap-1 shrink-0">
-                        <span class="text-[10px] ${user.role === 'Yönetici' ? 'text-red-400 border-red-900 bg-red-950' : 'text-emerald-400 border-emerald-900 bg-emerald-950'} px-2 py-0.5 rounded border font-bold">${user.role}</span>
-                        ${kickButtonHTML}
+                        <span class="text-[10px] ${roleBadgeColor} px-2 py-0.5 rounded border font-bold">${displayRole}</span>
+                        ${adminButtonsHTML}
                     </div>
                 `;
                 userList.appendChild(li);
@@ -755,8 +768,45 @@
             }
             activeUsers = activeUsers.filter(u => u.name !== targetUserName);
             updateUserListUI();
+            broadcastUserList();
             showToast(targetUserName + " kanaldan çıkarıldı.", "warning");
         };
+
+        window.toggleUserRole = function(targetUserName) {
+            if (!isHost) return;
+            let targetUser = activeUsers.find(u => u.name === targetUserName);
+            if (targetUser) {
+                targetUser.role = targetUser.role === 'Yetkili' ? 'Misafir' : 'Yetkili';
+                updateUserListUI();
+                broadcastUserList();
+                if (guestConnections[targetUserName]) {
+                    guestConnections[targetUserName].send({ type: 'update_role', role: targetUser.role });
+                }
+                showToast(targetUserName + " kullanıcısının yetkisi değiştirildi.", "success");
+            }
+        };
+
+        window.toggleUserMute = function(targetUserName) {
+            if (!isHost) return;
+            let targetUser = activeUsers.find(u => u.name === targetUserName);
+            if (targetUser) {
+                targetUser.isMuted = !targetUser.isMuted;
+                updateUserListUI();
+                broadcastUserList();
+                if (guestConnections[targetUserName]) {
+                    guestConnections[targetUserName].send({ type: 'set_mute', isMuted: targetUser.isMuted });
+                }
+                showToast(targetUserName + (targetUser.isMuted ? " susturuldu." : " ses kilidi açıldı."), "warning");
+            }
+        };
+
+        function broadcastUserList() {
+            if (!isHost) return;
+            let simplifiedList = activeUsers.map(u => ({ name: u.name, role: u.role, isMuted: u.isMuted }));
+            Object.values(guestConnections).forEach(conn => {
+                if (conn.open) conn.send({ type: 'sync_users', users: simplifiedList });
+            });
+        }
 
         function getMicrophonePermission() {
             if (localStream) return Promise.resolve();
@@ -779,7 +829,10 @@
             }
 
             getMicrophonePermission().then(() => {
-                if (peer) peer.destroy();
+                if (peer) {
+                    try { peer.destroy(); } catch(e){}
+                    peer = null;
+                }
                 guestConnections = {};
                 
                 roomName = rawRoom.toLowerCase().replace(/[^a-z0-9]/g, '-');
@@ -810,6 +863,9 @@
 
         function initHostPeer(hostId) {
             peer = new Peer(hostId, {
+                host: '0.peerjs.com',
+                port: 443,
+                secure: true,
                 config: {
                     'iceServers': [
                         { urls: 'stun:stun.l.google.com:19302' },
@@ -827,7 +883,7 @@
                 lcdStatus.className = "text-2xl md:text-4xl font-black font-lcd tracking-widest text-emerald-400 glow-green";
                 activeSpeaker.innerText = "";
 
-                activeUsers = [{ name: userName, role: "Yönetici", isSelf: true }];
+                activeUsers = [{ name: userName, role: "Yönetici", isSelf: true, isMuted: false }];
                 updateUserListUI();
                 startPingSimulator();
                 showToast("Kanal başarıyla kuruldu (Yönetici)", "success");
@@ -846,8 +902,14 @@
 
             peer.on('error', (err) => {
                 if (err.type === 'unavailable-id') {
-                    // Oda zaten açık, misafir olarak katılmayı dene
-                    initGuestPeer(roomName, roomPass, hostId);
+                    // Otomatik çakışma çözümü: Oda adının sonuna rastgele ek ekleyerek tekrar dene
+                    let newRandomRoom = roomName + '-' + Math.floor(Math.random() * 899 + 100);
+                    roomInput.value = newRandomRoom;
+                    showToast("Bu oda adı şu an sunucuda kilitli! 'telsiz-" + newRandomRoom + "' olarak yeni oda kuruluyor...", "warning");
+                    setTimeout(() => {
+                        forceHostMode = true;
+                        connectToRoom(newRandomRoom, roomPass);
+                    }, 1000);
                 } else {
                     statusText.innerText = "Bağlantı Hatası!";
                     showToast("Bağlantı hatası: " + err.type, "error");
@@ -859,6 +921,9 @@
             const guestId = 'pmr-tactical-' + room + '-guest-' + Math.floor(Math.random() * 89999 + 10000);
 
             peer = new Peer(guestId, {
+                host: '0.peerjs.com',
+                port: 443,
+                secure: true,
                 config: {
                     'iceServers': [
                         { urls: 'stun:stun.l.google.com:19302' },
@@ -883,7 +948,8 @@
 
             peer.on('error', (err) => {
                 if (err.type === 'peer-unavailable') {
-                    initHostPeer(hostId);
+                    showToast("Bu isimde açık bir oda bulunamadı. Önce 'Oda Kur & Bağlan' butonuna basın.", "warning");
+                    statusText.innerText = "Oda Bulunamadı";
                 } else {
                     statusText.innerText = "Bağlantı Hatası!";
                     showToast("Kanal bulunamadı veya ağ hatası.", "error");
@@ -904,8 +970,9 @@
                     guestConnections[data.userName] = conn;
                     conn.send({ type: 'auth_success', hostName: userName });
                     if(!activeUsers.find(u => u.name === data.userName)) {
-                        activeUsers.push({ name: data.userName, role: "Misafir", isSelf: false });
+                        activeUsers.push({ name: data.userName, role: "Misafir", isSelf: false, isMuted: false });
                         updateUserListUI();
+                        broadcastUserList();
                         showToast(data.userName + " kanala katıldı.", "info");
                     }
                 }
@@ -923,8 +990,8 @@
                 activeSpeaker.innerText = "";
 
                 activeUsers = [
-                    { name: data.hostName || "Kanal Yöneticisi", role: "Yönetici", isSelf: false },
-                    { name: userName, role: "Misafir", isSelf: true }
+                    { name: data.hostName || "Kanal Yöneticisi", role: "Yönetici", isSelf: false, isMuted: false },
+                    { name: userName, role: "Misafir", isSelf: true, isMuted: false }
                 ];
                 updateUserListUI();
                 startPingSimulator();
@@ -934,6 +1001,21 @@
                     let call = peer.call('pmr-tactical-' + roomName + '-host', localStream);
                     if (call) setupCallEvents(call);
                 }, 200);
+            } else if (data.type === 'sync_users') {
+                if (!isHost) {
+                    activeUsers = data.users.map(u => ({ ...u, isSelf: u.name === userName }));
+                    updateUserListUI();
+                }
+            } else if (data.type === 'update_role') {
+                showToast("Rolünüz güncellendi: " + data.role, "success");
+            } else if (data.type === 'set_mute') {
+                isMutedByAdmin = data.isMuted;
+                if (isMutedByAdmin) {
+                    if (isTransmitting) stopTransmission();
+                    showToast("Yönetici tarafından susturuldunuz!", "error");
+                } else {
+                    showToast("Ses kısıtlamanız kaldırıldı.", "success");
+                }
             } else if (data.type === 'kicked') {
                 showToast(data.message, "error");
                 peer.destroy();
@@ -968,7 +1050,7 @@
         }
 
         function startPingSimulator() {
-            if (pingIntent) clearInterval(pingIntent);
+            if (pingInterval) clearInterval(pingInterval);
             pingInterval = setInterval(() => {
                 if (!isConnected) return;
                 let simulatedPing = Math.floor(Math.random() * 25) + 16;
@@ -1007,7 +1089,10 @@
 
         function startTransmission(e) {
             if (e) e.preventDefault();
-            if (!localStream || !isPowerOn || !isConnected) return;
+            if (!localStream || !isPowerOn || !isConnected || isMutedByAdmin) {
+                if (isMutedByAdmin) showToast("Yönetici tarafından susturulduğunuz için yayın yapamazsınız!", "warning");
+                return;
+            }
             initAudioContext();
             if (isTransmitting) return;
 
@@ -1105,9 +1190,17 @@
         openChannelModalBtn.addEventListener('click', () => { if (isPowerOn) channelModal.classList.remove('hidden'); });
         closeChannelModalBtn.addEventListener('click', () => channelModal.classList.add('hidden'));
         
-        applyChannelBtn.addEventListener('click', () => {
+        applyHostBtn.addEventListener('click', () => {
             if (!isPowerOn) return;
             channelModal.classList.add('hidden');
+            forceHostMode = true;
+            connectToRoom(roomInput.value, roomPassword.value);
+        });
+
+        applyGuestBtn.addEventListener('click', () => {
+            if (!isPowerOn) return;
+            channelModal.classList.add('hidden');
+            forceHostMode = false;
             connectToRoom(roomInput.value, roomPassword.value);
         });
 
