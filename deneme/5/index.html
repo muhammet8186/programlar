@@ -844,12 +844,12 @@
 
                         // Mikrofon gönderim kanalını ses ölçümünün her anlık değişiminde kapatmayın.
                         // PTT/VOX yayın başlatıp durdururken track'i açıp kapatır; aksi hâlde ilk hece kesilebilir.
-                        if (localStream && localStream.getAudioTracks()[0]) {
-                            localStream.getAudioTracks()[0].enabled = !!(isTransmitting && !isMutedByAdmin);
-                        }
+                        // Mikrofon track'ini analiz döngüsünden açıp kapatma: bazı telefonlarda
+                        // bu işlem VOX yayını başlar başlamaz track'i tekrar kapatıyordu.
+                        // Track'i yalnızca startTransmission/stopTransmission yönetsin.
 
                         if (currentMode === 'VOX' && isConnected && !isMutedByAdmin && isPowerOn) {
-                            if (rms > voxThreshold) {
+                            if (rms > Math.max(0.006, voxThreshold * 0.65)) {
                                 if (!isTransmitting) startTransmission();
                                 if (voxSilenceTimer) clearTimeout(voxSilenceTimer);
                                 voxSilenceTimer = setTimeout(() => {
@@ -1673,8 +1673,14 @@
             broadcastData({ type: 'speaker_start', sender: userName });
 
             if (!isHost && (!currentCall || currentCall.open === false)) {
-                let call = peer.call('pmr-tactical-' + roomName + '-host', localStream);
-                if (call) setupCallEvents(call);
+                try {
+                    const call = peer && peer.call('pmr-tactical-' + roomName + '-host', localStream);
+                    if (call) setupCallEvents(call);
+                    else showToast("Ses kanalı başlatılamadı. Kanaldan çıkıp yeniden katılın.", "error");
+                } catch (err) {
+                    console.error("Misafir ses kanalı başlatılamadı:", err);
+                    showToast("Ses gönderilemedi. Mikrofon iznini ve bağlantıyı kontrol edin.", "error");
+                }
             }
         }
 
