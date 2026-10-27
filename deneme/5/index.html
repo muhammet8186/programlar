@@ -477,6 +477,9 @@
         let currentMode = 'PTT';
         let voxSilenceTimer = null;
         let squelchThreshold = 25;
+        // Her cihazın ortam gürültüsünü ayrı öğrenen otomatik VOX kalibrasyonu.
+        let voxNoiseFloor = 0.0035;
+        let voxLastLevel = 0;
         let scannerTimer = null;
         let scanIndex = 1;
 
@@ -675,8 +678,9 @@
                 modeToggleBtn.innerText = "VOX";
                 modeToggleBtn.className = "bg-amber-600/30 text-amber-300 border border-amber-500 px-2.5 py-1 rounded-xl font-lcd font-bold text-[10px] tracking-wider transition cursor-pointer";
                 pttButtonText.innerText = "VOX AKTİF";
-                pttButtonSubText.innerText = "KONUŞUNCA OTOMATİK YAYINLAR";
+                pttButtonSubText.innerText = "MİKROFON OTOMATİK AYARLANIYOR";
                 pttBtn.style.opacity = "0.7";
+                showToast("VOX açık: mikrofon hassasiyeti bu telefona göre otomatik ayarlanıyor.", "success");
             } else if (currentMode === 'VOX') {
                 currentMode = 'PTT';
                 modeToggleBtn.innerText = "PTT";
@@ -807,7 +811,7 @@
             try {
                 if (!analyser) {
                     analyser = audioCtx.createAnalyser();
-                    analyser.fftSize = 64;
+                    analyser.fftSize = 1024;
                     let streamForAnalysis = activeStream;
                     if (type === 'mic' && activeStream === localStream) {
                         try { analyserStream = activeStream.clone(); streamForAnalysis = analyserStream; } catch (e) { streamForAnalysis = activeStream; }
@@ -840,7 +844,18 @@
                             squares += centered * centered;
                         }
                         const rms = Math.sqrt(squares / timeData.length);
-                        const voxThreshold = 0.008 + (squelchThreshold * 0.00035);
+                        voxLastLevel = rms;
+
+                        // Konuşma yokken ortam gürültüsünü yavaşça öğren.
+                        if (!isTransmitting && rms < 0.08) {
+                            voxNoiseFloor = Math.max(0.0015, Math.min(0.025,
+                                (voxNoiseFloor * 0.985) + (rms * 0.015)));
+                        }
+
+                        // Kaydırıcı ince ayardır; ana eşik telefonun mikrofon/ortam seviyesine uyarlanır.
+                        const userSensitivity = 0.0045 + (squelchThreshold * 0.00012);
+                        const adaptiveThreshold = Math.max(userSensitivity,
+                            Math.min(0.035, voxNoiseFloor * 2.0));
 
                         // Mikrofon gönderim kanalını ses ölçümünün her anlık değişiminde kapatmayın.
                         // PTT/VOX yayın başlatıp durdururken track'i açıp kapatır; aksi hâlde ilk hece kesilebilir.
@@ -849,7 +864,7 @@
                         // Track'i yalnızca startTransmission/stopTransmission yönetsin.
 
                         if (currentMode === 'VOX' && isConnected && !isMutedByAdmin && isPowerOn) {
-                            if (rms > Math.max(0.006, voxThreshold * 0.65)) {
+                            if (rms > adaptiveThreshold) {
                                 if (!isTransmitting) startTransmission();
                                 if (voxSilenceTimer) clearTimeout(voxSilenceTimer);
                                 voxSilenceTimer = setTimeout(() => {
