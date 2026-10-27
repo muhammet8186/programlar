@@ -772,6 +772,8 @@
                 });
             } else if (hostDataConnection && hostDataConnection.open) {
                 hostDataConnection.send(dataObj);
+            } else if (!isHost && isConnected && dataObj && (dataObj.type === 'speaker_start' || dataObj.type === 'speaker_stop')) {
+                console.warn('Konuşmacı durumu sunucuya gönderilemedi: veri bağlantısı açık değil.');
             }
         }
 
@@ -1069,7 +1071,8 @@
             statusText.innerText = "Kanaldan ayrıldınız";
             lcdStatus.innerText = "GİRİŞ BEKLENİYOR";
             lcdStatus.className = "text-2xl md:text-4xl font-black font-lcd tracking-widest text-amber-400 glow-amber";
-            activeSpeaker.innerText = "";
+            speakingUsers.clear();
+            renderSpeakingUsers();
             remoteAudio.srcObject = null;
             updateUserListUI();
             showToast("Kanaldan çıkış yapıldı.", "success");
@@ -1459,15 +1462,24 @@
                 }
                 return;
             } else if (data.type === 'speaker_start') {
-                if (isHost) broadcastData(data);
-                activeSpeaker.innerText = (data.sender || 'Kullanıcı') + ' konuşuyor';
-                lcdStatus.innerText = 'ALINIYOR';
+                const speakerName = data.sender || 'Kullanıcı';
+                speakingUsers.add(speakerName);
+                renderSpeakingUsers();
+                if (!isHost) {
+                    lcdStatus.innerText = 'ALINIYOR';
+                } else {
+                    // Yönetici sunucu gibi davranıp konuşma durumunu tüm bağlı cihazlara aktarır.
+                    broadcastData({ type: 'speaker_start', sender: speakerName });
+                }
                 return;
             } else if (data.type === 'speaker_stop') {
-                if (isHost) broadcastData(data);
-                if (activeSpeaker.innerText.includes(data.sender || '\\u0000')) {
-                    activeSpeaker.innerText = '';
-                    if (!isTransmitting && isPowerOn) lcdStatus.innerText = 'BEKLEMEDE';
+                const speakerName = data.sender || 'Kullanıcı';
+                speakingUsers.delete(speakerName);
+                renderSpeakingUsers();
+                if (isHost) broadcastData({ type: 'speaker_stop', sender: speakerName });
+                if (!isTransmitting && isPowerOn && speakingUsers.size === 0) {
+                    lcdStatus.innerText = 'BEKLEMEDE';
+                    lcdStatus.className = "text-2xl md:text-4xl font-black font-lcd tracking-widest text-emerald-400 glow-green";
                 }
                 return;
             }
@@ -1656,7 +1668,8 @@
             ledTx.className = "w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.9)]";
             lcdStatus.innerText = "YAYINDA";
             lcdStatus.className = "text-2xl md:text-4xl font-black font-lcd tracking-widest text-red-500 glow-red";
-            activeSpeaker.innerText = userName + " (Siz Konuşuyorsunuz)";
+            speakingUsers.add(userName);
+            renderSpeakingUsers();
             broadcastData({ type: 'speaker_start', sender: userName });
 
             if (!isHost && (!currentCall || currentCall.open === false)) {
@@ -1678,7 +1691,8 @@
             ledTx.className = "w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-700";
             lcdStatus.innerText = "BEKLEMEDE";
             lcdStatus.className = "text-2xl md:text-4xl font-black font-lcd tracking-widest text-emerald-400 glow-green";
-            activeSpeaker.innerText = "";
+            speakingUsers.delete(userName);
+            renderSpeakingUsers();
             broadcastData({ type: 'speaker_stop', sender: userName });
             playRogerBeep();
         }
@@ -1687,6 +1701,15 @@
         const pingDisplay = document.getElementById('pingDisplay');
         const lcdStatus = document.getElementById('lcdStatus');
         const activeSpeaker = document.getElementById('activeSpeaker');
+        const speakingUsers = new Set();
+        function renderSpeakingUsers() {
+            if (!activeSpeaker) return;
+            const names = Array.from(speakingUsers).filter(Boolean);
+            activeSpeaker.innerText = names.length
+                ? (names.length === 1 ? names[0] + ' konuşuyor' : 'Konuşanlar: ' + names.join(', '))
+                : (isConnected ? 'Kanal açık' : 'Lütfen kanal seçin');
+        }
+
         const statusText = document.getElementById('statusText');
         const onlineCountLabel = document.getElementById('onlineCountLabel');
         const userCountBadge = document.getElementById('userCountBadge');
