@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Uzaktan Destek</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#121d30;--line:#26364f;--text:#edf4ff;--muted:#9fb0c8;--accent:#4f8cff;--green:#22c58b;--red:#ef6464}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#09111f,#101d33);font:15px system-ui,Segoe UI,Arial;color:var(--text);min-height:100vh}
+header{padding:22px max(18px,calc((100% - 1100px)/2));border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+.logo{width:42px;height:42px;border-radius:13px;background:#1d3c70;display:grid;place-items:center;font-size:22px}
+h1{font-size:21px;margin:0}header small{color:var(--muted)}
+main{max-width:1100px;margin:25px auto;padding:0 16px;display:grid;grid-template-columns:340px 1fr;gap:18px}
+.card{background:rgba(18,29,48,.94);border:1px solid var(--line);border-radius:17px;padding:18px;box-shadow:0 14px 35px #0003}
+h2{font-size:17px;margin:0 0 14px}p{color:var(--muted);line-height:1.5}.muted{color:var(--muted);font-size:13px}
+button,input{font:inherit}button{border:0;border-radius:10px;padding:11px 14px;background:var(--accent);color:white;font-weight:650;cursor:pointer}
+button.secondary{background:#263750}button.green{background:#13845f}button.red{background:#a93c48}button:disabled{opacity:.45;cursor:not-allowed}
+input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0b1526;color:white;margin:7px 0 12px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.code{font-size:30px;letter-spacing:7px;font-weight:800;color:#8db6ff;text-align:center;padding:12px}
+.status{padding:10px 12px;border-radius:10px;background:#0b1526;color:var(--muted);margin:12px 0;font-size:13px}
+.status.ok{color:#8df0c9}.status.err{color:#ffaaaa}
+.video-wrap{background:#050a12;border-radius:13px;min-height:280px;display:grid;place-items:center;overflow:hidden;position:relative}
+video{width:100%;max-height:65vh;object-fit:contain;background:#050a12}.placeholder{padding:30px;text-align:center;color:#71839d}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.chat{height:190px;overflow:auto;background:#0b1526;border:1px solid var(--line);border-radius:10px;padding:10px;margin:10px 0}
+.msg{margin:7px 0;overflow-wrap:anywhere}.msg b{color:#8db6ff}.chatrow{display:flex;gap:8px}.chatrow input{margin:0}.chatrow button{white-space:nowrap}
+footer{max-width:1100px;margin:0 auto;padding:0 16px 25px;color:var(--muted);font-size:12px}
+@media(max-width:780px){main{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}.video-wrap{min-height:210px}}
+</style>
+</head>
+<body>
+<header><div class="logo">↔</div><div><h1>Uzaktan Destek</h1><small>İzinli ekran paylaşımı ve dosya aktarımı</small></div></header>
+<main>
+<section class="card">
+  <h2>Bağlantı oluştur / katıl</h2>
+  <p>Destek veren kişi oda oluşturur. Diğer kişi kodu girerek katılır. Ekran paylaşımı, paylaşan kişinin açık onayıyla başlar.</p>
+  <button id="createBtn" class="green">Destek kodu oluştur</button>
+  <div id="myCode" class="code">------</div>
+  <label class="muted" for="joinCode">Karşı tarafın destek kodu</label>
+  <input id="joinCode" inputmode="numeric" maxlength="6" placeholder="6 haneli kod">
+  <button id="joinBtn">Koda bağlan</button>
+  <div id="status" class="status">Bağlantı sunucusuna bağlanıyor…</div>
+  <div class="actions">
+    <button id="shareBtn" disabled>Ekranımı paylaş</button>
+    <button id="stopShareBtn" class="secondary" disabled>Paylaşımı durdur</button>
+    <button id="hangupBtn" class="red" disabled>Bağlantıyı kes</button>
+  </div>
+  <p class="muted">Not: Tarayıcı ekran paylaşımı için ayrıca sistemin göstereceği izin penceresinde ekran/pencere seçmeniz gerekir.</p>
+</section>
+<section class="card">
+  <h2>Canlı ekran</h2>
+  <div class="video-wrap" id="videoWrap"><div class="placeholder">Bağlantı kurulduğunda karşı tarafın paylaştığı ekran burada görünecek.</div></div>
+  <div class="grid2" style="margin-top:16px">
+    <div><h2>Sohbet</h2><div id="chat" class="chat"></div>
+      <div class="chatrow"><input id="chatInput" placeholder="Mesaj yaz…" maxlength="1000"><button id="sendBtn" disabled>Gönder</button></div>
+    </div>
+    <div><h2>Dosya aktarımı</h2><p class="muted">Seçtiğiniz dosya doğrudan eşler arası bağlantıyla gönderilir. Büyük dosyalarda bağlantı kesilirse aktarım tamamlanmayabilir.</p>
+      <input id="fileInput" type="file"><button id="fileBtn" class="secondary" disabled>Dosyayı gönder</button>
+      <div id="fileStatus" class="muted" style="margin-top:10px">Henüz dosya gönderilmedi.</div>
+    </div>
+  </div>
+</section>
+</main>
+<footer>Güvenlik: Bu sürüm uzaktan fare/klavye kontrolü yapmaz. Ekran paylaşımı ve dosya aktarımı karşı tarafın bilgisi ve onayıyla gerçekleşir. Bağlantı kodunu yalnızca güvendiğiniz kişiyle paylaşın.</footer>
+<script src="./config.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const status = (s, type='') => { $('status').textContent=s; $('status').className='status '+type; };
+let ws, pc, dc, room='', role='', localStream=null, pendingCandidates=[], fileMeta=null, fileParts=[], receivedBytes=0;
+const config={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
+function wsUrl(){return window.SIGNALING_SERVER_URL || '';}
+function sendSignal(data){if(ws && ws.readyState===WebSocket.OPEN) ws.send(JSON.stringify({room,...data}));}
+function setConnected(on){$('shareBtn').disabled=!on;$('hangupBtn').disabled=!on;$('sendBtn').disabled=!on || !dc || dc.readyState!=='open';$('fileBtn').disabled=!on || !dc || dc.readyState!=='open';}
+function connectSocket(){
+  const endpoint=wsUrl();
+  if(!endpoint){status('GitHub Pages arayüzü hazır. Önce signaling-server sunucusunu yayınlayıp config.js içine WSS adresini yazın.','err');return;}
+  ws=new WebSocket(endpoint);
+  ws.onopen=()=>status('Sunucuya bağlandı. Destek kodu oluşturabilir veya kod girebilirsiniz.','ok');
+  ws.onclose=()=>status('Sunucu bağlantısı kesildi. Sayfayı yenileyip tekrar deneyin.','err');
+  ws.onerror=()=>status('Sunucuya bağlanılamadı. Sunucunun çalıştığını ve HTTPS kullandığınızı kontrol edin.','err');
+  ws.onmessage=async ev=>{
+    let m; try{m=JSON.parse(ev.data)}catch{return}
+    if(m.type==='created'){room=m.room;$('myCode').textContent=room;status('Kod hazır. Karşı tarafın bu kodla katılmasını bekliyor.','ok');}
+    if(m.type==='joined'){status('Odaya katıldınız. Diğer cihazın bağlantı kurması bekleniyor.','ok');}
+    if(m.type==='peer-joined'){status('Karşı taraf katıldı. Bağlantı kuruluyor…','ok');if(role==='host') await makeOffer();}
+    if(m.type==='peer-left'){status('Karşı taraf bağlantıyı kapattı.','err');cleanupPeer(false);}
+    if(m.type==='signal') await handleSignal(m.data);
+    if(m.type==='error'){status(m.message||'Bağlantı hatası.','err');}
+  };
+}
+function makePeer(){
+  pc=new RTCPeerConnection(config);
+  pc.onicecandidate=e=>{if(e.candidate)sendSignal({type:'signal',data:{candidate:e.candidate}})};
+  pc.onconnectionstatechange=()=>{if(!pc)return; if(pc.connectionState==='connected'){status('Cihazlar birbirine bağlandı.','ok');setConnected(true)} if(['failed','disconnected','closed'].includes(pc.connectionState)){if(pc.connectionState!=='disconnected')status('Bağlantı sonlandı.','err')}};
+  pc.ontrack=e=>{
+    let v=document.getElementById('remoteVideo');
+    if(!v){$('videoWrap').innerHTML='<video id="remoteVideo" autoplay playsinline controls></video>';v=$('remoteVideo')}
+    v.srcObject=e.streams[0];
+  };
+  pc.ondatachannel=e=>{dc=e.channel;setupDataChannel()};
+}
+function setupDataChannel(){
+  dc.binaryType='arraybuffer';
+  dc.onopen=()=>{setConnected(true);addMsg('Sistem','Güvenli eşler arası veri kanalı açıldı.')}
+  dc.onclose=()=>setConnected(false);
+  dc.onmessage=e=>{
+    if(typeof e.data==='string'){
+      let m;try{m=JSON.parse(e.data)}catch{return}
+      if(m.kind==='chat')addMsg('Karşı taraf',m.text);
+      if(m.kind==='file-start'){fileMeta=m;fileParts=[];receivedBytes=0;$('fileStatus').textContent='Dosya alınıyor: '+m.name}
+      if(m.kind==='file-end' && fileMeta){
+        const blob=new Blob(fileParts,{type:fileMeta.mime||'application/octet-stream'});
+        const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fileMeta.name;a.click();
+        setTimeout(()=>URL.revokeObjectURL(a.href),30000);$('fileStatus').textContent='Alındı: '+fileMeta.name;fileMeta=null;fileParts=[];
+      }
+    }else if(fileMeta){fileParts.push(e.data);receivedBytes+=e.data.byteLength}
+  };
+}
+function addMsg(who,text){const d=document.createElement('div');d.className='msg';const b=document.createElement('b');b.textContent=who+': ';d.append(b,document.createTextNode(text));$('chat').append(d);$('chat').scrollTop=$('chat').scrollHeight;}
+async function makeOffer(){
+  if(!pc)makePeer();
+  if(!pc) return;
+  if(!pc.getSenders().length && !dc){dc=pc.createDataChannel('support-data');setupDataChannel()}
+  const offer=await pc.createOffer();await pc.setLocalDescription(offer);sendSignal({type:'signal',data:{description:pc.localDescription}});
+}
+async function handleSignal(data){
+  if(!pc)makePeer();
+  try{
+    if(data.description){
+      await pc.setRemoteDescription(data.description);
+      if(data.description.type==='offer'){const answer=await pc.createAnswer();await pc.setLocalDescription(answer);sendSignal({type:'signal',data:{description:pc.localDescription}})}
+      for(const c of pendingCandidates)await pc.addIceCandidate(c);pendingCandidates=[];
+    }else if(data.candidate){if(pc.remoteDescription)await pc.addIceCandidate(data.candidate);else pendingCandidates.push(data.candidate)}
+  }catch(e){console.error(e);status('Bağlantı görüşmesi başarısız: '+e.message,'err')}
+}
+function cleanupPeer(notify=true){
+  if(notify)sendSignal({type:'leave'});
+  if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null}
+  if(pc){pc.close();pc=null}dc=null;room='';role='';pendingCandidates=[];
+  $('myCode').textContent='------';$('videoWrap').innerHTML='<div class="placeholder">Bağlantı kurulduğunda karşı tarafın paylaştığı ekran burada görünecek.</div>';
+  setConnected(false);$('stopShareBtn').disabled=true;
+}
+$('createBtn').onclick=()=>{if(!ws||ws.readyState!==1)return status('Sunucu bağlantısı hazır değil.','err');cleanupPeer(false);role='host';ws.send(JSON.stringify({type:'create'}));};
+$('joinBtn').onclick=()=>{const c=$('joinCode').value.replace(/\D/g,'');if(c.length!==6)return status('Lütfen 6 haneli destek kodu girin.','err');if(!ws||ws.readyState!==1)return status('Sunucu bağlantısı hazır değil.','err');cleanupPeer(false);role='guest';room=c;makePeer();ws.send(JSON.stringify({type:'join',room}));};
+$('shareBtn').onclick=async()=>{
+  if(!pc)return;
+  try{
+    localStream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});
+    localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));
+    const offer=await pc.createOffer();await pc.setLocalDescription(offer);sendSignal({type:'signal',data:{description:pc.localDescription}});
+    $('stopShareBtn').disabled=false;localStream.getVideoTracks()[0].onended=stopShare;
+    status('Ekranınız paylaşılıyor.','ok');
+  }catch(e){status('Ekran paylaşımı başlatılamadı: '+e.message,'err')}
+};
+function stopShare(){if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null}if(pc){pc.getSenders().filter(s=>s.track&&s.track.kind==='video').forEach(s=>pc.removeTrack(s));} $('stopShareBtn').disabled=true;}
+$('stopShareBtn').onclick=stopShare;
+$('hangupBtn').onclick=()=>{cleanupPeer(true);status('Bağlantı kapatıldı.');};
+$('sendBtn').onclick=()=>{const t=$('chatInput').value.trim();if(!t||!dc||dc.readyState!=='open')return;dc.send(JSON.stringify({kind:'chat',text:t}));addMsg('Ben',t);$('chatInput').value='';};
+$('chatInput').onkeydown=e=>{if(e.key==='Enter')$('sendBtn').click()};
+$('fileBtn').onclick=async()=>{
+  const f=$('fileInput').files[0];if(!f||!dc||dc.readyState!=='open')return;
+  if(f.size>25*1024*1024){$('fileStatus').textContent='Bu ilk sürümde dosya sınırı 25 MB.';return}
+  dc.send(JSON.stringify({kind:'file-start',name:f.name,mime:f.type,size:f.size}));
+  const chunk=16*1024;let offset=0;
+  while(offset<f.size){const buf=await f.slice(offset,offset+chunk).arrayBuffer();while(dc.bufferedAmount>1024*1024)await new Promise(r=>setTimeout(r,50));dc.send(buf);offset+=buf.byteLength;}
+  dc.send(JSON.stringify({kind:'file-end'}));$('fileStatus').textContent='Gönderildi: '+f.name;
+};
+connectSocket();
+})();
+</script>
+</body></html>
