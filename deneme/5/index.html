@@ -470,6 +470,7 @@
         let canvasAnimId = null;
         let activeUsers = [];
         let guestConnections = {};
+        let hostDataConnection = null;
         let pingInterval = null;
         let isMutedByAdmin = false;
 
@@ -767,11 +768,10 @@
         function broadcastData(dataObj) {
             if (isHost) {
                 Object.values(guestConnections).forEach(conn => {
-                    if (conn.open) conn.send(dataObj);
+                    if (conn && conn.open) conn.send(dataObj);
                 });
-            } else if (peer && roomName) {
-                let conn = peer.connect('pmr-tactical-' + roomName + '-host');
-                conn.on('open', () => conn.send(dataObj));
+            } else if (hostDataConnection && hostDataConnection.open) {
+                hostDataConnection.send(dataObj);
             }
         }
 
@@ -1025,11 +1025,17 @@
                 userList.appendChild(li);
             });
 
-            // Yönetici Kanalı Kapat Butonu Yönetimi
+            // Yönetici kanalı kapatabilir; misafir ise kendisi çıkış yapabilir.
             if (isHost && isConnected) {
                 hostCloseChannelContainer.innerHTML = `
                     <button type="button" onclick="closeChannelForAll()" class="w-full bg-red-950 hover:bg-red-900 border border-red-700 text-red-300 py-2 rounded-xl text-[10px] font-lcd font-bold transition cursor-pointer shadow-lg mt-2">
                         KANALI KAPAT (HERKESİ ÇIKAR)
+                    </button>
+                `;
+            } else if (isConnected) {
+                hostCloseChannelContainer.innerHTML = `
+                    <button type="button" onclick="leaveChannel()" class="w-full bg-amber-950 hover:bg-amber-900 border border-amber-700 text-amber-300 py-2 rounded-xl text-[10px] font-lcd font-bold transition cursor-pointer shadow-lg mt-2">
+                        KANALDAN ÇIKIŞ YAP
                     </button>
                 `;
             } else {
@@ -1040,11 +1046,41 @@
             userCountBadge.innerText = activeUsers.length + " Katılımcı";
         }
 
+        window.leaveChannel = function() {
+            if (!isConnected && !peer) return;
+            if (isTransmitting) stopTransmission();
+            if (!isHost && hostDataConnection && hostDataConnection.open) {
+                try { hostDataConnection.send({ type: 'leave_channel', userName: userName }); } catch (e) {}
+            }
+            if (currentCall) {
+                try { currentCall.close(); } catch (e) {}
+                currentCall = null;
+            }
+            if (peer) {
+                try { peer.destroy(); } catch (e) {}
+                peer = null;
+            }
+            hostDataConnection = null;
+            guestConnections = {};
+            isConnected = false;
+            isHost = false;
+            activeUsers = [];
+            currentRoomDisplay.innerText = "BAĞLANILMADI";
+            statusText.innerText = "Kanaldan ayrıldınız";
+            lcdStatus.innerText = "GİRİŞ BEKLENİYOR";
+            lcdStatus.className = "text-2xl md:text-4xl font-black font-lcd tracking-widest text-amber-400 glow-amber";
+            activeSpeaker.innerText = "";
+            remoteAudio.srcObject = null;
+            updateUserListUI();
+            showToast("Kanaldan çıkış yapıldı.", "success");
+        };
+
         window.closeChannelForAll = function() {
             if (!isHost) return;
             broadcastData({ type: 'channel_closed', message: 'Yönetici kanalı kapattı!' });
             showToast("Kanal kapatıldı.", "warning");
             if (peer) peer.destroy();
+            hostDataConnection = null;
             isConnected = false;
             isHost = false;
             activeUsers = [];
@@ -1380,6 +1416,7 @@
             peer.on('open', (id) => {
                 statusText.innerText = "Doğrulanıyor...";
                 let conn = peer.connect(hostId);
+                hostDataConnection = conn;
                 
                 conn.on('open', () => {
                     conn.send({ type: 'auth', password: password, userName: userName });
@@ -1407,6 +1444,33 @@
         }
 
         function handleDataPacket(data, conn) {
+            if (data.type === 'leave_channel') {
+                if (isHost && data.userName) {
+                    const leavingName = data.userName;
+                    if (guestConnections[leavingName]) {
+                        try { guestConnections[leavingName].close(); } catch (e) {}
+                        delete guestConnections[leavingName];
+                    }
+                    activeUsers = activeUsers.filter(u => u.name !== leavingName);
+                    updateUserListUI();
+                    broadcastUserList();
+                    broadcastData({ type: 'speaker_stop', sender: leavingName });
+                    showToast(leavingName + ' kanaldan ayrıldı.', 'info');
+                }
+                return;
+            } else if (data.type === 'speaker_start') {
+                if (isHost) broadcastData(data);
+                activeSpeaker.innerText = (data.sender || 'Kullanıcı') + ' konuşuyor';
+                lcdStatus.innerText = 'ALINIYOR';
+                return;
+            } else if (data.type === 'speaker_stop') {
+                if (isHost) broadcastData(data);
+                if (activeSpeaker.innerText.includes(data.sender || '\\u0000')) {
+                    activeSpeaker.innerText = '';
+                    if (!isTransmitting && isPowerOn) lcdStatus.innerText = 'BEKLEMEDE';
+                }
+                return;
+            }
             if (data.type === 'auth') {
                 if (roomPass && data.password !== roomPass) {
                     conn.send({ type: 'auth_failed', message: 'Hatalı Oda Şifresi!' });
@@ -1426,6 +1490,7 @@
                 peer.destroy();
                 isConnected = false;
             } else if (data.type === 'auth_success') {
+                if (conn) hostDataConnection = conn;
                 isHost = false;
                 isConnected = true;
                 statusText.innerText = "Kanala Katılındı";
@@ -1592,6 +1657,7 @@
             lcdStatus.innerText = "YAYINDA";
             lcdStatus.className = "text-2xl md:text-4xl font-black font-lcd tracking-widest text-red-500 glow-red";
             activeSpeaker.innerText = userName + " (Siz Konuşuyorsunuz)";
+            broadcastData({ type: 'speaker_start', sender: userName });
 
             if (!isHost && (!currentCall || currentCall.open === false)) {
                 let call = peer.call('pmr-tactical-' + roomName + '-host', localStream);
@@ -1613,6 +1679,7 @@
             lcdStatus.innerText = "BEKLEMEDE";
             lcdStatus.className = "text-2xl md:text-4xl font-black font-lcd tracking-widest text-emerald-400 glow-green";
             activeSpeaker.innerText = "";
+            broadcastData({ type: 'speaker_stop', sender: userName });
             playRogerBeep();
         }
 
