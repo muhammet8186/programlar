@@ -61,6 +61,37 @@
             background-color: #f8fafc !important;
             color: #0f172a !important;
         }
+        /* Açık modda koyu Tailwind kutularının siyah kalmasını önle */
+        body.light-mode .bg-slate-950,
+        body.light-mode .bg-slate-900,
+        body.light-mode .bg-slate-800,
+        body.light-mode .bg-slate-900\/80,
+        body.light-mode .bg-slate-950\/95 {
+            background-color: #f8fafc !important;
+            background-image: none !important;
+            color: #0f172a !important;
+        }
+        body.light-mode .text-white,
+        body.light-mode .text-slate-100,
+        body.light-mode .text-slate-200,
+        body.light-mode .text-slate-300,
+        body.light-mode .text-slate-400 {
+            color: #334155 !important;
+        }
+        body.light-mode .border-slate-700,
+        body.light-mode .border-slate-800,
+        body.light-mode .border-slate-600\/60 {
+            border-color: #cbd5e1 !important;
+        }
+        body.light-mode .screen-glass {
+            background: rgba(255,255,255,.78) !important;
+            box-shadow: inset 0 0 18px rgba(15,23,42,.06) !important;
+        }
+        body.light-mode #powerOffOverlay { background: rgba(226,232,240,.96) !important; }
+        body.light-mode #channelModal { background-color: rgba(15,23,42,.48) !important; }
+        body.light-mode #channelModal > div { background-color: #f1f5f9 !important; }
+        body.light-mode #toastContainer > div { color: #f8fafc !important; }
+        body.light-mode #oscilloscope { opacity: .12; }
 
         #powerOffOverlay {
             transition: opacity 0.2s ease, visibility 0.2s;
@@ -317,6 +348,30 @@
 
                     <div id="recordingResult" class="w-full mt-3 flex flex-col gap-2 items-center"></div>
                 </div>
+
+            <!-- GÜVENLİK VE KULLANICI İZİNLERİ -->
+            <section id="securityPermissionsPanel" class="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col gap-3">
+                <div class="flex items-center justify-between gap-2">
+                    <h4 class="text-xs font-black font-lcd text-amber-400">GÜVENLİK & İZİNLER</h4>
+                    <span id="serverAuthStatus" class="text-[10px] text-amber-400">Yerel ayarlar</span>
+                </div>
+                <label class="flex items-center justify-between gap-3 text-xs text-slate-300">
+                    <span><b>Kanal erişimini sunucuda doğrula</b><span class="block text-[10px] opacity-75">Açıkken, aşağıdaki doğrulama servisi gerekir.</span></span>
+                    <input id="serverAuthEnabled" type="checkbox" class="accent-amber-500 w-4 h-4">
+                </label>
+                <div class="flex flex-col gap-1">
+                    <label for="serverAuthEndpoint" class="text-[10px] text-slate-400">Doğrulama sunucusu HTTPS adresi</label>
+                    <input id="serverAuthEndpoint" type="url" placeholder="https://sunucunuz.example/api/authorize" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                    <p class="text-[10px] text-slate-500">Servis POST isteğine {"allowed":true} veya {"allowed":false} yanıtı vermelidir.</p>
+                </div>
+                <div class="h-px bg-slate-800"></div>
+                <p class="text-[10px] font-bold text-slate-400">BU CİHAZIN İZİNLERİ</p>
+                <label class="flex items-center justify-between gap-3 text-xs text-slate-300"><span>SOS gönderme izni</span><input id="allowSosPermission" type="checkbox" class="accent-red-500 w-4 h-4"></label>
+                <label class="flex items-center justify-between gap-3 text-xs text-slate-300"><span>Çağrı zili gönderme izni</span><input id="allowCallTonePermission" type="checkbox" class="accent-amber-500 w-4 h-4"></label>
+                <label class="flex items-center justify-between gap-3 text-xs text-slate-300"><span>Tarayıcı bildirimleri</span><input id="allowBrowserNotifications" type="checkbox" class="accent-amber-500 w-4 h-4"></label>
+                <p class="text-[10px] text-slate-500">Not: Bu cihaz izinleri bu tarayıcıda uygulanır. Kullanıcıların yetkilerini güvenli biçimde yönetmek için aynı kontroller sunucu tarafında da uygulanmalıdır.</p>
+            </section>
+
             </div>
 
         </div>
@@ -326,6 +381,7 @@
 
     <script>
         let localStream = null;
+        let analyserStream = null;
         let peer = null;
         let currentCall = null;
         let audioCtx = null;
@@ -355,6 +411,10 @@
         let mediaRecorder = null;
         let audioChunks = [];
 
+        function escapeHTML(value) {
+            return String(value ?? '').replace(/[&<>\"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));
+        }
+
         function showToast(message, type = 'info') {
             const container = document.getElementById('toastContainer');
             if(!container) return;
@@ -365,7 +425,9 @@
             if (type === 'warning') bgClass = 'bg-amber-950/95 border-amber-600/80 text-amber-200 glow-amber';
             
             toast.className = `pointer-events-auto px-4 py-3 rounded-2xl border shadow-2xl backdrop-blur-md flex items-center gap-3 transition-all transform translate-y-2 opacity-0 font-lcd text-xs ${bgClass}`;
-            toast.innerHTML = `<span>${message}</span>`;
+            const toastText = document.createElement('span');
+            toastText.textContent = String(message);
+            toast.appendChild(toastText);
             container.appendChild(toast);
             
             setTimeout(() => { toast.classList.remove('translate-y-2', 'opacity-0'); }, 10);
@@ -407,10 +469,62 @@
         const morseInput = document.getElementById('morseInput');
         const sendMorseBtn = document.getElementById('sendMorseBtn');
         const scanChannelsBtn = document.getElementById('scanChannelsBtn');
+        const usernameInput = document.getElementById('usernameInput');
+        const roomInput = document.getElementById('roomInput');
+        const serverAuthEnabled = document.getElementById('serverAuthEnabled');
+        const serverAuthEndpoint = document.getElementById('serverAuthEndpoint');
+        const serverAuthStatus = document.getElementById('serverAuthStatus');
+        const allowSosPermission = document.getElementById('allowSosPermission');
+        const allowCallTonePermission = document.getElementById('allowCallTonePermission');
+        const allowBrowserNotifications = document.getElementById('allowBrowserNotifications');
 
         const startRecBtn = document.getElementById('startRecBtn');
         const stopRecBtn = document.getElementById('stopRecBtn');
         const recordingResult = document.getElementById('recordingResult');
+
+        // GÜVENLİK VE İZİN AYARLARI (cihazda saklanır)
+        serverAuthEnabled.checked = localStorage.getItem('pmr_server_auth_enabled') === 'true';
+        serverAuthEndpoint.value = localStorage.getItem('pmr_server_auth_endpoint') || '';
+        allowSosPermission.checked = localStorage.getItem('pmr_allow_sos') !== 'false';
+        allowCallTonePermission.checked = localStorage.getItem('pmr_allow_call_tone') !== 'false';
+        allowBrowserNotifications.checked = localStorage.getItem('pmr_browser_notifications') === 'true';
+        function updateServerAuthStatus() {
+            serverAuthStatus.textContent = serverAuthEnabled.checked ? (serverAuthEndpoint.value.trim() ? 'Sunucu doğrulaması açık' : 'Sunucu adresi gerekli') : 'Sunucu doğrulaması kapalı';
+            serverAuthStatus.className = 'text-[10px] ' + (serverAuthEnabled.checked && !serverAuthEndpoint.value.trim() ? 'text-red-400' : 'text-amber-400');
+        }
+        serverAuthEnabled.addEventListener('change', () => { localStorage.setItem('pmr_server_auth_enabled', serverAuthEnabled.checked); updateServerAuthStatus(); });
+        serverAuthEndpoint.addEventListener('change', () => { localStorage.setItem('pmr_server_auth_endpoint', serverAuthEndpoint.value.trim()); updateServerAuthStatus(); });
+        allowSosPermission.addEventListener('change', () => { localStorage.setItem('pmr_allow_sos', allowSosPermission.checked); sosBtn.disabled = !allowSosPermission.checked; sosBtn.classList.toggle('opacity-40', !allowSosPermission.checked); });
+        allowCallTonePermission.addEventListener('change', () => { localStorage.setItem('pmr_allow_call_tone', allowCallTonePermission.checked); callToneBtn.disabled = !allowCallTonePermission.checked; callToneBtn.classList.toggle('opacity-40', !allowCallTonePermission.checked); });
+        allowBrowserNotifications.addEventListener('change', async () => {
+            if (allowBrowserNotifications.checked && 'Notification' in window) {
+                const result = await Notification.requestPermission();
+                if (result !== 'granted') { allowBrowserNotifications.checked = false; showToast('Tarayıcı bildirim izni verilmedi.', 'warning'); }
+            } else if (!('Notification' in window)) { allowBrowserNotifications.checked = false; showToast('Bu tarayıcı bildirimleri desteklemiyor.', 'warning'); }
+            localStorage.setItem('pmr_browser_notifications', allowBrowserNotifications.checked);
+        });
+        sosBtn.disabled = !allowSosPermission.checked;
+        sosBtn.classList.toggle('opacity-40', !allowSosPermission.checked);
+        callToneBtn.disabled = !allowCallTonePermission.checked;
+        callToneBtn.classList.toggle('opacity-40', !allowCallTonePermission.checked);
+        updateServerAuthStatus();
+
+        async function verifyServerChannelAccess(channel, username, password) {
+            if (!serverAuthEnabled.checked) return true;
+            const endpoint = serverAuthEndpoint.value.trim();
+            if (!endpoint) throw new Error('Sunucu doğrulaması açık ancak doğrulama sunucusu adresi girilmemiş.');
+            let response;
+            try {
+                response = await fetch(endpoint, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'join', channel, username, password })
+                });
+            } catch (e) { throw new Error('Doğrulama sunucusuna ulaşılamadı.'); }
+            if (!response.ok) throw new Error('Sunucu doğrulama hatası (HTTP ' + response.status + ').');
+            const result = await response.json();
+            if (result.allowed !== true) throw new Error(result.message || 'Sunucu kanal erişimine izin vermedi.');
+            return true;
+        }
 
         // KARANLIK / AÇIK MOD YÖNETİMİ
         let isLightMode = localStorage.getItem('pmr_light_mode') === 'true';
@@ -542,6 +656,7 @@
         }
 
         callToneBtn.addEventListener('click', () => {
+            if (!allowCallTonePermission.checked) { showToast('Çağrı zili gönderme izniniz kapalı.', 'error'); return; }
             if (!isPowerOn || !isConnected) {
                 showToast("Önce bir kanala bağlanmalısınız!", "warning");
                 return;
@@ -554,6 +669,7 @@
         });
 
         sosBtn.addEventListener('click', () => {
+            if (!allowSosPermission.checked) { showToast('SOS gönderme izniniz kapalı.', 'error'); return; }
             if (!isPowerOn || !isConnected) {
                 showToast("Önce bir kanala bağlanmalısınız!", "warning");
                 return;
@@ -608,7 +724,11 @@
                 if (!analyser) {
                     analyser = audioCtx.createAnalyser();
                     analyser.fftSize = 64;
-                    let source = audioCtx.createMediaStreamSource(activeStream);
+                    let streamForAnalysis = activeStream;
+                    if (type === 'mic' && activeStream === localStream) {
+                        try { analyserStream = activeStream.clone(); streamForAnalysis = analyserStream; } catch (e) { streamForAnalysis = activeStream; }
+                    }
+                    let source = audioCtx.createMediaStreamSource(streamForAnalysis);
                     
                     biquadFilter = audioCtx.createBiquadFilter();
                     biquadFilter.type = 'bandpass';
@@ -662,13 +782,25 @@
             } catch(e) {}
         }
 
+        function appendMessage(container, sender, message, colorClass) {
+            if (!container) return;
+            const line = document.createElement('div');
+            line.className = colorClass || 'text-amber-400';
+            const senderEl = document.createElement('b');
+            senderEl.textContent = String(sender || 'Bilinmeyen') + ': ';
+            const messageEl = document.createElement('span');
+            messageEl.textContent = String(message || '');
+            line.append(senderEl, messageEl);
+            container.appendChild(line);
+            container.scrollTop = container.scrollHeight;
+        }
+
         function sendChatMessage() {
             let msg = chatInput.value.trim();
             if (!msg || !isConnected) return;
             
-            let htmlMsg = `<div class="text-amber-400"><b>${userName}:</b> ${msg}</div>`;
-            modalChatHistory.innerHTML += htmlMsg;
-            chatFeed.innerHTML += htmlMsg;
+            appendMessage(modalChatHistory, userName, msg, 'text-amber-400');
+            appendMessage(chatFeed, userName, msg, 'text-amber-400');
             chatFeed.classList.remove('hidden');
             modalChatHistory.scrollTop = modalChatHistory.scrollHeight;
             chatFeed.scrollTop = chatFeed.scrollHeight;
@@ -714,6 +846,10 @@
         startRecBtn.addEventListener('click', async () => {
             try {
                 let streamToRecord = remoteAudio.srcObject || localStream;
+                if (!window.MediaRecorder) {
+                    showToast("Bu tarayıcı ses kaydını desteklemiyor.", "error");
+                    return;
+                }
                 if (!streamToRecord) {
                     showToast("Kayıt için aktif ses akışı bulunamadı!", "warning");
                     return;
@@ -741,7 +877,7 @@
         });
 
         stopRecBtn.addEventListener('click', () => {
-            if (mediaRecorder) {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
                 mediaRecorder.stop();
                 startRecBtn.disabled = false;
                 startRecBtn.classList.remove('opacity-50');
@@ -766,9 +902,9 @@
                     
                     adminButtonsHTML = `
                         <div class="flex items-center gap-1">
-                            <button type="button" onclick="toggleUserMute('${user.name}')" class="text-[9px] bg-amber-950 text-amber-400 hover:bg-amber-900 border border-amber-800 px-1.5 py-0.5 rounded font-bold cursor-pointer transition">${muteBtnText}</button>
-                            <button type="button" onclick="toggleUserRole('${user.name}')" class="text-[9px] bg-blue-950 text-blue-400 hover:bg-blue-900 border border-blue-800 px-1.5 py-0.5 rounded font-bold cursor-pointer transition">${roleBtnText}</button>
-                            <button type="button" onclick="kickUser('${user.name}')" class="text-[9px] bg-red-950 text-red-400 hover:bg-red-900 border border-red-800 px-1.5 py-0.5 rounded font-bold cursor-pointer transition">At</button>
+                            <button type="button" data-action="mute" data-user="${escapeHTML(user.name)}" class="text-[9px] bg-amber-950 text-amber-400 hover:bg-amber-900 border border-amber-800 px-1.5 py-0.5 rounded font-bold cursor-pointer transition">${muteBtnText}</button>
+                            <button type="button" data-action="role" data-user="${escapeHTML(user.name)}" class="text-[9px] bg-blue-950 text-blue-400 hover:bg-blue-900 border border-blue-800 px-1.5 py-0.5 rounded font-bold cursor-pointer transition">${roleBtnText}</button>
+                            <button type="button" data-action="kick" data-user="${escapeHTML(user.name)}" class="text-[9px] bg-red-950 text-red-400 hover:bg-red-900 border border-red-800 px-1.5 py-0.5 rounded font-bold cursor-pointer transition">At</button>
                         </div>
                     `;
                 }
@@ -781,12 +917,20 @@
                 let displayRole = user.isMuted ? 'Susturuldu' : user.role;
 
                 li.innerHTML = `
-                    <span class="font-bold truncate ${user.isSelf ? 'text-amber-400' : 'text-slate-200'}">${user.name}${isSelfText}</span>
+                    <span class="font-bold truncate ${user.isSelf ? 'text-amber-400' : 'text-slate-200'}">${escapeHTML(user.name)}${escapeHTML(isSelfText)}</span>
                     <div class="flex items-center gap-1 shrink-0">
-                        <span class="text-[10px] ${roleBadgeColor} px-2 py-0.5 rounded border font-bold">${displayRole}</span>
+                        <span class="text-[10px] ${roleBadgeColor} px-2 py-0.5 rounded border font-bold">${escapeHTML(displayRole)}</span>
                         ${adminButtonsHTML}
                     </div>
                 `;
+                li.querySelectorAll('button[data-action]').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const target = button.dataset.user;
+                        if (button.dataset.action === 'mute') window.toggleUserMute(target);
+                        else if (button.dataset.action === 'role') window.toggleUserRole(target);
+                        else if (button.dataset.action === 'kick') window.kickUser(target);
+                    });
+                });
                 userList.appendChild(li);
             });
 
@@ -870,11 +1014,16 @@
 
         function getMicrophonePermission() {
             if (localStream) return Promise.resolve();
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                return Promise.reject(new Error('Mikrofon için HTTPS veya localhost üzerinden açın ve güncel bir tarayıcı kullanın.'));
+            }
             return navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: false })
                 .then(stream => {
                     localStream = stream;
-                    localStream.getAudioTracks()[0].enabled = false;
+                    // Analiz akışı, gönderim kanalı kapalıyken de VOX'un mikrofonu dinlemesini sağlar.
                     drawVisualizer(localStream, 'mic');
+                    const track = localStream.getAudioTracks()[0];
+                    if (track) track.enabled = false;
                 });
         }
 
@@ -888,7 +1037,7 @@
                 return;
             }
 
-            getMicrophonePermission().then(() => {
+            verifyServerChannelAccess(rawRoom, usernameInput.value.trim() || "Operatör", password).then(() => getMicrophonePermission()).then(() => {
                 if (peer) {
                     try { peer.destroy(); } catch(e){}
                     peer = null;
@@ -916,8 +1065,8 @@
                 }
 
             }).catch(err => {
-                statusText.innerText = "Mikrofon İzni Şart!";
-                showToast("Telsiz haberleşmesi için mikrofon erişimine izin vermelisiniz.", "error");
+                statusText.innerText = "Mikrofon / Bağlantı Hatası";
+                showToast(err && err.message ? err.message : "Telsiz haberleşmesi için mikrofon erişimine izin vermelisiniz.", "error");
             });
         }
 
@@ -1097,23 +1246,23 @@
                 lcdStatus.className = "text-2xl md:text-4xl font-black font-lcd tracking-widest text-red-500 glow-sos";
                 activeSpeaker.innerText = data.sender + " ACİL DURUM BİLDİRDİ!";
                 showToast(data.sender + " ACİL DURUM SİNYALİ GÖNDERDİ!", "error");
+                if (allowBrowserNotifications.checked && 'Notification' in window && Notification.permission === 'granted') new Notification('TELSİZ SOS ALARMI', { body: data.sender + ' acil durum bildirdi.' });
             } else if (data.type === 'call_tone') {
                 playCallToneEffect();
                 lcdStatus.innerText = "ZİL: " + data.sender;
                 showToast(data.sender + " arama zili çaldı!", "warning");
+                if (allowBrowserNotifications.checked && 'Notification' in window && Notification.permission === 'granted') new Notification('Telsiz çağrı zili', { body: data.sender + ' çağrı zili gönderdi.' });
                 setTimeout(() => { if (!isTransmitting) lcdStatus.innerText = "BEKLEMEDE"; }, 3000);
             } else if (data.type === 'chat_msg') {
-                let html = `<div class="text-amber-400"><b>${data.sender}:</b> ${data.text}</div>`;
-                modalChatHistory.innerHTML += html;
-                chatFeed.innerHTML += html;
+                appendMessage(modalChatHistory, data.sender, data.text, 'text-amber-400');
+                appendMessage(chatFeed, data.sender, data.text, 'text-amber-400');
                 chatFeed.classList.remove('hidden');
                 modalChatHistory.scrollTop = modalChatHistory.scrollHeight;
                 chatFeed.scrollTop = chatFeed.scrollHeight;
             } else if (data.type === 'morse_msg') {
                 playMorseString(data.text);
-                let html = `<div class="text-red-400"><b>[MORS] ${data.sender}:</b> ${data.text}</div>`;
-                modalChatHistory.innerHTML += html;
-                chatFeed.innerHTML += html;
+                appendMessage(modalChatHistory, '[MORS] ' + data.sender, data.text, 'text-red-400');
+                appendMessage(chatFeed, '[MORS] ' + data.sender, data.text, 'text-red-400');
                 chatFeed.classList.add('hidden');
             }
         }
@@ -1203,9 +1352,7 @@
         const onlineCountLabel = document.getElementById('onlineCountLabel');
         const userCountBadge = document.getElementById('userCountBadge');
         const userList = document.getElementById('userList');
-        const usernameInput = document.getElementById('usernameInput');
         const userCallsignDisplay = document.getElementById('userCallsignDisplay');
-        const roomInput = document.getElementById('roomInput');
         const roomPassword = document.getElementById('roomPassword');
         const currentRoomDisplay = document.getElementById('currentRoomDisplay');
         const ledTx = document.getElementById('ledTx');
@@ -1243,8 +1390,12 @@
                 powerLed.className = "w-2.5 h-2.5 rounded-full bg-red-600";
                 powerText.innerText = "KAPALI";
                 isConnected = false;
-                if (peer) peer.destroy();
-                if (localStream) localStream.getAudioTracks()[0].enabled = false;
+                isTransmitting = false;
+                if (currentCall) { try { currentCall.close(); } catch (e) {} currentCall = null; }
+                if (peer) { try { peer.destroy(); } catch (e) {} peer = null; }
+                if (localStream) localStream.getAudioTracks().forEach(track => track.enabled = false);
+                pttBtn.classList.remove('btn-pressed');
+                ledTx.className = "w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-700";
                 if (pingInterval) clearInterval(pingInterval);
                 if (scannerTimer) clearInterval(scannerTimer);
                 lcdStatus.innerText = "KAPALI";
