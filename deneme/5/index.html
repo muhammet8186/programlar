@@ -464,6 +464,7 @@
         let activeUsers = [];
         let guestConnections = {};
         let hostDataConnection = null;
+        let guestReconnectTimer = null;
         let pingInterval = null;
         let isMutedByAdmin = false;
 
@@ -1024,6 +1025,7 @@
 
         window.leaveChannel = function() {
             if (!isConnected && !peer) return;
+            if (guestReconnectTimer) { clearTimeout(guestReconnectTimer); guestReconnectTimer = null; }
             if (isTransmitting) stopTransmission();
             if (!isHost && hostDataConnection && hostDataConnection.open) {
                 try { hostDataConnection.send({ type: 'leave_channel', userName: userName }); } catch (e) {}
@@ -1389,18 +1391,42 @@
 
             peer = new Peer(guestId, getPeerServerOptions());
 
-            peer.on('open', (id) => {
-                statusText.innerText = "Doğrulanıyor...";
-                let conn = peer.connect(hostId);
+            // Yönetici cihazı kapatılıp yeniden açılırsa, misafir cihazlar aynı kanala
+            // otomatik yeniden bağlanır ve ses çağrısı auth_success ile yeniden kurulur.
+            const connectGuestData = () => {
+                if (!isPowerOn || !peer || peer.destroyed) return;
+                if (guestReconnectTimer) {
+                    clearTimeout(guestReconnectTimer);
+                    guestReconnectTimer = null;
+                }
+                statusText.innerText = isConnected ? "Yönetici bağlantısı bekleniyor..." : "Doğrulanıyor...";
+                const conn = peer.connect(hostId, { reliable: true });
                 hostDataConnection = conn;
-                
+
                 conn.on('open', () => {
+                    if (!isPowerOn || peer.destroyed) {
+                        try { conn.close(); } catch (e) {}
+                        return;
+                    }
                     conn.send({ type: 'auth', password: password, userName: userName });
                 });
 
                 conn.on('data', (data) => {
                     handleDataPacket(data, conn);
                 });
+
+                const scheduleReconnect = () => {
+                    if (!isPowerOn || isHost || !peer || peer.destroyed) return;
+                    if (hostDataConnection === conn) hostDataConnection = null;
+                    if (guestReconnectTimer) clearTimeout(guestReconnectTimer);
+                    guestReconnectTimer = setTimeout(connectGuestData, 1800);
+                };
+                conn.on('close', scheduleReconnect);
+                conn.on('error', scheduleReconnect);
+            };
+
+            peer.on('open', () => {
+                connectGuestData();
             });
 
             peer.on('error', (err) => {
@@ -1752,8 +1778,11 @@
                 powerText.innerText = "KAPALI";
                 isConnected = false;
                 isTransmitting = false;
+                if (guestReconnectTimer) { clearTimeout(guestReconnectTimer); guestReconnectTimer = null; }
                 if (currentCall) { try { currentCall.close(); } catch (e) {} currentCall = null; }
                 if (peer) { try { peer.destroy(); } catch (e) {} peer = null; }
+                hostDataConnection = null;
+                guestConnections = {};
                 if (localStream) localStream.getAudioTracks().forEach(track => track.enabled = false);
                 pttBtn.classList.remove('btn-pressed');
                 ledTx.className = "w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-700";
