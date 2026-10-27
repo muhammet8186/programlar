@@ -250,12 +250,12 @@
 
             <!-- SEKMELER -->
             <div class="grid grid-cols-3 gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-lcd font-bold">
-                <button type="button" id="tabChannelBtn" class="py-1.5 rounded-lg bg-amber-500 text-slate-950 transition cursor-pointer">KANAL & AYAR</button>
-                <button type="button" id="tabChatBtn" class="py-1.5 rounded-lg text-slate-400 hover:text-white transition cursor-pointer">METİN & MORS</button>
-                <button type="button" id="tabRecorderBtn" class="py-1.5 rounded-lg text-slate-400 hover:text-white transition cursor-pointer">KARA KUTU</button>
+                <button type="button" id="tabChannelBtn" class="py-1.5 rounded-lg bg-amber-500 text-slate-950 transition cursor-pointer">KANAL</button>
+                <button type="button" id="tabChatBtn" class="py-1.5 rounded-lg text-slate-400 hover:text-white transition cursor-pointer">HABERLEŞME</button>
+                <button type="button" id="tabRecorderBtn" class="py-1.5 rounded-lg text-slate-400 hover:text-white transition cursor-pointer">AYAR</button>
             </div>
 
-            <!-- SEKME 1 -->
+            <!-- KANAL -->
             <div id="paneChannel" class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col gap-2">
                     <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
@@ -310,8 +310,12 @@
                 </div>
             </div>
 
-            <!-- SEKME 2 -->
+            <!-- METİN & MORS artık Kara Kutu içindedir -->
             <div id="paneChat" class="hidden flex flex-col gap-3">
+                <!-- METİN & MORS HABERLEŞMESİ -->
+                <section class="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col gap-3">
+                    <h4 class="text-xs font-black font-lcd text-cyan-300">METİN & MORS HABERLEŞMESİ</h4>
+
                 <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col gap-2">
                     <span class="text-[11px] font-bold text-slate-400 font-lcd">TAKTİKSEL MESAJLAŞMA</span>
                     <div id="modalChatHistory" class="bg-slate-900 border border-slate-800 rounded-xl p-2 h-36 overflow-y-auto text-xs flex flex-col gap-1.5">
@@ -330,10 +334,7 @@
                         <button id="sendMorseBtn" type="button" class="bg-red-600 hover:bg-red-500 text-white font-black px-4 py-2 rounded-xl text-xs transition font-lcd cursor-pointer">MORS ÇAL</button>
                     </div>
                 </div>
-            </div>
-
-            <!-- SEKME 3 -->
-            <div id="paneRecorder" class="hidden flex flex-col gap-3">
+                </section>
                 <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex flex-col items-center justify-center gap-3">
                     <svg class="w-10 h-10 text-amber-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
                     <div class="text-center">
@@ -349,7 +350,77 @@
                     <div id="recordingResult" class="w-full mt-3 flex flex-col gap-2 items-center"></div>
                 </div>
 
-            <!-- GÜVENLİK VE KULLANICI İZİNLERİ -->
+                        </div>
+
+            <!-- AYAR -->
+            <div id="paneRecorder" class="hidden flex flex-col gap-3"><!-- INTERNET / YEREL WIFI AYARLARI: Kara Kutu içinde -->
+                <section class="bg-slate-950 border border-cyan-900 rounded-2xl p-3 flex flex-col gap-3">
+                    <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                        <div>
+                            <h4 class="text-xs font-black font-lcd text-cyan-300">İNTERNET / YEREL WI-FI</h4>
+                            <p class="text-[10px] text-slate-500 mt-1">İnternet, yerel Wi-Fi veya Bluetooth ses cihazı profilini seçin. Bluetooth doğrudan telefonlar arası ağ değildir; kulaklık/mikrofon içindir.</p>
+                        </div>
+                        <span id="networkModeStatus" class="text-[10px] text-amber-300">İnternet modu</span>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label for="networkModeSelect" class="text-[10px] text-slate-400">Bağlantı modu</label>
+                        <select id="networkModeSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                            <option value="internet">İnternet (mevcut sunucu)</option>
+                            <option value="wifi">Yerel Wi-Fi (internetsiz)</option>
+                            <option value="bluetooth">Bluetooth kulaklık (ses bağlantısı)</option>
+                        </select>
+                    </div>
+                    <div id="localWifiServerFields" class="hidden grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <div class="flex flex-col gap-1 md:col-span-2">
+                            <label for="localPeerHost" class="text-[10px] text-slate-400">Yerel sunucu IP / alan adı</label>
+                            <input id="localPeerHost" type="text" placeholder="Örn. 192.168.1.10" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label for="localPeerPort" class="text-[10px] text-slate-400">Port</label>
+                            <input id="localPeerPort" type="number" min="1" max="65535" value="9000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                        </div>
+                        <label class="flex items-center gap-2 text-xs text-slate-300 md:col-span-3">
+                            <input id="localPeerSecure" type="checkbox" class="accent-cyan-400 w-4 h-4">
+                            Yerel sunucu HTTPS / güvenli bağlantı kullanıyor
+                        </label>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="saveNetworkModeBtn" type="button" class="bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded-xl px-3 py-2 text-xs">Bağlantı ayarlarını kaydet</button>
+                    </div>
+                    <p class="text-[10px] text-slate-500">Önemli: Bu ayar tek başına yerel sunucu kurmaz. İnternetsiz kullanım için aynı Wi-Fi ağına bağlı bir bilgisayar/cihazda PeerJS sunucusu çalışmalı, port ağda açık olmalı ve mikrofon için tarayıcının güvenli bağlantı koşulları karşılanmalıdır. İnternet moduna dönmek için modu tekrar İnternet seçin.</p>
+                </section>
+
+                <!-- BLUETOOTH / KULAKLIK AYARLARI: Kara Kutu içinde -->
+                <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col gap-3">
+                <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col gap-3">
+                    <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                        <div>
+                            <h4 class="text-xs font-black font-lcd text-amber-400">BLUETOOTH / KULAKLIK</h4>
+                            <p class="text-[10px] text-slate-500 mt-1">Ses çıkışını seçin ve desteklenen kulaklık tuşlarını PTT için kullanın.</p>
+                        </div>
+                        <span id="headsetStatus" class="text-[10px] text-slate-400">Kontrol edilmedi</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="flex flex-col gap-1">
+                            <label for="audioOutputSelect" class="text-[10px] text-slate-400">Ses çıkışı / Bluetooth kulaklık</label>
+                            <select id="audioOutputSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                                <option value="">Sistem varsayılanı</option>
+                            </select>
+                            <button id="refreshAudioDevicesBtn" type="button" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200">Cihazları yenile</button>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label for="headsetButtonMode" class="text-[10px] text-slate-400">Kulaklık çok işlevli tuşu</label>
+                            <select id="headsetButtonMode" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                                <option value="off">Kapalı</option>
+                                <option value="toggle">Tek basış: konuşmayı aç / kapat</option>
+                            </select>
+                            <button id="enableHeadsetButtonBtn" type="button" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl px-3 py-2 text-xs">Kulaklık tuşunu etkinleştir</button>
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-slate-500">Not: Bluetooth ses yönlendirmesi telefonun/işletim sisteminin ayarlarına bağlıdır. Kulaklık tuşu desteği tarayıcı ve kulaklık modeline göre değişir; tüm cihazlarda garanti edilemez. Tuşu etkinleştirmek için sayfada bu düğmeye dokunun.</p>
+                </div>
+                </div>
+                <!-- GÜVENLİK VE KULLANICI İZİNLERİ -->
             <section id="securityPermissionsPanel" class="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col gap-3">
                 <div class="flex items-center justify-between gap-2">
                     <h4 class="text-xs font-black font-lcd text-amber-400">GÜVENLİK & İZİNLER</h4>
@@ -477,6 +548,13 @@
         const allowSosPermission = document.getElementById('allowSosPermission');
         const allowCallTonePermission = document.getElementById('allowCallTonePermission');
         const allowBrowserNotifications = document.getElementById('allowBrowserNotifications');
+        const audioOutputSelect = document.getElementById('audioOutputSelect');
+        const refreshAudioDevicesBtn = document.getElementById('refreshAudioDevicesBtn');
+        const headsetButtonMode = document.getElementById('headsetButtonMode');
+        const enableHeadsetButtonBtn = document.getElementById('enableHeadsetButtonBtn');
+        const headsetStatus = document.getElementById('headsetStatus');
+        let headsetButtonEnabled = false;
+        let headsetToggleState = false;
 
         const startRecBtn = document.getElementById('startRecBtn');
         const stopRecBtn = document.getElementById('stopRecBtn');
@@ -1012,6 +1090,94 @@
             });
         }
 
+        async function refreshAudioDevices() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+                headsetStatus.textContent = 'Tarayıcı desteklemiyor';
+                showToast('Ses cihazı listesi bu tarayıcıda desteklenmiyor.', 'warning');
+                return;
+            }
+            try {
+                // Etiketlerin görünmesi için mikrofon izni daha önce verilmiş olmalıdır.
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const selected = audioOutputSelect.value || localStorage.getItem('pmrAudioOutputId') || '';
+                audioOutputSelect.innerHTML = '<option value="">Sistem varsayılanı</option>';
+                const outputs = devices.filter(d => d.kind === 'audiooutput');
+                outputs.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.textContent = device.label || ('Ses çıkışı ' + (index + 1));
+                    audioOutputSelect.appendChild(option);
+                });
+                if ([...audioOutputSelect.options].some(o => o.value === selected)) audioOutputSelect.value = selected;
+                headsetStatus.textContent = outputs.length ? (outputs.length + ' ses çıkışı') : 'Varsayılan ses çıkışı';
+            } catch (err) {
+                headsetStatus.textContent = 'Cihaz listesi alınamadı';
+                showToast('Ses cihazları okunamadı: ' + (err.message || err), 'error');
+            }
+        }
+
+        async function applyAudioOutput() {
+            const deviceId = audioOutputSelect.value;
+            if (typeof remoteAudio.setSinkId !== 'function') {
+                showToast('Bu tarayıcı ses çıkışı seçimini desteklemiyor. Bluetooth kulaklığı telefon ayarlarından seçin.', 'warning');
+                return;
+            }
+            try {
+                await remoteAudio.setSinkId(deviceId || '');
+                localStorage.setItem('pmrAudioOutputId', deviceId);
+                showToast(deviceId ? 'Ses çıkışı seçildi.' : 'Sistem varsayılan ses çıkışı kullanılıyor.', 'success');
+            } catch (err) {
+                showToast('Ses çıkışı değiştirilemedi. Kulaklığı cihaz ayarlarından seçin.', 'error');
+            }
+        }
+
+        function setHeadsetTransmission(active) {
+            if (currentMode !== 'PTT') {
+                showToast('Kulaklık tuşu PTT modunda çalışır. Önce PTT modunu seçin.', 'warning');
+                return;
+            }
+            headsetToggleState = !!active;
+            if (headsetToggleState) startTransmission();
+            else stopTransmission();
+        }
+
+        function toggleHeadsetTransmission() {
+            if (!headsetButtonEnabled || headsetButtonMode.value !== 'toggle') return;
+            setHeadsetTransmission(!headsetToggleState);
+        }
+
+        function enableHeadsetControls() {
+            headsetButtonEnabled = true;
+            headsetButtonMode.value = 'toggle';
+            enableHeadsetButtonBtn.textContent = 'Kulaklık tuşu etkin';
+            headsetStatus.textContent = 'Tuş desteği etkin';
+            try {
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.setActionHandler('play', () => setHeadsetTransmission(true));
+                    navigator.mediaSession.setActionHandler('pause', () => setHeadsetTransmission(false));
+                    navigator.mediaSession.metadata = new MediaMetadata({ title: 'Telsiz PTT', artist: 'PMR Tactical Pro' });
+                }
+            } catch (err) { console.log('MediaSession headset control unavailable', err); }
+            localStorage.setItem('pmrHeadsetButtonMode', 'toggle');
+            showToast('Kulaklık tuşu desteği açıldı. Tuş işlevi cihaz/tarayıcı desteğine bağlıdır.', 'success');
+        }
+
+        function disableHeadsetControls() {
+            headsetButtonEnabled = false;
+            headsetToggleState = false;
+            headsetButtonMode.value = 'off';
+            enableHeadsetButtonBtn.textContent = 'Kulaklık tuşunu etkinleştir';
+            try {
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.setActionHandler('play', null);
+                    navigator.mediaSession.setActionHandler('pause', null);
+                }
+            } catch (err) {}
+            localStorage.setItem('pmrHeadsetButtonMode', 'off');
+            if (isTransmitting) stopTransmission();
+            headsetStatus.textContent = 'Tuş kapalı';
+        }
+
         function getMicrophonePermission() {
             if (localStream) return Promise.resolve();
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -1070,19 +1236,78 @@
             });
         }
 
+        function getPeerServerOptions() {
+            const mode = localStorage.getItem('pmrNetworkMode') || 'internet';
+            const config = {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:global.stun.twilio.com:3478' }
+                ]
+            };
+            if (mode === 'wifi') {
+                const host = (localStorage.getItem('pmrLocalPeerHost') || '').trim();
+                const port = parseInt(localStorage.getItem('pmrLocalPeerPort') || '9000', 10);
+                const secure = localStorage.getItem('pmrLocalPeerSecure') === 'true';
+                if (!host) throw new Error('Yerel Wi-Fi modu için Kara Kutu bölümüne yerel sunucu IP adresini girip kaydedin.');
+                if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Yerel sunucu portu 1–65535 arasında olmalıdır.');
+                return { host, port, secure, path: '/', config };
+            }
+            return { host: '0.peerjs.com', port: 443, secure: true, config };
+        }
+
+        function loadNetworkSettings() {
+            const mode = localStorage.getItem('pmrNetworkMode') || 'internet';
+            const modeSelect = document.getElementById('networkModeSelect');
+            const hostInput = document.getElementById('localPeerHost');
+            const portInput = document.getElementById('localPeerPort');
+            const secureInput = document.getElementById('localPeerSecure');
+            if (!modeSelect) return;
+            modeSelect.value = mode;
+            hostInput.value = localStorage.getItem('pmrLocalPeerHost') || '';
+            portInput.value = localStorage.getItem('pmrLocalPeerPort') || '9000';
+            secureInput.checked = localStorage.getItem('pmrLocalPeerSecure') === 'true';
+            updateNetworkModeUI();
+        }
+
+        function updateNetworkModeUI() {
+            const mode = document.getElementById('networkModeSelect')?.value || 'internet';
+            const fields = document.getElementById('localWifiServerFields');
+            const status = document.getElementById('networkModeStatus');
+            if (fields) fields.classList.toggle('hidden', mode !== 'wifi');
+            if (status) {
+                const labels = { internet: 'İnternet modu', wifi: 'Yerel Wi-Fi modu', bluetooth: 'Bluetooth ses modu' };
+                status.textContent = labels[mode] || labels.internet;
+                status.className = 'text-[10px] ' + (mode === 'wifi' ? 'text-cyan-300' : mode === 'bluetooth' ? 'text-amber-300' : 'text-amber-300');
+            }
+        }
+
+        function saveNetworkSettings() {
+            const mode = document.getElementById('networkModeSelect').value;
+            const host = document.getElementById('localPeerHost').value.trim();
+            const port = parseInt(document.getElementById('localPeerPort').value, 10);
+            if (mode === 'wifi' && !host) {
+                showToast('Yerel Wi-Fi modu için yerel PeerJS sunucusunun IP adresini girin.', 'warning');
+                return;
+            }
+            if (mode === 'wifi' && (!Number.isInteger(port) || port < 1 || port > 65535)) {
+                showToast('Sunucu portu 1–65535 arasında olmalıdır.', 'error');
+                return;
+            }
+            localStorage.setItem('pmrNetworkMode', mode);
+            localStorage.setItem('pmrLocalPeerHost', host);
+            localStorage.setItem('pmrLocalPeerPort', String(port || 9000));
+            localStorage.setItem('pmrLocalPeerSecure', String(document.getElementById('localPeerSecure').checked));
+            updateNetworkModeUI();
+            showToast(mode === 'wifi' ? 'Yerel Wi-Fi ayarları kaydedildi. Yerel sunucu gerekir.' : mode === 'bluetooth' ? 'Bluetooth ses modu seçildi. Bluetooth kulaklığı cihaz ayarlarından bağlayın; telsiz bağlantısı internet veya yerel Wi-Fi üzerinden sürer.' : 'İnternet bağlantı modu kaydedildi.', 'success');
+        }
+
+        document.getElementById('networkModeSelect')?.addEventListener('change', updateNetworkModeUI);
+        document.getElementById('saveNetworkModeBtn')?.addEventListener('click', saveNetworkSettings);
+        loadNetworkSettings();
+
         function initHostPeer(hostId) {
-            peer = new Peer(hostId, {
-                host: '0.peerjs.com',
-                port: 443,
-                secure: true,
-                config: {
-                    'iceServers': [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' },
-                        { urls: 'stun:global.stun.twilio.com:3478' }
-                    ]
-                }
-            });
+            peer = new Peer(hostId, getPeerServerOptions());
 
             peer.on('open', (id) => {
                 isHost = true;
@@ -1128,18 +1353,7 @@
         function initGuestPeer(room, password, hostId) {
             const guestId = 'pmr-tactical-' + room + '-guest-' + Math.floor(Math.random() * 89999 + 10000);
 
-            peer = new Peer(guestId, {
-                host: '0.peerjs.com',
-                port: 443,
-                secure: true,
-                config: {
-                    'iceServers': [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' },
-                        { urls: 'stun:global.stun.twilio.com:3478' }
-                    ]
-                }
-            });
+            peer = new Peer(guestId, getPeerServerOptions());
 
             peer.on('open', (id) => {
                 statusText.innerText = "Doğrulanıyor...";
@@ -1334,6 +1548,7 @@
             if (e) e.preventDefault();
             if (!isTransmitting || !isPowerOn) return;
             isTransmitting = false;
+            headsetToggleState = false;
             if (localStream) localStream.getAudioTracks()[0].enabled = false;
 
             pttBtn.classList.remove('btn-pressed');
@@ -1423,6 +1638,46 @@
             forceHostMode = false;
             connectToRoom(roomInput.value, roomPassword.value);
         });
+
+        refreshAudioDevicesBtn.addEventListener('click', async () => {
+            // Cihaz etiketleri için izin istemek üzere mevcut akış varsa kullanılır.
+            if (localStream) await refreshAudioDevices();
+            else {
+                try {
+                    const temp = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    temp.getTracks().forEach(track => track.stop());
+                    await refreshAudioDevices();
+                } catch (err) {
+                    showToast('Cihaz adlarını görmek için mikrofon izni verin. Bluetooth kulaklığı sistem ayarlarından da seçebilirsiniz.', 'warning');
+                }
+            }
+        });
+        audioOutputSelect.addEventListener('change', applyAudioOutput);
+        enableHeadsetButtonBtn.addEventListener('click', () => {
+            if (headsetButtonEnabled) disableHeadsetControls();
+            else enableHeadsetControls();
+        });
+        headsetButtonMode.addEventListener('change', () => {
+            if (headsetButtonMode.value === 'toggle') enableHeadsetControls();
+            else disableHeadsetControls();
+        });
+        window.addEventListener('keydown', (e) => {
+            if (!headsetButtonEnabled || headsetButtonMode.value !== 'toggle') return;
+            if (['MediaPlayPause', 'HeadsetHook'].includes(e.code) && !e.repeat) {
+                e.preventDefault();
+                toggleHeadsetTransmission();
+            }
+        });
+        if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+            navigator.mediaDevices.addEventListener('devicechange', refreshAudioDevices);
+        }
+        try {
+            const savedOutput = localStorage.getItem('pmrAudioOutputId');
+            if (savedOutput) audioOutputSelect.value = savedOutput;
+            const savedHeadsetMode = localStorage.getItem('pmrHeadsetButtonMode');
+            if (savedHeadsetMode === 'toggle') enableHeadsetControls();
+            refreshAudioDevices();
+        } catch (err) {}
 
         volumeSlider.addEventListener('input', (e) => {
             let val = e.target.value;
