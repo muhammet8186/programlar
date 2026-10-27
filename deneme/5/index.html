@@ -1482,13 +1482,9 @@
                 if (isHost) broadcastData({ type: 'speaker_stop', sender: speakerName });
 
                 if (!isTransmitting && isPowerOn) {
-                    if (speakingUsers.size > 0) {
-                        lcdStatus.innerText = 'ALINIYOR';
-                        lcdStatus.className = "text-2xl md:text-4xl font-black font-lcd tracking-widest text-emerald-400 glow-green";
-                    } else {
-                        lcdStatus.innerText = 'BEKLEMEDE';
-                        lcdStatus.className = "text-2xl md:text-4xl font-black font-lcd tracking-widest text-emerald-400 glow-green";
-                    }
+                    // Konuşma bittiğinde başka aktif konuşmacı yoksa mutlaka BEKLEMEDE'ye dön.
+                    lcdStatus.innerText = speakingUsers.size > 0 ? 'ALINIYOR' : 'BEKLEMEDE';
+                    lcdStatus.className = "text-2xl md:text-4xl font-black font-lcd tracking-widest text-emerald-400 glow-green";
                 }
                 return;
             }
@@ -1712,11 +1708,11 @@
 
             pttBtn.classList.remove('btn-pressed');
             ledTx.className = "w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-700";
+            speakingUsers.delete(userName);
             lcdStatus.innerText = speakingUsers.size > 0 ? "ALINIYOR" : "BEKLEMEDE";
             lcdStatus.className = "text-2xl md:text-4xl font-black font-lcd tracking-widest text-emerald-400 glow-green";
             pttButtonText.innerText = currentMode === 'VOX' ? "VOX AKTİF" : "PTT";
             pttButtonSubText.innerText = currentMode === 'VOX' ? "KONUŞUNCA OTOMATİK YAYINLAR" : "[SPACE] BAS - KONUŞ";
-            speakingUsers.delete(userName);
             renderSpeakingUsers();
             broadcastData({ type: 'speaker_stop', sender: userName });
             playRogerBeep();
