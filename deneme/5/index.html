@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>PMR Tactical Pro - Commander Edition</title>
+    <!-- PeerJS Yedekli CDN Bağlantısı -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { 
@@ -62,7 +63,7 @@
 </head>
 <body class="h-full w-full flex flex-col justify-between p-3 md:p-5 select-none overflow-hidden theme-tactical text-slate-100 transition-colors duration-500">
 
-    <!-- MODERN BİLDİRİM KAPSAYICISI (TOAST CONTAINER) -->
+    <!-- BİLDİRİM KAPSAYICISI -->
     <div id="toastContainer" class="fixed top-4 right-4 z-[999] flex flex-col gap-2 pointer-events-none"></div>
 
     <!-- ÜST BAR -->
@@ -86,7 +87,7 @@
             <span>SOS</span>
         </button>
 
-        <!-- SAĞ: KANAL VE AYARlar -->
+        <!-- SAĞ: KANAL VE AYARLAR -->
         <button id="openChannelModalBtn" type="button" class="flex items-center gap-1 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 active:scale-95 text-slate-950 font-black px-3 py-2 rounded-2xl shadow-lg shadow-amber-500/20 transition-all cursor-pointer font-lcd text-[11px]">
             <svg class="w-3.5 h-3.5 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
             <span>MENÜ</span>
@@ -332,9 +333,9 @@
         let mediaRecorder = null;
         let audioChunks = [];
 
-        // Modern Toast Bildirim Sistemi
         function showToast(message, type = 'info') {
             const container = document.getElementById('toastContainer');
+            if(!container) return;
             const toast = document.createElement('div');
             let bgClass = 'bg-slate-900/95 border-slate-700 text-slate-100';
             if (type === 'error') bgClass = 'bg-red-950/95 border-red-600/80 text-red-200 glow-red';
@@ -389,7 +390,6 @@
         const stopRecBtn = document.getElementById('stopRecBtn');
         const recordingResult = document.getElementById('recordingResult');
 
-        // Sekmeler
         tabChannelBtn.addEventListener('click', () => {
             tabChannelBtn.className = "py-1.5 rounded-lg bg-amber-500 text-slate-950 transition cursor-pointer";
             tabChatBtn.className = "py-1.5 rounded-lg text-slate-400 hover:text-white transition cursor-pointer";
@@ -417,7 +417,6 @@
             paneChat.classList.add('hidden');
         });
 
-        // LocalStorage
         if (localStorage.getItem('pmr_user')) usernameInput.value = localStorage.getItem('pmr_user');
         if (localStorage.getItem('pmr_room')) roomInput.value = localStorage.getItem('pmr_room');
         if (localStorage.getItem('pmr_theme')) {
@@ -565,6 +564,8 @@
             }, 2500);
         });
 
+        const canvas = document.getElementById('oscilloscope');
+        const canvasCtx = canvas.getContext('2d');
         function setupCanvas() {
             canvas.width = canvas.offsetWidth;
             canvas.height = canvas.offsetHeight;
@@ -793,7 +794,7 @@
                 statusText.innerText = "Bağlanılıyor...";
                 showToast("Kanala bağlanılıyor: " + roomName.toUpperCase(), "info");
 
-                const hostId = 'full-pmr-' + roomName + '-host';
+                const hostId = 'pmr-tactical-' + roomName + '-host';
 
                 if (forceHostMode) {
                     initHostPeer(hostId);
@@ -809,7 +810,13 @@
 
         function initHostPeer(hostId) {
             peer = new Peer(hostId, {
-                config: {'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }]}
+                config: {
+                    'iceServers': [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:global.stun.twilio.com:3478' }
+                    ]
+                }
             });
 
             peer.on('open', (id) => {
@@ -840,20 +847,25 @@
             peer.on('error', (err) => {
                 if (err.type === 'unavailable-id') {
                     // Oda zaten açık, misafir olarak katılmayı dene
-                    forceHostMode = false;
                     initGuestPeer(roomName, roomPass, hostId);
                 } else {
                     statusText.innerText = "Bağlantı Hatası!";
-                    showToast("Bağlantı hatası oluştu.", "error");
+                    showToast("Bağlantı hatası: " + err.type, "error");
                 }
             });
         }
 
         function initGuestPeer(room, password, hostId) {
-            const guestId = 'full-pmr-' + room + '-guest-' + Math.floor(Math.random() * 89999 + 10000);
+            const guestId = 'pmr-tactical-' + room + '-guest-' + Math.floor(Math.random() * 89999 + 10000);
 
             peer = new Peer(guestId, {
-                config: {'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }]}
+                config: {
+                    'iceServers': [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:global.stun.twilio.com:3478' }
+                    ]
+                }
             });
 
             peer.on('open', (id) => {
@@ -871,7 +883,6 @@
 
             peer.on('error', (err) => {
                 if (err.type === 'peer-unavailable') {
-                    // Oda kurucusu yoksa yönetici ol
                     initHostPeer(hostId);
                 } else {
                     statusText.innerText = "Bağlantı Hatası!";
@@ -920,7 +931,7 @@
                 showToast("Kanala başarıyla katıldınız!", "success");
 
                 setTimeout(() => {
-                    let call = peer.call('full-pmr-' + roomName + '-host', localStream);
+                    let call = peer.call('pmr-tactical-' + roomName + '-host', localStream);
                     if (call) setupCallEvents(call);
                 }, 200);
             } else if (data.type === 'kicked') {
@@ -957,7 +968,7 @@
         }
 
         function startPingSimulator() {
-            if (pingInterval) clearInterval(pingInterval);
+            if (pingIntent) clearInterval(pingIntent);
             pingInterval = setInterval(() => {
                 if (!isConnected) return;
                 let simulatedPing = Math.floor(Math.random() * 25) + 16;
@@ -1011,7 +1022,7 @@
             activeSpeaker.innerText = userName + " (Siz Konuşuyorsunuz)";
 
             if (!isHost && (!currentCall || currentCall.open === false)) {
-                let call = peer.call('full-pmr-' + roomName + '-host', localStream);
+                let call = peer.call('pmr-tactical-' + roomName + '-host', localStream);
                 if (call) setupCallEvents(call);
             }
         }
@@ -1029,6 +1040,24 @@
             activeSpeaker.innerText = "";
             playRogerBeep();
         }
+
+        const pttBtn = document.getElementById('pttBtn');
+        const pingDisplay = document.getElementById('pingDisplay');
+        const lcdStatus = document.getElementById('lcdStatus');
+        const activeSpeaker = document.getElementById('activeSpeaker');
+        const statusText = document.getElementById('statusText');
+        const onlineCountLabel = document.getElementById('onlineCountLabel');
+        const userCountBadge = document.getElementById('userCountBadge');
+        const userList = document.getElementById('userList');
+        const usernameInput = document.getElementById('usernameInput');
+        const userCallsignDisplay = document.getElementById('userCallsignDisplay');
+        const roomInput = document.getElementById('roomInput');
+        const roomPassword = document.getElementById('roomPassword');
+        const currentRoomDisplay = document.getElementById('currentRoomDisplay');
+        const ledTx = document.getElementById('ledTx');
+        const ledRx = document.getElementById('ledRx');
+        const remoteAudio = document.getElementById('remoteAudio');
+        const volumeSlider = document.getElementById('volumeSlider');
 
         pttBtn.addEventListener('pointerdown', (e) => { if (currentMode === 'PTT') startTransmission(e); });
         window.addEventListener('pointerup', (e) => { if (currentMode === 'PTT') stopTransmission(e); });
