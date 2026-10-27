@@ -116,6 +116,42 @@
 </head>
 <body class="h-full w-full flex flex-col justify-between p-3 md:p-5 select-none overflow-hidden text-slate-100 transition-colors duration-500">
 
+    <!-- MOD SEÇİMİ / YEREL MİKROFON EKRANI -->
+    <section id="modeChooser" class="fixed inset-0 z-[2000] flex items-center justify-center p-5 bg-slate-950/95 backdrop-blur-xl">
+      <div class="w-full max-w-xl mx-auto">
+        <div class="text-center mb-8">
+          <div class="text-amber-400 font-lcd text-xs tracking-[0.35em] mb-3">PMR TACTICAL PRO</div>
+          <h1 class="text-3xl md:text-4xl font-black text-white mb-3">Nasıl kullanacaksınız?</h1>
+          <p class="text-slate-400 text-sm">Bir kullanım modu seçin. Mikrofon modu telsiz kullanıcılarına yayın yapmaz.</p>
+        </div>
+        <div class="grid grid-cols-1 gap-4">
+          <button id="chooseRadioMode" type="button" class="w-full rounded-2xl border border-emerald-500/60 bg-emerald-950/60 hover:bg-emerald-900/70 p-5 text-left transition active:scale-[.99]">
+            <span class="flex items-center gap-4"><span class="rounded-xl bg-emerald-500/15 p-3 text-emerald-400"><svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10v4M8 6v12M12 3v18M16 6v12M20 10v4"/></svg></span><span><strong class="block text-lg md:text-xl text-white">TELSİZ MODUNDA KULLAN</strong><small class="block mt-1 text-slate-300">PTT, VOX, kanal ve kullanıcı bağlantıları</small></span></span>
+          </button>
+          <button id="chooseMicMode" type="button" class="w-full rounded-2xl border border-sky-500/60 bg-sky-950/60 hover:bg-sky-900/70 p-5 text-left transition active:scale-[.99]">
+            <span class="flex items-center gap-4"><span class="rounded-xl bg-sky-500/15 p-3 text-sky-300"><svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5m-4 0h8"/></svg></span><span><strong class="block text-lg md:text-xl text-white">MİKROFON MODUNDA KULLAN</strong><small class="block mt-1 text-slate-300">Telefon mikrofonu → hoparlör / desteklenen Bluetooth ses çıkışı</small></span></span>
+          </button>
+        </div>
+        <p class="text-xs text-slate-500 text-center mt-5">Bluetooth ses çıkışı, telefonun ve tarayıcının ses yönlendirme desteğine bağlıdır.</p>
+      </div>
+    </section>
+
+    <section id="localMicScreen" class="hidden fixed inset-0 z-[2001] flex items-center justify-center p-5 bg-slate-950 text-slate-100">
+      <div class="w-full max-w-md text-center">
+        <div class="inline-flex rounded-full bg-sky-500/15 p-5 text-sky-300 mb-5"><svg class="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5m-4 0h8"/></svg></div>
+        <h2 class="text-3xl font-black mb-2">MİKROFON MODU</h2>
+        <p class="text-slate-400 mb-6">Bu moddaki ses yalnızca bu telefondaki ses çıkışına verilir. Telsiz kullanıcılarına gönderilmez.</p>
+        <div id="localMicStatus" class="rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 mb-5 text-sm text-slate-300">Mikrofon kapalı</div>
+        <button id="localMicToggle" type="button" class="w-full rounded-2xl bg-sky-600 hover:bg-sky-500 py-4 text-lg font-black text-white shadow-lg active:scale-[.99]">MİKROFONU AÇ</button>
+        <label for="localMicVolume" class="block text-left text-xs text-slate-400 mt-5 mb-2">SES SEVİYESİ</label>
+        <input id="localMicVolume" type="range" min="0" max="1" step="0.05" value="1" class="w-full accent-sky-500" />
+        <button id="micBackToMenu" type="button" class="mt-5 w-full rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800 py-3 font-bold">ANA MENÜYE DÖN</button>
+        <p class="text-xs text-slate-500 mt-4">Bluetooth hoparlörü önce telefon ayarlarından bağlayın. Yankıyı önlemek için hoparlör sesini düşük tutun.</p>
+        <audio id="localMicAudio" autoplay playsinline></audio>
+      </div>
+    </section>
+    <button id="modeMenuBtn" type="button" class="hidden fixed bottom-3 left-3 z-[1000] rounded-xl border border-slate-600 bg-slate-900/95 px-3 py-2 text-xs font-bold text-slate-100 shadow-xl">MOD DEĞİŞTİR</button>
+
     <!-- BİLDİRİM KAPSAYICISI -->
     <div id="toastContainer" class="fixed top-4 right-4 z-[999] flex flex-col gap-2 pointer-events-none"></div>
 
@@ -1857,6 +1893,105 @@
             let val = e.target.value;
             remoteAudio.volume = val;
         });
+
+        // Ayrı kullanım modları: mikrofon modu hiçbir PeerJS çağrısı veya telsiz yayını başlatmaz.
+        const modeChooser = document.getElementById('modeChooser');
+        const localMicScreen = document.getElementById('localMicScreen');
+        const chooseRadioMode = document.getElementById('chooseRadioMode');
+        const chooseMicMode = document.getElementById('chooseMicMode');
+        const modeMenuBtn = document.getElementById('modeMenuBtn');
+        const localMicToggle = document.getElementById('localMicToggle');
+        const localMicStatus = document.getElementById('localMicStatus');
+        const localMicAudio = document.getElementById('localMicAudio');
+        const localMicVolume = document.getElementById('localMicVolume');
+        const micBackToMenu = document.getElementById('micBackToMenu');
+        let localMonitorStream = null;
+        let localMonitorActive = false;
+        let localMonitorContext = null;
+        let localMonitorSource = null;
+        let localMonitorGain = null;
+        let selectedUseMode = null;
+
+        function showModeMenu() {
+            stopLocalMonitor();
+            selectedUseMode = null;
+            localMicScreen.classList.add('hidden');
+            modeChooser.classList.remove('hidden');
+            modeMenuBtn.classList.add('hidden');
+        }
+        function selectRadioUseMode() {
+            stopLocalMonitor();
+            selectedUseMode = 'radio';
+            modeChooser.classList.add('hidden');
+            localMicScreen.classList.add('hidden');
+            modeMenuBtn.classList.remove('hidden');
+            showToast('Telsiz modu seçildi.', 'success');
+        }
+        async function startLocalMonitor() {
+            if (localMonitorActive) return;
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                localMicStatus.textContent = 'Mikrofon erişimi için programı HTTPS üzerinden açın ve güncel tarayıcı kullanın.';
+                return;
+            }
+            try {
+                localMicStatus.textContent = 'Mikrofon izni bekleniyor…';
+                localMonitorStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    video: false
+                });
+                localMonitorContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (localMonitorContext.state === 'suspended') await localMonitorContext.resume();
+                localMonitorSource = localMonitorContext.createMediaStreamSource(localMonitorStream);
+                localMonitorGain = localMonitorContext.createGain();
+                localMonitorGain.gain.value = Number(localMicVolume.value || 1);
+                localMonitorSource.connect(localMonitorGain);
+                localMonitorGain.connect(localMonitorContext.destination);
+                localMonitorActive = true;
+                localMicStatus.textContent = 'MİKROFON AÇIK · SES YEREL ÇIKIŞA VERİLİYOR';
+                localMicStatus.className = 'rounded-xl border border-emerald-600 bg-emerald-950/60 px-4 py-3 mb-5 text-sm text-emerald-300';
+                localMicToggle.textContent = 'MİKROFONU KAPAT';
+                localMicToggle.className = 'w-full rounded-2xl bg-red-700 hover:bg-red-600 py-4 text-lg font-black text-white shadow-lg active:scale-[.99]';
+                // Bu akış yalnızca yerel AudioContext'e bağlıdır; PeerJS / telsiz bağlantısına bağlanmaz.
+            } catch (err) {
+                stopLocalMonitor();
+                localMicStatus.textContent = 'Mikrofon açılamadı: ' + (err && err.message ? err.message : 'İzinleri kontrol edin.');
+                localMicStatus.className = 'rounded-xl border border-red-700 bg-red-950/50 px-4 py-3 mb-5 text-sm text-red-300';
+            }
+        }
+        function stopLocalMonitor() {
+            localMonitorActive = false;
+            if (localMonitorStream) {
+                localMonitorStream.getTracks().forEach(track => { try { track.stop(); } catch (e) {} });
+                localMonitorStream = null;
+            }
+            try { if (localMonitorSource) localMonitorSource.disconnect(); } catch (e) {}
+            try { if (localMonitorGain) localMonitorGain.disconnect(); } catch (e) {}
+            try { if (localMonitorContext && localMonitorContext.state !== 'closed') localMonitorContext.close(); } catch (e) {}
+            localMonitorSource = null; localMonitorGain = null; localMonitorContext = null;
+            if (localMicAudio) { try { localMicAudio.pause(); localMicAudio.srcObject = null; } catch (e) {} }
+            if (localMicToggle) {
+                localMicToggle.textContent = 'MİKROFONU AÇ';
+                localMicToggle.className = 'w-full rounded-2xl bg-sky-600 hover:bg-sky-500 py-4 text-lg font-black text-white shadow-lg active:scale-[.99]';
+            }
+            if (localMicStatus) {
+                localMicStatus.textContent = 'Mikrofon kapalı';
+                localMicStatus.className = 'rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 mb-5 text-sm text-slate-300';
+            }
+        }
+        chooseRadioMode.addEventListener('click', selectRadioUseMode);
+        chooseMicMode.addEventListener('click', () => {
+            selectedUseMode = 'microphone';
+            modeChooser.classList.add('hidden');
+            localMicScreen.classList.remove('hidden');
+            modeMenuBtn.classList.add('hidden');
+            // Kullanıcı tıklamasıyla mikrofon izni istenir.
+            startLocalMonitor();
+        });
+        localMicToggle.addEventListener('click', () => localMonitorActive ? stopLocalMonitor() : startLocalMonitor());
+        localMicVolume.addEventListener('input', () => { if (localMonitorGain) localMonitorGain.gain.value = Number(localMicVolume.value); });
+        micBackToMenu.addEventListener('click', showModeMenu);
+        modeMenuBtn.addEventListener('click', showModeMenu);
+        window.addEventListener('pagehide', stopLocalMonitor);
     </script>
 </body>
 </html>
