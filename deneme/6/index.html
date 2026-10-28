@@ -1,657 +1,999 @@
+```html
 <!DOCTYPE html>
-<html lang="tr" class="dark">
+<html lang="tr" class="h-full bg-slate-900 text-slate-100 select-none">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SohbetApp - Modern Mesajlaşma</title>
-    <!-- Tailwind CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cep Kütüphanesi - Kişisel Okuma & Kitap Takibi</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font (Inter & Outfit) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
-            darkMode: 'class',
             theme: {
                 extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
                     colors: {
                         brand: {
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
+                            50: '#f0f5ff',
+                            100: '#e0ebff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#1e1b4b',
                         }
                     }
                 }
             }
         }
     </script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        /* Özel Kaydırma Çubuğu */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+        /* Custom scrollbar for mobile sleekness */
+        ::-webkit-scrollbar { width: 0px; height: 0px; display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Mobile Frame Utilities */
+        .safe-bottom { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)); }
+        .active-tab-glow {
+            box-shadow: 0 -4px 12px -2px rgba(99, 102, 241, 0.4);
         }
-        ::-webkit-scrollbar-track {
-            background: transparent;
+        
+        /* Simulated Camera Scanner */
+        @keyframes scanline {
+            0% { top: 0%; }
+            50% { top: 100%; }
+            100% { top: 0%; }
         }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(156, 163, 175, 0.4);
-            border-radius: 9999px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(156, 163, 175, 0.7);
-        }
-        .chat-bubble-sent {
-            border-bottom-right-radius: 2px;
-        }
-        .chat-bubble-received {
-            border-bottom-left-radius: 2px;
+        .scanner-line {
+            animation: scanline 2s infinite ease-in-out;
         }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 h-screen overflow-hidden transition-colors duration-200">
+<body class="h-full flex justify-center items-center bg-slate-950 font-sans antialiased sm:py-6">
 
-    <!-- Ana Konteyner -->
-    <div class="flex h-full w-full max-w-[1920px] mx-auto relative overflow-hidden">
+    <!-- Mobile Frame Container -->
+    <div class="w-full max-w-md h-full sm:h-[844px] bg-slate-900 sm:rounded-[40px] shadow-2xl shadow-indigo-950/50 flex flex-col overflow-hidden relative border border-slate-800/80">
         
-        <!-- Mobil Menü Arka Plan Kaplama (Overlay) -->
-        <div id="mobile-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden transition-opacity"></div>
+        <!-- Status Bar Simulation for Desktop View -->
+        <div class="px-6 pt-3 pb-2 flex justify-between items-center text-xs text-slate-400 font-medium bg-slate-900/90 backdrop-blur-md z-30 shrink-0 border-b border-slate-800/40">
+            <span id="mobile-clock">09:41</span>
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-wifi text-[11px]"></i>
+                <i class="fa-solid fa-battery-full text-xs"></i>
+            </div>
+        </div>
 
-        <!-- SOL PANEL (SIDEBAR) -->
-        <aside id="sidebar" class="fixed md:relative z-30 w-full sm:w-80 md:w-80 lg:w-96 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700/60 flex flex-col transition-transform duration-300 transform -translate-x-full md:translate-x-0">
+        <!-- Header -->
+        <header class="px-5 py-3.5 flex items-center justify-between bg-slate-900/90 backdrop-blur-md z-20 border-b border-slate-800/50 shrink-0">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-book-bookmark text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="font-display font-bold text-base tracking-tight text-white leading-none">Cep Kütüphanesi</h1>
+                    <p class="text-[10px] text-indigo-400 font-medium mt-0.5" id="header-subtitle">32 Kitap • 14 Okundu</p>
+                </div>
+            </div>
             
-            <!-- Kullanıcı Profil Üst Alanı -->
-            <div class="p-4 border-b border-gray-200 dark:border-gray-700/60 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50">
-                <div class="flex items-center space-x-3">
-                    <div class="relative">
-                        <img id="user-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Profil" class="w-10 h-10 rounded-full object-cover ring-2 ring-brand-500/30">
-                        <span id="user-status-dot" class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></span>
+            <div class="flex items-center space-x-2">
+                <button onclick="openScannerModal()" class="w-9 h-9 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/50 flex items-center justify-center text-slate-300 transition-all active:scale-95" title="Barkod Tara">
+                    <i class="fa-solid fa-barcode text-sm"></i>
+                </button>
+                <button onclick="openAddBookModal()" class="w-9 h-9 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-md shadow-indigo-600/30 transition-all active:scale-95" title="Manuel Ekle">
+                    <i class="fa-solid fa-plus text-sm"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Scrollable App Screen Area -->
+        <main class="flex-1 overflow-y-auto no-scrollbar relative p-4 safe-bottom">
+            
+            <!-- SECTION 1: KİTAPLIĞIM (TAB 1) -->
+            <section id="tab-library" class="space-y-4">
+                
+                <!-- Streak Banner -->
+                <div class="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-transparent border border-amber-500/20 flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-slate-950 font-black text-lg shadow-md shadow-orange-500/20">
+                            🔥
+                        </div>
+                        <div>
+                            <div class="flex items-center space-x-1.5">
+                                <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Okuma Serisi</span>
+                                <span class="bg-amber-400/20 text-amber-300 text-[10px] px-1.5 py-0.2 rounded font-semibold" id="streak-days">14 Gün</span>
+                            </div>
+                            <p class="text-xs text-slate-300 mt-0.5">Harika gidiyorsun, zinciri kırma!</p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 class="font-semibold text-sm text-gray-900 dark:text-white leading-tight">Zeynep Yılmaz</h2>
-                        <div class="relative inline-block text-left mt-0.5">
-                            <select id="status-select" onchange="updateUserStatus(this.value)" class="bg-transparent text-xs text-gray-500 dark:text-gray-400 focus:outline-none cursor-pointer pr-2">
-                                <option value="online" class="dark:bg-gray-800">Çevrimiçi</option>
-                                <option value="away" class="dark:bg-gray-800">Dışarıda</option>
-                                <option value="busy" class="dark:bg-gray-800">Meşgul</option>
-                                <option value="offline" class="dark:bg-gray-800">Görünmez</option>
-                            </select>
+                    <button onclick="quickAddPagePrompt()" class="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-semibold px-3 py-1.5 rounded-xl border border-amber-500/30 transition-all active:scale-95">
+                        + Sayfa Oku
+                    </button>
+                </div>
+
+                <!-- Reading Status Tabs -->
+                <div class="grid grid-cols-3 gap-1.5 bg-slate-950/60 p-1.5 rounded-2xl border border-slate-800/80 text-xs font-medium">
+                    <button onclick="setLibrarySubTab('reading')" id="subtab-reading" class="py-2 rounded-xl text-center transition-all bg-indigo-600 text-white font-semibold shadow-sm">
+                        Okunuyor (<span id="count-reading">0</span>)
+                    </button>
+                    <button onclick="setLibrarySubTab('to-read')" id="subtab-to-read" class="py-2 rounded-xl text-center transition-all text-slate-400 hover:text-slate-200">
+                        Okunacak (<span id="count-to-read">0</span>)
+                    </button>
+                    <button onclick="setLibrarySubTab('completed')" id="subtab-completed" class="py-2 rounded-xl text-center transition-all text-slate-400 hover:text-slate-200">
+                        Okundu (<span id="count-completed">0</span>)
+                    </button>
+                </div>
+
+                <!-- Book Cards Grid / List -->
+                <div id="library-books-container" class="space-y-3">
+                    <!-- Dynamic JS Populate -->
+                </div>
+            </section>
+
+            <!-- SECTION 2: ARAMA & KEŞFET (TAB 2) -->
+            <section id="tab-search" class="space-y-4 hidden">
+                <!-- Search Input -->
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="search-input" oninput="renderSearchTab()" placeholder="Kitap adı, yazar veya kategori ara..." class="w-full pl-10 pr-10 py-3 bg-slate-800/80 border border-slate-700/60 rounded-2xl text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+                    <button onclick="clearSearch()" id="clear-search-btn" class="hidden absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+
+                <!-- Category Chips -->
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Kategoriler</p>
+                    <div class="flex items-center space-x-2 overflow-x-auto no-scrollbar pb-1" id="category-chips">
+                        <!-- JS Dynamic Populated -->
+                    </div>
+                </div>
+
+                <!-- Search Results -->
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 mb-2.5 uppercase tracking-wider" id="search-results-label">Tüm Kitaplar</p>
+                    <div id="search-results-container" class="space-y-3">
+                        <!-- JS Populate -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3: İSTATİSTİKLER & HEDEF (TAB 3) -->
+            <section id="tab-stats" class="space-y-4 hidden">
+                <!-- Yearly Goal Card -->
+                <div class="p-5 rounded-3xl bg-gradient-to-br from-indigo-900/60 via-slate-800 to-slate-900 border border-indigo-500/30 relative overflow-hidden shadow-xl">
+                    <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl"></div>
+                    
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider">2026 Okuma Hedefi</span>
+                            <h2 class="text-2xl font-display font-bold text-white mt-0.5" id="goal-fraction">12 / 24 Kitap</h2>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300 font-bold text-xs border border-indigo-500/30" id="goal-percent">%50</span>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-slate-950/80 rounded-full h-3 p-0.5 border border-slate-700/50 mb-3">
+                        <div id="goal-progress-bar" class="bg-gradient-to-r from-indigo-500 to-violet-400 h-full rounded-full transition-all duration-500" style="width: 50%;"></div>
+                    </div>
+                    
+                    <p class="text-xs text-slate-300" id="goal-message">Yıl sonu hedefine ulaşmak için ayda 2 kitap okumalısın.</p>
+                </div>
+
+                <!-- Stats Overview Grid -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/50 flex flex-col justify-between">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center text-sm mb-2">
+                            <i class="fa-solid fa-book-open"></i>
+                        </div>
+                        <div>
+                            <span class="text-2xl font-display font-bold text-white" id="stat-total-pages">3,420</span>
+                            <p class="text-xs text-slate-400 font-medium mt-0.5">Toplam Sayfa Okundu</p>
+                        </div>
+                    </div>
+
+                    <div class="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/50 flex flex-col justify-between">
+                        <div class="w-8 h-8 rounded-xl bg-purple-500/15 text-purple-400 flex items-center justify-center text-sm mb-2">
+                            <i class="fa-solid fa-clock font-bold"></i>
+                        </div>
+                        <div>
+                            <span class="text-2xl font-display font-bold text-white" id="stat-avg-time">~45 dk</span>
+                            <p class="text-xs text-slate-400 font-medium mt-0.5">Günlük Okuma Süresi</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex items-center space-x-1">
-                    <!-- Tema Değiştirici -->
-                    <button onclick="toggleDarkMode()" class="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-500 dark:hover:text-brand-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50 transition">
-                        <i id="theme-icon" class="fas fa-moon text-lg"></i>
-                    </button>
-                    <!-- Mobil Menü Kapatma Butonu -->
-                    <button onclick="toggleSidebar()" class="md:hidden p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white">
-                        <i class="fas fa-xmark text-lg"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Arama Arama Çubuğu -->
-            <div class="p-3">
-                <div class="relative">
-                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-                    <input type="text" id="search-input" oninput="filterChats()" placeholder="Sohbetlerde veya kişilerde ara..." class="w-full pl-9 pr-4 py-2 bg-gray-100 dark:bg-gray-700/50 border border-transparent focus:border-brand-500 dark:focus:border-brand-500 rounded-xl text-sm focus:outline-none transition">
-                </div>
-            </div>
-
-            <!-- Kategoriler / Sekmeler -->
-            <div class="flex px-3 border-b border-gray-100 dark:border-gray-700/40 text-xs font-medium">
-                <button onclick="switchTab('all')" id="tab-all" class="flex-1 py-2.5 text-center border-b-2 border-brand-500 text-brand-600 dark:text-brand-400 transition-colors">Tümü</button>
-                <button onclick="switchTab('groups')" id="tab-groups" class="flex-1 py-2.5 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">Gruplar</button>
-                <button onclick="switchTab('favorites')" id="tab-favorites" class="flex-1 py-2.5 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">Favoriler</button>
-            </div>
-
-            <!-- Sohbet Listesi -->
-            <div id="chat-list" class="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700/30">
-                <!-- JavaScript tarafında dinamik yüklenir -->
-            </div>
-        </aside>
-
-        <!-- SAĞ PANEL (ANA SOHBET ALANI) -->
-        <main class="flex-1 flex flex-col h-full bg-gray-50 dark:bg-gray-900/50 relative">
-            
-            <!-- Sohbet Başlığı (Chat Header) -->
-            <header class="p-3 sm:p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700/60 flex items-center justify-between z-10 shadow-sm">
-                <div class="flex items-center space-x-3">
-                    <button onclick="toggleSidebar()" class="md:hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    
-                    <div class="relative cursor-pointer" onclick="showContactDetails()">
-                        <img id="active-chat-avatar" src="" alt="" class="w-10 h-10 rounded-full object-cover">
-                        <span id="active-chat-status" class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></span>
+                <!-- Genre Breakdown -->
+                <div class="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/50 space-y-3">
+                    <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Favori Türler</h3>
+                    <div class="space-y-2.5" id="genre-stats-container">
+                        <!-- JS Dynamic Populate -->
                     </div>
+                </div>
+            </section>
 
+            <!-- SECTION 4: ÖDÜNÇ / TAKİP (TAB 4) -->
+            <section id="tab-borrow" class="space-y-4 hidden">
+                <div class="flex items-center justify-between">
                     <div>
-                        <h3 id="active-chat-name" class="font-semibold text-gray-900 dark:text-white text-base leading-snug"></h3>
-                        <p id="active-chat-subtitle" class="text-xs text-gray-500 dark:text-gray-400"></p>
+                        <h2 class="text-sm font-bold text-slate-200">Ödünç Verilen Kitaplar</h2>
+                        <p class="text-xs text-slate-400">Arkadaşlarındaki kitapların takibi</p>
+                    </div>
+                    <button onclick="openBorrowModal()" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-3 py-1.5 rounded-xl transition-all shadow-md shadow-indigo-600/30 flex items-center space-x-1.5">
+                        <i class="fa-solid fa-plus text-xs"></i>
+                        <span>Ödünç Ver</span>
+                    </button>
+                </div>
+
+                <!-- Borrowed Books List -->
+                <div id="borrow-list-container" class="space-y-3">
+                    <!-- JS Populate -->
+                </div>
+            </section>
+
+            <!-- SECTION 5: PROFİL & AYARLAR (TAB 5) -->
+            <section id="tab-profile" class="space-y-4 hidden">
+                <!-- User Card -->
+                <div class="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center space-x-3.5">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-indigo-500/30">
+                        CK
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-slate-100 text-base">Kitap Sever</h2>
+                        <p class="text-xs text-indigo-400">Koleksiyoner • Premium Üye</p>
+                        <p class="text-[11px] text-slate-400 mt-1"><i class="fa-solid fa-location-dot mr-1"></i>Kişisel Kütüphane</p>
                     </div>
                 </div>
 
-                <!-- Başlık İkonları -->
-                <div class="flex items-center space-x-1 sm:space-x-2 text-gray-500 dark:text-gray-400">
-                    <button onclick="simulateCall('sesli')" title="Sesli Aramayı Başlat" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700/60 rounded-xl hover:text-brand-500 transition">
-                        <i class="fas fa-phone"></i>
-                    </button>
-                    <button onclick="simulateCall('görüntülü')" title="Görüntülü Aramayı Başlat" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700/60 rounded-xl hover:text-brand-500 transition">
-                        <i class="fas fa-video"></i>
-                    </button>
-                    <button onclick="toggleFavoriteCurrent()" title="Favorilere Ekle/Çıkar" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700/60 rounded-xl hover:text-yellow-500 transition">
-                        <i id="active-favorite-icon" class="far fa-star"></i>
-                    </button>
-                    <div class="h-4 w-px bg-gray-200 dark:bg-gray-700 mx-1"></div>
-                    <button onclick="clearChatMessages()" title="Sohbeti Temizle" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700/60 rounded-xl hover:text-red-500 transition">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
+                <!-- Settings Options -->
+                <div class="space-y-2">
+                    <div class="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-700/40 flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-bullseye"></i>
+                            </div>
+                            <span class="text-xs font-semibold text-slate-200">Yıllık Okuma Hedefi</span>
+                        </div>
+                        <input type="number" id="setting-yearly-goal" onchange="updateYearlyGoalSetting(this.value)" value="24" class="w-16 py-1 px-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-center text-indigo-300 font-bold">
+                    </div>
+
+                    <div onclick="resetSampleData()" class="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-700/40 flex items-center justify-between cursor-pointer active:bg-slate-800 transition-colors">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-rotate-left"></i>
+                            </div>
+                            <div>
+                                <span class="text-xs font-semibold text-slate-200 block">Örnek Verileri Yükle</span>
+                                <span class="text-[10px] text-slate-400">Sıfırla ve varsayılan Türkçe kitapları yükle</span>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-slate-500"></i>
+                    </div>
+
+                    <div onclick="exportLibraryData()" class="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-700/40 flex items-center justify-between cursor-pointer active:bg-slate-800 transition-colors">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-file-export"></i>
+                            </div>
+                            <span class="text-xs font-semibold text-slate-200">Verileri Yedekle (JSON)</span>
+                        </div>
+                        <i class="fa-solid fa-download text-xs text-slate-500"></i>
+                    </div>
                 </div>
-            </header>
-
-            <!-- Mesaj Geçmişi Alanı -->
-            <div id="messages-container" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-100/60 dark:bg-gray-900/40">
-                <!-- Mesajlar JavaScript tarafından buraya eklenecek -->
-            </div>
-
-            <!-- Emoji Paneli (Gizli / Açılır) -->
-            <div id="emoji-picker" class="hidden absolute bottom-20 left-4 sm:left-6 z-20 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl p-3 w-72 max-h-48 overflow-y-auto">
-                <div class="text-xs font-semibold text-gray-400 mb-2">Hızlı Emojiler</div>
-                <div class="grid grid-cols-6 gap-2 text-xl">
-                    <span onclick="insertEmoji('😊')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">😊</span>
-                    <span onclick="insertEmoji('😂')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">😂</span>
-                    <span onclick="insertEmoji('❤️')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">❤️</span>
-                    <span onclick="insertEmoji('👍')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">👍</span>
-                    <span onclick="insertEmoji('🔥')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">🔥</span>
-                    <span onclick="insertEmoji('🎉')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">🎉</span>
-                    <span onclick="insertEmoji('🙏')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">🙏</span>
-                    <span onclick="insertEmoji('😎')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">😎</span>
-                    <span onclick="insertEmoji('😍')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">😍</span>
-                    <span onclick="insertEmoji('🤔')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">🤔</span>
-                    <span onclick="insertEmoji('🙌')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">🙌</span>
-                    <span onclick="insertEmoji('✨')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">✨</span>
-                </div>
-            </div>
-
-            <!-- Mesaj Gönderme Alt Alanı -->
-            <footer class="p-3 sm:p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700/60">
-                <form id="message-form" onsubmit="handleSendMessage(event)" class="flex items-center space-x-2">
-                    
-                    <!-- Dosya/Görsel Yükleme Butonu -->
-                    <label class="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-500 dark:hover:text-brand-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition">
-                        <i class="fas fa-paperclip text-lg"></i>
-                        <input type="file" onchange="handleFileUpload(event)" class="hidden" accept="image/*,.pdf,.doc">
-                    </label>
-
-                    <!-- Emoji Butonu -->
-                    <button type="button" onclick="toggleEmojiPicker()" class="p-2 text-gray-500 dark:text-gray-400 hover:text-yellow-500 dark:hover:text-yellow-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                        <i class="far fa-smile text-lg"></i>
-                    </button>
-
-                    <!-- Metin Giriş Alanı -->
-                    <input type="text" id="message-input" autocomplete="off" placeholder="Bir mesaj yazın..." class="flex-1 bg-gray-100 dark:bg-gray-700/50 border border-transparent focus:border-brand-500 dark:focus:border-brand-500 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition dark:text-white">
-
-                    <!-- Ses Kaydı Simülasyon Butonu -->
-                    <button type="button" onclick="simulateVoiceRecord()" title="Ses Kaydı Gönder" class="p-2 text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                        <i class="fas fa-microphone text-lg"></i>
-                    </button>
-
-                    <!-- Gönder Butonu -->
-                    <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white p-2.5 rounded-xl shadow-md shadow-brand-500/20 transition flex items-center justify-center">
-                        <i class="fas fa-paper-plane text-sm"></i>
-                    </button>
-                </form>
-            </footer>
+            </section>
 
         </main>
+
+        <!-- Bottom Navigation Bar -->
+        <nav class="absolute bottom-0 inset-x-0 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800/80 px-3 py-2 flex justify-around items-center z-30">
+            <button onclick="switchTab('library')" id="nav-library" class="flex flex-col items-center space-y-1 text-indigo-400">
+                <i class="fa-solid fa-book-bookmark text-base"></i>
+                <span class="text-[10px] font-semibold">Kitaplığım</span>
+            </button>
+            <button onclick="switchTab('search')" id="nav-search" class="flex flex-col items-center space-y-1 text-slate-500 hover:text-slate-300">
+                <i class="fa-solid fa-compass text-base"></i>
+                <span class="text-[10px] font-medium">Keşfet</span>
+            </button>
+            <button onclick="switchTab('stats')" id="nav-stats" class="flex flex-col items-center space-y-1 text-slate-500 hover:text-slate-300">
+                <i class="fa-solid fa-chart-line text-base"></i>
+                <span class="text-[10px] font-medium">Hedefler</span>
+            </button>
+            <button onclick="switchTab('borrow')" id="nav-borrow" class="flex flex-col items-center space-y-1 text-slate-500 hover:text-slate-300">
+                <i class="fa-solid fa-handshake-simple text-base"></i>
+                <span class="text-[10px] font-medium">Ödünç</span>
+            </button>
+            <button onclick="switchTab('profile')" id="nav-profile" class="flex flex-col items-center space-y-1 text-slate-500 hover:text-slate-300">
+                <i class="fa-solid fa-user text-base"></i>
+                <span class="text-[10px] font-medium">Profil</span>
+            </button>
+        </nav>
+
     </div>
 
-    <!-- Bildirim / Modal Kutusu -->
-    <div id="toast" class="fixed top-5 right-5 z-50 transform translate-y-[-100px] opacity-0 transition-all duration-300 bg-gray-900 text-white dark:bg-white dark:text-gray-900 px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3">
-        <i id="toast-icon" class="fas fa-info-circle text-brand-500"></i>
-        <span id="toast-message" class="text-sm font-medium">İşlem başarılı.</span>
+    <!-- MODAL 1: ADD/EDIT BOOK -->
+    <div id="modal-book" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center hidden p-0 sm:p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 id="modal-book-title" class="font-bold text-base text-slate-100">Yeni Kitap Ekle</h3>
+                <button onclick="closeModal('modal-book')" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-slate-200 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form id="form-book" onsubmit="saveBookForm(event)" class="space-y-3">
+                <input type="hidden" id="form-book-id">
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">Kitap Adı *</label>
+                    <input type="text" id="form-book-name" required placeholder="Örn: Tutunamayanlar" class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700/70 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">Yazar *</label>
+                    <input type="text" id="form-book-author" required placeholder="Örn: Oğuz Atay" class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700/70 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-400 mb-1">Toplam Sayfa *</label>
+                        <input type="number" id="form-book-pages" required min="1" placeholder="724" class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700/70 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-400 mb-1">Okunan Sayfa</label>
+                        <input type="number" id="form-book-current-page" min="0" value="0" class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700/70 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-400 mb-1">Kategori *</label>
+                        <select id="form-book-category" required class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700/70 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="Roman">Roman</option>
+                            <option value="Tarih">Tarih</option>
+                            <option value="Bilim Kurgu">Bilim Kurgu</option>
+                            <option value="Felsefe">Felsefe</option>
+                            <option value="Kişisel Gelişim">Kişisel Gelişim</option>
+                            <option value="Klasik">Klasik</option>
+                            <option value="Psikoloji">Psikoloji</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-400 mb-1">Durum *</label>
+                        <select id="form-book-status" required class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700/70 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="reading">Okunuyor</option>
+                            <option value="to-read">Okunacak</option>
+                            <option value="completed">Okundu</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">Kapak Renk Teması</label>
+                    <div class="flex space-x-2" id="color-picker-container">
+                        <button type="button" onclick="selectBookColor('from-indigo-600 to-slate-900')" class="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-600 to-slate-900 ring-2 ring-indigo-400"></button>
+                        <button type="button" onclick="selectBookColor('from-rose-600 to-slate-900')" class="w-7 h-7 rounded-full bg-gradient-to-tr from-rose-600 to-slate-900"></button>
+                        <button type="button" onclick="selectBookColor('from-amber-600 to-slate-900')" class="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-600 to-slate-900"></button>
+                        <button type="button" onclick="selectBookColor('from-emerald-600 to-slate-900')" class="w-7 h-7 rounded-full bg-gradient-to-tr from-emerald-600 to-slate-900"></button>
+                        <button type="button" onclick="selectBookColor('from-purple-600 to-slate-900')" class="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-600 to-slate-900"></button>
+                    </div>
+                    <input type="hidden" id="form-book-color" value="from-indigo-600 to-slate-900">
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-indigo-600/30 transition-all">
+                        Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
-    <!-- SOHBET UYGULAMASI MANTIĞI (JAVASCRIPT) -->
+    <!-- MODAL 2: QUICK PAGE PROGRESS UPDATE -->
+    <div id="modal-quick-progress" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-xs rounded-3xl p-5 shadow-2xl space-y-4 text-center">
+            <div class="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-fire"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-slate-100 text-sm">Hızlı Okuma Güncelleme</h3>
+                <p class="text-xs text-slate-400 mt-1" id="quick-book-title">Okunuyor: ...</p>
+            </div>
+            <div class="space-y-2">
+                <div class="flex items-center justify-center space-x-3">
+                    <button onclick="stepPageUpdate(-10)" class="w-9 h-9 rounded-xl bg-slate-800 text-slate-300 font-bold text-sm">-10</button>
+                    <input type="number" id="quick-page-input" class="w-20 text-center py-2 bg-slate-800 border border-slate-700 rounded-xl text-base font-bold text-white">
+                    <button onclick="stepPageUpdate(10)" class="w-9 h-9 rounded-xl bg-slate-800 text-slate-300 font-bold text-sm">+10</button>
+                </div>
+                <span class="text-[10px] text-slate-500 block" id="quick-total-info">/ 320 Sayfa</span>
+            </div>
+            <div class="flex space-x-2 pt-2">
+                <button onclick="closeModal('modal-quick-progress')" class="flex-1 py-2.5 bg-slate-800 text-slate-300 font-semibold rounded-xl text-xs">İptal</button>
+                <button onclick="saveQuickProgress()" class="flex-1 py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow-md">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: BARCODE SCANNER SIMULATION -->
+    <div id="modal-scanner" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
+        <div class="w-full max-w-xs bg-slate-900 border border-slate-800 rounded-3xl p-5 text-center space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                <span class="text-xs font-bold text-slate-300">Barkod Okuyucu</span>
+                <button onclick="closeModal('modal-scanner')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <!-- Simulated Camera Viewport -->
+            <div class="relative w-full h-48 bg-slate-950 rounded-2xl overflow-hidden border border-indigo-500/30 flex items-center justify-center">
+                <div class="scanner-line absolute left-0 right-0 h-0.5 bg-rose-500 shadow-lg shadow-rose-500"></div>
+                <div class="w-36 h-24 border-2 border-dashed border-indigo-400/60 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-barcode text-4xl text-indigo-400/40"></i>
+                </div>
+                <span class="absolute bottom-2 text-[10px] text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded-full">Kamera Aktif</span>
+            </div>
+
+            <p class="text-xs text-slate-400">Barkodu kırmızı çizgiye hizalayın veya simüle butonuna basın.</p>
+
+            <button onclick="simulateBarcodeScan()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg">
+                <i class="fa-solid fa-bolt mr-1"></i> Rastgele Kitap Taramasını Simüle Et
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL 4: BORROW ITEM FORM -->
+    <div id="modal-borrow-add" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-xs rounded-3xl p-5 shadow-2xl space-y-3">
+            <h3 class="font-bold text-slate-100 text-sm">Kitap Ödünç Ver</h3>
+            <form onsubmit="saveBorrowItem(event)" class="space-y-3">
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">Kitap Seç</label>
+                    <select id="form-borrow-book-id" required class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-100">
+                        <!-- JS Populate -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">Kim Ödünç Aldı? (İsim)</label>
+                    <input type="text" id="form-borrow-person" required placeholder="Örn: Caner" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-100">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">İade Beklenen Tarih</label>
+                    <input type="date" id="form-borrow-date" required class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-100">
+                </div>
+                <div class="flex space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-borrow-add')" class="flex-1 py-2 bg-slate-800 text-slate-300 font-semibold rounded-xl text-xs">İptal</button>
+                    <button type="submit" class="flex-1 py-2 bg-indigo-600 text-white font-bold rounded-xl text-xs">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 w-72 pointer-events-none"></div>
+
+    <!-- Application Script -->
     <script>
-        // Örnek Veri Seti (Sohbetler ve Mesajlar)
-        let currentTab = 'all';
-        let activeChatId = 1;
-
-        const chatsData = [
-            {
-                id: 1,
-                name: "Ahmet Yılmaz",
-                avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80",
-                status: "online",
-                isGroup: false,
-                isFavorite: true,
-                unreadCount: 2,
-                autoReplies: [
-                    "Harika! Konuyu inceleyip sana döneceğim.",
-                    "Bugünkü toplantıya katılabilecek misin?",
-                    "Tamamdır, haberleşiriz 👍"
-                ],
-                messages: [
-                    { id: 101, text: "Selam Zeynep, nasılsın?", sender: "them", time: "10:14", status: "read" },
-                    { id: 102, text: "İyiyim Ahmet, sen nasılsın? Proje tasarımlarını hazırlıyorum.", sender: "me", time: "10:15", status: "read" },
-                    { id: 103, text: "Süper! Arayüz tasarımlarını merakla bekliyorum.", sender: "them", time: "10:16", status: "read" }
-                ]
-            },
-            {
-                id: 2,
-                name: "Tasarım Ekibi",
-                avatar: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=100&auto=format&fit=crop&q=80",
-                status: "online",
-                isGroup: true,
-                isFavorite: true,
-                unreadCount: 0,
-                autoReplies: [
-                    "Ekip arkadaşları yeni revizyonları paylaştı.",
-                    "Toplantı saati 15:00 olarak güncellendi."
-                ],
-                messages: [
-                    { id: 201, text: "Yeni renk paleti dokümanı eklendi.", sender: "them", time: "Dün", status: "read" },
-                    { id: 202, text: "Elinize sağlık, kontrol ediyorum.", sender: "me", time: "Dün", status: "read" }
-                ]
-            },
-            {
-                id: 3,
-                name: "Elif Demir",
-                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80",
-                status: "offline",
-                isGroup: false,
-                isFavorite: false,
-                unreadCount: 0,
-                autoReplies: [
-                    "Şu an müsait değilim, daha sonra yazabilir misin?",
-                    "Teşekkürler!"
-                ],
-                messages: [
-                    { id: 301, text: "Kahve molasına çıkıyor muyuz?", sender: "them", time: "09:30", status: "read" },
-                    { id: 302, text: "10 dakika sonra gelebilirim!", sender: "me", time: "09:32", status: "read" }
-                ]
-            },
-            {
-                id: 4,
-                name: "Mehmet Kaya",
-                avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80",
-                status: "away",
-                isGroup: false,
-                isFavorite: false,
-                unreadCount: 1,
-                autoReplies: [
-                    "Kod incelemesi tamamlandı.",
-                    "GitHub repository'e bildirim gönderildi."
-                ],
-                messages: [
-                    { id: 401, text: "API dokümantasyonunu gönderdim.", sender: "them", time: "Pazartesi", status: "delivered" }
-                ]
-            }
+        // --- INITIAL DEFAULT TURKISH BOOKS ---
+        const sampleBooks = [
+            { id: '1', title: 'Tutunamayanlar', author: 'Oğuz Atay', totalPages: 724, currentPage: 340, category: 'Roman', status: 'reading', rating: 5, color: 'from-indigo-600 to-slate-900' },
+            { id: '2', title: 'Şeker Portakalı', author: 'José Mauro de Vasconcelos', totalPages: 182, currentPage: 182, category: 'Klasik', status: 'completed', rating: 5, color: 'from-rose-600 to-slate-900' },
+            { id: '3', title: '1984', author: 'George Orwell', totalPages: 352, currentPage: 352, category: 'Bilim Kurgu', status: 'completed', rating: 5, color: 'from-amber-600 to-slate-900' },
+            { id: '4', title: 'Saatleri Ayarlama Enstitüsü', author: 'Ahmet Hamdi Tanpınar', totalPages: 382, currentPage: 0, category: 'Roman', status: 'to-read', rating: 0, color: 'from-emerald-600 to-slate-900' },
+            { id: '5', title: 'İnsan Seni Anlamaya Geldim', author: 'Doğan Cüceloğlu', totalPages: 240, currentPage: 90, category: 'Psikoloji', status: 'reading', rating: 4, color: 'from-purple-600 to-slate-900' },
+            { id: '6', title: 'Kürk Mantolu Madonna', author: 'Sabahattin Ali', totalPages: 160, currentPage: 160, category: 'Klasik', status: 'completed', rating: 5, color: 'from-indigo-600 to-slate-900' }
         ];
 
-        // Sayfa Yüklendiğinde Başlatılacak Fonksiyonlar
-        window.onload = function() {
-            renderChatList();
-            setActiveChat(activeChatId);
-        };
+        const sampleBorrows = [
+            { id: 'b1', bookTitle: '1984', person: 'Merve', date: '2026-11-10' }
+        ];
 
-        // Sohbet Listesini Ekran Değerlerine Göre Oluşturma
-        function renderChatList() {
-            const chatListElement = document.getElementById('chat-list');
-            const searchVal = document.getElementById('search-input').value.toLowerCase();
-            chatListElement.innerHTML = '';
+        // --- APP STATE ---
+        let books = JSON.parse(localStorage.getItem('cep_books')) || sampleBooks;
+        let borrows = JSON.parse(localStorage.getItem('cep_borrows')) || sampleBorrows;
+        let yearlyGoal = parseInt(localStorage.getItem('cep_yearly_goal')) || 24;
+        let currentSubTab = 'reading'; // 'reading', 'to-read', 'completed'
+        let selectedCategoryFilter = 'Hepsi';
+        let activeUpdatingBookId = null;
 
-            const filteredChats = chatsData.filter(chat => {
-                const matchesSearch = chat.name.toLowerCase().includes(searchVal);
-                if (currentTab === 'groups') return matchesSearch && chat.isGroup;
-                if (currentTab === 'favorites') return matchesSearch && chat.isFavorite;
-                return matchesSearch;
+        // Save to LocalStorage
+        function saveState() {
+            localStorage.setItem('cep_books', JSON.stringify(books));
+            localStorage.setItem('cep_borrows', JSON.stringify(borrows));
+            localStorage.setItem('cep_yearly_goal', yearlyGoal.toString());
+            updateHeaderStats();
+        }
+
+        // --- TOAST MESSAGES ---
+        function showToast(message, icon = 'fa-circle-check') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'bg-slate-800/95 border border-indigo-500/40 text-slate-100 px-3.5 py-2.5 rounded-2xl shadow-xl flex items-center space-x-2.5 text-xs font-medium backdrop-blur-md transition-all duration-300 opacity-0 translate-y-[-10px] pointer-events-auto';
+            toast.innerHTML = `<i class="fa-solid ${icon} text-indigo-400 text-sm"></i><span>${message}</span>`;
+            
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.remove('opacity-0', 'translate-y-[-10px]'); }, 10);
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-[-10px]');
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
+        // --- NAVIGATION TABS ---
+        function switchTab(tabId) {
+            const tabs = ['library', 'search', 'stats', 'borrow', 'profile'];
+            tabs.forEach(t => {
+                const sec = document.getElementById(`tab-${t}`);
+                const nav = document.getElementById(`nav-${t}`);
+                if (sec) sec.classList.add('hidden');
+                if (nav) {
+                    nav.classList.remove('text-indigo-400');
+                    nav.classList.add('text-slate-500');
+                }
             });
 
-            if(filteredChats.length === 0) {
-                chatListElement.innerHTML = `
-                    <div class="p-6 text-center text-gray-400 text-sm">
-                        Sohbet bulunamadı.
+            const activeSec = document.getElementById(`tab-${tabId}`);
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if (activeSec) activeSec.classList.remove('hidden');
+            if (activeNav) {
+                activeNav.classList.remove('text-slate-500');
+                activeNav.classList.add('text-indigo-400');
+            }
+
+            if (tabId === 'library') renderLibraryTab();
+            if (tabId === 'search') renderSearchTab();
+            if (tabId === 'stats') renderStatsTab();
+            if (tabId === 'borrow') renderBorrowTab();
+        }
+
+        function setLibrarySubTab(sub) {
+            currentSubTab = sub;
+            ['reading', 'to-read', 'completed'].forEach(s => {
+                const btn = document.getElementById(`subtab-${s}`);
+                if (s === sub) {
+                    btn.className = 'py-2 rounded-xl text-center transition-all bg-indigo-600 text-white font-semibold shadow-sm';
+                } else {
+                    btn.className = 'py-2 rounded-xl text-center transition-all text-slate-400 hover:text-slate-200';
+                }
+            });
+            renderLibraryTab();
+        }
+
+        // --- RENDER LIBRARY TAB ---
+        function renderLibraryTab() {
+            const container = document.getElementById('library-books-container');
+            container.innerHTML = '';
+
+            // Update Counts
+            const readingCount = books.filter(b => b.status === 'reading').length;
+            const toReadCount = books.filter(b => b.status === 'to-read').length;
+            const completedCount = books.filter(b => b.status === 'completed').length;
+
+            document.getElementById('count-reading').innerText = readingCount;
+            document.getElementById('count-to-read').innerText = toReadCount;
+            document.getElementById('count-completed').innerText = completedCount;
+
+            const filtered = books.filter(b => b.status === currentSubTab);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="py-12 text-center text-slate-500 space-y-2">
+                        <i class="fa-solid fa-book-open text-3xl text-slate-600"></i>
+                        <p class="text-xs">Bu kategoride henüz kitap bulunmuyor.</p>
                     </div>
                 `;
                 return;
             }
 
-            filteredChats.forEach(chat => {
-                const lastMsg = chat.messages[chat.messages.length - 1];
-                const lastMsgText = lastMsg ? lastMsg.text : 'Mesaj yok';
-                const lastMsgTime = lastMsg ? lastMsg.time : '';
-                const isActive = chat.id === activeChatId;
-
-                const chatItem = document.createElement('div');
-                chatItem.onclick = () => {
-                    setActiveChat(chat.id);
-                    if (window.innerWidth < 768) toggleSidebar();
-                };
-                chatItem.className = `p-3.5 flex items-center space-x-3 cursor-pointer transition hover:bg-gray-50 dark:hover:bg-gray-700/40 ${isActive ? 'bg-brand-50/60 dark:bg-gray-700/60 border-l-4 border-brand-500' : ''}`;
-
-                chatItem.innerHTML = `
-                    <div class="relative flex-shrink-0">
-                        <img src="${chat.avatar}" alt="${chat.name}" class="w-12 h-12 rounded-full object-cover">
-                        <span class="absolute bottom-0 right-0 w-3 h-3 ${getStatusColor(chat.status)} border-2 border-white dark:border-gray-800 rounded-full"></span>
+            filtered.forEach(book => {
+                const percent = Math.round((book.currentPage / book.totalPages) * 100) || 0;
+                
+                const card = document.createElement('div');
+                card.className = 'p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/50 flex space-x-3.5 items-center relative group';
+                
+                card.innerHTML = `
+                    <!-- Book Cover -->
+                    <div class="w-16 h-22 rounded-xl bg-gradient-to-br ${book.color || 'from-indigo-600 to-slate-900'} p-2 flex flex-col justify-between shrink-0 shadow-md border border-white/10 relative overflow-hidden">
+                        <span class="text-[9px] font-bold text-white/70 tracking-wider uppercase truncate">${book.category}</span>
+                        <p class="text-[10px] font-bold text-white leading-tight line-clamp-2">${book.title}</p>
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex justify-between items-baseline mb-1">
-                            <h4 class="text-sm font-semibold text-gray-900 dark:text-white truncate">${chat.name}</h4>
-                            <span class="text-[11px] text-gray-400">${lastMsgTime}</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate pr-2">${lastMsgText}</p>
-                            ${chat.unreadCount > 0 ? `<span class="bg-brand-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">${chat.unreadCount}</span>` : ''}
-                        </div>
-                    </div>
-                `;
-                chatListElement.appendChild(chatItem);
-            });
-        }
 
-        // Aktif Sohbeti Ayarlama
-        function setActiveChat(id) {
-            activeChatId = id;
-            const chat = chatsData.find(c => c.id === id);
-            if (!chat) return;
-
-            // Okunmadı rozetini sıfırla
-            chat.unreadCount = 0;
-
-            // Başlık Güncelleme
-            document.getElementById('active-chat-avatar').src = chat.avatar;
-            document.getElementById('active-chat-name').innerText = chat.name;
-            document.getElementById('active-chat-subtitle').innerText = chat.isGroup ? 'Grup Sohbeti' : (chat.status === 'online' ? 'Çevrimiçi' : 'Çevrimdışı');
-            
-            const statusDot = document.getElementById('active-chat-status');
-            statusDot.className = `absolute bottom-0 right-0 w-3 h-3 ${getStatusColor(chat.status)} border-2 border-white dark:border-gray-800 rounded-full`;
-
-            // Favori Butonu İkonu
-            const favIcon = document.getElementById('active-favorite-icon');
-            favIcon.className = chat.isFavorite ? "fas fa-star text-yellow-500" : "far fa-star";
-
-            renderMessages();
-            renderChatList();
-        }
-
-        // Mesajları Oluşturma ve Kaydırma
-        function renderMessages() {
-            const container = document.getElementById('messages-container');
-            container.innerHTML = '';
-            
-            const chat = chatsData.find(c => c.id === activeChatId);
-            if (!chat) return;
-
-            // Örnek Tarih Ayracı
-            container.innerHTML += `
-                <div class="flex justify-center my-2">
-                    <span class="bg-gray-200 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 text-[11px] font-medium px-3 py-1 rounded-full shadow-sm">
-                        Bugün
-                    </span>
-                </div>
-            `;
-
-            chat.messages.forEach(msg => {
-                const isMe = msg.sender === 'me';
-                const msgWrapper = document.createElement('div');
-                msgWrapper.className = `flex ${isMe ? 'justify-end' : 'justify-start'} mb-3`;
-
-                msgWrapper.innerHTML = `
-                    <div class="max-w-[75%] sm:max-w-[65%]">
-                        <div class="p-3.5 rounded-2xl text-sm shadow-sm ${
-                            isMe 
-                            ? 'bg-brand-600 text-white chat-bubble-sent' 
-                            : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 chat-bubble-received border border-gray-100 dark:border-gray-700/50'
-                        }">
-                            <p class="leading-relaxed break-words">${msg.text}</p>
-                            <div class="flex items-center justify-end space-x-1 mt-1 text-[10px] ${isMe ? 'text-brand-100' : 'text-gray-400'}">
-                                <span>${msg.time}</span>
-                                ${isMe ? getStatusTicks(msg.status) : ''}
+                    <!-- Book Info -->
+                    <div class="flex-1 min-w-0 space-y-1.5">
+                        <div class="flex justify-between items-start">
+                            <div class="pr-2">
+                                <h3 class="font-bold text-xs text-slate-100 truncate">${book.title}</h3>
+                                <p class="text-[11px] text-slate-400 truncate">${book.author}</p>
                             </div>
+                            <button onclick="deleteBook('${book.id}')" class="text-slate-500 hover:text-rose-400 p-1 text-xs transition-colors">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+
+                        <!-- Rating Stars -->
+                        <div class="flex items-center space-x-1">
+                            ${renderStarRating(book.id, book.rating)}
+                        </div>
+
+                        <!-- Reading Progress Bar -->
+                        ${book.status === 'reading' ? `
+                            <div class="space-y-1 pt-1">
+                                <div class="flex justify-between text-[10px] text-slate-400 font-medium">
+                                    <span>${book.currentPage} / ${book.totalPages} sf.</span>
+                                    <span class="text-indigo-400 font-bold">%${percent}</span>
+                                </div>
+                                <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-700/40">
+                                    <div class="bg-gradient-to-r from-indigo-500 to-violet-400 h-full rounded-full transition-all duration-300" style="width: ${percent}%;"></div>
+                                </div>
+                            </div>
+                        ` : `
+                            <p class="text-[10px] text-slate-400">${book.totalPages} Sayfa</p>
+                        `}
+                    </div>
+
+                    <!-- Action Button -->
+                    ${book.status === 'reading' ? `
+                        <button onclick="openQuickProgressModal('${book.id}')" class="w-8 h-8 rounded-xl bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white flex items-center justify-center text-xs border border-indigo-500/30 transition-all shrink-0">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    ` : ''}
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // Render Star Rating
+        function renderStarRating(bookId, currentRating) {
+            let html = '';
+            for (let i = 1; i <= 5; i++) {
+                const active = i <= currentRating;
+                html += `<i onclick="setBookRating('${bookId}', ${i})" class="fa-star ${active ? 'fa-solid text-amber-400' : 'fa-regular text-slate-600'} text-[11px] cursor-pointer"></i>`;
+            }
+            return html;
+        }
+
+        function setBookRating(bookId, rating) {
+            const book = books.find(b => b.id === bookId);
+            if (book) {
+                book.rating = rating;
+                saveState();
+                renderLibraryTab();
+                showToast(`Puan güncellendi: ${rating} Yıldız ⭐`);
+            }
+        }
+
+        // --- QUICK PROGRESS UPDATE ---
+        function quickAddPagePrompt() {
+            const readingBooks = books.filter(b => b.status === 'reading');
+            if (readingBooks.length === 0) {
+                showToast('Şu an okunan kitabınız bulunmuyor.', 'fa-circle-exclamation');
+                return;
+            }
+            openQuickProgressModal(readingBooks[0].id);
+        }
+
+        function openQuickProgressModal(bookId) {
+            const book = books.find(b => b.id === bookId);
+            if (!book) return;
+            activeUpdatingBookId = bookId;
+
+            document.getElementById('quick-book-title').innerText = book.title;
+            document.getElementById('quick-page-input').value = book.currentPage;
+            document.getElementById('quick-total-info').innerText = `/ ${book.totalPages} Sayfa`;
+
+            openModal('modal-quick-progress');
+        }
+
+        function stepPageUpdate(delta) {
+            const input = document.getElementById('quick-page-input');
+            let val = parseInt(input.value) || 0;
+            val = Math.max(0, val + delta);
+            input.value = val;
+        }
+
+        function saveQuickProgress() {
+            const val = parseInt(document.getElementById('quick-page-input').value) || 0;
+            const book = books.find(b => b.id === activeUpdatingBookId);
+            
+            if (book) {
+                book.currentPage = Math.min(book.totalPages, val);
+                if (book.currentPage >= book.totalPages) {
+                    book.status = 'completed';
+                    showToast('Tebrikler! Kitabı bitirdiniz 🎉');
+                } else {
+                    showToast('Okuma ilerlemesi kaydedildi! 🔥');
+                }
+                saveState();
+                renderLibraryTab();
+            }
+            closeModal('modal-quick-progress');
+        }
+
+        // --- SEARCH & DISCOVER TAB ---
+        function renderSearchTab() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const container = document.getElementById('search-results-container');
+            const clearBtn = document.getElementById('clear-search-btn');
+            
+            if (query) clearBtn.classList.remove('hidden');
+            else clearBtn.classList.add('hidden');
+
+            // Populate Category Chips
+            const categories = ['Hepsi', 'Roman', 'Klasik', 'Bilim Kurgu', 'Tarih', 'Psikoloji', 'Felsefe'];
+            const chipsContainer = document.getElementById('category-chips');
+            chipsContainer.innerHTML = categories.map(cat => `
+                <button onclick="filterCategory('${cat}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${selectedCategoryFilter === cat ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-slate-200'}">
+                    ${cat}
+                </button>
+            `).join('');
+
+            // Filter
+            const filtered = books.filter(b => {
+                const matchesQuery = b.title.toLowerCase().includes(query) || b.author.toLowerCase().includes(query) || b.category.toLowerCase().includes(query);
+                const matchesCat = selectedCategoryFilter === 'Hepsi' || b.category === selectedCategoryFilter;
+                return matchesQuery && matchesCat;
+            });
+
+            container.innerHTML = '';
+            if (filtered.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 text-center py-6">Sonuç bulunamadı.</p>`;
+                return;
+            }
+
+            filtered.forEach(b => {
+                const item = document.createElement('div');
+                item.className = 'p-3 rounded-2xl bg-slate-800/50 border border-slate-700/40 flex items-center justify-between';
+                item.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-12 rounded-lg bg-gradient-to-br ${b.color || 'from-indigo-600 to-slate-900'} p-1 text-[8px] font-bold text-white/80 overflow-hidden">
+                            ${b.title}
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-xs text-slate-200">${b.title}</h4>
+                            <p class="text-[11px] text-slate-400">${b.author} • ${b.category}</p>
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-semibold px-2 py-1 rounded-lg ${b.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' : b.status === 'reading' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-700 text-slate-300'}">
+                        ${b.status === 'completed' ? 'Okundu' : b.status === 'reading' ? 'Okunuyor' : 'Okunacak'}
+                    </span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function filterCategory(cat) {
+            selectedCategoryFilter = cat;
+            renderSearchTab();
+        }
+
+        function clearSearch() {
+            document.getElementById('search-input').value = '';
+            renderSearchTab();
+        }
+
+        // --- STATS TAB ---
+        function renderStatsTab() {
+            const completedCount = books.filter(b => b.status === 'completed').length;
+            const percent = Math.min(100, Math.round((completedCount / yearlyGoal) * 100));
+
+            document.getElementById('goal-fraction').innerText = `${completedCount} / ${yearlyGoal} Kitap`;
+            document.getElementById('goal-percent').innerText = `%${percent}`;
+            document.getElementById('goal-progress-bar').style.width = `${percent}%`;
+
+            // Total Pages
+            const totalPagesRead = books.reduce((sum, b) => sum + (b.currentPage || 0), 0);
+            document.getElementById('stat-total-pages').innerText = totalPagesRead.toLocaleString('tr-TR');
+
+            // Genre Distribution
+            const counts = {};
+            books.forEach(b => {
+                counts[b.category] = (counts[b.category] || 0) + 1;
+            });
+
+            const genreContainer = document.getElementById('genre-stats-container');
+            genreContainer.innerHTML = Object.keys(counts).map(cat => {
+                const catPercent = Math.round((counts[cat] / books.length) * 100);
+                return `
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-slate-300 font-medium">${cat}</span>
+                            <span class="text-slate-400 font-semibold">${counts[cat]} Kitap (%${catPercent})</span>
+                        </div>
+                        <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-indigo-500 h-full rounded-full" style="width: ${catPercent}%;"></div>
                         </div>
                     </div>
                 `;
-                container.appendChild(msgWrapper);
-            });
-
-            // En alta kaydır
-            container.scrollTop = container.scrollHeight;
+            }).join('');
         }
 
-        // Mesaj Gönderme İşlemi
-        function handleSendMessage(e) {
+        // --- BORROW TAB ---
+        function renderBorrowTab() {
+            const container = document.getElementById('borrow-list-container');
+            container.innerHTML = '';
+
+            if (borrows.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 text-center py-8">Ödünç verilen kitap bulunmuyor.</p>`;
+                return;
+            }
+
+            borrows.forEach(b => {
+                const card = document.createElement('div');
+                card.className = 'p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/50 flex items-center justify-between';
+                card.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm font-bold">
+                            <i class="fa-solid fa-handshake"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-xs text-slate-100">${b.bookTitle}</h4>
+                            <p class="text-[11px] text-slate-400">Ödünç Alan: <span class="text-amber-300 font-semibold">${b.person}</span></p>
+                            <p class="text-[10px] text-slate-500">Teslim: ${b.date}</p>
+                        </div>
+                    </div>
+                    <button onclick="returnBorrowItem('${b.id}')" class="px-2.5 py-1.5 rounded-xl bg-slate-700 hover:bg-emerald-600 text-white text-[11px] font-semibold transition-all">
+                        İade Alındı
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openBorrowModal() {
+            const select = document.getElementById('form-borrow-book-id');
+            select.innerHTML = books.map(b => `<option value="${b.title}">${b.title}</option>`).join('');
+            openModal('modal-borrow-add');
+        }
+
+        function saveBorrowItem(e) {
             e.preventDefault();
-            const input = document.getElementById('message-input');
-            const text = input.value.trim();
-            
-            if (!text) return;
+            const bookTitle = document.getElementById('form-borrow-book-id').value;
+            const person = document.getElementById('form-borrow-person').value;
+            const date = document.getElementById('form-borrow-date').value;
 
-            const chat = chatsData.find(c => c.id === activeChatId);
-            const now = new Date();
-            const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-
-            // Yeni Mesaj Ekle
-            const newMsg = {
-                id: Date.now(),
-                text: text,
-                sender: 'me',
-                time: timeStr,
-                status: 'sent'
-            };
-
-            chat.messages.push(newMsg);
-            input.value = '';
-            document.getElementById('emoji-picker').classList.add('hidden');
-
-            renderMessages();
-            renderChatList();
-
-            // Mesaj Durumu Simülasyonu (İletildi/Okundu)
-            setTimeout(() => {
-                newMsg.status = 'read';
-                renderMessages();
-            }, 1000);
-
-            // Otomatik Yanıt Simülasyonu
-            simulateAutoReply(chat);
+            borrows.push({ id: 'b_' + Date.now(), bookTitle, person, date });
+            saveState();
+            renderBorrowTab();
+            closeModal('modal-borrow-add');
+            showToast('Ödünç kaydı eklendi.');
         }
 
-        // Otomatik Yanıt Simülasyonu
-        function simulateAutoReply(chat) {
-            setTimeout(() => {
-                const now = new Date();
-                const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-                
-                const randomReply = chat.autoReplies[Math.floor(Math.random() * chat.autoReplies.length)];
-                
-                chat.messages.push({
-                    id: Date.now(),
-                    text: randomReply,
-                    sender: 'them',
-                    time: timeStr,
-                    status: 'read'
-                });
+        function returnBorrowItem(id) {
+            borrows = borrows.filter(b => b.id !== id);
+            saveState();
+            renderBorrowTab();
+            showToast('Kitap kütüphaneye iade alındı!');
+        }
 
-                if (activeChatId === chat.id) {
-                    renderMessages();
-                } else {
-                    chat.unreadCount += 1;
+        // --- BOOK ADD / EDIT ---
+        function openAddBookModal() {
+            document.getElementById('form-book').reset();
+            document.getElementById('form-book-id').value = '';
+            document.getElementById('modal-book-title').innerText = 'Yeni Kitap Ekle';
+            openModal('modal-book');
+        }
+
+        function saveBookForm(e) {
+            e.preventDefault();
+            const id = document.getElementById('form-book-id').value;
+            const title = document.getElementById('form-book-name').value.trim();
+            const author = document.getElementById('form-book-author').value.trim();
+            const totalPages = parseInt(document.getElementById('form-book-pages').value);
+            const currentPage = parseInt(document.getElementById('form-book-current-page').value) || 0;
+            const category = document.getElementById('form-book-category').value;
+            const status = document.getElementById('form-book-status').value;
+            const color = document.getElementById('form-book-color').value;
+
+            if (id) {
+                const index = books.findIndex(b => b.id === id);
+                if (index !== -1) {
+                    books[index] = { ...books[index], title, author, totalPages, currentPage, category, status, color };
                 }
-                renderChatList();
-            }, 1800);
-        }
-
-        // Okundu Tık İkonları
-        function getStatusTicks(status) {
-            if (status === 'sent') return '<i class="fas fa-check"></i>';
-            if (status === 'delivered') return '<i class="fas fa-check-double"></i>';
-            if (status === 'read') return '<i class="fas fa-check-double text-blue-300"></i>';
-            return '';
-        }
-
-        // Durum Rengi
-        function getStatusColor(status) {
-            switch(status) {
-                case 'online': return 'bg-green-500';
-                case 'away': return 'bg-yellow-500';
-                case 'busy': return 'bg-red-500';
-                default: return 'bg-gray-400';
-            }
-        }
-
-        // Kullanıcı Kendi Durumunu Güncelleme
-        function updateUserStatus(status) {
-            const dot = document.getElementById('user-status-dot');
-            dot.className = `absolute bottom-0 right-0 w-3 h-3 ${getStatusColor(status)} border-2 border-white dark:border-gray-800 rounded-full`;
-            showToast(`Durumunuz "${status}" olarak güncellendi.`);
-        }
-
-        // Sekme Değişimi (Tümü, Gruplar, Favoriler)
-        function switchTab(tab) {
-            currentTab = tab;
-            ['all', 'groups', 'favorites'].forEach(t => {
-                const btn = document.getElementById(`tab-${t}`);
-                if (t === tab) {
-                    btn.className = "flex-1 py-2.5 text-center border-b-2 border-brand-500 text-brand-600 dark:text-brand-400 font-semibold transition-colors";
-                } else {
-                    btn.className = "flex-1 py-2.5 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors";
-                }
-            });
-            renderChatList();
-        }
-
-        // Sohbet Filtreleme (Arama)
-        function filterChats() {
-            renderChatList();
-        }
-
-        // Karanlık / Aydınlık Mod Geçişi
-        function toggleDarkMode() {
-            const html = document.documentElement;
-            const icon = document.getElementById('theme-icon');
-            if (html.classList.contains('dark')) {
-                html.classList.remove('dark');
-                icon.className = 'fas fa-sun text-yellow-500 text-lg';
             } else {
-                html.classList.add('dark');
-                icon.className = 'fas fa-moon text-lg';
-            }
-        }
-
-        // Mobil Kenar Çubuğunu Aç/Kapat
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('mobile-overlay');
-            sidebar.classList.toggle('-translate-x-full');
-            overlay.classList.toggle('hidden');
-        }
-
-        // Emoji Paneli Görünürlüğü
-        function toggleEmojiPicker() {
-            const picker = document.getElementById('emoji-picker');
-            picker.classList.toggle('hidden');
-        }
-
-        // Emoji Ekleme
-        function insertEmoji(emoji) {
-            const input = document.getElementById('message-input');
-            input.value += emoji;
-            input.focus();
-        }
-
-        // Aktif Sohbeti Favorilere Ekle/Çıkar
-        function toggleFavoriteCurrent() {
-            const chat = chatsData.find(c => c.id === activeChatId);
-            if (chat) {
-                chat.isFavorite = !chat.isFavorite;
-                showToast(chat.isFavorite ? 'Favorilere eklendi' : 'Favorilerden çıkarıldı');
-                setActiveChat(activeChatId);
-            }
-        }
-
-        // Sohbet Temizleme
-        function clearChatMessages() {
-            const chat = chatsData.find(c => c.id === activeChatId);
-            if (chat) {
-                chat.messages = [];
-                renderMessages();
-                renderChatList();
-                showToast('Sohbet geçmişi temizlendi.');
-            }
-        }
-
-        // Dosya Yükleme İllüstrasyonu
-        function handleFileUpload(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const chat = chatsData.find(c => c.id === activeChatId);
-                const now = new Date();
-                const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-
-                chat.messages.push({
-                    id: Date.now(),
-                    text: `📁 <strong>Dosya Gönderildi:</strong> ${file.name}`,
-                    sender: 'me',
-                    time: timeStr,
-                    status: 'sent'
+                books.push({
+                    id: Date.now().toString(),
+                    title,
+                    author,
+                    totalPages,
+                    currentPage,
+                    category,
+                    status,
+                    rating: 0,
+                    color
                 });
-                renderMessages();
-                showToast(`${file.name} gönderildi.`);
+            }
+
+            saveState();
+            renderLibraryTab();
+            closeModal('modal-book');
+            showToast('Kitap başarıyla kaydedildi.');
+        }
+
+        function selectBookColor(colorClass) {
+            document.getElementById('form-book-color').value = colorClass;
+            showToast('Kapak rengi seçildi.');
+        }
+
+        function deleteBook(id) {
+            if (confirm('Bu kitabı kütüphanenizden silmek istiyor musunuz?')) {
+                books = books.filter(b => b.id !== id);
+                saveState();
+                renderLibraryTab();
+                showToast('Kitap silindi.', 'fa-trash-can');
             }
         }
 
-        // Ses Kaydı Simülasyonu
-        function simulateVoiceRecord() {
-            const chat = chatsData.find(c => c.id === activeChatId);
-            const now = new Date();
-            const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-
-            chat.messages.push({
-                id: Date.now(),
-                text: `🎙️ <em>Ses mesajı (0:12)</em>`,
-                sender: 'me',
-                time: timeStr,
-                status: 'sent'
-            });
-            renderMessages();
-            showToast('Ses mesajı gönderildi.');
+        // --- BARCODE SCANNER SIMULATION ---
+        function openScannerModal() {
+            openModal('modal-scanner');
         }
 
-        // Arama Simülasyonu
-        function simulateCall(type) {
-            const chat = chatsData.find(c => c.id === activeChatId);
-            showToast(`${chat.name} ile ${type} arama başlatılıyor...`);
-        }
+        function simulateBarcodeScan() {
+            const randomSample = [
+                { title: 'Simyacı', author: 'Paulo Coelho', pages: 184, cat: 'Roman' },
+                { title: 'Suç ve Ceza', author: 'Fyodor Dostoyevski', pages: 687, cat: 'Klasik' },
+                { title: 'Bülbülü Öldürmek', author: 'Harper Lee', pages: 355, cat: 'Roman' }
+            ];
+            const item = randomSample[Math.floor(Math.random() * randomSample.length)];
 
-        // Kişi Detayı Simülasyonu
-        function showContactDetails() {
-            const chat = chatsData.find(c => c.id === activeChatId);
-            showToast(`${chat.name} profil detayları`);
-        }
-
-        // Toast/Bildirim Gösterici
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            const toastMsg = document.getElementById('toast-message');
-            toastMsg.innerText = message;
+            closeModal('modal-scanner');
+            openAddBookModal();
             
-            toast.classList.remove('translate-y-[-100px]', 'opacity-0');
-            toast.classList.add('translate-y-0', 'opacity-100');
+            document.getElementById('form-book-name').value = item.title;
+            document.getElementById('form-book-author').value = item.author;
+            document.getElementById('form-book-pages').value = item.pages;
+            document.getElementById('form-book-category').value = item.cat;
 
-            setTimeout(() => {
-                toast.classList.remove('translate-y-0', 'opacity-100');
-                toast.classList.add('translate-y-[-100px]', 'opacity-0');
-            }, 2500);
+            showToast(`Barkod Algılandı: ${item.title}`);
         }
+
+        // --- SETTINGS & HELPERS ---
+        function updateYearlyGoalSetting(val) {
+            yearlyGoal = parseInt(val) || 24;
+            saveState();
+            showToast('Yıllık okuma hedefi güncellendi.');
+        }
+
+        function resetSampleData() {
+            if (confirm('Tüm kitap verileriniz sıfırlanıp varsayılan Türkçe kütüphane yüklenecek. Onaylıyor musunuz?')) {
+                books = [...sampleBooks];
+                borrows = [...sampleBorrows];
+                saveState();
+                renderLibraryTab();
+                showToast('Varsayılan kitaplık yüklendi.');
+            }
+        }
+
+        function exportLibraryData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(books));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "cep_kutuphanesi_yedek.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast('Veriler indirildi.');
+        }
+
+        function updateHeaderStats() {
+            const total = books.length;
+            const completed = books.filter(b => b.status === 'completed').length;
+            document.getElementById('header-subtitle').innerText = `${total} Kitap • ${completed} Okundu`;
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        // Live Mobile Clock
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('mobile-clock').innerText = `${hours}:${minutes}`;
+        }
+
+        // Initialize App
+        window.onload = function() {
+            updateClock();
+            setInterval(updateClock, 10000);
+            saveState();
+            renderLibraryTab();
+        };
     </script>
 </body>
 </html>
