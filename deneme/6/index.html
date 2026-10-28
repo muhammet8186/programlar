@@ -1,840 +1,658 @@
+```html
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="tr" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cami & Cemiyet Akustik Ses Simülatörü</title>
+    <title>SohbetApp - Modern Mesajlaşma</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Font: Outfits & Scheherazade New -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Scheherazade+New:wght@600&display=swap" rel="stylesheet">
-
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        emerald: {
-                            850: '#064e3b',
-                            950: '#022c22',
-                        },
-                        gold: {
-                            400: '#facc15',
-                            500: '#eab308',
-                            600: '#ca8a04',
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
                         }
-                    },
-                    fontFamily: {
-                        sans: ['Outfit', 'sans-serif'],
-                        arabic: ['Scheherazade New', 'serif']
                     }
                 }
             }
         }
     </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Custom Glowing & Metallic Accent Styles */
-        body {
-            background-color: #030712;
-            color: #f3f4f6;
-            font-family: 'Outfit', sans-serif;
-            user-select: none;
+        body { font-family: 'Inter', sans-serif; }
+        /* Özel Kaydırma Çubuğu */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
         }
-
-        .gold-gradient-text {
-            background: linear-gradient(135deg, #fef08a 0%, #eab308 50%, #ca8a04 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .gold-border-glow {
-            box-shadow: 0 0 15px rgba(234, 179, 8, 0.15);
-            border: 1px solid rgba(234, 179, 8, 0.3);
-        }
-
-        .glass-panel {
-            background: rgba(15, 23, 42, 0.75);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        /* Custom Range Slider Styling */
-        input[type=range] {
-            -webkit-appearance: none;
+        ::-webkit-scrollbar-track {
             background: transparent;
         }
-
-        input[type=range]:focus {
-            outline: none;
-        }
-
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 6px;
-            cursor: pointer;
-            background: #1e293b;
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.4);
             border-radius: 9999px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
         }
-
-        input[type=range]::-webkit-slider-thumb {
-            height: 18px;
-            width: 18px;
-            border-radius: 50%;
-            background: #eab308;
-            cursor: pointer;
-            -webkit-appearance: none;
-            margin-top: -6px;
-            box-shadow: 0 0 10px rgba(234, 179, 8, 0.5);
-            transition: transform 0.1s ease;
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(156, 163, 175, 0.7);
         }
-
-        input[type=range]::-webkit-slider-thumb:hover {
-            transform: scale(1.15);
+        .chat-bubble-sent {
+            border-bottom-right-radius: 2px;
         }
-
-        /* Pulse Animation for Live Mic */
-        @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
-            50% { box-shadow: 0 0 25px rgba(16, 185, 129, 0.8); }
-        }
-
-        .mic-active-glow {
-            animation: pulse-glow 2s infinite;
+        .chat-bubble-received {
+            border-bottom-left-radius: 2px;
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between bg-slate-950 text-slate-100 antialiased overflow-x-hidden">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 h-screen overflow-hidden transition-colors duration-200">
 
-    <!-- Header Section -->
-    <header class="w-full border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-800 flex items-center justify-center text-amber-300 shadow-lg border border-amber-500/30">
-                    <i class="fa-solid font-arabic text-2xl leading-none">🕌</i>
-                </div>
-                <div>
-                    <h1 class="text-xl font-bold tracking-tight gold-gradient-text">Seda-yı Kubbe</h1>
-                    <p class="text-xs text-slate-400">Cami & Cemiyet Akustik Simülatörü</p>
-                </div>
-            </div>
+    <!-- Ana Konteyner -->
+    <div class="flex h-full w-full max-w-[1920px] mx-auto relative overflow-hidden">
+        
+        <!-- Mobil Menü Arka Plan Kaplama (Overlay) -->
+        <div id="mobile-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden transition-opacity"></div>
 
-            <!-- Headphone Warning Badge -->
-            <div class="hidden sm:flex items-center space-x-2 bg-amber-500/10 border border-amber-500/30 text-amber-300 px-3 py-1.5 rounded-full text-xs font-medium">
-                <i class="fa-solid fa-headphones text-amber-400 animate-bounce"></i>
-                <span>Paraziti Önlemek İçin Kulaklık Takınız</span>
-            </div>
-
-            <!-- Master Toggle Audio Context Button -->
-            <button id="startBtn" class="flex items-center space-x-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-lg duration-300 bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/40">
-                <i id="startIcon" class="fa-solid fa-microphone"></i>
-                <span id="startText">Sistemi Başlat</span>
-            </button>
-        </div>
-    </header>
-
-    <!-- Main Container -->
-    <main class="max-w-6xl mx-auto w-full px-4 py-6 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-        <!-- Left Column: Presets & Controls (8 Cols) -->
-        <div class="lg:col-span-8 flex flex-col space-y-6">
-
-            <!-- Visualizer Box -->
-            <div class="glass-panel rounded-2xl p-4 border border-slate-800 relative overflow-hidden flex flex-col justify-between h-48 sm:h-56">
-                <div class="flex items-center justify-between z-10">
-                    <div class="flex items-center space-x-2">
-                        <span id="statusDot" class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
-                        <span id="statusText" class="text-xs font-medium text-slate-400">Sistem Kapalı</span>
+        <!-- SOL PANEL (SIDEBAR) -->
+        <aside id="sidebar" class="fixed md:relative z-30 w-full sm:w-80 md:w-80 lg:w-96 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700/60 flex flex-col transition-transform duration-300 transform -translate-x-full md:translate-x-0">
+            
+            <!-- Kullanıcı Profil Üst Alanı -->
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700/60 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50">
+                <div class="flex items-center space-x-3">
+                    <div class="relative">
+                        <img id="user-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Profil" class="w-10 h-10 rounded-full object-cover ring-2 ring-brand-500/30">
+                        <span id="user-status-dot" class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></span>
                     </div>
-                    <div class="text-xs text-slate-500 font-mono tracking-wider flex items-center space-x-3">
-                        <span id="presetDisplay">Preset: Büyük Selimiye</span>
-                    </div>
-                </div>
-
-                <!-- Canvas Visualizer -->
-                <canvas id="visualizer" class="absolute inset-0 w-full h-full z-0 opacity-80 pointer-events-none"></canvas>
-
-                <!-- Audio Output Peak Meter Display -->
-                <div class="z-10 flex items-center justify-between text-xs text-slate-400 bg-slate-950/60 px-3 py-1.5 rounded-lg border border-slate-800">
-                    <div class="flex items-center space-x-2">
-                        <i class="fa-solid fa-volume-high text-amber-400"></i>
-                        <span>Çıkış Seviyesi</span>
-                    </div>
-                    <div class="w-32 sm:w-48 bg-slate-800 rounded-full h-2 overflow-hidden">
-                        <div id="vuMeter" class="bg-gradient-to-r from-emerald-500 via-amber-400 to-red-500 h-full w-0 transition-all duration-75"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Presets Selector -->
-            <div class="glass-panel rounded-2xl p-5 border border-slate-800">
-                <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 flex items-center space-x-2">
-                    <i class="fa-solid fa-sliders text-amber-400"></i>
-                    <span>Akustik Mekan Seçimi (Presets)</span>
-                </h2>
-                
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <button data-preset="selimiye" class="preset-btn active bg-emerald-950/60 border border-emerald-500/50 hover:border-emerald-400 text-amber-300 p-3 rounded-xl flex flex-col items-center justify-center space-y-2 transition-all group">
-                        <i class="fa-solid fa-mosque text-2xl group-hover:scale-110 transition-transform"></i>
-                        <span class="text-xs font-semibold">Büyük Selimiye</span>
-                        <span class="text-[10px] text-slate-400">Derin & Geniş Kubbe</span>
-                    </button>
-
-                    <button data-preset="wood" class="preset-btn bg-slate-900/60 border border-slate-800 hover:border-amber-500/50 text-slate-300 hover:text-amber-300 p-3 rounded-xl flex flex-col items-center justify-center space-y-2 transition-all group">
-                        <i class="fa-solid fa-gavel text-2xl group-hover:scale-110 transition-transform"></i>
-                        <span class="text-xs font-semibold">Ahşap Kubbe</span>
-                        <span class="text-[10px] text-slate-400">Sıcak Akustik</span>
-                    </button>
-
-                    <button data-preset="hall" class="preset-btn bg-slate-900/60 border border-slate-800 hover:border-amber-500/50 text-slate-300 hover:text-amber-300 p-3 rounded-xl flex flex-col items-center justify-center space-y-2 transition-all group">
-                        <i class="fa-solid fa-building-columns text-2xl group-hover:scale-110 transition-transform"></i>
-                        <span class="text-xs font-semibold">Cemiyet Salonu</span>
-                        <span class="text-[10px] text-slate-400">Konferans / Etkinlik</span>
-                    </button>
-
-                    <button data-preset="outdoor" class="preset-btn bg-slate-900/60 border border-slate-800 hover:border-amber-500/50 text-slate-300 hover:text-amber-300 p-3 rounded-xl flex flex-col items-center justify-center space-y-2 transition-all group">
-                        <i class="fa-solid fa-tower-observation text-2xl group-hover:scale-110 transition-transform"></i>
-                        <span class="text-xs font-semibold">Açık Alan / Minare</span>
-                        <span class="text-[10px] text-slate-400">Uzak Echo Efekti</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Sound Control Sliders -->
-            <div class="glass-panel rounded-2xl p-5 border border-slate-800 space-y-6">
-                <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center justify-between">
-                    <span class="flex items-center space-x-2">
-                        <i class="fa-solid fa-sliders text-amber-400"></i>
-                        <span>İnce Ses Ayarları & Efektler</span>
-                    </span>
-                    <button id="resetSlidersBtn" class="text-xs text-slate-400 hover:text-amber-400 transition-colors flex items-center space-x-1">
-                        <i class="fa-solid fa-rotate-left"></i>
-                        <span>Sıfırla</span>
-                    </button>
-                </h2>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                    <!-- Mic Gain -->
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-xs">
-                            <label for="micGain" class="font-medium text-slate-300 flex items-center space-x-2">
-                                <i class="fa-solid fa-microphone-lines text-emerald-400"></i>
-                                <span>Mikrofon Hassasiyeti (Gain)</span>
-                            </label>
-                            <span id="micGainVal" class="text-amber-400 font-mono">1.2x</span>
+                    <div>
+                        <h2 class="font-semibold text-sm text-gray-900 dark:text-white leading-tight">Zeynep Yılmaz</h2>
+                        <div class="relative inline-block text-left mt-0.5">
+                            <select id="status-select" onchange="updateUserStatus(this.value)" class="bg-transparent text-xs text-gray-500 dark:text-gray-400 focus:outline-none cursor-pointer pr-2">
+                                <option value="online" class="dark:bg-gray-800">Çevrimiçi</option>
+                                <option value="away" class="dark:bg-gray-800">Dışarıda</option>
+                                <option value="busy" class="dark:bg-gray-800">Meşgul</option>
+                                <option value="offline" class="dark:bg-gray-800">Görünmez</option>
+                            </select>
                         </div>
-                        <input type="range" id="micGain" min="0" max="3" step="0.1" value="1.2">
                     </div>
-
-                    <!-- Reverb Mix -->
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-xs">
-                            <label for="reverbMix" class="font-medium text-slate-300 flex items-center space-x-2">
-                                <i class="fa-solid fa-water text-blue-400"></i>
-                                <span>Yankı / Reverb Yoğunluğu</span>
-                            </label>
-                            <span id="reverbMixVal" class="text-amber-400 font-mono">45%</span>
-                        </div>
-                        <input type="range" id="reverbMix" min="0" max="1" step="0.02" value="0.45">
-                    </div>
-
-                    <!-- Echo Delay Time -->
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-xs">
-                            <label for="echoTime" class="font-medium text-slate-300 flex items-center space-x-2">
-                                <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
-                                <span>Echo Gecikme Süresi (ms)</span>
-                            </label>
-                            <span id="echoTimeVal" class="text-amber-400 font-mono">220 ms</span>
-                        </div>
-                        <input type="range" id="echoTime" min="0.05" max="0.8" step="0.01" value="0.22">
-                    </div>
-
-                    <!-- Echo Feedback -->
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-xs">
-                            <label for="echoFeedback" class="font-medium text-slate-300 flex items-center space-x-2">
-                                <i class="fa-solid fa-repeat text-purple-400"></i>
-                                <span>Yankı Tekrar Sayısı (Feedback)</span>
-                            </label>
-                            <span id="echoFeedbackVal" class="text-amber-400 font-mono">35%</span>
-                        </div>
-                        <input type="range" id="echoFeedback" min="0" max="0.85" step="0.02" value="0.35">
-                    </div>
-
-                    <!-- Low Pass Filter (Tone / Warmth) -->
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-xs">
-                            <label for="toneFilter" class="font-medium text-slate-300 flex items-center space-x-2">
-                                <i class="fa-solid fa-wave-square text-teal-400"></i>
-                                <span>Sıcaklık / Tiz Filtresi (Low Pass)</span>
-                            </label>
-                            <span id="toneFilterVal" class="text-amber-400 font-mono">3500 Hz</span>
-                        </div>
-                        <input type="range" id="toneFilter" min="1000" max="12000" step="250" value="3500">
-                    </div>
-
-                    <!-- Master Volume -->
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-xs">
-                            <label for="masterVol" class="font-medium text-slate-300 flex items-center space-x-2">
-                                <i class="fa-solid fa-volume-high text-red-400"></i>
-                                <span>Ana Çıkış Sesi (Master)</span>
-                            </label>
-                            <span id="masterVolVal" class="text-amber-400 font-mono">80%</span>
-                        </div>
-                        <input type="range" id="masterVol" min="0" max="1" step="0.02" value="0.8">
-                    </div>
-
-                </div>
-            </div>
-
-        </div>
-
-        <!-- Right Column: Recorder & Quick Guides (4 Cols) -->
-        <div class="lg:col-span-4 flex flex-col space-y-6">
-
-            <!-- Recording Console -->
-            <div class="glass-panel rounded-2xl p-5 border border-slate-800 space-y-5">
-                <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center space-x-2">
-                    <i class="fa-solid fa-circle-dot text-red-500 animate-pulse"></i>
-                    <span>Okuma Kayıt Stüdyosu</span>
-                </h2>
-
-                <p class="text-xs text-slate-400 leading-relaxed">
-                    Yaptığınız okuma ve ezan çalışmalarını efektli haliyle kaydedip dinleyebilir veya bilgisayarınıza indirebilirsiniz.
-                </p>
-
-                <!-- Recording Status & Timer -->
-                <div class="bg-slate-950/80 rounded-xl p-4 border border-slate-800 text-center space-y-2">
-                    <div id="recordTimer" class="text-3xl font-mono font-bold text-slate-200">00:00</div>
-                    <div id="recordStatus" class="text-xs text-slate-500">Hazır</div>
                 </div>
 
-                <!-- Record Buttons -->
-                <div class="grid grid-cols-2 gap-3">
-                    <button id="recordBtn" disabled class="px-4 py-3 rounded-xl font-semibold text-xs transition-all flex items-center justify-center space-x-2 bg-slate-800 text-slate-500 cursor-not-allowed">
-                        <i class="fa-solid fa-circle text-red-500"></i>
-                        <span>Kayda Başla</span>
+                <div class="flex items-center space-x-1">
+                    <!-- Tema Değiştirici -->
+                    <button onclick="toggleDarkMode()" class="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-500 dark:hover:text-brand-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50 transition">
+                        <i id="theme-icon" class="fas fa-moon text-lg"></i>
                     </button>
-                    <button id="stopRecordBtn" disabled class="px-4 py-3 rounded-xl font-semibold text-xs transition-all flex items-center justify-center space-x-2 bg-slate-800 text-slate-500 cursor-not-allowed">
-                        <i class="fa-solid fa-square"></i>
-                        <span>Durdur</span>
+                    <!-- Mobil Menü Kapatma Butonu -->
+                    <button onclick="toggleSidebar()" class="md:hidden p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white">
+                        <i class="fas fa-xmark text-lg"></i>
                     </button>
                 </div>
+            </div>
 
-                <!-- Audio Playback Container -->
-                <div id="audioPlaybackContainer" class="hidden space-y-3 pt-2 border-t border-slate-800">
-                    <span class="text-xs font-semibold text-slate-300">Kayıt Önizleme:</span>
-                    <audio id="audioPlayback" controls class="w-full rounded-lg h-10 bg-slate-900"></audio>
-                    <a id="downloadBtn" download="cami-okuma-kaydi.webm" class="w-full py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-semibold flex items-center justify-center space-x-2 transition-all">
-                        <i class="fa-solid fa-download"></i>
-                        <span>Kaydı Indir (.webm)</span>
-                    </a>
+            <!-- Arama Arama Çubuğu -->
+            <div class="p-3">
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                    <input type="text" id="search-input" oninput="filterChats()" placeholder="Sohbetlerde veya kişilerde ara..." class="w-full pl-9 pr-4 py-2 bg-gray-100 dark:bg-gray-700/50 border border-transparent focus:border-brand-500 dark:focus:border-brand-500 rounded-xl text-sm focus:outline-none transition">
                 </div>
             </div>
 
-            <!-- Quick Tips & Usage Guide -->
-            <div class="glass-panel rounded-2xl p-5 border border-slate-800 space-y-4">
-                <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center space-x-2">
-                    <i class="fa-solid fa-circle-info text-amber-400"></i>
-                    <span>Tavsiyeler & Kullanım</span>
-                </h2>
-
-                <ul class="text-xs text-slate-400 space-y-3">
-                    <li class="flex items-start space-x-2">
-                        <i class="fa-solid fa-headphones text-amber-400 mt-0.5"></i>
-                        <span><strong>Geri Besleme (Feedback):</strong> Lütfen cihazınıza kulaklık takın. Hoparlörden çıkan ses mikrofon tarafından tekrar alınırsa ıslık sesi oluşur.</span>
-                    </li>
-                    <li class="flex items-start space-x-2">
-                        <i class="fa-solid fa-microphone text-emerald-400 mt-0.5"></i>
-                        <span><strong>Mikrofon Mesafesi:</strong> Mikrofonu ağzınıza çok yakın tutmayın, sabit bir mesafeden okuma yapın.</span>
-                    </li>
-                    <li class="flex items-start space-x-2">
-                        <i class="fa-solid fa-sliders text-teal-400 mt-0.5"></i>
-                        <span><strong>Cemiyet vs Cami:</strong> Küçük odalar için <i>"Ahşap Kubbe"</i> veya <i>"Cemiyet Salonu"</i>; Kuran/Ezan için <i>"Büyük Selimiye"</i> en ideal akustiği verir.</span>
-                    </li>
-                </ul>
+            <!-- Kategoriler / Sekmeler -->
+            <div class="flex px-3 border-b border-gray-100 dark:border-gray-700/40 text-xs font-medium">
+                <button onclick="switchTab('all')" id="tab-all" class="flex-1 py-2.5 text-center border-b-2 border-brand-500 text-brand-600 dark:text-brand-400 transition-colors">Tümü</button>
+                <button onclick="switchTab('groups')" id="tab-groups" class="flex-1 py-2.5 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">Gruplar</button>
+                <button onclick="switchTab('favorites')" id="tab-favorites" class="flex-1 py-2.5 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">Favoriler</button>
             </div>
 
-        </div>
+            <!-- Sohbet Listesi -->
+            <div id="chat-list" class="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700/30">
+                <!-- JavaScript tarafında dinamik yüklenir -->
+            </div>
+        </aside>
 
-    </main>
+        <!-- SAĞ PANEL (ANA SOHBET ALANI) -->
+        <main class="flex-1 flex flex-col h-full bg-gray-50 dark:bg-gray-900/50 relative">
+            
+            <!-- Sohbet Başlığı (Chat Header) -->
+            <header class="p-3 sm:p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700/60 flex items-center justify-between z-10 shadow-sm">
+                <div class="flex items-center space-x-3">
+                    <button onclick="toggleSidebar()" class="md:hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    
+                    <div class="relative cursor-pointer" onclick="showContactDetails()">
+                        <img id="active-chat-avatar" src="" alt="" class="w-10 h-10 rounded-full object-cover">
+                        <span id="active-chat-status" class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></span>
+                    </div>
 
-    <!-- Footer -->
-    <footer class="w-full border-t border-slate-800/80 py-4 bg-slate-950 text-center text-xs text-slate-500">
-        <p>Seda-yı Kubbe &copy; Tarayıcı İçi Düşük Gecikmeli Web Audio API Efekt Simülatörü</p>
-    </footer>
+                    <div>
+                        <h3 id="active-chat-name" class="font-semibold text-gray-900 dark:text-white text-base leading-snug"></h3>
+                        <p id="active-chat-subtitle" class="text-xs text-gray-500 dark:text-gray-400"></p>
+                    </div>
+                </div>
 
-    <!-- Audio Processing Logic -->
+                <!-- Başlık İkonları -->
+                <div class="flex items-center space-x-1 sm:space-x-2 text-gray-500 dark:text-gray-400">
+                    <button onclick="simulateCall('sesli')" title="Sesli Aramayı Başlat" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700/60 rounded-xl hover:text-brand-500 transition">
+                        <i class="fas fa-phone"></i>
+                    </button>
+                    <button onclick="simulateCall('görüntülü')" title="Görüntülü Aramayı Başlat" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700/60 rounded-xl hover:text-brand-500 transition">
+                        <i class="fas fa-video"></i>
+                    </button>
+                    <button onclick="toggleFavoriteCurrent()" title="Favorilere Ekle/Çıkar" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700/60 rounded-xl hover:text-yellow-500 transition">
+                        <i id="active-favorite-icon" class="far fa-star"></i>
+                    </button>
+                    <div class="h-4 w-px bg-gray-200 dark:bg-gray-700 mx-1"></div>
+                    <button onclick="clearChatMessages()" title="Sohbeti Temizle" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700/60 rounded-xl hover:text-red-500 transition">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Mesaj Geçmişi Alanı -->
+            <div id="messages-container" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-100/60 dark:bg-gray-900/40">
+                <!-- Mesajlar JavaScript tarafından buraya eklenecek -->
+            </div>
+
+            <!-- Emoji Paneli (Gizli / Açılır) -->
+            <div id="emoji-picker" class="hidden absolute bottom-20 left-4 sm:left-6 z-20 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl p-3 w-72 max-h-48 overflow-y-auto">
+                <div class="text-xs font-semibold text-gray-400 mb-2">Hızlı Emojiler</div>
+                <div class="grid grid-cols-6 gap-2 text-xl">
+                    <span onclick="insertEmoji('😊')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">😊</span>
+                    <span onclick="insertEmoji('😂')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">😂</span>
+                    <span onclick="insertEmoji('❤️')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">❤️</span>
+                    <span onclick="insertEmoji('👍')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">👍</span>
+                    <span onclick="insertEmoji('🔥')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">🔥</span>
+                    <span onclick="insertEmoji('🎉')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">🎉</span>
+                    <span onclick="insertEmoji('🙏')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">🙏</span>
+                    <span onclick="insertEmoji('😎')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">😎</span>
+                    <span onclick="insertEmoji('😍')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">😍</span>
+                    <span onclick="insertEmoji('🤔')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">🤔</span>
+                    <span onclick="insertEmoji('🙌')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">🙌</span>
+                    <span onclick="insertEmoji('✨')" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded text-center">✨</span>
+                </div>
+            </div>
+
+            <!-- Mesaj Gönderme Alt Alanı -->
+            <footer class="p-3 sm:p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700/60">
+                <form id="message-form" onsubmit="handleSendMessage(event)" class="flex items-center space-x-2">
+                    
+                    <!-- Dosya/Görsel Yükleme Butonu -->
+                    <label class="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-500 dark:hover:text-brand-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition">
+                        <i class="fas fa-paperclip text-lg"></i>
+                        <input type="file" onchange="handleFileUpload(event)" class="hidden" accept="image/*,.pdf,.doc">
+                    </label>
+
+                    <!-- Emoji Butonu -->
+                    <button type="button" onclick="toggleEmojiPicker()" class="p-2 text-gray-500 dark:text-gray-400 hover:text-yellow-500 dark:hover:text-yellow-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                        <i class="far fa-smile text-lg"></i>
+                    </button>
+
+                    <!-- Metin Giriş Alanı -->
+                    <input type="text" id="message-input" autocomplete="off" placeholder="Bir mesaj yazın..." class="flex-1 bg-gray-100 dark:bg-gray-700/50 border border-transparent focus:border-brand-500 dark:focus:border-brand-500 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition dark:text-white">
+
+                    <!-- Ses Kaydı Simülasyon Butonu -->
+                    <button type="button" onclick="simulateVoiceRecord()" title="Ses Kaydı Gönder" class="p-2 text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                        <i class="fas fa-microphone text-lg"></i>
+                    </button>
+
+                    <!-- Gönder Butonu -->
+                    <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white p-2.5 rounded-xl shadow-md shadow-brand-500/20 transition flex items-center justify-center">
+                        <i class="fas fa-paper-plane text-sm"></i>
+                    </button>
+                </form>
+            </footer>
+
+        </main>
+    </div>
+
+    <!-- Bildirim / Modal Kutusu -->
+    <div id="toast" class="fixed top-5 right-5 z-50 transform translate-y-[-100px] opacity-0 transition-all duration-300 bg-gray-900 text-white dark:bg-white dark:text-gray-900 px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3">
+        <i id="toast-icon" class="fas fa-info-circle text-brand-500"></i>
+        <span id="toast-message" class="text-sm font-medium">İşlem başarılı.</span>
+    </div>
+
+    <!-- SOHBET UYGULAMASI MANTIĞI (JAVASCRIPT) -->
     <script>
-        // --- Audio Context & Nodes Variables ---
-        let audioCtx = null;
-        let micStream = null;
-        let micSource = null;
-        let micGainNode = null;
-        let convolverNode = null;
-        let delayNode = null;
-        let feedbackGainNode = null;
-        let lowpassFilterNode = null;
-        let wetGainNode = null;
-        let dryGainNode = null;
-        let masterGainNode = null;
-        let analyserNode = null;
-        let destinationStreamNode = null;
+        // Örnek Veri Seti (Sohbetler ve Mesajlar)
+        let currentTab = 'all';
+        let activeChatId = 1;
 
-        // Recording variables
-        let mediaRecorder = null;
-        let recordedChunks = [];
-        let recordStartTime = 0;
-        let recordTimerInterval = null;
-
-        // UI Element References
-        const startBtn = document.getElementById('startBtn');
-        const startIcon = document.getElementById('startIcon');
-        const startText = document.getElementById('startText');
-        const statusDot = document.getElementById('statusDot');
-        const statusText = document.getElementById('statusText');
-        const presetDisplay = document.getElementById('presetDisplay');
-
-        const micGainInput = document.getElementById('micGain');
-        const micGainVal = document.getElementById('micGainVal');
-        const reverbMixInput = document.getElementById('reverbMix');
-        const reverbMixVal = document.getElementById('reverbMixVal');
-        const echoTimeInput = document.getElementById('echoTime');
-        const echoTimeVal = document.getElementById('echoTimeVal');
-        const echoFeedbackInput = document.getElementById('echoFeedback');
-        const echoFeedbackVal = document.getElementById('echoFeedbackVal');
-        const toneFilterInput = document.getElementById('toneFilter');
-        const toneFilterVal = document.getElementById('toneFilterVal');
-        const masterVolInput = document.getElementById('masterVol');
-        const masterVolVal = document.getElementById('masterVolVal');
-
-        const recordBtn = document.getElementById('recordBtn');
-        const stopRecordBtn = document.getElementById('stopRecordBtn');
-        const recordTimer = document.getElementById('recordTimer');
-        const recordStatus = document.getElementById('recordStatus');
-        const audioPlaybackContainer = document.getElementById('audioPlaybackContainer');
-        const audioPlayback = document.getElementById('audioPlayback');
-        const downloadBtn = document.getElementById('downloadBtn');
-
-        const canvas = document.getElementById('visualizer');
-        const canvasCtx = canvas.getContext('2d');
-        const vuMeter = document.getElementById('vuMeter');
-
-        let isRunning = false;
-
-        // --- Preset Configurations ---
-        const PRESETS = {
-            selimiye: {
-                name: 'Büyük Selimiye',
-                micGain: 1.2,
-                reverbMix: 0.55,
-                echoTime: 0.24,
-                echoFeedback: 0.40,
-                toneFilter: 3200,
-                reverbDuration: 3.5,
-                decay: 2.5
+        const chatsData = [
+            {
+                id: 1,
+                name: "Ahmet Yılmaz",
+                avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80",
+                status: "online",
+                isGroup: false,
+                isFavorite: true,
+                unreadCount: 2,
+                autoReplies: [
+                    "Harika! Konuyu inceleyip sana döneceğim.",
+                    "Bugünkü toplantıya katılabilecek misin?",
+                    "Tamamdır, haberleşiriz 👍"
+                ],
+                messages: [
+                    { id: 101, text: "Selam Zeynep, nasılsın?", sender: "them", time: "10:14", status: "read" },
+                    { id: 102, text: "İyiyim Ahmet, sen nasılsın? Proje tasarımlarını hazırlıyorum.", sender: "me", time: "10:15", status: "read" },
+                    { id: 103, text: "Süper! Arayüz tasarımlarını merakla bekliyorum.", sender: "them", time: "10:16", status: "read" }
+                ]
             },
-            wood: {
-                name: 'Ahşap Kubbe',
-                micGain: 1.1,
-                reverbMix: 0.35,
-                echoTime: 0.15,
-                echoFeedback: 0.25,
-                toneFilter: 4500,
-                reverbDuration: 1.8,
-                decay: 3.0
+            {
+                id: 2,
+                name: "Tasarım Ekibi",
+                avatar: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=100&auto=format&fit=crop&q=80",
+                status: "online",
+                isGroup: true,
+                isFavorite: true,
+                unreadCount: 0,
+                autoReplies: [
+                    "Ekip arkadaşları yeni revizyonları paylaştı.",
+                    "Toplantı saati 15:00 olarak güncellendi."
+                ],
+                messages: [
+                    { id: 201, text: "Yeni renk paleti dokümanı eklendi.", sender: "them", time: "Dün", status: "read" },
+                    { id: 202, text: "Elinize sağlık, kontrol ediyorum.", sender: "me", time: "Dün", status: "read" }
+                ]
             },
-            hall: {
-                name: 'Cemiyet Salonu',
-                micGain: 1.0,
-                reverbMix: 0.25,
-                echoTime: 0.10,
-                echoFeedback: 0.15,
-                toneFilter: 6000,
-                reverbDuration: 1.2,
-                decay: 4.0
+            {
+                id: 3,
+                name: "Elif Demir",
+                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80",
+                status: "offline",
+                isGroup: false,
+                isFavorite: false,
+                unreadCount: 0,
+                autoReplies: [
+                    "Şu an müsait değilim, daha sonra yazabilir misin?",
+                    "Teşekkürler!"
+                ],
+                messages: [
+                    { id: 301, text: "Kahve molasına çıkıyor muyuz?", sender: "them", time: "09:30", status: "read" },
+                    { id: 302, text: "10 dakika sonra gelebilirim!", sender: "me", time: "09:32", status: "read" }
+                ]
             },
-            outdoor: {
-                name: 'Açık Alan / Minare',
-                micGain: 1.3,
-                reverbMix: 0.20,
-                echoTime: 0.45,
-                echoFeedback: 0.55,
-                toneFilter: 2800,
-                reverbDuration: 4.0,
-                decay: 1.5
+            {
+                id: 4,
+                name: "Mehmet Kaya",
+                avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80",
+                status: "away",
+                isGroup: false,
+                isFavorite: false,
+                unreadCount: 1,
+                autoReplies: [
+                    "Kod incelemesi tamamlandı.",
+                    "GitHub repository'e bildirim gönderildi."
+                ],
+                messages: [
+                    { id: 401, text: "API dokümantasyonunu gönderdim.", sender: "them", time: "Pazartesi", status: "delivered" }
+                ]
             }
+        ];
+
+        // Sayfa Yüklendiğinde Başlatılacak Fonksiyonlar
+        window.onload = function() {
+            renderChatList();
+            setActiveChat(activeChatId);
         };
 
-        let activePresetKey = 'selimiye';
+        // Sohbet Listesini Ekran Değerlerine Göre Oluşturma
+        function renderChatList() {
+            const chatListElement = document.getElementById('chat-list');
+            const searchVal = document.getElementById('search-input').value.toLowerCase();
+            chatListElement.innerHTML = '';
 
-        // --- Initialize Audio Context & Graph ---
-        async function initAudio() {
-            try {
-                // Request Low Latency Audio Context
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                audioCtx = new AudioContext({ latencyHint: 'interactive' });
-
-                // Request Microphone Access
-                micStream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: false, // Turned off for natural acoustic feel
-                        noiseSuppression: true,
-                        autoGainControl: false,
-                        latency: 0
-                    }
-                });
-
-                // Create Audio Nodes
-                micSource = audioCtx.createMediaStreamSource(micStream);
-                micGainNode = audioCtx.createGain();
-                convolverNode = audioCtx.createConvolver();
-                delayNode = audioCtx.createDelay(1.0);
-                feedbackGainNode = audioCtx.createGain();
-                lowpassFilterNode = audioCtx.createBiquadFilter();
-                wetGainNode = audioCtx.createGain();
-                dryGainNode = audioCtx.createGain();
-                masterGainNode = audioCtx.createGain();
-                analyserNode = audioCtx.createAnalyser();
-
-                // Setup Filter Type
-                lowpassFilterNode.type = 'lowpass';
-
-                // Generate Synthetic Impulse Response for Reverb
-                convolverNode.buffer = createImpulseResponse(
-                    PRESETS[activePresetKey].reverbDuration,
-                    PRESETS[activePresetKey].decay
-                );
-
-                // --- AUDIO ROUTING GRAPH ---
-                // Mic -> MicGain
-                micSource.connect(micGainNode);
-
-                // MicGain -> Dry Path -> Master
-                micGainNode.connect(dryGainNode);
-                dryGainNode.connect(masterGainNode);
-
-                // MicGain -> Tone Filter
-                micGainNode.connect(lowpassFilterNode);
-
-                // Tone Filter -> Convolver (Reverb) -> WetGain
-                lowpassFilterNode.connect(convolverNode);
-                convolverNode.connect(wetGainNode);
-
-                // Tone Filter -> Delay Loop (Echo)
-                lowpassFilterNode.connect(delayNode);
-                delayNode.connect(feedbackGainNode);
-                feedbackGainNode.connect(delayNode); // Feedback loop
-                delayNode.connect(wetGainNode); // Mix echo into wet signal
-
-                // WetGain -> Master
-                wetGainNode.connect(masterGainNode);
-
-                // Master -> Analyser & Destination
-                masterGainNode.connect(analyserNode);
-                analyserNode.connect(audioCtx.destination);
-
-                // Prepare Media Stream Destination for Recorder
-                destinationStreamNode = audioCtx.createMediaStreamDestination();
-                masterGainNode.connect(destinationStreamNode);
-
-                // Apply initial settings
-                applyPresetValues(PRESETS[activePresetKey]);
-
-                // Update UI State
-                isRunning = true;
-                updateSystemUIState();
-                startVisualizer();
-
-                // Enable Recording Controls
-                recordBtn.disabled = false;
-                recordBtn.classList.remove('bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
-                recordBtn.classList.add('bg-red-600/20', 'hover:bg-red-600/30', 'text-red-400', 'border', 'border-red-500/30');
-
-            } catch (err) {
-                console.error("Audio initialization failed:", err);
-                alert("Mikrofon erişimi sağlanamadı veya ses sistemi başlatılamadı. Lütfen mikrofon izinlerinizi kontrol edin.");
-            }
-        }
-
-        // --- Generate Synthetic Reverb Impulse Response ---
-        function createImpulseResponse(duration, decay) {
-            const sampleRate = audioCtx.sampleRate;
-            const length = sampleRate * duration;
-            const impulse = audioCtx.createBuffer(2, length, sampleRate);
-            const left = impulse.getChannelData(0);
-            const right = impulse.getChannelData(1);
-
-            for (let i = 0; i < length; i++) {
-                const n = i;
-                // Exponential decay curve
-                const multi = Math.pow(1 - n / length, decay);
-                left[i] = (Math.random() * 2 - 1) * multi;
-                right[i] = (Math.random() * 2 - 1) * multi;
-            }
-
-            return impulse;
-        }
-
-        // --- Toggle Start / Stop Audio ---
-        startBtn.addEventListener('click', async () => {
-            if (!isRunning) {
-                await initAudio();
-            } else {
-                stopAudio();
-            }
-        });
-
-        function stopAudio() {
-            if (audioCtx) {
-                audioCtx.close();
-            }
-            if (micStream) {
-                micStream.getTracks().forEach(track => track.stop());
-            }
-
-            isRunning = false;
-            updateSystemUIState();
-
-            // Disable Record Button
-            recordBtn.disabled = true;
-            recordBtn.className = "px-4 py-3 rounded-xl font-semibold text-xs transition-all flex items-center justify-center space-x-2 bg-slate-800 text-slate-500 cursor-not-allowed";
-        }
-
-        function updateSystemUIState() {
-            if (isRunning) {
-                startBtn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
-                startBtn.classList.add('bg-red-600', 'hover:bg-red-500');
-                startIcon.className = 'fa-solid fa-microphone-slash';
-                startText.textContent = 'Sistemi Durdur';
-
-                statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
-                statusText.textContent = 'Canlı Ses Aktif';
-                statusText.classList.remove('text-slate-400');
-                statusText.classList.add('text-emerald-400');
-            } else {
-                startBtn.classList.remove('bg-red-600', 'hover:bg-red-500');
-                startBtn.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
-                startIcon.className = 'fa-solid fa-microphone';
-                startText.textContent = 'Sistemi Başlat';
-
-                statusDot.className = 'w-2.5 h-2.5 rounded-full bg-red-500';
-                statusText.textContent = 'Sistem Kapalı';
-                statusText.classList.remove('text-emerald-400');
-                statusText.classList.add('text-slate-400');
-            }
-        }
-
-        // --- Slider Input Handlers & Parameter Mapping ---
-        function updateAudioParameters() {
-            if (!audioCtx || !isRunning) return;
-
-            const micGain = parseFloat(micGainInput.value);
-            const reverbMix = parseFloat(reverbMixInput.value);
-            const echoTime = parseFloat(echoTimeInput.value);
-            const echoFeedback = parseFloat(echoFeedbackInput.value);
-            const toneFilter = parseFloat(toneFilterInput.value);
-            const masterVol = parseFloat(masterVolInput.value);
-
-            // Update Audio Nodes smoothly
-            micGainNode.gain.setTargetAtTime(micGain, audioCtx.currentTime, 0.02);
-            dryGainNode.gain.setTargetAtTime(1 - (reverbMix * 0.5), audioCtx.currentTime, 0.02);
-            wetGainNode.gain.setTargetAtTime(reverbMix * 1.2, audioCtx.currentTime, 0.02);
-
-            delayNode.delayTime.setTargetAtTime(echoTime, audioCtx.currentTime, 0.02);
-            feedbackGainNode.gain.setTargetAtTime(echoFeedback, audioCtx.currentTime, 0.02);
-
-            lowpassFilterNode.frequency.setTargetAtTime(toneFilter, audioCtx.currentTime, 0.02);
-            masterGainNode.gain.setTargetAtTime(masterVol, audioCtx.currentTime, 0.02);
-
-            // Update UI Numerical Labels
-            micGainVal.textContent = micGain.toFixed(1) + 'x';
-            reverbMixVal.textContent = Math.round(reverbMix * 100) + '%';
-            echoTimeVal.textContent = Math.round(echoTime * 1000) + ' ms';
-            echoFeedbackVal.textContent = Math.round(echoFeedback * 100) + '%';
-            toneFilterVal.textContent = Math.round(toneFilter) + ' Hz';
-            masterVolVal.textContent = Math.round(masterVol * 100) + '%';
-        }
-
-        // Bind Sliders
-        [micGainInput, reverbMixInput, echoTimeInput, echoFeedbackInput, toneFilterInput, masterVolInput].forEach(slider => {
-            slider.addEventListener('input', updateAudioParameters);
-        });
-
-        // --- Presets Logic ---
-        function applyPresetValues(preset) {
-            micGainInput.value = preset.micGain;
-            reverbMixInput.value = preset.reverbMix;
-            echoTimeInput.value = preset.echoTime;
-            echoFeedbackInput.value = preset.echoFeedback;
-            toneFilterInput.value = preset.toneFilter;
-
-            presetDisplay.textContent = `Preset: ${preset.name}`;
-
-            if (audioCtx && isRunning) {
-                // Re-generate Impulse Response for selected room characteristics
-                convolverNode.buffer = createImpulseResponse(preset.reverbDuration, preset.decay);
-                updateAudioParameters();
-            } else {
-                // Update text displays manually if not active
-                micGainVal.textContent = preset.micGain.toFixed(1) + 'x';
-                reverbMixVal.textContent = Math.round(preset.reverbMix * 100) + '%';
-                echoTimeVal.textContent = Math.round(preset.echoTime * 1000) + ' ms';
-                echoFeedbackVal.textContent = Math.round(preset.echoFeedback * 100) + '%';
-                toneFilterVal.textContent = Math.round(preset.toneFilter) + ' Hz';
-            }
-        }
-
-        // Preset Button Clicks
-        document.querySelectorAll('.preset-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.preset-btn').forEach(b => {
-                    b.classList.remove('active', 'bg-emerald-950/60', 'border-emerald-500/50', 'text-amber-300');
-                    b.classList.add('bg-slate-900/60', 'border-slate-800', 'text-slate-300');
-                });
-
-                btn.classList.add('active', 'bg-emerald-950/60', 'border-emerald-500/50', 'text-amber-300');
-                btn.classList.remove('bg-slate-900/60', 'border-slate-800', 'text-slate-300');
-
-                const presetKey = btn.getAttribute('data-preset');
-                activePresetKey = presetKey;
-                applyPresetValues(PRESETS[presetKey]);
+            const filteredChats = chatsData.filter(chat => {
+                const matchesSearch = chat.name.toLowerCase().includes(searchVal);
+                if (currentTab === 'groups') return matchesSearch && chat.isGroup;
+                if (currentTab === 'favorites') return matchesSearch && chat.isFavorite;
+                return matchesSearch;
             });
-        });
 
-        // Reset Sliders Button
-        document.getElementById('resetSlidersBtn').addEventListener('click', () => {
-            applyPresetValues(PRESETS[activePresetKey]);
-        });
-
-        // --- Canvas Visualizer & VU Meter ---
-        function resizeCanvas() {
-            canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = canvas.parentElement.clientHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        function startVisualizer() {
-            analyserNode.fftSize = 256;
-            const bufferLength = analyserNode.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-
-            function draw() {
-                if (!isRunning) {
-                    canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-                    vuMeter.style.width = '0%';
-                    return;
-                }
-
-                requestAnimationFrame(draw);
-                analyserNode.getByteFrequencyData(dataArray);
-
-                // Clear Canvas
-                canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-
-                // Draw Wave/Frequency Bars
-                const barWidth = (canvas.width / bufferLength) * 2.2;
-                let barHeight;
-                let x = 0;
-
-                let totalVolume = 0;
-
-                for (let i = 0; i < bufferLength; i++) {
-                    barHeight = (dataArray[i] / 255) * canvas.height * 0.8;
-                    totalVolume += dataArray[i];
-
-                    // Subtle Green-Gold Gradient
-                    const gradient = canvasCtx.createLinearGradient(0, canvas.height, 0, 0);
-                    gradient.addColorStop(0, 'rgba(16, 185, 129, 0.1)');
-                    gradient.addColorStop(0.5, 'rgba(234, 179, 8, 0.4)');
-                    gradient.addColorStop(1, 'rgba(234, 179, 8, 0.8)');
-
-                    canvasCtx.fillStyle = gradient;
-                    canvasCtx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
-
-                    x += barWidth + 1;
-                }
-
-                // Update Output VU Peak Meter
-                const averageVol = totalVolume / bufferLength;
-                const vuPercent = Math.min(100, Math.round((averageVol / 128) * 100));
-                vuMeter.style.width = vuPercent + '%';
+            if(filteredChats.length === 0) {
+                chatListElement.innerHTML = `
+                    <div class="p-6 text-center text-gray-400 text-sm">
+                        Sohbet bulunamadı.
+                    </div>
+                `;
+                return;
             }
 
-            draw();
+            filteredChats.forEach(chat => {
+                const lastMsg = chat.messages[chat.messages.length - 1];
+                const lastMsgText = lastMsg ? lastMsg.text : 'Mesaj yok';
+                const lastMsgTime = lastMsg ? lastMsg.time : '';
+                const isActive = chat.id === activeChatId;
+
+                const chatItem = document.createElement('div');
+                chatItem.onclick = () => {
+                    setActiveChat(chat.id);
+                    if (window.innerWidth < 768) toggleSidebar();
+                };
+                chatItem.className = `p-3.5 flex items-center space-x-3 cursor-pointer transition hover:bg-gray-50 dark:hover:bg-gray-700/40 ${isActive ? 'bg-brand-50/60 dark:bg-gray-700/60 border-l-4 border-brand-500' : ''}`;
+
+                chatItem.innerHTML = `
+                    <div class="relative flex-shrink-0">
+                        <img src="${chat.avatar}" alt="${chat.name}" class="w-12 h-12 rounded-full object-cover">
+                        <span class="absolute bottom-0 right-0 w-3 h-3 ${getStatusColor(chat.status)} border-2 border-white dark:border-gray-800 rounded-full"></span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-baseline mb-1">
+                            <h4 class="text-sm font-semibold text-gray-900 dark:text-white truncate">${chat.name}</h4>
+                            <span class="text-[11px] text-gray-400">${lastMsgTime}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate pr-2">${lastMsgText}</p>
+                            ${chat.unreadCount > 0 ? `<span class="bg-brand-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">${chat.unreadCount}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+                chatListElement.appendChild(chatItem);
+            });
         }
 
-        // --- Audio Recorder Logic ---
-        recordBtn.addEventListener('click', () => {
-            if (!isRunning || !destinationStreamNode) return;
+        // Aktif Sohbeti Ayarlama
+        function setActiveChat(id) {
+            activeChatId = id;
+            const chat = chatsData.find(c => c.id === id);
+            if (!chat) return;
 
-            recordedChunks = [];
-            const options = { mimeType: 'audio/webm' };
+            // Okunmadı rozetini sıfırla
+            chat.unreadCount = 0;
+
+            // Başlık Güncelleme
+            document.getElementById('active-chat-avatar').src = chat.avatar;
+            document.getElementById('active-chat-name').innerText = chat.name;
+            document.getElementById('active-chat-subtitle').innerText = chat.isGroup ? 'Grup Sohbeti' : (chat.status === 'online' ? 'Çevrimiçi' : 'Çevrimdışı');
             
-            try {
-                mediaRecorder = new MediaRecorder(destinationStreamNode.stream, options);
-            } catch (e) {
-                console.warn("audio/webm not supported, fallback to default");
-                mediaRecorder = new MediaRecorder(destinationStreamNode.stream);
-            }
+            const statusDot = document.getElementById('active-chat-status');
+            statusDot.className = `absolute bottom-0 right-0 w-3 h-3 ${getStatusColor(chat.status)} border-2 border-white dark:border-gray-800 rounded-full`;
 
-            mediaRecorder.ondataavailable = (e) => {
-                if (e.data.size > 0) {
-                    recordedChunks.push(e.data);
-                }
+            // Favori Butonu İkonu
+            const favIcon = document.getElementById('active-favorite-icon');
+            favIcon.className = chat.isFavorite ? "fas fa-star text-yellow-500" : "far fa-star";
+
+            renderMessages();
+            renderChatList();
+        }
+
+        // Mesajları Oluşturma ve Kaydırma
+        function renderMessages() {
+            const container = document.getElementById('messages-container');
+            container.innerHTML = '';
+            
+            const chat = chatsData.find(c => c.id === activeChatId);
+            if (!chat) return;
+
+            // Örnek Tarih Ayracı
+            container.innerHTML += `
+                <div class="flex justify-center my-2">
+                    <span class="bg-gray-200 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 text-[11px] font-medium px-3 py-1 rounded-full shadow-sm">
+                        Bugün
+                    </span>
+                </div>
+            `;
+
+            chat.messages.forEach(msg => {
+                const isMe = msg.sender === 'me';
+                const msgWrapper = document.createElement('div');
+                msgWrapper.className = `flex ${isMe ? 'justify-end' : 'justify-start'} mb-3`;
+
+                msgWrapper.innerHTML = `
+                    <div class="max-w-[75%] sm:max-w-[65%]">
+                        <div class="p-3.5 rounded-2xl text-sm shadow-sm ${
+                            isMe 
+                            ? 'bg-brand-600 text-white chat-bubble-sent' 
+                            : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 chat-bubble-received border border-gray-100 dark:border-gray-700/50'
+                        }">
+                            <p class="leading-relaxed break-words">${msg.text}</p>
+                            <div class="flex items-center justify-end space-x-1 mt-1 text-[10px] ${isMe ? 'text-brand-100' : 'text-gray-400'}">
+                                <span>${msg.time}</span>
+                                ${isMe ? getStatusTicks(msg.status) : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(msgWrapper);
+            });
+
+            // En alta kaydır
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Mesaj Gönderme İşlemi
+        function handleSendMessage(e) {
+            e.preventDefault();
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
+            
+            if (!text) return;
+
+            const chat = chatsData.find(c => c.id === activeChatId);
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+            // Yeni Mesaj Ekle
+            const newMsg = {
+                id: Date.now(),
+                text: text,
+                sender: 'me',
+                time: timeStr,
+                status: 'sent'
             };
 
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(recordedChunks, { type: 'audio/webm' });
-                const audioUrl = URL.createObjectURL(blob);
-                audioPlayback.src = audioUrl;
-                downloadBtn.href = audioUrl;
-                audioPlaybackContainer.classList.remove('hidden');
-            };
+            chat.messages.push(newMsg);
+            input.value = '';
+            document.getElementById('emoji-picker').classList.add('hidden');
 
-            mediaRecorder.start();
-            recordStartTime = Date.now();
-            recordStatus.textContent = "Kaydediliyor...";
-            recordStatus.className = "text-xs text-red-400 font-medium animate-pulse";
+            renderMessages();
+            renderChatList();
 
-            // Timer Loop
-            recordTimerInterval = setInterval(() => {
-                const elapsedSeconds = Math.floor((Date.now() - recordStartTime) / 1000);
-                const mins = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0');
-                const secs = String(elapsedSeconds % 60).padStart(2, '0');
-                recordTimer.textContent = `${mins}:${secs}`;
+            // Mesaj Durumu Simülasyonu (İletildi/Okundu)
+            setTimeout(() => {
+                newMsg.status = 'read';
+                renderMessages();
             }, 1000);
 
-            // Toggle Buttons
-            recordBtn.disabled = true;
-            recordBtn.className = "px-4 py-3 rounded-xl font-semibold text-xs transition-all flex items-center justify-center space-x-2 bg-slate-800 text-slate-500 cursor-not-allowed";
+            // Otomatik Yanıt Simülasyonu
+            simulateAutoReply(chat);
+        }
 
-            stopRecordBtn.disabled = false;
-            stopRecordBtn.className = "px-4 py-3 rounded-xl font-semibold text-xs transition-all flex items-center justify-center space-x-2 bg-red-600/30 hover:bg-red-600/50 text-red-300 border border-red-500/40 cursor-pointer";
-        });
+        // Otomatik Yanıt Simülasyonu
+        function simulateAutoReply(chat) {
+            setTimeout(() => {
+                const now = new Date();
+                const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+                
+                const randomReply = chat.autoReplies[Math.floor(Math.random() * chat.autoReplies.length)];
+                
+                chat.messages.push({
+                    id: Date.now(),
+                    text: randomReply,
+                    sender: 'them',
+                    time: timeStr,
+                    status: 'read'
+                });
 
-        stopRecordBtn.addEventListener('click', () => {
-            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                mediaRecorder.stop();
-                clearInterval(recordTimerInterval);
-                recordStatus.textContent = "Kayıt Tamamlandı";
-                recordStatus.className = "text-xs text-emerald-400 font-medium";
+                if (activeChatId === chat.id) {
+                    renderMessages();
+                } else {
+                    chat.unreadCount += 1;
+                }
+                renderChatList();
+            }, 1800);
+        }
 
-                stopRecordBtn.disabled = true;
-                stopRecordBtn.className = "px-4 py-3 rounded-xl font-semibold text-xs transition-all flex items-center justify-center space-x-2 bg-slate-800 text-slate-500 cursor-not-allowed";
+        // Okundu Tık İkonları
+        function getStatusTicks(status) {
+            if (status === 'sent') return '<i class="fas fa-check"></i>';
+            if (status === 'delivered') return '<i class="fas fa-check-double"></i>';
+            if (status === 'read') return '<i class="fas fa-check-double text-blue-300"></i>';
+            return '';
+        }
 
-                recordBtn.disabled = false;
-                recordBtn.className = "px-4 py-3 rounded-xl font-semibold text-xs transition-all flex items-center justify-center space-x-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 cursor-pointer";
+        // Durum Rengi
+        function getStatusColor(status) {
+            switch(status) {
+                case 'online': return 'bg-green-500';
+                case 'away': return 'bg-yellow-500';
+                case 'busy': return 'bg-red-500';
+                default: return 'bg-gray-400';
             }
-        });
+        }
+
+        // Kullanıcı Kendi Durumunu Güncelleme
+        function updateUserStatus(status) {
+            const dot = document.getElementById('user-status-dot');
+            dot.className = `absolute bottom-0 right-0 w-3 h-3 ${getStatusColor(status)} border-2 border-white dark:border-gray-800 rounded-full`;
+            showToast(`Durumunuz "${status}" olarak güncellendi.`);
+        }
+
+        // Sekme Değişimi (Tümü, Gruplar, Favoriler)
+        function switchTab(tab) {
+            currentTab = tab;
+            ['all', 'groups', 'favorites'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === tab) {
+                    btn.className = "flex-1 py-2.5 text-center border-b-2 border-brand-500 text-brand-600 dark:text-brand-400 font-semibold transition-colors";
+                } else {
+                    btn.className = "flex-1 py-2.5 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors";
+                }
+            });
+            renderChatList();
+        }
+
+        // Sohbet Filtreleme (Arama)
+        function filterChats() {
+            renderChatList();
+        }
+
+        // Karanlık / Aydınlık Mod Geçişi
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                icon.className = 'fas fa-sun text-yellow-500 text-lg';
+            } else {
+                html.classList.add('dark');
+                icon.className = 'fas fa-moon text-lg';
+            }
+        }
+
+        // Mobil Kenar Çubuğunu Aç/Kapat
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobile-overlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        // Emoji Paneli Görünürlüğü
+        function toggleEmojiPicker() {
+            const picker = document.getElementById('emoji-picker');
+            picker.classList.toggle('hidden');
+        }
+
+        // Emoji Ekleme
+        function insertEmoji(emoji) {
+            const input = document.getElementById('message-input');
+            input.value += emoji;
+            input.focus();
+        }
+
+        // Aktif Sohbeti Favorilere Ekle/Çıkar
+        function toggleFavoriteCurrent() {
+            const chat = chatsData.find(c => c.id === activeChatId);
+            if (chat) {
+                chat.isFavorite = !chat.isFavorite;
+                showToast(chat.isFavorite ? 'Favorilere eklendi' : 'Favorilerden çıkarıldı');
+                setActiveChat(activeChatId);
+            }
+        }
+
+        // Sohbet Temizleme
+        function clearChatMessages() {
+            const chat = chatsData.find(c => c.id === activeChatId);
+            if (chat) {
+                chat.messages = [];
+                renderMessages();
+                renderChatList();
+                showToast('Sohbet geçmişi temizlendi.');
+            }
+        }
+
+        // Dosya Yükleme İllüstrasyonu
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const chat = chatsData.find(c => c.id === activeChatId);
+                const now = new Date();
+                const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+                chat.messages.push({
+                    id: Date.now(),
+                    text: `📁 <strong>Dosya Gönderildi:</strong> ${file.name}`,
+                    sender: 'me',
+                    time: timeStr,
+                    status: 'sent'
+                });
+                renderMessages();
+                showToast(`${file.name} gönderildi.`);
+            }
+        }
+
+        // Ses Kaydı Simülasyonu
+        function simulateVoiceRecord() {
+            const chat = chatsData.find(c => c.id === activeChatId);
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+            chat.messages.push({
+                id: Date.now(),
+                text: `🎙️ <em>Ses mesajı (0:12)</em>`,
+                sender: 'me',
+                time: timeStr,
+                status: 'sent'
+            });
+            renderMessages();
+            showToast('Ses mesajı gönderildi.');
+        }
+
+        // Arama Simülasyonu
+        function simulateCall(type) {
+            const chat = chatsData.find(c => c.id === activeChatId);
+            showToast(`${chat.name} ile ${type} arama başlatılıyor...`);
+        }
+
+        // Kişi Detayı Simülasyonu
+        function showContactDetails() {
+            const chat = chatsData.find(c => c.id === activeChatId);
+            showToast(`${chat.name} profil detayları`);
+        }
+
+        // Toast/Bildirim Gösterici
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-message');
+            toastMsg.innerText = message;
+            
+            toast.classList.remove('translate-y-[-100px]', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-[-100px]', 'opacity-0');
+            }, 2500);
+        }
     </script>
 </body>
 </html>
