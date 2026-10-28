@@ -132,7 +132,7 @@
             <span class="flex items-center gap-4"><span class="rounded-xl bg-sky-500/15 p-3 text-sky-300"><svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5m-4 0h8"/></svg></span><span><strong class="block text-lg md:text-xl text-white">MİKROFON MODUNDA KULLAN</strong><small class="block mt-1 text-slate-300">Telefon mikrofonu → hoparlör / desteklenen Bluetooth ses çıkışı</small></span></span>
           </button>
         </div>
-        <p class="text-xs text-slate-500 text-center mt-5">Bluetooth ses çıkışı, telefonun ve tarayıcının desteğine bağlıdır. Bluetooth yalnızca ses çıkışıdır; telsiz haberleşmesi internet veya yerel ağ üzerinden yapılır.</p>
+        <p class="text-xs text-slate-500 text-center mt-5">Bluetooth ses çıkışı, telefonun ve tarayıcının ses yönlendirme desteğine bağlıdır.</p>
       </div>
     </section>
 
@@ -198,9 +198,13 @@
           </div>
           <label for="micOutputSelect" class="block text-xs text-slate-400 mb-2">Ses çıkış cihazı</label>
           <select id="micOutputSelect" class="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-slate-200">
-            <option value="">Varsayılan cihaz</option>
+            <option value="">Telefonun varsayılan ses çıkışı</option>
           </select>
-          <p class="text-[11px] text-slate-500 mt-2">Bluetooth kulaklık önce telefonun Bluetooth ayarlarından bağlanmalıdır. Cihaz seçimi tarayıcı desteğine bağlıdır.</p>
+          <div class="grid grid-cols-2 gap-2 mt-2">
+            <button id="chooseMicOutputBtn" type="button" class="rounded-xl bg-sky-700 hover:bg-sky-600 p-3 text-xs font-bold text-white">Bluetooth cihazı seç</button>
+            <button id="refreshMicOutputBtn" type="button" class="rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3 text-xs font-bold text-white">Cihazları yenile</button>
+          </div>
+          <p class="text-[11px] text-slate-500 mt-2">Önce Bluetooth hoparlörü telefon ayarlarından bağlayın. Telefon/tarayıcı cihaz listesini göstermiyorsa Android hızlı ayarlarındaki Medya çıkışı bölümünden Bluetooth hoparlörü seçin.</p>
         </div>
 
         <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 mt-4">
@@ -489,6 +493,7 @@
                 </section>
 
                 <!-- BLUETOOTH / KULAKLIK AYARLARI: Kara Kutu içinde -->
+                <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col gap-3">
                 <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col gap-3">
                     <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
                         <div>
@@ -1370,14 +1375,11 @@
         function getPeerServerOptions() {
             const mode = localStorage.getItem('pmrNetworkMode') || 'internet';
             const config = {
-                // STUN sunucularına ulaşılamasa bile aynı LAN üzerindeki eşler,
-                // yerel PeerJS sunucusu ve doğrudan ICE adaylarıyla bağlanabilir.
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
                     { urls: 'stun:stun1.l.google.com:19302' },
                     { urls: 'stun:global.stun.twilio.com:3478' }
-                ],
-                iceCandidatePoolSize: 4
+                ]
             };
             if (mode === 'wifi') {
                 const host = (localStorage.getItem('pmrLocalPeerHost') || '').trim();
@@ -1385,7 +1387,7 @@
                 const secure = localStorage.getItem('pmrLocalPeerSecure') === 'true';
                 if (!host) throw new Error('Yerel Wi-Fi modu için Kara Kutu bölümüne yerel sunucu IP adresini girip kaydedin.');
                 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Yerel sunucu portu 1–65535 arasında olmalıdır.');
-                return { host, port, secure, path: '/peerjs', config };
+                return { host, port, secure, path: '/', config };
             }
             return { host: '0.peerjs.com', port: 443, secure: true, config };
         }
@@ -1717,12 +1719,6 @@
                 remoteAudio.muted = false;
                 remoteAudio.volume = Number(volumeSlider?.value || 1);
                 remoteAudio.srcObject = remoteStream;
-                const savedOutput = audioOutputSelect?.value || localStorage.getItem('pmrAudioOutputId') || '';
-                if (savedOutput && typeof remoteAudio.setSinkId === 'function') {
-                    remoteAudio.setSinkId(savedOutput).catch(() => {
-                        showToast('Seçili ses çıkışı uygulanamadı; sistemin varsayılan ses çıkışı kullanılacak.', 'warning');
-                    });
-                }
                 const playPromise = remoteAudio.play();
                 if (playPromise && typeof playPromise.catch === 'function') {
                     playPromise.catch(() => {
@@ -1860,12 +1856,7 @@
             });
         }
 
-        pttBtn.addEventListener('pointerdown', (e) => {
-            if (currentMode === 'PTT') {
-                try { pttBtn.setPointerCapture(e.pointerId); } catch (_) {}
-                startTransmission(e);
-            }
-        });
+        pttBtn.addEventListener('pointerdown', (e) => { if (currentMode === 'PTT') startTransmission(e); });
         window.addEventListener('pointerup', (e) => { if (currentMode === 'PTT') stopTransmission(e); });
         window.addEventListener('pointercancel', (e) => { if (currentMode === 'PTT') stopTransmission(e); });
 
@@ -1876,20 +1867,9 @@
             }
         });
         window.addEventListener('keyup', (e) => {
-            // Keyup odağı bir giriş alanına taşınmış olsa bile PTT'yi bırakmalıdır.
-            if (e.code === 'Space' && isTransmitting) {
+            if (currentMode === 'PTT' && e.code === 'Space' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
                 e.preventDefault();
                 stopTransmission();
-            }
-        });
-        window.addEventListener('blur', () => {
-            if (isTransmitting) stopTransmission();
-            if (localPttHeld) releaseMicPtt();
-        });
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                if (isTransmitting) stopTransmission();
-                if (localPttHeld) releaseMicPtt();
             }
         });
 
@@ -1902,7 +1882,6 @@
                 showToast("Cihaz açıldı.", "success");
                 if (roomInput.value.trim()) connectToRoom(roomInput.value, roomPassword.value);
             } else {
-                if (isTransmitting) stopTransmission();
                 document.body.classList.add('is-off');
                 powerLed.className = "w-2.5 h-2.5 rounded-full bg-red-600";
                 powerText.innerText = "KAPALI";
@@ -2090,47 +2069,103 @@
             localMonitorAnimation = requestAnimationFrame(drawLocalMicWave);
         }
 
+        let micOutputDeviceId = localStorage.getItem('pmrMicOutputDeviceId') || '';
+
+        async function applyMicOutputDevice(deviceId = micOutputSelect.value) {
+            micOutputDeviceId = deviceId || '';
+            if (micOutputDeviceId) localStorage.setItem('pmrMicOutputDeviceId', micOutputDeviceId);
+            else localStorage.removeItem('pmrMicOutputDeviceId');
+
+            const targets = [localMicAudio, micRecordingPlayback];
+            const supported = targets.some(el => typeof el.setSinkId === 'function');
+            if (!supported) {
+                micTestResult.textContent = 'Bu Android tarayıcısı uygulama içinden ses cihazı seçimini desteklemiyor. Bluetooth hoparlörü telefonun Medya çıkışı bölümünden seçin; uygulama varsayılan çıkışa ses verecek.';
+                micBluetoothStatus.textContent = 'Telefonun ses çıkışı kullanılacak';
+                micBluetoothStatus.className = 'text-xs text-amber-300';
+                return false;
+            }
+            try {
+                for (const el of targets) {
+                    if (typeof el.setSinkId === 'function') await el.setSinkId(micOutputDeviceId);
+                }
+                micTestResult.textContent = micOutputDeviceId
+                    ? 'Seçilen ses çıkışı mikrofon ve kayıt oynatımı için ayarlandı.'
+                    : 'Telefonun varsayılan ses çıkışı kullanılacak.';
+                micBluetoothStatus.textContent = micOutputDeviceId ? 'Ses çıkışı seçildi' : 'Varsayılan çıkış';
+                micBluetoothStatus.className = 'text-xs text-emerald-300';
+                return true;
+            } catch (e) {
+                micTestResult.textContent = 'Ses çıkışı ayarlanamadı: ' + (e.message || e) + '. Telefonun Medya çıkışı bölümünden Bluetooth hoparlörü seçin.';
+                return false;
+            }
+        }
+
         async function refreshMicOutputDevices() {
             if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-                micBluetoothStatus.textContent = 'Tarayıcı desteklemiyor';
+                micBluetoothStatus.textContent = 'Tarayıcı cihaz listesini desteklemiyor';
                 return;
             }
             try {
                 const devices = await navigator.mediaDevices.enumerateDevices();
                 const outputs = devices.filter(d => d.kind === 'audiooutput');
-                const previous = micOutputSelect.value;
-                micOutputSelect.innerHTML = '<option value="">Varsayılan cihaz</option>';
+                const previous = micOutputSelect.value || micOutputDeviceId;
+                micOutputSelect.innerHTML = '<option value="">Telefonun varsayılan ses çıkışı</option>';
                 outputs.forEach((device, i) => {
+                    if (!device.deviceId) return;
                     const option = document.createElement('option');
                     option.value = device.deviceId;
                     option.textContent = device.label || ('Ses çıkışı ' + (i + 1));
                     micOutputSelect.appendChild(option);
                 });
-                const saved = localStorage.getItem('pmrMicOutputId') || previous;
-                if (saved && [...micOutputSelect.options].some(o => o.value === saved)) micOutputSelect.value = saved;
-                const hasBluetoothLabel = outputs.some(d => /bluetooth|headset|headphone|airpod|kulaklık/i.test(d.label));
-                micBluetoothStatus.textContent = hasBluetoothLabel ? 'Kulaklık algılandı' : 'Varsayılan ses çıkışı';
-                micBluetoothStatus.className = hasBluetoothLabel ? 'text-xs text-emerald-300' : 'text-xs text-amber-300';
+                if (previous && [...micOutputSelect.options].some(o => o.value === previous)) {
+                    micOutputSelect.value = previous;
+                    micOutputDeviceId = previous;
+                } else {
+                    micOutputSelect.value = '';
+                    micOutputDeviceId = '';
+                }
+                const hasBluetoothLabel = outputs.some(d => /bluetooth|headset|headphone|airpod|kulaklık|speaker/i.test(d.label));
+                const canChoose = !!(navigator.mediaDevices && navigator.mediaDevices.selectAudioOutput);
+                if (hasBluetoothLabel) {
+                    micBluetoothStatus.textContent = 'Ses cihazı listelendi';
+                    micBluetoothStatus.className = 'text-xs text-emerald-300';
+                } else if (canChoose) {
+                    micBluetoothStatus.textContent = 'Bluetooth cihazı seçilebilir';
+                    micBluetoothStatus.className = 'text-xs text-amber-300';
+                } else {
+                    micBluetoothStatus.textContent = outputs.length ? 'Bluetooth listede görünmüyor' : 'Telefonun varsayılan çıkışı';
+                    micBluetoothStatus.className = 'text-xs text-amber-300';
+                }
             } catch (e) {
                 micBluetoothStatus.textContent = 'Cihaz bilgisi alınamadı';
+                micBluetoothStatus.className = 'text-xs text-amber-300';
             }
         }
 
-        async function applyMicOutputDevice() {
-            const deviceId = micOutputSelect.value;
-            if (typeof localMicAudio.setSinkId !== 'function') {
-                micTestResult.textContent = 'Bu tarayıcı ses çıkış cihazı seçimini desteklemiyor. Telefonun varsayılan ses çıkışı kullanılacak.';
+        async function chooseMicOutputDevice() {
+            // selectAudioOutput bir kullanıcı dokunuşuyla açılan sistem cihaz seçicisidir.
+            if (!navigator.mediaDevices || typeof navigator.mediaDevices.selectAudioOutput !== 'function') {
+                micTestResult.textContent = 'Bu tarayıcı Bluetooth cihaz seçme penceresini sunmuyor. Bluetooth hoparlörü Android hızlı ayarlar > Medya çıkışı bölümünden seçin.';
+                micBluetoothStatus.textContent = 'Android ses menüsünden seçin';
+                micBluetoothStatus.className = 'text-xs text-amber-300';
                 return;
             }
             try {
-                await localMicAudio.setSinkId(deviceId || '');
-                if (typeof micRecordingPlayback.setSinkId === 'function') {
-                    await micRecordingPlayback.setSinkId(deviceId || '');
+                const device = await navigator.mediaDevices.selectAudioOutput(
+                    micOutputDeviceId ? { deviceId: micOutputDeviceId } : undefined
+                );
+                if (!device || !device.deviceId) return;
+                let option = [...micOutputSelect.options].find(o => o.value === device.deviceId);
+                if (!option) {
+                    option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.textContent = device.label || 'Seçilen ses cihazı';
+                    micOutputSelect.appendChild(option);
                 }
-                localStorage.setItem('pmrMicOutputId', deviceId || '');
-                micTestResult.textContent = 'Ses çıkış cihazı güncellendi. Kayıtlar da bu çıkıştan çalacak.';
+                micOutputSelect.value = device.deviceId;
+                await applyMicOutputDevice(device.deviceId);
             } catch (e) {
-                micTestResult.textContent = 'Ses çıkışı değiştirilemedi: ' + e.message;
+                micTestResult.textContent = 'Cihaz seçimi iptal edildi veya desteklenmiyor: ' + (e.message || e);
             }
         }
 
@@ -2167,6 +2202,10 @@
                 cancelAnimationFrame(localMonitorAnimation);
                 drawLocalMicWave();
                 await refreshMicOutputDevices();
+                if (micOutputDeviceId && [...micOutputSelect.options].some(o => o.value === micOutputDeviceId)) {
+                    micOutputSelect.value = micOutputDeviceId;
+                    await applyMicOutputDevice(micOutputDeviceId);
+                }
                 // Bu akış yerel AudioContext'e bağlıdır; telsiz/PeerJS ağına gönderilmez.
             } catch (err) {
                 stopLocalMonitor();
@@ -2305,7 +2344,7 @@
                     localMicRecordingUrl = URL.createObjectURL(blob);
                     micRecordingPlayback.src = localMicRecordingUrl;
                     try {
-                        const selectedOutput = micOutputSelect.value || '';
+                        const selectedOutput = micOutputSelect.value || micOutputDeviceId || '';
                         if (typeof micRecordingPlayback.setSinkId === 'function') {
                             await micRecordingPlayback.setSinkId(selectedOutput);
                         }
@@ -2339,7 +2378,9 @@
         micRecordButton.addEventListener('pointerdown', beginMicPressRecord);
         window.addEventListener('pointerup', endMicPressRecord);
         window.addEventListener('pointercancel', endMicPressRecord);
-        micOutputSelect.addEventListener('change', applyMicOutputDevice);
+        micOutputSelect.addEventListener('change', () => applyMicOutputDevice(micOutputSelect.value));
+        document.getElementById('chooseMicOutputBtn').addEventListener('click', chooseMicOutputDevice);
+        document.getElementById('refreshMicOutputBtn').addEventListener('click', refreshMicOutputDevices);
         if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
             navigator.mediaDevices.addEventListener('devicechange', refreshMicOutputDevices);
         }
