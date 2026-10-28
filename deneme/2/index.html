@@ -1996,8 +1996,8 @@
         const micRecordingPlayback = document.getElementById('micRecordingPlayback');
 
         let localMonitorStream = null, localMonitorActive = false;
-        let localMonitorContext = null, localMonitorSource = null, localMonitorGain = null;
-        let localMonitorAnalyser = null, localMonitorDestination = null;
+        let localMonitorContext = null, localMonitorSource = null, localMonitorGain = null, localMonitorOutputGain = null;
+        let localMonitorAnalyser = null;
         let localMonitorAnimation = 0, localMicMode = 'continuous', localPttHeld = false;
         let localMicRecorder = null, localMicChunks = [], localMicRecordingUrl = null;
         let localMicTestActive = false, localMicTestTimer = null;
@@ -2188,13 +2188,15 @@
                 localMonitorGain.gain.value = localMicMode === 'continuous' ? Number(micSensitivity.value) : 0;
                 localMonitorAnalyser = localMonitorContext.createAnalyser();
                 localMonitorAnalyser.fftSize = 1024;
-                localMonitorDestination = localMonitorContext.createMediaStreamDestination();
+                // Mikrofon sesini HTML audio ara akışı yerine doğrudan Web Audio çıkışına ver.
+                // Android Chrome'da bu yol telefonun o anki varsayılan medya çıkışını (Bluetooth dahil) kullanır.
+                localMonitorOutputGain = localMonitorContext.createGain();
+                localMonitorOutputGain.gain.value = Number(localMicVolume.value);
                 localMonitorSource.connect(localMonitorAnalyser);
                 localMonitorSource.connect(localMonitorGain);
-                localMonitorGain.connect(localMonitorDestination);
-                localMicAudio.srcObject = localMonitorDestination.stream;
-                localMicAudio.volume = Number(localMicVolume.value);
-                await localMicAudio.play();
+                localMonitorGain.connect(localMonitorOutputGain);
+                localMonitorOutputGain.connect(localMonitorContext.destination);
+                await localMonitorContext.resume();
                 localMonitorActive = true;
                 localMicToggle.textContent = 'MİKROFONU KAPAT';
                 localMicToggle.className = 'w-full rounded-2xl bg-red-700 hover:bg-red-600 py-5 text-xl font-black text-white shadow-lg active:scale-[.99]';
@@ -2231,7 +2233,7 @@
             try { if (localMonitorGain) localMonitorGain.disconnect(); } catch (e) {}
             try { if (localMonitorAnalyser) localMonitorAnalyser.disconnect(); } catch (e) {}
             try { if (localMonitorContext && localMonitorContext.state !== 'closed') localMonitorContext.close(); } catch (e) {}
-            localMonitorStream = localMonitorContext = localMonitorSource = localMonitorGain = localMonitorAnalyser = localMonitorDestination = null;
+            localMonitorStream = localMonitorContext = localMonitorSource = localMonitorGain = localMonitorOutputGain = localMonitorAnalyser = null;
             try { localMicAudio.pause(); localMicAudio.srcObject = null; } catch (e) {}
             localMicToggle.textContent = '🎙 MİKROFONU AÇ';
             localMicToggle.className = 'w-full rounded-2xl bg-sky-600 hover:bg-sky-500 py-5 text-xl font-black text-white shadow-lg active:scale-[.99]';
@@ -2269,7 +2271,9 @@
             if (localMonitorGain && (localMicMode === 'continuous' || localPttHeld)) localMonitorGain.gain.setTargetAtTime(Number(micSensitivity.value), localMonitorContext.currentTime, .02);
         });
         localMicVolume.addEventListener('input', () => {
-            localMicAudio.volume = Number(localMicVolume.value);
+            if (localMonitorOutputGain && localMonitorContext) {
+                localMonitorOutputGain.gain.setTargetAtTime(Number(localMicVolume.value), localMonitorContext.currentTime, .02);
+            }
             document.getElementById('micVolumeValue').textContent = Math.round(Number(localMicVolume.value) * 100) + '%';
         });
         micNoise.addEventListener('change', async () => {
