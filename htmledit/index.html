@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Canlı Web Editörü & Kod Renklendirici</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/matchesonscrollbar.css">
+    
+    <!-- CodeMirror JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/search.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/scroll/annotatescrollbar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/matchesonscrollbar.js"></script>
+
+    <style>
+        .CodeMirror {
+            height: 100% !important;
+            font-family: 'Fira Code', 'Courier New', Courier, monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            cursor: grab;
+        }
+
+        .CodeMirror.is-dragging {
+            cursor: grabbing !important;
+            user-select: none;
+        }
+
+        /* Kod Alanı İçin Bağımsız Scrollbar Stili */
+        .CodeMirror-vscrollbar::-webkit-scrollbar,
+        .CodeMirror-hscrollbar::-webkit-scrollbar {
+            width: 14px;
+            height: 14px;
+        }
+        .CodeMirror-vscrollbar::-webkit-scrollbar-track,
+        .CodeMirror-hscrollbar::-webkit-scrollbar-track {
+            background: #181825;
+        }
+        .CodeMirror-vscrollbar::-webkit-scrollbar-thumb,
+        .CodeMirror-hscrollbar::-webkit-scrollbar-thumb {
+            background: #6366f1;
+            border-radius: 8px;
+            border: 3px solid #181825;
+        }
+
+        /* Görsel Önizleme Odak Stilleri */
+        .editable-active:hover {
+            outline: 2px dashed #6366f1 !important;
+            cursor: pointer;
+        }
+        .editable-selected {
+            outline: 3px solid #3b82f6 !important;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 h-screen flex flex-col overflow-hidden font-sans">
+
+    <!-- Üst Bar / Header -->
+    <header class="bg-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="bg-indigo-600 text-white p-2 rounded-xl shadow-lg shadow-indigo-500/30">
+                <i class="fa-solid fa-code text-lg"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg tracking-wide text-white">WebCraft <span class="text-indigo-400 font-light">Studio Pro</span></h1>
+                <p class="text-xs text-slate-400">Çoklu Sekme (HTML/CSS/JS) & Sayfa Konumu Koruma</p>
+            </div>
+        </div>
+
+        <!-- Stil Düzenleme Çubuğu (Düzenleme Modunda Görünür) -->
+        <div id="styleToolbar" class="hidden flex items-center space-x-3 bg-slate-800 px-4 py-1.5 rounded-xl border border-slate-700">
+            <span class="text-xs font-semibold text-indigo-400 uppercase tracking-wider flex items-center gap-1">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Stil Düzenle:
+            </span>
+            <div class="flex items-center gap-2 text-xs">
+                <label class="text-slate-300">Arka Plan:</label>
+                <input type="color" id="bgColorPicker" onchange="applySelectedStyle('backgroundColor', this.value)" class="w-6 h-6 rounded cursor-pointer border-0 bg-transparent">
+            </div>
+            <div class="flex items-center gap-2 text-xs border-l border-slate-700 pl-3">
+                <label class="text-slate-300">Yazı Rengi:</label>
+                <input type="color" id="textColorPicker" onchange="applySelectedStyle('color', this.value)" class="w-6 h-6 rounded cursor-pointer border-0 bg-transparent">
+            </div>
+            <div class="flex items-center gap-2 text-xs border-l border-slate-700 pl-3">
+                <label class="text-slate-300">Köşe:</label>
+                <select onchange="applySelectedStyle('borderRadius', this.value)" class="bg-slate-900 text-slate-200 text-xs rounded px-2 py-1 border border-slate-700">
+                    <option value="0px">Kare</option>
+                    <option value="8px">Hafif</option>
+                    <option value="16px">Yuvarlak</option>
+                    <option value="9999px">Tam Yuvarlak</option>
+                </select>
+            </div>
+            <button onclick="clearSelection()" class="text-xs text-slate-400 hover:text-white ml-2" title="Seçimi Kaldır">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- İşlem ve Mod Butonları -->
+        <div class="flex items-center space-x-3">
+            <button id="modeToggleBtn" onclick="toggleMode()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium transition shadow-lg shadow-emerald-600/20 flex items-center space-x-2">
+                <i id="modeIcon" class="fa-solid fa-play"></i>
+                <span id="modeText">Canlı Mod Etkin</span>
+            </button>
+
+            <button onclick="triggerSearch()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition border border-slate-700 flex items-center space-x-2" title="Kod İçinde Ara (Ctrl + F)">
+                <i class="fa-solid fa-magnifying-glass text-indigo-400"></i>
+                <span class="hidden sm:inline">Ara (Ctrl+F)</span>
+            </button>
+            <button onclick="loadDefaultTemplate()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition border border-slate-700 flex items-center space-x-2">
+                <i class="fa-solid fa-rotate-left"></i>
+                <span class="hidden sm:inline">Sıfırla</span>
+            </button>
+            <button onclick="downloadCode()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition shadow-lg shadow-indigo-600/20 flex items-center space-x-2">
+                <i class="fa-solid fa-download"></i>
+                <span>İndir</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Ana Çalışma Alanı -->
+    <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-0 overflow-hidden">
+        
+        <!-- Sol Panel: Sekmeli Kod Editörü -->
+        <div class="flex flex-col bg-[#282a36] border-r border-slate-800 h-full overflow-hidden">
+            <!-- HTML, CSS, JS Sekme Başlıkları -->
+            <div class="bg-slate-900 px-4 py-1.5 border-b border-slate-800 flex items-center justify-between shrink-0">
+                <div class="flex space-x-1">
+                    <button id="tab-html" onclick="switchTab('html')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-indigo-400 bg-slate-800 border border-slate-700 flex items-center gap-1.5">
+                        <i class="fa-brands fa-html5 text-orange-500"></i> HTML
+                    </button>
+                    <button id="tab-css" onclick="switchTab('css')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
+                        <i class="fa-brands fa-css3-alt text-blue-500"></i> CSS
+                    </button>
+                    <button id="tab-js" onclick="switchTab('js')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
+                        <i class="fa-brands fa-js text-yellow-500"></i> JS
+                    </button>
+                </div>
+                <span class="text-xs text-slate-400">Dracula Tema</span>
+            </div>
+            <div class="flex-1 relative overflow-hidden" id="editorContainer">
+                <textarea id="codeEditor"></textarea>
+            </div>
+        </div>
+
+        <!-- Sağ Panel: Önizleme -->
+        <div class="flex flex-col bg-white h-full overflow-hidden relative">
+            <div class="bg-slate-100 px-4 py-2 border-b border-slate-200 flex items-center justify-between shrink-0 text-slate-700">
+                <span class="text-xs font-semibold uppercase tracking-wider flex items-center space-x-2">
+                    <i class="fa-solid fa-eye text-indigo-600"></i>
+                    <span id="previewHeaderTitle">Canlı Önizleme (Sayfa Etkileşimli)</span>
+                </span>
+                <span id="badgeMode" class="text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full font-medium flex items-center space-x-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Canlı Mod</span>
+                </span>
+            </div>
+            <div class="flex-1 relative overflow-auto bg-white" id="previewContainer">
+                <iframe id="previewFrame" class="w-full h-full border-0 bg-white"></iframe>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- JavaScript Mantığı -->
+    <script>
+        // Üç Ayrı Sekme İçin Kod Deposu
+        const codeStorage = {
+            html: `<div class="max-w-xl mx-auto bg-white p-8 rounded-2xl shadow-xl border border-slate-100 text-center">
+    <span class="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-semibold uppercase tracking-wider">WebCraft Pro</span>
+    <h1 class="text-3xl font-extrabold mt-4 mb-3 text-slate-800">Çoklu Sekmeli Editör</h1>
+    <p class="text-slate-600 mb-6 leading-relaxed">Canlı Modda gezinip mod değiştirdiğinizde en baş sayfaya dönmezsiniz.</p>
+    <div class="flex justify-center gap-3">
+        <button onclick="testButton()" class="custom-btn px-5 py-2.5 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-500 transition">Test Et</button>
+    </div>
+</div>`,
+            css: `/* Özel CSS Kodlarınız */
+body {
+    background-color: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-h-screen: 100vh;
+}
+.custom-btn {
+    box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+}`,
+            js: `// Özel JavaScript Kodlarınız
+function testButton() {
+    alert("Javascript Tetiklendi!");
+}`
+        };
+
+        let currentTab = 'html';
+        let currentMode = 'live';
+        let selectedElement = null;
+        let isUpdatingFromVisual = false;
+        const previewFrame = document.getElementById('previewFrame');
+
+        // CodeMirror Başlat
+        const editor = CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
+            mode: 'htmlmixed',
+            theme: 'dracula',
+            lineNumbers: true,
+            autoCloseTags: true,
+            matchBrackets: true,
+            lineWrapping: true,
+            indentUnit: 4
+        });
+
+        window.onload = () => {
+            loadDefaultTemplate();
+            enableDragToScroll();
+        };
+
+        function loadDefaultTemplate() {
+            editor.setValue(codeStorage[currentTab]);
+            updatePreview();
+        }
+
+        // Sekmeler Arası Geçiş (HTML / CSS / JS)
+        function switchTab(tab) {
+            codeStorage[currentTab] = editor.getValue();
+            currentTab = tab;
+
+            ['html', 'css', 'js'].forEach(t => {
+                const tabEl = document.getElementById(`tab-${t}`);
+                if (t === tab) {
+                    tabEl.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-indigo-400 bg-slate-800 border border-slate-700 flex items-center gap-1.5";
+                } else {
+                    tabEl.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5";
+                }
+            });
+
+            if (tab === 'html') editor.setOption('mode', 'htmlmixed');
+            else if (tab === 'css') editor.setOption('mode', 'css');
+            else if (tab === 'js') editor.setOption('mode', 'javascript');
+
+            editor.setValue(codeStorage[tab]);
+        }
+
+        editor.on('change', () => {
+            if (isUpdatingFromVisual) return;
+            codeStorage[currentTab] = editor.getValue();
+            updatePreview();
+        });
+
+        // Tüm Sekmeleri Birleştirip Önizlemeye Aktarma
+        function buildFullHTML() {
+            return `<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.tailwindcss.com"><\/script>
+    <style>${codeStorage.css}</style>
+</head>
+<body class="p-8">
+    ${codeStorage.html}
+    <script>${codeStorage.js}<\/script>
+</body>
+</html>`;
+        }
+
+        function updatePreview() {
+            if (!previewFrame) return;
+
+            // Sayfa düzenleme moduna geçerken mevcut DOM yapısını veya sayfa konumunu koru
+            if (currentMode === 'edit') {
+                const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+                setupVisualEditing(doc);
+            } else {
+                const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+                doc.open();
+                doc.write(buildFullHTML());
+                doc.close();
+            }
+        }
+
+        // Mod Değiştirme (Canlı Mod <-> Düzenleme Modu)
+        function toggleMode() {
+            const btn = document.getElementById('modeToggleBtn');
+            const icon = document.getElementById('modeIcon');
+            const text = document.getElementById('modeText');
+            const badge = document.getElementById('badgeMode');
+            const title = document.getElementById('previewHeaderTitle');
+            const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+
+            if (currentMode === 'live') {
+                currentMode = 'edit';
+                btn.className = "px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-sm font-medium transition shadow-lg shadow-amber-600/20 flex items-center space-x-2";
+                icon.className = "fa-solid fa-pen-to-square";
+                text.innerText = "Düzenleme Modu";
+                
+                badge.className = "text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full font-medium flex items-center space-x-1";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span><span>Düzenleme Modu</span>`;
+                title.innerText = "Canlı Önizleme (Öğeye tıkla & stili değiştir)";
+
+                // Sayfayı yeniden yüklemeden mevcut sayfayı düzenlenebilir yap (Konum/Sayfa korunur)
+                setupVisualEditing(doc);
+            } else {
+                currentMode = 'live';
+                clearSelection();
+                btn.className = "px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium transition shadow-lg shadow-emerald-600/20 flex items-center space-x-2";
+                icon.className = "fa-solid fa-play";
+                text.innerText = "Canlı Mod Etkin";
+                
+                badge.className = "text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full font-medium flex items-center space-x-1";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Canlı Mod</span>`;
+                title.innerText = "Canlı Önizleme (Sayfa Etkileşimli)";
+
+                disableVisualEditing(doc);
+            }
+        }
+
+        function setupVisualEditing(doc) {
+            if (!doc || !doc.body) return;
+            const elements = doc.body.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, a, button, li, div');
+
+            elements.forEach(el => {
+                if (!el.classList.contains('editable-active')) el.classList.add('editable-active');
+
+                el.onclick = (e) => {
+                    if (currentMode !== 'edit') return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    selectElement(el);
+                };
+
+                el.ondblclick = (e) => {
+                    if (currentMode !== 'edit') return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    el.setAttribute('contenteditable', 'true');
+                    el.focus();
+                };
+
+                el.oninput = () => {
+                    syncCodeFromVisual(doc);
+                };
+            });
+        }
+
+        function disableVisualEditing(doc) {
+            if (!doc || !doc.body) return;
+            const elements = doc.body.querySelectorAll('.editable-active');
+            elements.forEach(el => {
+                el.classList.remove('editable-active', 'editable-selected');
+                el.removeAttribute('contenteditable');
+            });
+        }
+
+        function selectElement(el) {
+            if (selectedElement) selectedElement.classList.remove('editable-selected');
+            selectedElement = el;
+            selectedElement.classList.add('editable-selected');
+            document.getElementById('styleToolbar').classList.remove('hidden');
+        }
+
+        function clearSelection() {
+            if (selectedElement) {
+                selectedElement.classList.remove('editable-selected');
+                selectedElement = null;
+            }
+            document.getElementById('styleToolbar').classList.add('hidden');
+        }
+
+        function applySelectedStyle(property, value) {
+            if (!selectedElement) return;
+            selectedElement.style[property] = value;
+            const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+            syncCodeFromVisual(doc);
+        }
+
+        function syncCodeFromVisual(doc) {
+            isUpdatingFromVisual = true;
+            codeStorage.html = doc.body.innerHTML;
+            if (currentTab === 'html') editor.setValue(codeStorage.html);
+            isUpdatingFromVisual = false;
+        }
+
+        // Kod Alanı Sürükle-Kaydır (Drag-to-Scroll)
+        function enableDragToScroll() {
+            const cmElement = editor.getWrapperElement();
+            let isMouseDown = false, startY = 0, startScrollTop = 0;
+
+            cmElement.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.CodeMirror-cursor') || e.target.closest('.CodeMirror-selected')) return;
+                isMouseDown = true;
+                cmElement.classList.add('is-dragging');
+                startY = e.pageY;
+                startScrollTop = editor.getScrollInfo().top;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isMouseDown) return;
+                e.preventDefault();
+                editor.scrollTo(null, startScrollTop - (e.pageY - startY));
+            });
+
+            window.addEventListener('mouseup', () => {
+                if (isMouseDown) {
+                    isMouseDown = false;
+                    cmElement.classList.remove('is-dragging');
+                }
+            });
+        }
+
+        function triggerSearch() {
+            CodeMirror.commands.find(editor);
+        }
+
+        function downloadCode() {
+            const blob = new Blob([buildFullHTML()], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'index.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
