@@ -488,6 +488,15 @@
                     <p class="text-[10px] text-slate-500">Önemli: Bu ayar tek başına yerel sunucu kurmaz. İnternetsiz kullanım için aynı Wi-Fi ağına bağlı bir bilgisayar/cihazda PeerJS sunucusu çalışmalı, port ağda açık olmalı ve mikrofon için tarayıcının güvenli bağlantı koşulları karşılanmalıdır. İnternet moduna dönmek için modu tekrar İnternet seçin.</p>
                 </section>
 
+                <section class="bg-slate-950 border border-emerald-900 rounded-2xl p-3 flex flex-col gap-2">
+                    <h4 class="text-xs font-black font-lcd text-emerald-300">ÇOKLU GRUP SESİ (LIVEKIT SFU)</h4>
+                    <p class="text-[10px] text-slate-400">Birden fazla kullanıcının sesini ayrı ayrı iletmek için LiveKit sunucusu gerekir. Sunucu token adresini buraya girin.</p>
+                    <label for="liveKitTokenEndpoint" class="text-[10px] text-slate-400">LiveKit token API HTTPS adresi</label>
+                    <input id="liveKitTokenEndpoint" type="url" placeholder="https://sunucunuz.example/api/livekit-token" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                    <button id="saveLiveKitEndpointBtn" type="button" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded-xl px-3 py-2 text-xs">LiveKit adresini kaydet</button>
+                    <p id="liveKitStatus" class="text-[10px] text-amber-300">LiveKit henüz yapılandırılmadı</p>
+                </section>
+
                 <!-- BLUETOOTH / KULAKLIK AYARLARI: Kara Kutu içinde -->
                 <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col gap-3">
                 <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col gap-3">
@@ -572,6 +581,11 @@
         let guestReconnectTimer = null;
         let pingInterval = null;
         let isMutedByAdmin = false;
+        let liveKitRoom = null;
+        let liveKitLocalTrack = null;
+        let liveKitClientModule = null;
+        let liveKitRemoteAudioElements = new Map();
+        let liveKitConnecting = false;
 
         let currentMode = 'PTT';
         let voxSilenceTimer = null;
@@ -641,6 +655,9 @@
         const roomInput = document.getElementById('roomInput');
         const serverAuthEnabled = document.getElementById('serverAuthEnabled');
         const serverAuthEndpoint = document.getElementById('serverAuthEndpoint');
+        const liveKitTokenEndpoint = document.getElementById('liveKitTokenEndpoint');
+        const saveLiveKitEndpointBtn = document.getElementById('saveLiveKitEndpointBtn');
+        const liveKitStatus = document.getElementById('liveKitStatus');
         const serverAuthStatus = document.getElementById('serverAuthStatus');
         const allowSosPermission = document.getElementById('allowSosPermission');
         const allowCallTonePermission = document.getElementById('allowCallTonePermission');
@@ -660,6 +677,16 @@
         // GÜVENLİK VE İZİN AYARLARI (cihazda saklanır)
         serverAuthEnabled.checked = localStorage.getItem('pmr_server_auth_enabled') === 'true';
         serverAuthEndpoint.value = localStorage.getItem('pmr_server_auth_endpoint') || '';
+        liveKitTokenEndpoint.value = localStorage.getItem('pmr_livekit_token_endpoint') || '';
+        liveKitStatus.textContent = liveKitTokenEndpoint.value ? 'Token servisi yapılandırıldı' : 'LiveKit henüz yapılandırılmadı';
+        saveLiveKitEndpointBtn.addEventListener('click', () => {
+            const endpoint = liveKitTokenEndpoint.value.trim();
+            if (!endpoint) { showToast('LiveKit token API adresini girin.', 'warning'); return; }
+            try { new URL(endpoint); } catch (e) { showToast('Geçerli bir HTTPS adresi girin.', 'error'); return; }
+            localStorage.setItem('pmr_livekit_token_endpoint', endpoint);
+            liveKitStatus.textContent = 'Token servisi adresi kaydedildi';
+            showToast('LiveKit adresi kaydedildi. Sunucu kurulumu da gereklidir.', 'success');
+        });
         allowSosPermission.checked = localStorage.getItem('pmr_allow_sos') !== 'false';
         allowCallTonePermission.checked = localStorage.getItem('pmr_allow_call_tone') !== 'false';
         allowBrowserNotifications.checked = localStorage.getItem('pmr_browser_notifications') === 'true';
@@ -1143,6 +1170,7 @@
                 try { peer.destroy(); } catch (e) {}
                 peer = null;
             }
+            disconnectLiveKitAudio();
             hostDataConnection = null;
             guestConnections = {};
             isConnected = false;
@@ -1311,6 +1339,77 @@
             headsetStatus.textContent = 'Tuş kapalı';
         }
 
+        async function connectLiveKitAudio() {
+            if (liveKitRoom && liveKitRoom.state === 'connected') return;
+            if (liveKitConnecting) return;
+            const endpoint = (localStorage.getItem('pmr_livekit_token_endpoint') || '').trim();
+            if (!endpoint) {
+                showToast('Çoklu grup sesi için Ayar > LiveKit token API adresini yapılandırın.', 'warning');
+                return;
+            }
+            liveKitConnecting = true;
+            try {
+                if (!liveKitClientModule) liveKitClientModule = await import('https://esm.sh/livekit-client@2.15.6');
+                const response = await fetch(endpoint, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ room: roomName, identity: userName, password: roomPass, role: isHost ? 'host' : 'guest' })
+                });
+                if (!response.ok) throw new Error('LiveKit token servisi HTTP ' + response.status);
+                const payload = await response.json();
+                if (!payload.token || !payload.serverUrl) throw new Error('Token API serverUrl ve token döndürmelidir.');
+                const { Room, RoomEvent, createLocalAudioTrack } = liveKitClientModule;
+                const room = new Room({ adaptiveStream: true, dynacast: true, audioCaptureDefaults: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+                liveKitRoom = room;
+                room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+                    if (track.kind !== 'audio') return;
+                    const audio = track.attach();
+                    audio.autoplay = true; audio.playsInline = true;
+                    audio.volume = Math.max(0, Math.min(1, Number(volumeSlider?.value || 1)));
+                    audio.dataset.livekitParticipant = participant.identity;
+                    document.body.appendChild(audio);
+                    liveKitRemoteAudioElements.set(track.sid, audio);
+                    try { if (track.mediaStream) drawVisualizer(track.mediaStream, 'rx'); } catch (_) {}
+                });
+                room.on(RoomEvent.TrackUnsubscribed, (track) => {
+                    track.detach().forEach(el => el.remove());
+                    const el = liveKitRemoteAudioElements.get(track.sid);
+                    if (el) el.remove();
+                    liveKitRemoteAudioElements.delete(track.sid);
+                });
+                room.on(RoomEvent.Disconnected, () => {
+                    liveKitRemoteAudioElements.forEach(el => el.remove());
+                    liveKitRemoteAudioElements.clear();
+                    liveKitRoom = null; liveKitLocalTrack = null;
+                });
+                await room.connect(payload.serverUrl, payload.token);
+                liveKitLocalTrack = await createLocalAudioTrack({ echoCancellation: true, noiseSuppression: true, autoGainControl: true });
+                await room.localParticipant.publishTrack(liveKitLocalTrack);
+                await liveKitLocalTrack.mute();
+                liveKitStatus.textContent = 'SFU ses bağlantısı aktif';
+                showToast('Çoklu grup ses bağlantısı kuruldu.', 'success');
+            } catch (error) {
+                console.error('LiveKit connection error:', error);
+                liveKitStatus.textContent = 'Bağlantı kurulamadı';
+                showToast('LiveKit bağlantısı kurulamadı: ' + (error.message || error), 'error');
+                if (liveKitRoom) { try { await liveKitRoom.disconnect(); } catch (_) {} }
+                liveKitRoom = null; liveKitLocalTrack = null;
+            } finally { liveKitConnecting = false; }
+        }
+
+        async function setLiveKitMicrophoneEnabled(enabled) {
+            if (!liveKitRoom || !liveKitLocalTrack) throw new Error('LiveKit ses bağlantısı hazır değil. Sunucu ayarını kontrol edin.');
+            if (enabled) await liveKitLocalTrack.unmute();
+            else await liveKitLocalTrack.mute();
+        }
+
+        async function disconnectLiveKitAudio() {
+            try { if (liveKitLocalTrack) { await liveKitLocalTrack.mute(); liveKitLocalTrack.stop(); } } catch (_) {}
+            try { if (liveKitRoom) await liveKitRoom.disconnect(); } catch (_) {}
+            liveKitRemoteAudioElements.forEach(el => el.remove());
+            liveKitRemoteAudioElements.clear();
+            liveKitRoom = null; liveKitLocalTrack = null;
+        }
+
         function getMicrophonePermission() {
             if (localStream) return Promise.resolve();
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -1453,6 +1552,7 @@
                 updateUserListUI();
                 startPingSimulator();
                 showToast("Kanal başarıyla kuruldu (Yönetici)", "success");
+                connectLiveKitAudio();
 
                 peer.on('connection', (conn) => {
                     conn.on('data', (data) => {
@@ -1460,19 +1560,8 @@
                     });
                 });
 
-                peer.on('call', (call) => {
-                    if (!localStream || !localStream.getAudioTracks().length) {
-                        showToast('Mikrofon hazır değil; cihazın mikrofon iznini kontrol edin.', 'error');
-                        return;
-                    }
-                    try {
-                        call.answer(localStream);
-                        setupCallEvents(call);
-                    } catch (err) {
-                        console.error('Gelen ses çağrısı cevaplanamadı:', err);
-                        showToast('Ses çağrısı başlatılamadı. Kanalı yeniden kurup deneyin.', 'error');
-                    }
-                });
+                // Ses artık PeerJS üzerinden değil, LiveKit SFU üzerinden taşınır.
+                peer.on('call', (call) => { try { call.close(); } catch (_) {} });
             });
 
             peer.on('error', (err) => {
@@ -1544,10 +1633,8 @@
                 }
             });
 
-            peer.on('call', (call) => {
-                call.answer(localStream);
-                setupCallEvents(call);
-            });
+            // Ses artık LiveKit SFU tarafından taşınır; PeerJS yalnızca kontrol/veri içindir.
+            peer.on('call', (call) => { try { call.close(); } catch (_) {} });
         }
 
         function handleDataPacket(data, conn) {
@@ -1626,11 +1713,7 @@
                 updateUserListUI();
                 startPingSimulator();
                 showToast("Kanala başarıyla katıldınız!", "success");
-
-                setTimeout(() => {
-                    let call = peer.call('pmr-tactical-' + roomName + '-host', localStream);
-                    if (call) setupCallEvents(call);
-                }, 200);
+                connectLiveKitAudio();
             } else if (data.type === 'sync_users') {
                 if (!isHost) {
                     activeUsers = data.users.map(u => ({ ...u, isSelf: u.name === userName }));
@@ -1642,6 +1725,7 @@
                 isMutedByAdmin = data.isMuted;
                 if (isMutedByAdmin) {
                     if (isTransmitting) stopTransmission();
+                    setLiveKitMicrophoneEnabled(false).catch(() => {});
                     showToast("Yönetici tarafından susturuldunuz!", "error");
                 } else {
                     showToast("Ses kısıtlamanız kaldırıldı.", "success");
@@ -1775,8 +1859,13 @@
                 showToast("Mikrofon akışı bulunamadı. Kanaldan çıkıp yeniden bağlanın.", "error");
                 return;
             }
+            if (!liveKitRoom || !liveKitLocalTrack) {
+                showToast('Grup ses sunucusu hazır değil. LiveKit adresini ayarlayıp yeniden bağlanın.', 'error');
+                return;
+            }
             isTransmitting = true;
             micTrack.enabled = true;
+            setLiveKitMicrophoneEnabled(true).catch(err => { console.error(err); isTransmitting = false; micTrack.enabled = false; showToast('Mikrofon SFU üzerinden açılamadı.', 'error'); });
             playStartBeep();
 
             pttBtn.classList.add('btn-pressed');
@@ -1789,16 +1878,7 @@
             renderSpeakingUsers();
             broadcastData({ type: 'speaker_start', sender: userName });
 
-            if (!isHost && (!currentCall || currentCall.open === false)) {
-                try {
-                    const call = peer && peer.call('pmr-tactical-' + roomName + '-host', localStream);
-                    if (call) setupCallEvents(call);
-                    else showToast("Ses kanalı başlatılamadı. Kanaldan çıkıp yeniden katılın.", "error");
-                } catch (err) {
-                    console.error("Misafir ses kanalı başlatılamadı:", err);
-                    showToast("Ses gönderilemedi. Mikrofon iznini ve bağlantıyı kontrol edin.", "error");
-                }
-            }
+            // Ses aktarımı LiveKit SFU üzerinden yürütülür; PeerJS ses çağrısı açılmaz.
         }
 
         function stopTransmission(e) {
@@ -1809,6 +1889,7 @@
             if (localStream && localStream.getAudioTracks()[0]) {
                 localStream.getAudioTracks()[0].enabled = false;
             }
+            setLiveKitMicrophoneEnabled(false).catch(() => {});
 
             pttBtn.classList.remove('btn-pressed');
             ledTx.className = "w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-700";
@@ -1848,7 +1929,9 @@
         const volumeSlider = document.getElementById('volumeSlider');
         if (volumeSlider) {
             volumeSlider.addEventListener('input', () => {
-                remoteAudio.volume = Math.max(0, Math.min(1, Number(volumeSlider.value)));
+                const volume = Math.max(0, Math.min(1, Number(volumeSlider.value)));
+                remoteAudio.volume = volume;
+                liveKitRemoteAudioElements.forEach(el => { el.volume = volume; });
             });
         }
 
@@ -1886,9 +1969,14 @@
                 if (guestReconnectTimer) { clearTimeout(guestReconnectTimer); guestReconnectTimer = null; }
                 if (currentCall) { try { currentCall.close(); } catch (e) {} currentCall = null; }
                 if (peer) { try { peer.destroy(); } catch (e) {} peer = null; }
+                disconnectLiveKitAudio();
                 hostDataConnection = null;
                 guestConnections = {};
-                if (localStream) localStream.getAudioTracks().forEach(track => track.enabled = false);
+                if (localStream) {
+                    localStream.getTracks().forEach(track => { try { track.stop(); } catch (e) {} });
+                    localStream = null;
+                }
+                speakingUsers.clear();
                 pttBtn.classList.remove('btn-pressed');
                 ledTx.className = "w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-700";
                 if (pingInterval) clearInterval(pingInterval);
@@ -1958,10 +2046,6 @@
             refreshAudioDevices();
         } catch (err) {}
 
-        volumeSlider.addEventListener('input', (e) => {
-            let val = e.target.value;
-            remoteAudio.volume = val;
-        });
 
         // Ayrı mikrofon modu: bu ses zinciri PeerJS/telsiz bağlantısından tamamen bağımsızdır.
         const modeChooser = document.getElementById('modeChooser');
@@ -1991,7 +2075,8 @@
         const micRecordButton = document.getElementById('micRecordButton');
         const micRecordingPlayback = document.getElementById('micRecordingPlayback');
 
-        let localMonitorStream = null, localMonitorActive = false;
+        let localMonitorStream = null, localMonitorActive = false, localMonitorStarting = false;
+        let localMonitorRequestId = 0;
         let localMonitorContext = null, localMonitorSource = null, localMonitorGain = null;
         let localMonitorAnalyser = null, localMonitorDestination = null;
         let localMonitorAnimation = 0, localMicMode = 'continuous', localPttHeld = false;
@@ -2104,7 +2189,9 @@
         }
 
         async function startLocalMonitor() {
-            if (localMonitorActive) return;
+            if (localMonitorActive || localMonitorStarting) return;
+            localMonitorStarting = true;
+            const requestId = ++localMonitorRequestId;
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 setLocalMicStatus('Mikrofon erişimi için sayfayı HTTPS veya localhost üzerinden açın.');
                 return;
@@ -2115,7 +2202,15 @@
                     audio: { echoCancellation: true, noiseSuppression: micNoise.checked, autoGainControl: true },
                     video: false
                 });
-                localMonitorContext = new (window.AudioContext || window.webkitAudioContext)();
+                // Kullanıcı izin penceresi açıkken ekrandan çıktıysa akışı hemen kapat.
+                if (requestId !== localMonitorRequestId) {
+                    localMonitorStream.getTracks().forEach(track => track.stop());
+                    localMonitorStream = null;
+                    return;
+                }
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContextClass) throw new Error('Bu tarayıcı Web Audio API desteği sunmuyor.');
+                localMonitorContext = new AudioContextClass();
                 if (localMonitorContext.state === 'suspended') await localMonitorContext.resume();
                 localMonitorSource = localMonitorContext.createMediaStreamSource(localMonitorStream);
                 localMonitorGain = localMonitorContext.createGain();
@@ -2140,6 +2235,8 @@
             } catch (err) {
                 stopLocalMonitor();
                 setLocalMicStatus('Mikrofon açılamadı: ' + (err && err.message ? err.message : 'İzinleri kontrol edin.'), false);
+            } finally {
+                if (requestId === localMonitorRequestId) localMonitorStarting = false;
             }
         }
 
@@ -2150,6 +2247,8 @@
         }
 
         function stopLocalMonitor() {
+            localMonitorRequestId++;
+            localMonitorStarting = false;
             localMonitorActive = false;
             localPttHeld = false;
             if (localMicTestTimer) { clearTimeout(localMicTestTimer); localMicTestTimer = null; }
