@@ -86,6 +86,9 @@
     .aspect-16-9 { aspect-ratio: 16 / 9; }
     .aspect-4-3 { aspect-ratio: 4 / 3; }
     .aspect-fill { aspect-ratio: auto; height: 100%; }
+
+    @keyframes baglantiNabiz { 0%,100% { transform: scale(1); opacity: .75; } 50% { transform: scale(1.12); opacity: 1; } }
+    .baglanti-nabiz { animation: baglantiNabiz 1.8s ease-in-out infinite; }
   </style>
 </head>
 <body data-theme="red" class="h-full flex flex-col font-sans antialiased selection:bg-brand-600 selection:text-white transition-colors duration-300">
@@ -282,6 +285,29 @@
 
   </main>
 
+  <!-- İNTERNET / FIREBASE BAĞLANTI KONTROLÜ -->
+  <div id="baglantiKontrolModali" class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-5">
+    <div class="w-full max-w-md overflow-hidden rounded-3xl border border-slate-700/80 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 shadow-2xl">
+      <div class="h-1.5 bg-gradient-to-r from-cyan-500 via-brand-500 to-violet-500"></div>
+      <div class="p-7 text-center sm:p-8">
+        <div id="baglantiIkonAlani" class="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-amber-400/20 bg-amber-400/10 text-amber-300 shadow-lg shadow-amber-950/20 baglanti-nabiz">
+          <i data-lucide="wifi" class="h-9 w-9"></i>
+        </div>
+        <p class="mb-2 text-[10px] font-bold uppercase tracking-[.25em] text-cyan-400">CANLI TV • BAĞLANTI GÜVENLİĞİ</p>
+        <h2 id="baglantiBaslik" class="text-xl font-bold text-white">Bağlantı kontrol ediliyor</h2>
+        <p id="baglantiMesaj" class="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-slate-400">İnternet ve yayın veritabanı bağlantısı doğrulanıyor. Lütfen bekleyin.</p>
+        <div id="baglantiDurumSatiri" class="mt-6 flex items-center justify-center gap-2 text-xs font-medium text-amber-300">
+          <span class="h-2 w-2 rounded-full bg-amber-400 baglanti-nabiz"></span>
+          <span>Bağlantı bekleniyor…</span>
+        </div>
+        <button id="baglantiTekrarDeneBtn" onclick="baglantiTekrarDene()" class="mt-7 hidden w-full rounded-xl bg-gradient-to-r from-brand-600 to-violet-600 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-brand-950/30 transition hover:brightness-110">
+          <i data-lucide="refresh-cw" class="mr-2 inline h-4 w-4"></i> Yeniden dene
+        </button>
+        <p class="mt-5 text-[10px] text-slate-600">Bağlantı kurulduğunda uygulama otomatik olarak açılacaktır.</p>
+      </div>
+    </div>
+  </div>
+
   <!-- ÖZEL MODAL -->
   <div id="onayModali" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[70] flex items-center justify-center p-4 hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
@@ -294,6 +320,37 @@
         <button id="onayIptalBtn" onclick="onayKapat(false)" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition">İptal</button>
         <button id="onayEvetBtn" onclick="onayKapat(true)" class="flex-1 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-medium transition">Evet</button>
       </div>
+    </div>
+  </div>
+
+  <!-- MODERN KATEGORİ ŞİFRE PENCERESİ -->
+  <div id="kategoriSifreModali" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-950/80 backdrop-blur-xl p-4" onclick="if(event.target===this)kategoriSifreModalKapat()">
+    <div class="relative w-full max-w-md overflow-hidden rounded-3xl border border-slate-700/80 bg-gradient-to-b from-slate-900 to-slate-950 shadow-[0_25px_80px_rgba(0,0,0,.65)]">
+      <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-500 via-violet-500 to-cyan-400"></div>
+      <div class="p-6 sm:p-7">
+        <div class="mb-5 flex items-center justify-between">
+          <div id="kategoriSifreIkon" class="flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-400/20 bg-amber-400/10 text-amber-300 shadow-lg shadow-amber-950/20"><i data-lucide="lock-keyhole" class="h-7 w-7"></i></div>
+          <button type="button" onclick="kategoriSifreModalKapat()" class="rounded-xl p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white" aria-label="Kapat"><i data-lucide="x" class="h-5 w-5"></i></button>
+        </div>
+        <p class="mb-1 text-[10px] font-bold uppercase tracking-[.22em] text-brand-400">GÜVENLİ KATEGORİ ERİŞİMİ</p>
+        <h3 id="kategoriSifreBaslik" class="text-xl font-bold text-white">Kategori şifresi</h3>
+        <p id="kategoriSifreAciklama" class="mt-2 text-sm leading-relaxed text-slate-400"></p>
+        <form id="kategoriSifreFormu" onsubmit="kategoriSifreFormGonder(event)" class="mt-6">
+          <label id="kategoriSifreEtiket" for="kategoriSifreInput" class="mb-2 block text-xs font-semibold text-slate-300">Şifre</label>
+          <div class="relative">
+            <i data-lucide="key-round" class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"></i>
+            <input id="kategoriSifreInput" type="password" autocomplete="new-password" class="w-full rounded-2xl border border-slate-700 bg-slate-950/80 py-3.5 pl-11 pr-12 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10" placeholder="Şifreyi girin" />
+            <button type="button" onclick="kategoriSifreGorunurluk()" class="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-500 hover:bg-slate-800 hover:text-white" aria-label="Şifreyi göster/gizle"><i id="kategoriSifreGoz" data-lucide="eye" class="h-4 w-4"></i></button>
+          </div>
+          <p id="kategoriSifreIpucu" class="mt-2 text-[11px] text-slate-500"></p>
+          <p id="kategoriSifreHata" class="mt-2 hidden text-xs font-medium text-rose-400"></p>
+          <div class="mt-6 flex gap-3">
+            <button type="button" onclick="kategoriSifreModalKapat()" class="flex-1 rounded-xl border border-slate-700 bg-slate-800/70 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-slate-700">Vazgeç</button>
+            <button id="kategoriSifreOnayBtn" type="submit" class="flex-1 rounded-xl bg-gradient-to-r from-brand-600 to-violet-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-brand-950/40 transition hover:brightness-110">Devam et</button>
+          </div>
+        </form>
+      </div>
+      <div class="border-t border-slate-800/80 bg-slate-950/50 px-6 py-3 text-center text-[10px] text-slate-500"><i data-lucide="shield-check" class="mr-1 inline h-3 w-3"></i> Kategori erişimi şifre ile korunur</div>
     </div>
   </div>
 
@@ -556,6 +613,8 @@
 
     let tumKanallar = [];
     let tumKategoriler = [...VARSAYILAN_KATEGORILER];
+    let kategoriSifreleri = {};
+    let acikKategoriler = new Set();
     let favoriKanalIdleri = JSON.parse(localStorage.getItem("canli_tv_favoriler") || "[]");
     let sonIzlenenler = JSON.parse(localStorage.getItem("canli_tv_son_izlenenler") || "[]");
     let hataBildirimleri = [];
@@ -571,14 +630,71 @@
     let kanalBaglantiDurumlari = {};
     let suruklenenKanalId = null;
 
+    let firebaseBagliMi = false;
+    let uygulamaBaslatildi = false;
+
     document.addEventListener("DOMContentLoaded", () => {
       lucide.createIcons();
       oturumKontrolEt();
-      firebaseDinleyicileriniBaslat();
-      favorileriCiz();
-      sonIzlenenleriCiz();
-      canliIzleyiciSayaciBaslat();
+      baglantiKontrolunuBaslat();
     });
+
+    // Tarayıcının ağ durumunu ve Firebase sunucusuna gerçek bağlantıyı birlikte izler.
+    function baglantiKontrolunuBaslat() {
+      window.addEventListener("online", baglantiDurumunuGuncelle);
+      window.addEventListener("offline", baglantiDurumunuGuncelle);
+      veritabani.ref(".info/connected").on("value", (snapshot) => {
+        firebaseBagliMi = snapshot.val() === true;
+        baglantiDurumunuGuncelle();
+      }, () => {
+        firebaseBagliMi = false;
+        baglantiDurumunuGuncelle();
+      });
+      baglantiDurumunuGuncelle();
+    }
+
+    function baglantiDurumunuGuncelle() {
+      const internetVar = navigator.onLine;
+      const modal = document.getElementById("baglantiKontrolModali");
+      const ikonAlani = document.getElementById("baglantiIkonAlani");
+      const baslik = document.getElementById("baglantiBaslik");
+      const mesaj = document.getElementById("baglantiMesaj");
+      const durum = document.getElementById("baglantiDurumSatiri");
+      const tekrarBtn = document.getElementById("baglantiTekrarDeneBtn");
+
+      if (internetVar && firebaseBagliMi) {
+        modal.classList.add("hidden");
+        if (!uygulamaBaslatildi) {
+          uygulamaBaslatildi = true;
+          firebaseDinleyicileriniBaslat();
+          favorileriCiz();
+          sonIzlenenleriCiz();
+          canliIzleyiciSayaciBaslat();
+        }
+        return;
+      }
+
+      modal.classList.remove("hidden");
+      tekrarBtn.classList.remove("hidden");
+      ikonAlani.className = "mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-amber-400/20 bg-amber-400/10 text-amber-300 shadow-lg shadow-amber-950/20 baglanti-nabiz";
+      if (!internetVar) {
+        baslik.textContent = "İnternet bağlantısı yok";
+        mesaj.textContent = "Cihazınız internete bağlı görünmüyor. Wi-Fi veya mobil verinizi açın. Bağlantı geldiğinde kontrol otomatik tekrarlanacaktır.";
+        durum.innerHTML = '<span class="h-2 w-2 rounded-full bg-rose-400"></span><span class="text-rose-300">Çevrimdışı</span>';
+        ikonAlani.innerHTML = '<i data-lucide="wifi-off" class="h-9 w-9"></i>';
+      } else {
+        baslik.textContent = "Sunucu bağlantısı bekleniyor";
+        mesaj.textContent = "İnternet bağlantısı var; ancak Canlı TV veritabanına henüz ulaşılamadı. Bağlantı kurulduğunda uygulama kendiliğinden açılacak.";
+        durum.innerHTML = '<span class="h-2 w-2 rounded-full bg-amber-400 baglanti-nabiz"></span><span class="text-amber-300">Sunucuya bağlanılıyor…</span>';
+        ikonAlani.innerHTML = '<i data-lucide="cloud-sync" class="h-9 w-9"></i>';
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function baglantiTekrarDene() {
+      try { veritabani.goOnline(); } catch (e) {}
+      baglantiDurumunuGuncelle();
+    }
 
     function temaDegistir(tema) {
       document.body.setAttribute("data-theme", tema);
@@ -639,6 +755,12 @@
           tumKategoriler = [...VARSAYILAN_KATEGORILER];
         }
         ekranGuncelle();
+      });
+
+      veritabani.ref(`${FIREBASE_ROOT_PATH}/kategoriSifreleri`).on('value', (snapshot) => {
+        kategoriSifreleri = snapshot.val() || {};
+        kategorileriCiz();
+        if (yoneticiGirisYapildi) yoneticiKategoriListesiniCiz();
       });
 
       veritabani.ref(`${FIREBASE_ROOT_PATH}/yoneticiSifresi`).on('value', (snapshot) => {
@@ -711,7 +833,7 @@
               : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
           }"
         >
-          ${kat === 'Favoriler' ? '<i data-lucide="star" class="w-3.5 h-3.5 text-amber-400 fill-amber-400"></i>' : ''}
+          ${kat === 'Favoriler' ? '<i data-lucide="star" class="w-3.5 h-3.5 text-amber-400 fill-amber-400"></i>' : (kategoriSifreleri[kategoriAnahtari(kat)] ? '<i data-lucide="lock" class="w-3 h-3"></i>' : '')}
           ${kat}
         </button>
       `).join("");
@@ -1127,9 +1249,81 @@
       kanallariCiz();
     }
 
+    function kategoriAnahtari(kategori) { return encodeURIComponent(kategori); }
+
+    let kategoriSifreModalIslem = null;
+    function kategoriSifreModalAc({baslik, aciklama, etiket="Şifre", ipucu="", buton="Devam et", ikon="lock-keyhole", islem}) {
+      kategoriSifreModalIslem = islem;
+      document.getElementById("kategoriSifreBaslik").textContent = baslik;
+      document.getElementById("kategoriSifreAciklama").textContent = aciklama;
+      document.getElementById("kategoriSifreEtiket").textContent = etiket;
+      document.getElementById("kategoriSifreIpucu").textContent = ipucu;
+      document.getElementById("kategoriSifreOnayBtn").textContent = buton;
+      document.getElementById("kategoriSifreIkon").innerHTML = `<i data-lucide="${ikon}" class="h-7 w-7"></i>`;
+      const input = document.getElementById("kategoriSifreInput");
+      input.value = ""; input.type = "password"; input.placeholder = "Şifreyi girin";
+      document.getElementById("kategoriSifreGoz").setAttribute("data-lucide", "eye");
+      document.getElementById("kategoriSifreHata").classList.add("hidden");
+      const modal = document.getElementById("kategoriSifreModali");
+      modal.classList.remove("hidden"); modal.classList.add("flex");
+      lucide.createIcons();
+      setTimeout(() => input.focus(), 80);
+    }
+    function kategoriSifreModalKapat() {
+      const modal = document.getElementById("kategoriSifreModali");
+      modal.classList.add("hidden"); modal.classList.remove("flex");
+      kategoriSifreModalIslem = null;
+    }
+    function kategoriSifreGorunurluk() {
+      const input = document.getElementById("kategoriSifreInput");
+      input.type = input.type === "password" ? "text" : "password";
+      document.getElementById("kategoriSifreGoz").setAttribute("data-lucide", input.type === "password" ? "eye" : "eye-off");
+      lucide.createIcons(); input.focus();
+    }
+    function kategoriSifreFormGonder(e) {
+      e.preventDefault();
+      if (kategoriSifreModalIslem) kategoriSifreModalIslem(document.getElementById("kategoriSifreInput").value);
+    }
     function kategoriDegistir(kategori) {
+      const sifre = kategoriSifreleri[kategoriAnahtari(kategori)];
+      if (sifre && !acikKategoriler.has(kategori)) {
+        kategoriSifreModalAc({
+          baslik: `${kategori} kategorisi kilitli`,
+          aciklama: "Bu kategorideki kanalları görüntülemek için erişim şifresini girin.",
+          etiket: "Kategori şifresi", ipucu: "Şifre büyük/küçük harfe duyarlıdır.", buton: "Kilidi aç", ikon: "shield-lock",
+          islem: (girilen) => {
+            if (girilen !== sifre) {
+              const hata = document.getElementById("kategoriSifreHata");
+              hata.textContent = "Şifre hatalı. Lütfen tekrar deneyin."; hata.classList.remove("hidden");
+              document.getElementById("kategoriSifreInput").select(); return;
+            }
+            kategoriSifreModalKapat(); acikKategoriler.add(kategori); aktifKategori = kategori; ekranGuncelle();
+          }
+        });
+        return;
+      }
       aktifKategori = kategori;
       ekranGuncelle();
+    }
+
+    function kategoriSifresiAyarla(kategori) {
+      const mevcut = kategoriSifreleri[kategoriAnahtari(kategori)] || "";
+      kategoriSifreModalAc({
+        baslik: mevcut ? `${kategori} şifresini düzenle` : `${kategori} kategorisini koru`,
+        aciklama: mevcut ? "Yeni bir şifre belirleyin veya korumayı kaldırmak için alanı boş bırakın." : "Bu kategoriye yalnızca şifreyi bilen kullanıcıların erişmesini sağlayın.",
+        etiket: mevcut ? "Yeni kategori şifresi" : "Yeni kategori şifresi",
+        ipucu: mevcut ? "Boş bırakırsanız kategori şifre koruması kaldırılır." : "Güçlü ve tahmin edilmesi zor bir şifre seçin.",
+        buton: "Kaydet", ikon: mevcut ? "key-round" : "shield-plus",
+        islem: (yeni) => {
+          const anahtar = kategoriAnahtari(kategori);
+          if (yeni.trim()) kategoriSifreleri[anahtar] = yeni.trim();
+          else delete kategoriSifreleri[anahtar];
+          acikKategoriler.delete(kategori);
+          veritabani.ref(`${FIREBASE_ROOT_PATH}/kategoriSifreleri`).set(kategoriSifreleri);
+          kategoriSifreModalKapat(); kategorileriCiz(); yoneticiKategoriListesiniCiz();
+          ozelOnayGoster("Güncellendi", yeni.trim() ? `“${kategori}” kategorisine şifre tanımlandı.` : `“${kategori}” kategorisinin şifre koruması kaldırıldı.`, () => {}, true);
+        }
+      });
     }
 
     function varsayilanaDon() {
@@ -1249,10 +1443,15 @@
       const kapsayici = document.getElementById("yoneticiKategoriListesi");
       kapsayici.innerHTML = tumKategoriler.map((kat, indis) => `
         <div class="flex items-center justify-between p-2 bg-slate-900 border border-slate-800 rounded-lg text-xs">
-          <span class="font-bold text-slate-200">${kat}</span>
-          <button type="button" onclick="kategoriSil('${kat}')" class="text-red-400 hover:text-red-300 p-1">
+          <span class="font-bold text-slate-200 flex items-center gap-2">${kategoriSifreleri[kategoriAnahtari(kat)] ? '🔒' : '📁'} ${kat}</span>
+          <div class="flex items-center gap-2">
+          <button type="button" onclick="kategoriSifresiAyarla('${kat.replace(/'/g, "\\'")}')" class="text-amber-400 hover:text-amber-300 p-1" title="Kategori şifresi ayarla/kaldır">
+            <i data-lucide="${kategoriSifreleri[kategoriAnahtari(kat)] ? 'lock' : 'key-round'}" class="w-3.5 h-3.5"></i>
+          </button>
+          <button type="button" onclick="kategoriSil('${kat.replace(/'/g, "\\'")}')" class="text-red-400 hover:text-red-300 p-1">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
           </button>
+          </div>
         </div>
       `).join("");
       lucide.createIcons();
