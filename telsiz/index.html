@@ -573,6 +573,11 @@
         let guestConnections = {};
         let hostDataConnection = null;
         let guestReconnectTimer = null;
+        let hostReconnectTimer = null;
+        let lastConnectionIntent = null;
+        let recordingAudioContext = null;
+        let recordingDestination = null;
+        let recordingSources = new Map();
         let pingInterval = null;
         let isMutedByAdmin = false;
 
@@ -1019,47 +1024,83 @@
             morseInput.value = "";
         });
 
+        function addStreamToRecordingMix(key, stream) {
+            if (!recordingAudioContext || !recordingDestination || !stream || recordingSources.has(key)) return;
+            const audioTracks = stream.getAudioTracks ? stream.getAudioTracks() : [];
+            if (!audioTracks.length) return;
+            try {
+                const source = recordingAudioContext.createMediaStreamSource(stream);
+                source.connect(recordingDestination);
+                recordingSources.set(key, source);
+            } catch (err) {
+                console.warn('Ses kayda eklenemedi:', key, err);
+            }
+        }
+
         startRecBtn.addEventListener('click', async () => {
             try {
-                let streamToRecord = remoteAudio.srcObject || localStream;
                 if (!window.MediaRecorder) {
                     showToast("Bu tarayıcı ses kaydını desteklemiyor.", "error");
                     return;
                 }
-                if (!streamToRecord) {
-                    showToast("Kayıt için aktif ses akışı bulunamadı!", "warning");
+                const hasRemoteAudio = Array.from(remoteAudioElements.values()).some(a => a.srcObject && a.srcObject.getAudioTracks().length);
+                if (!localStream && !hasRemoteAudio) {
+                    showToast("Kayıt için aktif ses akışı bulunamadı! Önce telsiz kanalına bağlanın.", "warning");
                     return;
                 }
+                recordingAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (recordingAudioContext.state === 'suspended') await recordingAudioContext.resume();
+                recordingDestination = recordingAudioContext.createMediaStreamDestination();
+                recordingSources = new Map();
+                addStreamToRecordingMix('local-mic', localStream);
+                remoteAudioElements.forEach((audio, id) => addStreamToRecordingMix('remote:' + id, audio.srcObject));
+                if (!recordingDestination.stream.getAudioTracks().length) {
+                    throw new Error('Kaydedilecek ses izi oluşturulamadı.');
+                }
                 audioChunks = [];
-                mediaRecorder = new MediaRecorder(streamToRecord);
-                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                mediaRecorder.onstop = () => {
-                    let blob = new Blob(audioChunks, { type: 'audio/webm' });
-                    let audioUrl = URL.createObjectURL(blob);
+                const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '');
+                mediaRecorder = new MediaRecorder(recordingDestination.stream, mimeType ? { mimeType } : {});
+                mediaRecorder.ondataavailable = e => { if (e.data && e.data.size) audioChunks.push(e.data); };
+                mediaRecorder.onerror = e => showToast('Kayıt sırasında hata oluştu: ' + (e.error?.message || 'bilinmeyen hata'), 'error');
+                mediaRecorder.onstop = async () => {
+                    const type = mediaRecorder.mimeType || 'audio/webm';
+                    const blob = new Blob(audioChunks, { type });
+                    const audioUrl = URL.createObjectURL(blob);
+                    const extension = type.includes('mp4') ? 'm4a' : 'webm';
                     recordingResult.innerHTML = `
                         <audio controls src="${audioUrl}" class="w-full h-8"></audio>
-                        <a href="${audioUrl}" download="telsiz-kara-kutu.webm" class="text-xs text-amber-400 font-bold underline">Kayıt Dosyasını İndir</a>
+                        <a href="${audioUrl}" download="telsiz-kara-kutu.${extension}" class="text-xs text-amber-400 font-bold underline">Kayıt Dosyasını İndir</a>
                     `;
+                    startRecBtn.disabled = false;
+                    startRecBtn.classList.remove('opacity-50');
+                    stopRecBtn.disabled = true;
+                    stopRecBtn.classList.add('opacity-50');
+                    recordingSources.forEach(source => { try { source.disconnect(); } catch (e) {} });
+                    recordingSources.clear();
+                    if (recordingAudioContext && recordingAudioContext.state !== 'closed') {
+                        try { await recordingAudioContext.close(); } catch (e) {}
+                    }
+                    recordingAudioContext = recordingDestination = null;
                 };
-                mediaRecorder.start();
+                mediaRecorder.start(250);
                 startRecBtn.disabled = true;
                 startRecBtn.classList.add('opacity-50');
                 stopRecBtn.disabled = false;
                 stopRecBtn.classList.remove('opacity-50');
-                showToast("Kara Kutu kayıt başlatıldı.", "success");
+                showToast("Kara Kutu kaydı başladı; mevcut katılımcı sesleri ve mikrofon yayını kaydedilecek.", "success");
             } catch(err) {
-                showToast("Kayıt başlatılamadı: " + err.message, "error");
+                recordingSources.forEach(source => { try { source.disconnect(); } catch (e) {} });
+                recordingSources.clear();
+                if (recordingAudioContext && recordingAudioContext.state !== 'closed') { try { await recordingAudioContext.close(); } catch (e) {} }
+                recordingAudioContext = recordingDestination = null;
+                showToast("Kayıt başlatılamadı: " + (err.message || err), "error");
             }
         });
 
         stopRecBtn.addEventListener('click', () => {
             if (mediaRecorder && mediaRecorder.state !== 'inactive') {
                 mediaRecorder.stop();
-                startRecBtn.disabled = false;
-                startRecBtn.classList.remove('opacity-50');
-                stopRecBtn.disabled = true;
-                stopRecBtn.classList.add('opacity-50');
-                showToast("Kara Kutu kayıt durduruldu.", "info");
+                showToast("Kara Kutu kayıt durduruluyor…", "info");
             }
         });
 
@@ -1133,6 +1174,7 @@
 
         window.leaveChannel = function() {
             if (!isConnected && !peer) return;
+            lastConnectionIntent = null;
             if (guestReconnectTimer) { clearTimeout(guestReconnectTimer); guestReconnectTimer = null; }
             if (isTransmitting) stopTransmission();
             if (!isHost && hostDataConnection && hostDataConnection.open) {
@@ -1161,9 +1203,12 @@
 
         window.closeChannelForAll = function() {
             if (!isHost) return;
+            lastConnectionIntent = null;
             broadcastData({ type: 'channel_closed', message: 'Yönetici kanalı kapattı!' });
             showToast("Kanal kapatıldı.", "warning");
-            if (peer) peer.destroy();
+            closeAllAudioCalls();
+            if (peer) { try { peer.destroy(); } catch (e) {} }
+            peer = null;
             hostDataConnection = null;
             isConnected = false;
             isHost = false;
@@ -1336,7 +1381,9 @@
                 return;
             }
 
+            lastConnectionIntent = { room: rawRoom, password: String(password || ''), host: !!forceHostMode };
             verifyServerChannelAccess(rawRoom, usernameInput.value.trim() || "Operatör", password).then(() => getMicrophonePermission()).then(() => {
+                if (!isPowerOn) return;
                 if (peer) {
                     try { peer.destroy(); } catch(e){}
                     peer = null;
@@ -1478,13 +1525,18 @@
 
             peer.on('error', (err) => {
                 if (err.type === 'unavailable-id') {
-                    let newRandomRoom = roomName + '-' + Math.floor(Math.random() * 899 + 100);
-                    roomInput.value = newRandomRoom;
-                    showToast("Bu oda adı sunucuda kilitli! 'telsiz-" + newRandomRoom + "' olarak yeni oda kuruluyor...", "warning");
-                    setTimeout(() => {
-                        forceHostMode = true;
-                        connectToRoom(newRandomRoom, roomPass);
-                    }, 1000);
+                    statusText.innerText = 'Kanal yeniden açılıyor…';
+                    if (!hostReconnectTimer && isPowerOn && forceHostMode) {
+                        showToast('Kanal kimliği henüz serbest değil. Aynı kanala yeniden bağlanma denenecek.', 'warning');
+                        try { if (peer && !peer.destroyed) peer.destroy(); } catch (e) {}
+                        peer = null;
+                        hostReconnectTimer = setTimeout(() => {
+                            hostReconnectTimer = null;
+                            if (isPowerOn && forceHostMode && lastConnectionIntent) {
+                                connectToRoom(lastConnectionIntent.room, lastConnectionIntent.password);
+                            }
+                        }, 2200);
+                    }
                 } else {
                     statusText.innerText = "Bağlantı Hatası!";
                     showToast("Bağlantı hatası: " + err.type, "error");
@@ -1537,8 +1589,13 @@
 
             peer.on('error', (err) => {
                 if (err.type === 'peer-unavailable') {
-                    showToast("Bu isimde açık bir oda bulunamadı. Önce 'Oda Kur & Bağlan' butonuna basın.", "warning");
-                    statusText.innerText = "Oda Bulunamadı";
+                    statusText.innerText = 'Yönetici bağlantısı bekleniyor…';
+                    if (isPowerOn && !isHost && peer && !peer.destroyed && !guestReconnectTimer) {
+                        guestReconnectTimer = setTimeout(() => {
+                            guestReconnectTimer = null;
+                            if (isPowerOn && !isHost && peer && !peer.destroyed) connectGuestData();
+                        }, 1800);
+                    }
                 } else {
                     statusText.innerText = "Bağlantı Hatası!";
                     showToast("Kanal bulunamadı veya ağ hatası.", "error");
@@ -1649,12 +1706,14 @@
                     showToast("Ses kısıtlamanız kaldırıldı.", "success");
                 }
             } else if (data.type === 'kicked') {
+                lastConnectionIntent = null;
                 showToast(data.message, "error");
                 peer.destroy();
                 isConnected = false;
                 activeUsers = [];
                 updateUserListUI();
             } else if (data.type === 'channel_closed') {
+                lastConnectionIntent = null;
                 showToast(data.message, "warning");
                 if (peer) peer.destroy();
                 isConnected = false;
@@ -1746,6 +1805,7 @@
             audio.muted = false;
             audio.volume = Math.max(0, Math.min(1, Number(volumeSlider?.value || 1)));
             audio.srcObject = stream;
+            addStreamToRecordingMix('remote:' + remoteId, stream);
             const result = audio.play();
             if (result && result.catch) result.catch(() => showToast('Ses oynatılamadı. Ekrana dokunup tekrar deneyin.', 'warning'));
         }
@@ -1908,34 +1968,49 @@
         });
 
         powerBtn.addEventListener('click', () => {
-            isPowerOn = !isPowerOn;
+            const turningOn = !isPowerOn;
+            if (!turningOn && isTransmitting) stopTransmission();
+            isPowerOn = turningOn;
             if (isPowerOn) {
                 document.body.classList.remove('is-off');
                 powerLed.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.9)] animate-pulse";
                 powerText.innerText = "AÇIK";
                 showToast("Cihaz açıldı.", "success");
-                if (roomInput.value.trim()) connectToRoom(roomInput.value, roomPassword.value);
+                const intent = lastConnectionIntent;
+                const savedRoom = intent?.room || roomInput.value.trim();
+                const savedPassword = intent ? intent.password : (roomPass || roomPassword.value);
+                if (intent) forceHostMode = intent.host;
+                if (savedRoom) connectToRoom(savedRoom, savedPassword);
             } else {
+                // Kapatma sırasında mevcut oda/rol/şifre yalnızca bu sekmenin belleğinde korunur.
+                if (!lastConnectionIntent && roomInput.value.trim()) {
+                    lastConnectionIntent = { room: roomInput.value.trim(), password: roomPass || roomPassword.value || '', host: !!forceHostMode };
+                }
                 document.body.classList.add('is-off');
                 powerLed.className = "w-2.5 h-2.5 rounded-full bg-red-600";
                 powerText.innerText = "KAPALI";
                 isConnected = false;
                 isTransmitting = false;
+                speakingUsers.clear();
+                renderSpeakingUsers();
                 if (guestReconnectTimer) { clearTimeout(guestReconnectTimer); guestReconnectTimer = null; }
+                if (hostReconnectTimer) { clearTimeout(hostReconnectTimer); hostReconnectTimer = null; }
                 closeAllAudioCalls();
                 if (peer) { try { peer.destroy(); } catch (e) {} peer = null; }
                 hostDataConnection = null;
                 guestConnections = {};
+                activeUsers = [];
                 if (localStream) localStream.getAudioTracks().forEach(track => track.enabled = false);
                 pttBtn.classList.remove('btn-pressed');
                 ledTx.className = "w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-700";
-                if (pingInterval) clearInterval(pingInterval);
+                if (pingInterval) { clearInterval(pingInterval); pingInterval = null; }
                 lcdStatus.innerText = "KAPALI";
                 lcdStatus.className = "text-2xl md:text-4xl font-black font-lcd tracking-widest text-slate-600";
                 activeSpeaker.innerText = "";
                 statusText.innerText = "Cihaz Kapalı";
                 pingDisplay.innerText = "- ms";
-                showToast("Cihaz kapatıldı.", "warning");
+                updateUserListUI();
+                showToast("Cihaz kapatıldı. Kanal bilgisi korundu.", "warning");
             }
         });
 
@@ -1946,6 +2021,7 @@
             if (!isPowerOn) return;
             channelModal.classList.add('hidden');
             forceHostMode = true;
+            localStorage.setItem('pmr_role', 'host');
             connectToRoom(roomInput.value, roomPassword.value);
         });
 
@@ -1953,6 +2029,7 @@
             if (!isPowerOn) return;
             channelModal.classList.add('hidden');
             forceHostMode = false;
+            localStorage.setItem('pmr_role', 'guest');
             connectToRoom(roomInput.value, roomPassword.value);
         });
 
