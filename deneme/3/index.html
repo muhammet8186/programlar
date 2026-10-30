@@ -1,310 +1,274 @@
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Akıllı Canlı TV Tarayıcısı</title>
-<style>
-*{box-sizing:border-box}
-body{margin:0;background:#f2f4f7;color:#263445;font-family:Arial,sans-serif}
-header{background:#183451;color:white;padding:22px;text-align:center}
-header h2{margin:0 0 7px}
-main{max-width:950px;margin:20px auto;padding:0 13px}
-.panel{background:white;border:1px solid #dce2e9;border-radius:12px;padding:17px;margin-bottom:15px}
-textarea{width:100%;min-height:125px;resize:vertical;padding:12px;border:1px solid #cbd3dd;border-radius:8px;font:14px Arial}
-button{padding:12px 16px;border:0;border-radius:8px;font-weight:bold;cursor:pointer}
-.primary{background:#1769aa;color:white}
-.secondary{background:#e8edf3;color:#263445}
-button:disabled{opacity:.5}
-.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
-.status{white-space:pre-wrap;background:#edf2f7;padding:12px;border-radius:8px;margin-top:12px;font-size:14px}
-.item{padding:12px;border:1px solid #e0e5eb;border-radius:8px;margin-top:9px;overflow-wrap:anywhere}
-.item strong{display:block;margin-bottom:6px}
-.small{font-size:12px;color:#667085;overflow-wrap:anywhere}
-.tag{display:inline-block;background:#e8f1fa;color:#185b91;padding:4px 7px;border-radius:5px;font-size:11px;margin:5px 0}
-h3{margin:0 0 10px}
-.counter{font-size:13px;color:#667085;margin:8px 0}
-.siteResult{border-left:3px solid #1769aa;padding:8px 10px;margin:8px 0;background:#f7f9fb}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masaüstü Video Kaynak Yakalayıcı</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+            --text-color: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            --success-color: #22c55e;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 15px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        header h1 {
+            margin: 0 0 5px 0;
+            font-size: 1.5rem;
+            color: var(--accent-color);
+        }
+
+        header p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .control-panel {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px 14px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-color);
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent-color);
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .browser-container {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 380px;
+        }
+
+        webview {
+            width: 100%;
+            height: 100%;
+            background: white;
+        }
+
+        .results-section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        .results-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .badge {
+            background: var(--bg-color);
+            padding: 3px 8px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .video-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .video-item {
+            background: var(--bg-color);
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .video-url {
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #38bdf8;
+        }
+
+        .video-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 0.75rem;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+        }
+        .btn-success:hover {
+            background-color: #16a34a;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 20px;
+            font-style: italic;
+            font-size: 0.9rem;
+        }
+    </style>
 </head>
 <body>
-<header>
-<h2>Akıllı Canlı TV Kaynak Tarayıcısı</h2>
-<div>Çoklu site • Otomatik kanal keşfi • M3U listesi</div>
-</header>
 
-<main>
-<section class="panel">
-<h3>Tarama adresleri</h3>
-<p class="small">Her satıra bir HTTPS site adresi yaz. Birden fazla siteyi aynı anda sırayla taratabilirsin.</p>
-<textarea id="addresses" placeholder="https://www.canlitv.you/tr
-https://blog.canlitvizle.tv
-https://ornek-site.com"></textarea>
-<div class="actions">
-<button class="primary" id="scanBtn" onclick="startScan()">Tüm Adresleri Tara</button>
-<button class="secondary" onclick="clearAll()">Temizle</button>
-</div>
-<div class="status" id="status">Tarama için site adreslerini gir.</div>
-<div class="counter" id="progress"></div>
-</section>
+    <div class="container">
+        <header>
+            <h1>Masaüstü Video Kaynak Yakalayıcı</h1>
+            <p>Web sitelerindeki m3u8, mp4 ve akış bağlantılarını otomatik tespit edin.</p>
+        </header>
 
-<section class="panel">
-<h3>Tarama sonuçları</h3>
-<div id="siteResults" class="small">Henüz tarama yapılmadı.</div>
-</section>
+        <div class="control-panel">
+            <input type="text" id="urlInput" placeholder="https://ornek-site.com (Video olan sayfa)" value="https://www.w3schools.com/html/html5_video.asp">
+            <button id="goBtn">Sayfayı Aç</button>
+        </div>
 
-<section class="panel">
-<h3>Bulunan yayınlar</h3>
-<div class="counter" id="streamCount">0 yayın</div>
-<div id="streams"></div>
-<div class="actions">
-<button class="primary" onclick="downloadM3U()">Tek M3U Listesi İndir</button>
-<button class="secondary" onclick="copyM3U()">M3U Metnini Kopyala</button>
-</div>
-</section>
+        <div class="browser-container">
+            <webview id="view" src="https://www.w3schools.com/html/html5_video.asp"></webview>
+        </div>
 
-<section class="panel">
-<h3>Bulunan kanal ve kategori sayfaları</h3>
-<div class="counter" id="pageCount">0 sayfa</div>
-<div id="pages"></div>
-</section>
+        <div class="results-section">
+            <div class="results-header">
+                <h3>Yakalanan Kaynaklar</h3>
+                <span class="badge" id="countBadge">0 Kaynak</span>
+            </div>
+            <ul class="video-list" id="videoList">
+                <div class="empty-state" id="emptyState">Henüz video kaynağı yakalanmadı. Yukarıdan bir site açın ve videoyu oynatın.</div>
+            </ul>
+        </div>
+    </div>
 
-<section class="panel">
-<h3>Tarama ayrıntıları</h3>
-<div id="details" class="small">Henüz tarama yapılmadı.</div>
-</section>
-</main>
+    <script>
+        const { ipcRenderer } = require('electron');
+        const view = document.getElementById('view');
+        const urlInput = document.getElementById('urlInput');
+        const goBtn = document.getElementById('goBtn');
+        const videoList = document.getElementById('videoList');
+        const emptyState = document.getElementById('emptyState');
+        const countBadge = document.getElementById('countBadge');
 
-<script>
-const API = "https://tvliste.onrender.com";
-let allStreams = [];
-let allPages = [];
-let scanDetails = [];
+        let capturedVideos = new Set();
 
-function uniqueAddresses() {
-  const lines = document.getElementById("addresses").value
-    .split(/\r?\n/).map(x => x.trim()).filter(Boolean);
-  const result = [];
-  const seen = new Set();
+        goBtn.addEventListener('click', () => {
+            let url = urlInput.value.trim();
+            if (!url) return;
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
+                urlInput.value = url;
+            }
+            view.src = url;
+        });
 
-  for (const line of lines) {
-    try {
-      const u = new URL(line);
-      if (u.protocol !== "https:") continue;
-      if (!seen.has(u.href)) {
-        seen.add(u.href);
-        result.push(u.href);
-      }
-    } catch {}
-  }
-  return result;
-}
+        // Main process'ten gelen video yakalama sinyalini dinle
+        ipcRenderer.on('video-captured', (event, url) => {
+            if (capturedVideos.has(url)) return;
+            capturedVideos.add(url);
 
-function setStatus(t) {
-  document.getElementById("status").textContent = t;
-}
+            if (emptyState) {
+                emptyState.remove();
+            }
 
-function addUnique(target, incoming) {
-  const seen = new Set(target.map(x => x.url));
-  for (const item of incoming) {
-    if (item && item.url && !seen.has(item.url)) {
-      seen.add(item.url);
-      target.push(item);
-    }
-  }
-}
+            countBadge.textContent = `${capturedVideos.size} Kaynak`;
 
-async function startScan() {
-  const addresses = uniqueAddresses();
-  if (!addresses.length) {
-    setStatus("Geçerli HTTPS adresi bulunamadı. Adresleri ayrı satırlara yaz.");
-    return;
-  }
-
-  const btn = document.getElementById("scanBtn");
-  btn.disabled = true;
-  btn.textContent = "Taranıyor...";
-  allStreams = [];
-  allPages = [];
-  scanDetails = [];
-  render();
-
-  const resultBox = document.getElementById("siteResults");
-  resultBox.innerHTML = "";
-
-  let completed = 0;
-
-  for (const address of addresses) {
-    setStatus("Adres taranıyor:\n" + address);
-    document.getElementById("progress").textContent =
-      completed + " / " + addresses.length + " site tamamlandı.";
-
-    const row = document.createElement("div");
-    row.className = "siteResult";
-    row.textContent = "Taranıyor: " + address;
-    resultBox.appendChild(row);
-
-    try {
-      const endpoint = API + "/scan?url=" + encodeURIComponent(address);
-      const response = await fetch(endpoint);
-      const data = await response.json();
-
-      if (!response.ok || !data.ok) {
-        throw new Error(data.error || "Sunucu taramayı reddetti.");
-      }
-
-      const items = Array.isArray(data.items) ? data.items : [];
-      const streams = items.filter(x => x.type === "stream" && x.url);
-      const pages = items.filter(x => x.type === "channel" && x.url);
-
-      addUnique(allStreams, streams);
-      addUnique(allPages, pages);
-
-      const detail = {
-        address,
-        ok:true,
-        scannedPages:data.scannedPages || 0,
-        streamCount:streams.length,
-        pageCount:pages.length,
-        errors:Array.isArray(data.errors) ? data.errors : []
-      };
-      scanDetails.push(detail);
-
-      row.textContent = "Tamamlandı: " + address +
-        " | Sayfa: " + detail.scannedPages +
-        " | Yayın: " + streams.length;
-
-    } catch (error) {
-      scanDetails.push({address,ok:false,error:error.message});
-      row.textContent = "Hata: " + address + " | " + error.message;
-    }
-
-    completed++;
-    render();
-    document.getElementById("progress").textContent =
-      completed + " / " + addresses.length + " site tamamlandı.";
-  }
-
-  const totalErrors = scanDetails.filter(x => !x.ok).length;
-  setStatus("Tarama tamamlandı.\n" +
-    "Taranan adres: " + addresses.length +
-    "\nBulunan benzersiz yayın: " + allStreams.length +
-    "\nHata alınan adres: " + totalErrors);
-
-  document.getElementById("details").textContent =
-    scanDetails.map(x => x.address + "\n" +
-      (x.ok
-        ? "Taranan sayfa: " + x.scannedPages +
-          " | Yayın: " + x.streamCount +
-          " | Kanal sayfası: " + x.pageCount +
-          (x.errors.length ? "\nHata: " + x.errors.length : "")
-        : "Hata: " + x.error)
-    ).join("\n\n");
-
-  btn.disabled = false;
-  btn.textContent = "Tüm Adresleri Tara";
-}
-
-function render() {
-  document.getElementById("streamCount").textContent =
-    allStreams.length + " benzersiz yayın";
-  document.getElementById("pageCount").textContent =
-    allPages.length + " kanal/kategori sayfası";
-
-  const streamBox = document.getElementById("streams");
-  const pageBox = document.getElementById("pages");
-  streamBox.innerHTML = "";
-  pageBox.innerHTML = "";
-
-  if (!allStreams.length) {
-    streamBox.textContent = "Henüz yayın bulunamadı.";
-  }
-
-  allStreams.forEach((item, i) => {
-    const div = document.createElement("div");
-    div.className = "item";
-
-    const name = document.createElement("strong");
-    name.textContent = item.channelName || item.title || "TV Kanalı";
-
-    const tag = document.createElement("span");
-    tag.className = "tag";
-    tag.textContent = "M3U / M3U8";
-
-    const url = document.createElement("div");
-    url.className = "small";
-    url.textContent = item.url;
-
-    div.append(name, tag, url);
-    streamBox.appendChild(div);
-  });
-
-  if (!allPages.length) pageBox.textContent = "Kanal sayfası bulunamadı.";
-
-  allPages.forEach(item => {
-    const div = document.createElement("div");
-    div.className = "item";
-    const name = document.createElement("strong");
-    name.textContent = item.title || "Kanal sayfası";
-    const link = document.createElement("a");
-    link.href = item.url;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.textContent = item.url;
-    div.append(name, link);
-    pageBox.appendChild(div);
-  });
-}
-
-function makeM3U() {
-  let text = "#EXTM3U\n";
-  allStreams.forEach(item => {
-    const name = (item.channelName || item.title || "TV Kanalı")
-      .replace(/[\r\n,]/g, " ").trim();
-    text += "#EXTINF:-1," + name + "\n" + item.url + "\n";
-  });
-  return text;
-}
-
-function downloadM3U() {
-  if (!allStreams.length) {
-    alert("İndirilecek yayın bulunamadı.");
-    return;
-  }
-  const blob = new Blob([makeM3U()], {type:"audio/x-mpegurl;charset=utf-8"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "birlesik_canli_tv_listesi.m3u";
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-async function copyM3U() {
-  if (!allStreams.length) {
-    alert("Kopyalanacak yayın bulunamadı.");
-    return;
-  }
-  try {
-    await navigator.clipboard.writeText(makeM3U());
-    alert("M3U listesi kopyalandı.");
-  } catch {
-    alert("Kopyalama izni verilemedi.");
-  }
-}
-
-function clearAll() {
-  allStreams = [];
-  allPages = [];
-  scanDetails = [];
-  render();
-  document.getElementById("addresses").value = "";
-  document.getElementById("siteResults").textContent = "Henüz tarama yapılmadı.";
-  document.getElementById("details").textContent = "Henüz tarama yapılmadı.";
-  document.getElementById("progress").textContent = "";
-  setStatus("Liste temizlendi.");
-}
-</script>
+            const li = document.createElement('li');
+            li.className = 'video-item';
+            li.innerHTML = `
+                <div class="video-url">${url}</div>
+                <div class="video-actions">
+                    <a href="${url}" target="_blank" style="text-decoration:none;"><button class="button btn-sm">Yeni Sekmede Aç</button></a>
+                    <button class="button btn-sm btn-success" onclick="navigator.clipboard.writeText('${url}'); alert('Bağlantı kopyalandı!');">Kopyala</button>
+                </div>
+            `;
+            videoList.appendChild(li);
+        });
+    </script>
 </body>
 </html>
