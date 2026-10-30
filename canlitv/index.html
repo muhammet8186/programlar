@@ -297,6 +297,30 @@
     </div>
   </div>
 
+  <!-- YAYIN TESTİ MODERN İZLEME PENCERESİ -->
+  <div id="yayinTestModali" class="fixed inset-0 bg-slate-950/90 backdrop-blur-lg z-[90] flex items-center justify-center p-3 sm:p-6 hidden" onclick="if(event.target===this)yayinTestKapat()">
+    <div class="w-full max-w-4xl bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
+      <div class="flex items-center justify-between gap-3 p-4 sm:p-5 border-b border-slate-800 bg-slate-900/90">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span><h3 class="font-bold text-white">Yayın Önizleme</h3></div>
+          <p id="yayinTestBaslik" class="text-xs text-slate-400 mt-1 truncate">Yayın bağlantısı test ediliyor</p>
+        </div>
+        <button type="button" onclick="yayinTestKapat()" class="shrink-0 p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300" aria-label="Kapat"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="bg-black aspect-video relative flex items-center justify-center">
+        <video id="yayinTestVideo" controls autoplay muted playsinline class="w-full h-full object-contain"></video>
+        <div id="yayinTestYukleme" class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-950/75 text-center p-5 pointer-events-none">
+          <div class="w-10 h-10 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
+          <p class="text-sm text-slate-200">Yayın bağlantısı kuruluyor...</p>
+        </div>
+      </div>
+      <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-2 min-w-0"><span id="yayinTestDurumIkon" class="text-amber-400"><i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i></span><p id="yayinTestDurum" class="text-xs text-slate-300">Yayın bekleniyor...</p></div>
+        <button type="button" onclick="yayinTestKapat()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition">Pencereyi Kapat</button>
+      </div>
+    </div>
+  </div>
+
   <!-- YÖNETİCİ MODALI -->
   <div id="yoneticiModali" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-3xl w-full overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
@@ -1239,6 +1263,9 @@
       select.innerHTML = tumKategoriler.map(kat => `<option value="${kat}">${kat}</option>`).join("");
     }
 
+    let yayinTestHls = null;
+    let yayinTestZamanlayici = null;
+
     async function formYayinTestEt(tip) {
       const inputId = tip === 'ana' ? 'formKanalYayinUrl' : 'formKanalYedekYayinUrl';
       const sonucId = tip === 'ana' ? 'anaYayinTestSonuc' : 'yedekYayinTestSonuc';
@@ -1250,18 +1277,89 @@
         sonucEl.className = "text-[11px] mt-1 text-amber-400 block";
         return;
       }
-
-      sonucEl.textContent = "Bağlantı test ediliyor, lütfen bekleyin...";
-      sonucEl.className = "text-[11px] mt-1 text-slate-400 block";
-
-      try {
-        await fetch(url, { method: 'HEAD', mode: 'no-cors' });
-        sonucEl.textContent = "✓ Bağlantı Başarılı! Yayın adresi aktif görünüyor.";
-        sonucEl.className = "text-[11px] mt-1 text-emerald-400 font-semibold block";
-      } catch (e) {
-        sonucEl.textContent = "✕ Bağlantı Başarısız! Yayın adresine erişilemiyor veya CORS engeli var.";
-        sonucEl.className = "text-[11px] mt-1 text-red-400 font-semibold block";
+      if (!/^https?:\/\//i.test(url)) {
+        sonucEl.textContent = "Geçerli bir http/https yayın adresi girin.";
+        sonucEl.className = "text-[11px] mt-1 text-red-400 block";
+        return;
       }
+
+      sonucEl.textContent = "Yayın oynatıcıda test ediliyor...";
+      sonucEl.className = "text-[11px] mt-1 text-slate-400 block";
+      yayinTestBaslat(url, tip === 'ana' ? 'Ana yayın' : 'Yedek yayın', sonucEl);
+    }
+
+    function yayinTestDurumGuncelle(mesaj, basarili = false, hata = false) {
+      const durum = document.getElementById('yayinTestDurum');
+      const ikon = document.getElementById('yayinTestDurumIkon');
+      const yukleme = document.getElementById('yayinTestYukleme');
+      durum.textContent = mesaj;
+      ikon.innerHTML = basarili
+        ? '<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>'
+        : hata ? '<i data-lucide="alert-circle" class="w-4 h-4 text-red-400"></i>'
+        : '<i data-lucide="loader-circle" class="w-4 h-4 animate-spin text-amber-400"></i>';
+      if (basarili || hata) yukleme.classList.add('hidden');
+      else yukleme.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function yayinTestBaslat(url, baslik, sonucEl) {
+      yayinTestKapat(false);
+      const modal = document.getElementById('yayinTestModali');
+      const video = document.getElementById('yayinTestVideo');
+      document.getElementById('yayinTestBaslik').textContent = baslik + ' • ' + url;
+      modal.classList.remove('hidden');
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+      yayinTestDurumGuncelle('Yayın bağlantısı kuruluyor...');
+
+      let tamamlandi = false;
+      const basarili = () => {
+        if (tamamlandi) return;
+        tamamlandi = true;
+        yayinTestDurumGuncelle('Yayın başarıyla açıldı. İzleyebilirsiniz.', true);
+        sonucEl.textContent = '✓ Yayın oynatıcıda başarıyla açıldı.';
+        sonucEl.className = 'text-[11px] mt-1 text-emerald-400 font-semibold block';
+      };
+      const hatali = (mesaj) => {
+        if (tamamlandi) return;
+        tamamlandi = true;
+        yayinTestDurumGuncelle(mesaj || 'Yayın açılamadı. Adresi veya yayın kaynağını kontrol edin.', false, true);
+        sonucEl.textContent = '✕ Yayın açılamadı. Linki ve yayın kaynağını kontrol edin.';
+        sonucEl.className = 'text-[11px] mt-1 text-red-400 font-semibold block';
+      };
+
+      video.addEventListener('playing', basarili, { once: true });
+      video.addEventListener('error', () => hatali('Video oynatılamadı. Bağlantı geçersiz, erişim engelli veya yayın biçimi desteklenmiyor.'), { once: true });
+      yayinTestZamanlayici = setTimeout(() => {
+        if (!tamamlandi) hatali('Yayın zamanında başlamadı. Link yanıt vermiyor veya yayın erişime kapalı olabilir.');
+      }, 20000);
+
+      if (Hls.isSupported()) {
+        yayinTestHls = new Hls({ enableWorker: true, lowLatencyMode: true });
+        yayinTestHls.loadSource(url);
+        yayinTestHls.attachMedia(video);
+        yayinTestHls.on(Hls.Events.MANIFEST_PARSED, () => {
+          video.play().catch(() => yayinTestDurumGuncelle('Yayın hazır. İzlemek için oynat düğmesine dokunun.'));
+        });
+        yayinTestHls.on(Hls.Events.ERROR, (event, data) => {
+          if (data.fatal) hatali('Yayın yüklenemedi: HLS bağlantı hatası veya erişim engeli.');
+        });
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = url;
+        video.play().catch(() => yayinTestDurumGuncelle('Yayın hazır. İzlemek için oynat düğmesine dokunun.'));
+      } else {
+        hatali('Bu tarayıcı HLS yayınlarını desteklemiyor.');
+      }
+    }
+
+    function yayinTestKapat(kapatSonuc = true) {
+      if (yayinTestZamanlayici) { clearTimeout(yayinTestZamanlayici); yayinTestZamanlayici = null; }
+      if (yayinTestHls) { yayinTestHls.destroy(); yayinTestHls = null; }
+      const video = document.getElementById('yayinTestVideo');
+      if (video) { video.pause(); video.removeAttribute('src'); video.load(); }
+      const modal = document.getElementById('yayinTestModali');
+      if (modal) modal.classList.add('hidden');
     }
 
     function kanalKaydet(e) {
