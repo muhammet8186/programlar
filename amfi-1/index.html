@@ -1,19 +1,17 @@
-```html
 <!DOCTYPE html>
 <html lang="tr" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cami & Cemiyet Ses Stüdyosu v2.0</title>
-
-    <!-- Tailwind CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cami Cemiyet Akustik Okuma & Ses Stüdyosu</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
+    <!-- Google Fonts: Scheherazade New (Arabic) & Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Amiri:ital,wght@0,400;0,700;1,400&family=Scheherazade+New:wght@600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=Scheherazade+New:wght@400;700&display=swap" rel="stylesheet">
 
     <script>
         tailwind.config = {
@@ -22,1201 +20,983 @@
                 extend: {
                     colors: {
                         emerald: {
-                            850: '#043e2e',
-                            950: '#022017',
+                            850: '#064e3b',
+                            900: '#022c22',
+                            950: '#011710',
+                        },
+                        amber: {
+                            450: '#f59e0b',
+                            550: '#d97706',
                         },
                         gold: {
                             300: '#fde047',
                             400: '#facc15',
                             500: '#eab308',
                             600: '#ca8a04',
-                            700: '#a16207',
                         }
                     },
                     fontFamily: {
-                        sans: ['Outfit', 'sans-serif'],
-                        arabic: ['Amiri', 'Scheherazade New', 'serif']
+                        sans: ['Inter', 'sans-serif'],
+                        arabic: ['"Scheherazade New"', 'Amiri', 'serif'],
                     }
                 }
             }
         }
     </script>
-
     <style>
-        body {
-            background-color: #030712;
-            color: #f3f4f6;
-            font-family: 'Outfit', sans-serif;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        /* Gold Metallic Accents */
-        .gold-text-glow {
-            background: linear-gradient(135deg, #fef08a 0%, #eab308 50%, #ca8a04 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .gold-border {
-            border: 1px solid rgba(234, 179, 8, 0.3);
-        }
-
-        .glass-card {
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        /* Custom Scrollbar */
+        /* Custom Scrollbar for Smooth Reading */
         ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+            width: 8px;
+            height: 8px;
         }
         ::-webkit-scrollbar-track {
-            background: #090d16;
+            background: #022c22;
         }
         ::-webkit-scrollbar-thumb {
-            background: #27272a;
+            background: #059669;
             border-radius: 4px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #ca8a04;
+            background: #10b981;
         }
-
-        /* Input Slider Customization */
+        
+        .arabic-text {
+            font-family: 'Scheherazade New', 'Amiri', serif;
+            direction: rtl;
+            line-height: 2.2;
+        }
+        
+        /* Studio FX Sliders */
         input[type=range] {
-            -webkit-appearance: none;
-            background: transparent;
-        }
-        input[type=range]:focus {
-            outline: none;
-        }
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 6px;
-            cursor: pointer;
-            background: #1e293b;
-            border-radius: 9999px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        input[type=range]::-webkit-slider-thumb {
-            height: 18px;
-            width: 18px;
-            border-radius: 50%;
-            background: #eab308;
-            cursor: pointer;
-            -webkit-appearance: none;
-            margin-top: -6px;
-            box-shadow: 0 0 10px rgba(234, 179, 8, 0.5);
-            transition: transform 0.1s ease;
-        }
-        input[type=range]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
+            accent-color: #f59e0b;
         }
 
-        /* Tab Active Indicator */
-        .active-tab {
-            border-bottom: 2px solid #eab308;
-            color: #facc15;
-            background: rgba(234, 179, 8, 0.05);
+        .gold-glow {
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
+        }
+        .emerald-glow {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between bg-slate-950 text-slate-100 antialiased pb-10">
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-amber-500 selection:text-slate-950">
 
-    <!-- TOP HEADER BAR -->
-    <header class="w-full border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+    <!-- Top Header / App Bar -->
+    <header class="bg-emerald-950 border-b border-emerald-800/50 sticky top-0 z-50 shadow-xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-900 flex items-center justify-center text-amber-300 shadow-lg border border-amber-500/30">
-                    <i class="fa-solid font-arabic text-2xl leading-none">🕌</i>
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center text-slate-950 font-bold text-xl shadow-lg">
+                    <i class="fa-solid font-bold fa-mosque"></i>
                 </div>
                 <div>
-                    <div class="flex items-center space-x-2">
-                        <h1 class="text-xl font-bold tracking-tight gold-text-glow">Seda-yı Kubbe</h1>
-                        <span class="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded font-mono">v2.0 Stüdyo</span>
-                    </div>
-                    <p class="text-xs text-slate-400">Cami, Cemiyet & Akustik Okuma Stüdyosu</p>
+                    <h1 class="text-lg sm:text-xl font-bold bg-gradient-to-r from-amber-300 via-emerald-200 to-amber-400 bg-clip-text text-transparent">
+                        Cami Cemiyet Akustik Studio
+                    </h1>
+                    <p class="text-xs text-emerald-400/80 hidden sm:block">Kıraat, Ezan ve İlahi İçin Profesyonel Yankı & Kayıt Sistemi</p>
                 </div>
             </div>
 
+            <!-- Status Indicator & Master Mic Button -->
             <div class="flex items-center space-x-3">
-                <!-- Headphone Warning -->
-                <div class="hidden md:flex items-center space-x-2 bg-amber-500/10 border border-amber-500/30 text-amber-300 px-3 py-1.5 rounded-full text-xs font-medium">
-                    <i class="fa-solid fa-headphones text-amber-400 animate-pulse"></i>
-                    <span>Kulaklık Takınız</span>
+                <div id="statusBadge" class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-slate-500 inline-block" id="statusDot"></span>
+                    <span id="statusText">Mikrofon Kapalı</span>
                 </div>
 
-                <!-- Master Power Switch -->
-                <button id="masterPowerBtn" class="flex items-center space-x-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-lg duration-300 bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/40">
-                    <i id="masterPowerIcon" class="fa-solid fa-power-off"></i>
-                    <span id="masterPowerText">Sistemi Başlat</span>
+                <button id="toggleMicBtn" onclick="toggleMicrophone()" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold rounded-lg shadow-md transition-all flex items-center gap-2 active:scale-95 border border-emerald-400/30">
+                    <i class="fa-solid fa-microphone" id="micIcon"></i>
+                    <span id="micBtnText">Canlı Mikrofonu Aç</span>
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- MAIN STUDIO WORKSPACE -->
-    <main class="max-w-7xl mx-auto w-full px-4 pt-4 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Main Workspace Grid Layout -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        <!-- LEFT COLUMN: RACK CONTROLS & PRESETS (7 COLS) -->
-        <div class="lg:col-span-7 flex flex-col space-y-6">
-
-            <!-- VISUALIZER & MASTER STATUS PANEL -->
-            <div class="glass-card rounded-2xl p-4 border border-slate-800 relative overflow-hidden flex flex-col justify-between h-52 sm:h-60 shadow-2xl">
-                <div class="flex items-center justify-between z-10">
-                    <div class="flex items-center space-x-2">
-                        <span id="statusDot" class="w-3 h-3 rounded-full bg-red-500"></span>
-                        <span id="statusText" class="text-xs font-semibold text-slate-400">Sistem Kapalı</span>
-                    </div>
-                    
-                    <div class="flex items-center space-x-3 text-xs">
-                        <span id="activePresetBadge" class="bg-slate-800 text-amber-300 border border-slate-700 px-2.5 py-1 rounded-md font-mono">Preset: Sultanahmet</span>
-                        <button id="toggleMonitorBtn" class="bg-emerald-950 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-md font-medium flex items-center space-x-1.5 hover:bg-emerald-900 transition-colors">
-                            <i class="fa-solid fa-volume-high text-xs"></i>
-                            <span id="monitorStatusText">Canlı Dinleme Açık</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Stereo Canvas Visualizer -->
-                <canvas id="studioVisualizer" class="absolute inset-0 w-full h-full z-0 opacity-85 pointer-events-none"></canvas>
-
-                <!-- Audio Output Peak Level Meter -->
-                <div class="z-10 flex items-center justify-between text-xs text-slate-400 bg-slate-950/80 px-3 py-2 rounded-xl border border-slate-800/80">
-                    <div class="flex items-center space-x-2">
-                        <i class="fa-solid fa-chart-simple text-amber-400"></i>
-                        <span class="font-medium">Ses Seviye Göstergesi</span>
-                    </div>
-                    <div class="flex-1 mx-4 bg-slate-900 rounded-full h-2.5 overflow-hidden border border-slate-800">
-                        <div id="vuMeterBar" class="bg-gradient-to-r from-emerald-500 via-amber-400 to-red-500 h-full w-0 transition-all duration-75"></div>
-                    </div>
-                    <span id="vuMeterDb" class="font-mono text-slate-400 text-[11px] min-w-[40px] text-right">-INF dB</span>
-                </div>
-            </div>
-
-            <!-- PRESETS SELECTOR & CUSTOM PRESET SAVER -->
-            <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-2">
-                        <i class="fa-solid fa-sliders text-amber-400"></i>
-                        <span>Akustik Mekan Presets & Modlar</span>
+        <!-- LEFT COLUMN: Acoustic FX & Visualizer (5 Cols) -->
+        <section class="lg:col-span-5 flex flex-col gap-6">
+            
+            <!-- Visualizer Card -->
+            <div class="bg-slate-900/90 rounded-2xl p-4 border border-emerald-900/60 shadow-xl backdrop-blur relative overflow-hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                        <i class="fa-solid fa-wave-square"></i> Live Akustik Sinyal & Görselleştirici
                     </h2>
-                    <button id="saveUserPresetBtn" class="text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-lg flex items-center space-x-1 transition-colors">
-                        <i class="fa-solid fa-bookmark"></i>
-                        <span>Ayarlarımı Kaydet</span>
-                    </button>
-                </div>
-
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
-                    <button data-preset="sultanahmet" class="preset-btn active bg-emerald-950/80 border border-emerald-500/60 text-amber-300 p-2.5 rounded-xl flex flex-col items-center justify-center space-y-1 text-center transition-all">
-                        <i class="fa-solid fa-mosque text-xl"></i>
-                        <span class="text-xs font-bold">Sultanahmet</span>
-                        <span class="text-[9px] text-slate-400">Yüksek Kubbe</span>
-                    </button>
-
-                    <button data-preset="dergah" class="preset-btn bg-slate-900/80 border border-slate-800 text-slate-300 hover:border-amber-500/40 p-2.5 rounded-xl flex flex-col items-center justify-center space-y-1 text-center transition-all">
-                        <i class="fa-solid fa-gavel text-xl"></i>
-                        <span class="text-xs font-bold">Ahşap Dergah</span>
-                        <span class="text-[9px] text-slate-400">Sıcak Reverb</span>
-                    </button>
-
-                    <button data-preset="minare" class="preset-btn bg-slate-900/80 border border-slate-800 text-slate-300 hover:border-amber-500/40 p-2.5 rounded-xl flex flex-col items-center justify-center space-y-1 text-center transition-all">
-                        <i class="fa-solid fa-tower-observation text-xl"></i>
-                        <span class="text-xs font-bold">Minare / Açık</span>
-                        <span class="text-[9px] text-slate-400">Uzak Echo</span>
-                    </button>
-
-                    <button data-preset="studio" class="preset-btn bg-slate-900/80 border border-slate-800 text-slate-300 hover:border-amber-500/40 p-2.5 rounded-xl flex flex-col items-center justify-center space-y-1 text-center transition-all">
-                        <i class="fa-solid fa-compact-disc text-xl"></i>
-                        <span class="text-xs font-bold">Stüdyo Kayıt</span>
-                        <span class="text-[9px] text-slate-400">Temiz / Komp.</span>
-                    </button>
-
-                    <button data-preset="makam" class="preset-btn bg-slate-900/80 border border-slate-800 text-slate-300 hover:border-amber-500/40 p-2.5 rounded-xl flex flex-col items-center justify-center space-y-1 text-center transition-all">
-                        <i class="fa-solid fa-book-quran text-xl"></i>
-                        <span class="text-xs font-bold">Makam Çalışma</span>
-                        <span class="text-[9px] text-slate-400">Hafif Echo</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- AUDIO DSP CONTROL TABS PANEL -->
-            <div class="glass-card rounded-2xl border border-slate-800 overflow-hidden flex flex-col">
-                <!-- Tab Navigation Header -->
-                <div class="flex items-center border-b border-slate-800 bg-slate-900/80 text-xs font-semibold overflow-x-auto">
-                    <button data-tab="tab-acoustics" class="dsp-tab-btn active-tab px-4 py-3 flex items-center space-x-2 whitespace-nowrap">
-                        <i class="fa-solid fa-water text-blue-400"></i>
-                        <span>1. Çift Reverb & Echo</span>
-                    </button>
-                    <button data-tab="tab-dynamics" class="dsp-tab-btn px-4 py-3 flex items-center space-x-2 text-slate-400 hover:text-slate-200 whitespace-nowrap">
-                        <i class="fa-solid fa-filter text-emerald-400"></i>
-                        <span>2. Noise Gate & Kompresör</span>
-                    </button>
-                    <button data-tab="tab-eq" class="dsp-tab-btn px-4 py-3 flex items-center space-x-2 text-slate-400 hover:text-slate-200 whitespace-nowrap">
-                        <i class="fa-solid fa-sliders text-amber-400"></i>
-                        <span>3. 5-Band EQ & Ton</span>
-                    </button>
-                    <button data-tab="tab-pitch" class="dsp-tab-btn px-4 py-3 flex items-center space-x-2 text-slate-400 hover:text-slate-200 whitespace-nowrap">
-                        <i class="fa-solid fa-music text-purple-400"></i>
-                        <span>4. Pitch Transpose & Kalibrasyon</span>
-                    </button>
-                </div>
-
-                <!-- TAB 1: ACOUSTICS & REVERB -->
-                <div id="tab-acoustics" class="dsp-tab-content p-5 space-y-5">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <!-- Dome Reverb Mix -->
-                        <div class="space-y-1.5">
-                            <div class="flex justify-between text-xs">
-                                <label class="font-medium text-slate-300">Ana Kubbe Reverb Mix</label>
-                                <span id="reverbMixVal" class="text-amber-400 font-mono">45%</span>
-                            </div>
-                            <input type="range" id="reverbMix" min="0" max="1" step="0.02" value="0.45">
-                        </div>
-
-                        <!-- Dome Decay / Height -->
-                        <div class="space-y-1.5">
-                            <div class="flex justify-between text-xs">
-                                <label class="font-medium text-slate-300">Kubbe Yüksekliği / Sönümlenme</label>
-                                <span id="reverbDecayVal" class="text-amber-400 font-mono">3.2 s</span>
-                            </div>
-                            <input type="range" id="reverbDecay" min="0.5" max="7.0" step="0.2" value="3.2">
-                        </div>
-
-                        <!-- Carpet High Absorption (Wall Damp) -->
-                        <div class="space-y-1.5">
-                            <div class="flex justify-between text-xs">
-                                <label class="font-medium text-slate-300">Halı / Duvar Tiz Emişi (Damping)</label>
-                                <span id="wallDampVal" class="text-amber-400 font-mono">3500 Hz</span>
-                            </div>
-                            <input type="range" id="wallDamp" min="1000" max="12000" step="250" value="3500">
-                        </div>
-
-                        <!-- Echo Delay Time -->
-                        <div class="space-y-1.5">
-                            <div class="flex justify-between text-xs">
-                                <label class="font-medium text-slate-300">Echo Gecikme Süresi (ms)</label>
-                                <span id="echoTimeVal" class="text-amber-400 font-mono">220 ms</span>
-                            </div>
-                            <input type="range" id="echoTime" min="0.05" max="0.8" step="0.01" value="0.22">
-                        </div>
-
-                        <!-- Echo Feedback -->
-                        <div class="space-y-1.5">
-                            <div class="flex justify-between text-xs">
-                                <label class="font-medium text-slate-300">Echo Tekrar Sayısı (Feedback)</label>
-                                <span id="echoFeedbackVal" class="text-amber-400 font-mono">35%</span>
-                            </div>
-                            <input type="range" id="echoFeedback" min="0" max="0.85" step="0.02" value="0.35">
-                        </div>
-
-                        <!-- Mic Input Gain -->
-                        <div class="space-y-1.5">
-                            <div class="flex justify-between text-xs">
-                                <label class="font-medium text-slate-300">Mikrofon Giriş Seviyesi (Gain)</label>
-                                <span id="micGainVal" class="text-amber-400 font-mono">1.2x</span>
-                            </div>
-                            <input type="range" id="micGain" min="0" max="3" step="0.1" value="1.2">
-                        </div>
+                    <div class="flex gap-2">
+                        <button onclick="setVisType('bars')" id="visBtnBars" class="text-xs px-2 py-1 rounded bg-emerald-800/60 text-emerald-200 border border-emerald-600/40">Frekans</button>
+                        <button onclick="setVisType('wave')" id="visBtnWave" class="text-xs px-2 py-1 rounded bg-slate-800 text-slate-400 border border-slate-700">Dalga</button>
                     </div>
                 </div>
 
-                <!-- TAB 2: DYNAMICS (NOISE GATE & COMPRESSOR) -->
-                <div id="tab-dynamics" class="dsp-tab-content p-5 space-y-5 hidden">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <!-- Noise Gate Threshold -->
-                        <div class="space-y-1.5">
-                            <div class="flex justify-between text-xs">
-                                <label class="font-medium text-slate-300">Noise Gate (Dip Gürültü Kesici)</label>
-                                <span id="gateThresholdVal" class="text-amber-400 font-mono">-50 dB</span>
-                            </div>
-                            <input type="range" id="gateThreshold" min="-80" max="-20" step="1" value="-50">
-                            <p class="text-[10px] text-slate-500">Ortamdaki klima/fısıltı gürültüsünü otomatik keser.</p>
-                        </div>
-
-                        <!-- Compressor Threshold -->
-                        <div class="space-y-1.5">
-                            <div class="flex justify-between text-xs">
-                                <label class="font-medium text-slate-300">Kompresör Eşiği (Threshold)</label>
-                                <span id="compThresholdVal" class="text-amber-400 font-mono">-24 dB</span>
-                            </div>
-                            <input type="range" id="compThreshold" min="-50" max="0" step="1" value="-24">
-                        </div>
-
-                        <!-- Compressor Ratio -->
-                        <div class="space-y-1.5">
-                            <div class="flex justify-between text-xs">
-                                <label class="font-medium text-slate-300">Kompresör Oranı (Ratio)</label>
-                                <span id="compRatioVal" class="text-amber-400 font-mono">3:1</span>
-                            </div>
-                            <input type="range" id="compRatio" min="1" max="12" step="0.5" value="3">
-                        </div>
-
-                        <!-- Master Output Volume -->
-                        <div class="space-y-1.5">
-                            <div class="flex justify-between text-xs">
-                                <label class="font-medium text-slate-300">Ana Çıkış Sesi (Master Vol)</label>
-                                <span id="masterVolVal" class="text-amber-400 font-mono">80%</span>
-                            </div>
-                            <input type="range" id="masterVol" min="0" max="1" step="0.02" value="0.8">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TAB 3: 5-BAND EQUALIZER -->
-                <div id="tab-eq" class="dsp-tab-content p-5 space-y-4 hidden">
-                    <div class="grid grid-cols-5 gap-3 text-center">
-                        <!-- Sub-Bass -->
-                        <div class="space-y-2 flex flex-col items-center">
-                            <span class="text-[10px] font-mono text-slate-400">80Hz</span>
-                            <input type="range" id="eqSub" min="-12" max="12" step="0.5" value="2" class="h-28 [writing-mode:vertical-lr] [direction:rtl]">
-                            <span id="eqSubVal" class="text-xs font-mono text-amber-400">+2dB</span>
-                            <span class="text-[10px] text-slate-400">Derin Bas</span>
-                        </div>
-
-                        <!-- Bass -->
-                        <div class="space-y-2 flex flex-col items-center">
-                            <span class="text-[10px] font-mono text-slate-400">250Hz</span>
-                            <input type="range" id="eqBass" min="-12" max="12" step="0.5" value="1" class="h-28 [writing-mode:vertical-lr] [direction:rtl]">
-                            <span id="eqBassVal" class="text-xs font-mono text-amber-400">+1dB</span>
-                            <span class="text-[10px] text-slate-400">Tokluk</span>
-                        </div>
-
-                        <!-- Mid -->
-                        <div class="space-y-2 flex flex-col items-center">
-                            <span class="text-[10px] font-mono text-slate-400">1kHz</span>
-                            <input type="range" id="eqMid" min="-12" max="12" step="0.5" value="0" class="h-28 [writing-mode:vertical-lr] [direction:rtl]">
-                            <span id="eqMidVal" class="text-xs font-mono text-amber-400">0dB</span>
-                            <span class="text-[10px] text-slate-400">Vokal Gövde</span>
-                        </div>
-
-                        <!-- Presence -->
-                        <div class="space-y-2 flex flex-col items-center">
-                            <span class="text-[10px] font-mono text-slate-400">4kHz</span>
-                            <input type="range" id="eqPresence" min="-12" max="12" step="0.5" value="2" class="h-28 [writing-mode:vertical-lr] [direction:rtl]">
-                            <span id="eqPresenceVal" class="text-xs font-mono text-amber-400">+2dB</span>
-                            <span class="text-[10px] text-slate-400">Netlik</span>
-                        </div>
-
-                        <!-- Air / Treble -->
-                        <div class="space-y-2 flex flex-col items-center">
-                            <span class="text-[10px] font-mono text-slate-400">10kHz</span>
-                            <input type="range" id="eqAir" min="-12" max="12" step="0.5" value="3" class="h-28 [writing-mode:vertical-lr] [direction:rtl]">
-                            <span id="eqAirVal" class="text-xs font-mono text-amber-400">+3dB</span>
-                            <span class="text-[10px] text-slate-400">Parlaklık</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TAB 4: PITCH & LATENCY CALIBRATION -->
-                <div id="tab-pitch" class="dsp-tab-content p-5 space-y-5 hidden">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <!-- Pitch Shifter Transpose -->
-                        <div class="space-y-1.5">
-                            <div class="flex justify-between text-xs">
-                                <label class="font-medium text-slate-300">Pitch Transpose (Makam Ton Değiştirici)</label>
-                                <span id="pitchSemitoneVal" class="text-amber-400 font-mono">0 Yarım Ton</span>
-                            </div>
-                            <input type="range" id="pitchSemitone" min="-6" max="6" step="1" value="0">
-                            <p class="text-[10px] text-slate-500">Sesinizi karar sesine göre tizleştirin veya pesleştirin.</p>
-                        </div>
-
-                        <!-- Bluetooth / Audio Latency Calibration Buffer -->
-                        <div class="space-y-1.5">
-                            <div class="flex justify-between text-xs">
-                                <label class="font-medium text-slate-300">Kulaklık Gecikme Ayarı (Offset)</label>
-                                <span id="latencyOffsetVal" class="text-amber-400 font-mono">0 ms</span>
-                            </div>
-                            <input type="range" id="latencyOffset" min="0" max="300" step="10" value="0">
-                            <p class="text-[10px] text-slate-500">Bluetooth kulaklıktaki ses gecikmesini senkronize edin.</p>
-                        </div>
+                <div class="relative h-36 bg-slate-950 rounded-xl overflow-hidden border border-emerald-950 flex items-center justify-center">
+                    <canvas id="visualizerCanvas" class="w-full h-full block"></canvas>
+                    <div id="visPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-600 pointer-events-none">
+                        <i class="fa-solid fa-microphone-lines text-3xl mb-1 opacity-50"></i>
+                        <span class="text-xs">Akustik Sinyal Bekleniyor</span>
                     </div>
                 </div>
             </div>
 
-            <!-- BACKGROUND AMBIENCE (DEM / NEY / DOĞA SESLERİ) -->
-            <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-2">
-                        <i class="fa-solid fa-music text-emerald-400"></i>
-                        <span>Arka Plan Fon & Dem Tonları</span>
-                    </h2>
-                    <div class="flex items-center space-x-2">
-                        <span id="ambienceVolVal" class="text-xs font-mono text-amber-400">30%</span>
-                        <input type="range" id="ambienceVol" min="0" max="1" step="0.05" value="0.3" class="w-20">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    <button id="demRastBtn" data-note="Rast" class="ambience-btn bg-slate-900/80 border border-slate-800 text-slate-300 hover:border-emerald-500/40 p-2 rounded-xl text-xs font-medium flex items-center justify-center space-x-2">
-                        <i class="fa-solid fa-play text-[10px]"></i>
-                        <span>Rast Dem Tonu</span>
-                    </button>
-                    <button id="demSabaBtn" data-note="Saba" class="ambience-btn bg-slate-900/80 border border-slate-800 text-slate-300 hover:border-emerald-500/40 p-2 rounded-xl text-xs font-medium flex items-center justify-center space-x-2">
-                        <i class="fa-solid fa-play text-[10px]"></i>
-                        <span>Saba Dem Tonu</span>
-                    </button>
-                    <button id="demSegahBtn" data-note="Segah" class="ambience-btn bg-slate-900/80 border border-slate-800 text-slate-300 hover:border-emerald-500/40 p-2 rounded-xl text-xs font-medium flex items-center justify-center space-x-2">
-                        <i class="fa-solid fa-play text-[10px]"></i>
-                        <span>Segah Dem Tonu</span>
-                    </button>
-                    <button id="ambienceRainBtn" data-type="rain" class="ambience-btn bg-slate-900/80 border border-slate-800 text-slate-300 hover:border-emerald-500/40 p-2 rounded-xl text-xs font-medium flex items-center justify-center space-x-2">
-                        <i class="fa-solid fa-cloud-rain text-[10px]"></i>
-                        <span>Hafif Yağmur Fonu</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- METRONOME & USÛL RHYTHM GUIDE -->
-            <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-2">
-                        <i class="fa-solid fa-drum text-amber-400"></i>
-                        <span>Usûl & Ritim Rehberi</span>
-                    </h2>
-                    <div class="flex items-center space-x-3">
-                        <span id="bpmVal" class="text-xs font-mono text-amber-400">80 BPM</span>
-                        <input type="range" id="bpmInput" min="40" max="200" step="1" value="80" class="w-24">
-                    </div>
-                </div>
-
-                <div class="flex items-center space-x-2">
-                    <select id="usulSelect" class="bg-slate-900 border border-slate-800 text-slate-300 text-xs rounded-xl p-2.5 flex-1 focus:outline-none focus:border-amber-500">
-                        <option value="sofyan">Sofyan Usûlü (4/4)</option>
-                        <option value="duyek">Düyek Usûlü (8/8)</option>
-                        <option value="semai">Semai Usûlü (3/4)</option>
-                        <option value="aksak">Aksak Usûlü (9/8)</option>
-                        <option value="simple">Sade Metronom (Click)</option>
-                    </select>
-
-                    <button id="toggleMetronomeBtn" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold rounded-xl flex items-center space-x-2 transition-colors">
-                        <i class="fa-solid fa-play"></i>
-                        <span>Başlat</span>
-                    </button>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- RIGHT COLUMN: READING ASSISTANT & RECORD STUDIO & A/B MODE (5 COLS) -->
-        <div class="lg:col-span-5 flex flex-col space-y-6">
-
-            <!-- READ & PRACTICE ASSISTANT (EĞİTİM & OKUMA WINDOW) -->
-            <div class="glass-card rounded-2xl p-4 border border-slate-800 flex flex-col space-y-3 h-80 relative">
-                <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                    <h2 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-2">
-                        <i class="fa-solid fa-book-open text-amber-400"></i>
-                        <span>Okuma & Takip Asistanı</span>
-                    </h2>
-                    
-                    <div class="flex items-center space-x-2">
-                        <button id="autoScrollBtn" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded-lg flex items-center space-x-1 border border-slate-700">
-                            <i class="fa-solid fa-angles-down"></i>
-                            <span>Oto-Kaydır</span>
-                        </button>
-                        <input type="range" id="scrollSpeed" min="1" max="10" step="1" value="3" class="w-16" title="Kaydırma Hızı">
-                    </div>
-                </div>
-
-                <!-- Text Library Selector Tabs -->
-                <div class="flex items-center space-x-2 text-[11px]">
-                    <button id="libYasinBtn" class="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-1 rounded-md">Mülk Suresi</button>
-                    <button id="libSalavatBtn" class="bg-slate-800 text-slate-400 border border-slate-700 px-2 py-1 rounded-md hover:text-slate-200">Salavat & Duaz</button>
-                    <button id="libCustomBtn" class="bg-slate-800 text-slate-400 border border-slate-700 px-2 py-1 rounded-md hover:text-slate-200">Özel Metin Yükle</button>
-                </div>
-
-                <!-- Scrollable Reader Viewport -->
-                <div id="readerViewport" class="flex-1 overflow-y-auto pr-2 space-y-4 text-slate-200 font-arabic text-lg leading-relaxed text-right dir-rtl border border-slate-900/60 p-3 bg-slate-950/60 rounded-xl">
-                    <p class="text-xl text-amber-300 text-center font-bold">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
-                    <p>تَبَارَكَ الَّذِي بِيَدِهِ الْمُلْكُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ ﴿١﴾</p>
-                    <p>الَّذِي خَلَقَ الْمَوْتَ وَالْحَيَاةَ لِيَبْلُوَكُمْ أَيُّكُمْ أَحْسَنُ عَمَلًا ۚ وَهُوَ الْعَزِيزُ الْغَفُورُ ﴿٢﴾</p>
-                    <p>الَّذِي خَلَقَ سَبْعَ سَمَاوَاتٍ طِبَاقًا ۖ مَا تَرَىٰ فِي خَلْقِ الرَّحْمَٰنِ مِنْ تَفَاوُتٍ ۖ فَارْجِعِ الْبَصَرَ هَلْ تَرَىٰ مِنْ فُطُورٍ ﴿٣﴾</p>
-                    <p class="text-xs text-slate-400 font-sans text-left dir-ltr border-t border-slate-800 pt-2">
-                        Türkçe Okunuş: Tebârakellezî biyodihil mulku ve huve 'alâ kulli şey'in kadîr...
-                    </p>
-                </div>
-            </div>
-
-            <!-- A/B REFERENCE HOCA COMPARISON MODE -->
-            <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
-                <h2 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
-                    <span class="flex items-center space-x-2">
-                        <i class="fa-solid fa-headphones-simple text-emerald-400"></i>
-                        <span>A/B Hoca Takit & Kulak Takip</span>
-                    </span>
-                    <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Sol Kulak = Hoca / Sağ = Siz</span>
+            <!-- Acoustic Presets Selector -->
+            <div class="bg-slate-900/90 rounded-2xl p-5 border border-emerald-900/60 shadow-xl">
+                <h2 class="text-sm font-bold uppercase tracking-wider text-amber-400 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders"></i> Akustik Mekan Hazır Ayarları (Presets)
                 </h2>
 
-                <div class="space-y-2">
-                    <input type="file" id="referenceAudioFile" accept="audio/*" class="hidden">
-                    <button id="uploadRefAudioBtn" class="w-full py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-medium rounded-xl flex items-center justify-center space-x-2 transition-colors">
-                        <i class="fa-solid fa-upload"></i>
-                        <span>Örnek Hoca Ses Kaydı Yükle (.mp3 / .wav)</span>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button onclick="applyPreset('ulu')" id="preset-ulu" class="preset-btn p-3 rounded-xl border border-emerald-600/40 bg-emerald-950/60 text-left hover:border-amber-400 transition-all flex flex-col gap-1 group">
+                        <span class="text-sm font-bold text-amber-300 group-hover:text-amber-200"><i class="fa-solid fa-monument mr-1"></i> Ulu Cami</span>
+                        <span class="text-xs text-slate-400">Geniş Kubbe, Derin Echo & Reverb</span>
                     </button>
-                    <audio id="referenceAudioPlayer" controls class="w-full h-8 hidden"></audio>
+
+                    <button onclick="applyPreset('mescit')" id="preset-mescit" class="preset-btn p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-left hover:border-amber-400 transition-all flex flex-col gap-1 group">
+                        <span class="text-sm font-bold text-slate-200 group-hover:text-amber-200"><i class="fa-solid fa-place-of-worship mr-1"></i> Küçük Mescit</span>
+                        <span class="text-xs text-slate-400">Yumuşak Akustik, Kısa Yankı</span>
+                    </button>
+
+                    <button onclick="applyPreset('minare')" id="preset-minare" class="preset-btn p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-left hover:border-amber-400 transition-all flex flex-col gap-1 group">
+                        <span class="text-sm font-bold text-slate-200 group-hover:text-amber-200"><i class="fa-solid fa-tower-observation mr-1"></i> Minare / Açık Alan</span>
+                        <span class="text-xs text-slate-400">Yüksek Delay, Dış Mekan Yankısı</span>
+                    </button>
+
+                    <button onclick="applyPreset('studio')" id="preset-studio" class="preset-btn p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-left hover:border-amber-400 transition-all flex flex-col gap-1 group">
+                        <span class="text-sm font-bold text-slate-200 group-hover:text-amber-200"><i class="fa-solid fa-compact-disc mr-1"></i> Stüdyo Kayıt</span>
+                        <span class="text-xs text-slate-400">Yalın, Net & Kuru Vokal</span>
+                    </button>
                 </div>
             </div>
 
-            <!-- ADVANCED DUAL STUDIO RECORDER -->
-            <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4 shadow-xl">
-                <h2 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-2">
-                    <i class="fa-solid fa-circle-dot text-red-500 animate-pulse"></i>
-                    <span>Stüdyo Ses Kayıt & İndirme</span>
-                </h2>
+            <!-- Manual DSP Acoustic FX Controls -->
+            <div class="bg-slate-900/90 rounded-2xl p-5 border border-emerald-900/60 shadow-xl flex-1 flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-sm font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                            <i class="fa-solid fa-sliders"></i> İnce Ses & Akustik İşleme (DSP)
+                        </h2>
+                        <button onclick="resetFX()" class="text-xs text-slate-400 hover:text-amber-400 underline">Sıfırla</button>
+                    </div>
 
-                <!-- Timer Display -->
-                <div class="bg-slate-950/90 rounded-2xl p-4 border border-slate-800/80 text-center space-y-1">
-                    <div id="recordTimer" class="text-3xl font-mono font-bold text-slate-100">00:00</div>
-                    <div id="recordStatus" class="text-xs text-slate-500">Kayıt Almaya Hazır</div>
+                    <div class="space-y-4">
+                        <!-- Reverb Decay / Space Size -->
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1">
+                                <span class="text-slate-300"><i class="fa-solid fa-warehouse text-amber-500/80 mr-1"></i> Yankı Süresi (Mekan Büyüklüğü)</span>
+                                <span id="valReverb" class="text-amber-400">2.5s</span>
+                            </div>
+                            <input type="range" id="fxReverb" min="0.1" max="6.0" step="0.1" value="2.5" oninput="updateFX()" class="w-full h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer">
+                        </div>
+
+                        <!-- Echo / Delay Time -->
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1">
+                                <span class="text-slate-300"><i class="fa-solid fa-clock-rotate-left text-amber-500/80 mr-1"></i> Gecikme Süresi (Delay Time)</span>
+                                <span id="valDelay" class="text-amber-400">220 ms</span>
+                            </div>
+                            <input type="range" id="fxDelay" min="0" max="800" step="10" value="220" oninput="updateFX()" class="w-full h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer">
+                        </div>
+
+                        <!-- Delay Feedback -->
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1">
+                                <span class="text-slate-300"><i class="fa-solid fa-rotate-right text-amber-500/80 mr-1"></i> Echo Tekrarı (Feedback)</span>
+                                <span id="valFeedback" class="text-amber-400">35%</span>
+                            </div>
+                            <input type="range" id="fxFeedback" min="0" max="85" step="1" value="35" oninput="updateFX()" class="w-full h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer">
+                        </div>
+
+                        <!-- Low-Pass Filter (Tone / Sibilance Control) -->
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1">
+                                <span class="text-slate-300"><i class="fa-solid fa-filter text-amber-500/80 mr-1"></i> Tiz Ton Filtresi (Low-pass Cutoff)</span>
+                                <span id="valTone" class="text-amber-400">4500 Hz</span>
+                            </div>
+                            <input type="range" id="fxTone" min="1000" max="12000" step="250" value="4500" oninput="updateFX()" class="w-full h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer">
+                        </div>
+
+                        <!-- Master Volume / Gain -->
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1">
+                                <span class="text-slate-300"><i class="fa-solid fa-volume-high text-amber-500/80 mr-1"></i> Ana Çıkış Ses Düzeyi (Master Gain)</span>
+                                <span id="valGain" class="text-amber-400">100%</span>
+                            </div>
+                            <input type="range" id="fxGain" min="0" max="200" step="5" value="100" oninput="updateFX()" class="w-full h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Record / Stop Buttons -->
-                <div class="grid grid-cols-2 gap-3">
-                    <button id="startRecordBtn" disabled class="px-4 py-3 rounded-xl font-semibold text-xs transition-all flex items-center justify-center space-x-2 bg-slate-800 text-slate-500 cursor-not-allowed">
-                        <i class="fa-solid fa-circle text-red-500"></i>
-                        <span>Kaydı Başlat</span>
-                    </button>
-                    <button id="stopRecordBtn" disabled class="px-4 py-3 rounded-xl font-semibold text-xs transition-all flex items-center justify-center space-x-2 bg-slate-800 text-slate-500 cursor-not-allowed">
-                        <i class="fa-solid fa-square"></i>
-                        <span>Durdur</span>
-                    </button>
+                <!-- Live Recorder Bar -->
+                <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <button id="recBtn" onclick="toggleRecording()" class="w-12 h-12 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-lg transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fa-solid fa-circle text-lg" id="recIcon"></i>
+                        </button>
+                        <div>
+                            <div class="text-xs font-bold uppercase text-slate-300">Akustik Kayıt</div>
+                            <div id="recTimer" class="font-mono text-sm text-red-400 font-semibold">00:00</div>
+                        </div>
+                    </div>
+                    <span id="recStatus" class="text-xs px-2.5 py-1 rounded bg-slate-950 text-slate-400 border border-slate-800">Kayıt Bekliyor</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT COLUMN: Quran & Recitation Reader Screen + Track Manager (7 Cols) -->
+        <section class="lg:col-span-7 flex flex-col gap-6">
+
+            <!-- Quran / Reading Screen -->
+            <div class="bg-slate-900/90 rounded-2xl border border-emerald-900/60 shadow-xl flex flex-col h-[560px] overflow-hidden">
+                
+                <!-- Reader Controls Bar -->
+                <div class="p-3 bg-emerald-950/80 border-b border-emerald-800/50 flex flex-wrap items-center justify-between gap-2">
+                    
+                    <!-- Surah Selection -->
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-book-quran text-amber-400 text-lg"></i>
+                        <select id="surahSelect" onchange="loadSelectedSurah()" class="bg-slate-950 text-emerald-200 text-xs sm:text-sm font-semibold rounded-lg px-2.5 py-1.5 border border-emerald-700/60 focus:outline-none focus:border-amber-400">
+                            <option value="1">1. Fatiha Suresi</option>
+                            <option value="67">67. Mülk (Tebareke) Suresi</option>
+                            <option value="36">36. Yasin Suresi</option>
+                            <option value="78">78. Nebe (Amme) Suresi</option>
+                            <option value="55">55. Rahman Suresi</option>
+                            <option value="112">112. İhlas Suresi</option>
+                            <option value="113">113. Felak Suresi</option>
+                            <option value="114">114. Nas Suresi</option>
+                            <option value="custom">-- Özel Metin Yükle --</option>
+                        </select>
+                    </div>
+
+                    <!-- Display & Scroll Settings -->
+                    <div class="flex items-center gap-3">
+                        <!-- Font Size -->
+                        <div class="flex items-center bg-slate-950 rounded-lg p-1 border border-emerald-900">
+                            <button onclick="changeFontSize(-2)" class="px-2 py-0.5 text-xs text-slate-300 hover:text-amber-400"><i class="fa-solid fa-minus"></i></button>
+                            <span id="fontSizeDisplay" class="text-xs px-1 text-amber-300 font-bold">28px</span>
+                            <button onclick="changeFontSize(2)" class="px-2 py-0.5 text-xs text-slate-300 hover:text-amber-400"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+
+                        <!-- Auto Scroll Toggle & Speed -->
+                        <div class="flex items-center gap-1.5 bg-slate-950 rounded-lg px-2 py-1 border border-emerald-900">
+                            <button id="scrollToggleBtn" onclick="toggleAutoScroll()" class="text-xs text-slate-300 hover:text-amber-400 font-semibold flex items-center gap-1">
+                                <i class="fa-solid fa-angles-down text-emerald-400" id="scrollIcon"></i>
+                                <span>Akan Ekran</span>
+                            </button>
+                            <input type="range" id="scrollSpeed" min="1" max="10" value="3" onchange="updateScrollSpeed()" class="w-16 h-1.5 bg-slate-800 rounded appearance-none cursor-pointer" title="Kayma Hızı">
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Recording Playback List -->
-                <div id="recordingList" class="space-y-2 pt-2 border-t border-slate-800/80">
-                    <span class="text-xs font-semibold text-slate-400">Son Kayıtlar:</span>
-                    <div id="recordingHistory" class="space-y-2 max-h-32 overflow-y-auto text-xs">
-                        <p class="text-slate-500 text-[11px] italic">Henüz bir kayıt alınmadı.</p>
+                <!-- Custom Text Loader Input (Hidden by default) -->
+                <div id="customInputBox" class="p-3 bg-slate-950 border-b border-slate-800 hidden">
+                    <textarea id="customText" rows="3" placeholder="Arapça metin veya Okunacak ilahi/mevlid sözlerini buraya yapıştırın..." class="w-full bg-slate-900 text-slate-200 text-sm p-2 rounded border border-slate-700 focus:outline-none focus:border-amber-400"></textarea>
+                    <button onclick="applyCustomText()" class="mt-2 px-3 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded">Metni Ekrana Yükle</button>
+                </div>
+
+                <!-- Text Display Box (Scrollable) -->
+                <div id="readerContent" class="flex-1 p-6 overflow-y-auto space-y-6 text-slate-200 bg-slate-950/40 relative">
+                    
+                    <div class="text-center my-2 text-amber-400/90 text-2xl font-arabic">
+                        بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
+                    </div>
+
+                    <div id="quranContainer" class="space-y-6">
+                        <!-- Quran Verses loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Footer Reader Info -->
+                <div class="px-4 py-2 bg-emerald-950/40 border-t border-emerald-900/40 text-xs text-slate-400 flex justify-between items-center">
+                    <span><i class="fa-solid fa-circle-info text-emerald-400 mr-1"></i> Okuma esnasında "Akan Ekran" modunu açarak eller serbest okuyabilirsiniz.</span>
+                    <span id="ayahCount" class="text-amber-400 font-semibold">-- Ayet</span>
+                </div>
+            </div>
+
+            <!-- Recorded Tracks Management -->
+            <div class="bg-slate-900/90 rounded-2xl p-5 border border-emerald-900/60 shadow-xl flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                        <i class="fa-solid fa-file-audio"></i> Stüdyo Kayıt Listesi & Arşiv
+                    </h2>
+                    <span id="trackCountBadge" class="text-xs px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800">0 Kayıt</span>
+                </div>
+
+                <!-- Track List -->
+                <div id="trackList" class="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+                    <div id="emptyTracksMsg" class="text-center py-6 text-slate-500 text-xs border border-dashed border-slate-800 rounded-xl">
+                        Henüz ses kaydı yapılmadı. "Akustik Kayıt" butonunu kullanarak kayda başlayın.
                     </div>
                 </div>
             </div>
 
-        </div>
-
+        </section>
     </main>
 
-    <!-- FOOTER -->
-    <footer class="w-full border-t border-slate-800/80 py-4 bg-slate-950 text-center text-xs text-slate-500 mt-6">
-        <p>Seda-yı Kubbe v2.0 Stüdyo &copy; Düşük Gecikmeli Web Audio API Efekt Motoru</p>
+    <!-- Footer Banner -->
+    <footer class="bg-emerald-950/80 border-t border-emerald-900/50 py-3 px-4 text-center text-xs text-slate-400">
+        <p>Cami & Cemiyet Akustik Okuma Stüdyosu Yazılımı &copy; 2026 - Yüksek Kalite Dijital Ses İşleme (DSP) Teknolojisi</p>
     </footer>
 
-    <!-- MAIN AUDIO ENGINE SCRIPT -->
+
+    <!-- JAVASCRIPT & WEB AUDIO API LOGIC -->
     <script>
-        // --- GLOBAL AUDIO ENGINE STATE ---
-        let audioCtx = null;
-        let micStream = null;
-        let micSource = null;
-
-        // DSP Audio Nodes
-        let micGainNode = null;
-        let noiseGateNode = null;
-        let compNode = null;
-        let convolverNode = null;
-        let wallDampFilter = null;
-        let delayNode = null;
-        let feedbackGainNode = null;
-        let wetGainNode = null;
-        let dryGainNode = null;
-        let masterGainNode = null;
-        let monitorGainNode = null;
-        let analyserNode = null;
-        let destStreamNode = null;
-
-        // 5-Band EQ Nodes
-        let eqNodes = {};
-
-        // Ambience & Metronome State
-        let ambienceOsc = null;
-        let ambienceGain = null;
-        let isAmbiencePlaying = false;
-        let metronomeTimer = null;
-        let isMetronomePlaying = false;
-
-        // Recording State
-        let mediaRecorder = null;
-        let recordedChunks = [];
-        let recordStartTime = 0;
-        let recordTimerInterval = null;
-
-        // System Toggle Flags
-        let isEngineRunning = false;
-        let isMonitorActive = true;
-        let autoScrollInterval = null;
-
-        // --- PRESET DEFINITIONS ---
-        const PRESETS = {
-            sultanahmet: {
-                name: 'Sultanahmet',
-                micGain: 1.2,
-                reverbMix: 0.55,
-                reverbDecay: 4.5,
-                wallDamp: 3200,
-                echoTime: 0.24,
-                echoFeedback: 0.38,
-                gateThreshold: -55,
-                compThreshold: -24,
-                compRatio: 3,
-                eq: [2, 1, 0, 2, 3]
+        /* ----------------------------------------------------
+         * 1. QURAN DATA & TEXT READER ENGINE
+         * ---------------------------------------------------- */
+        const QURAN_DATA = {
+            "1": {
+                name: "Fatiha Suresi",
+                verses: [
+                    { ar: "ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ", tr: "1. Hamd, âlemlerin Rabbi olan Allah'a mahsustur." },
+                    { ar: "ٱلرَّحْمَٰنِ ٱلرَّحِيمِ", tr: "2. O, Rahmândır, Rahîmdir." },
+                    { ar: "مَٰلِكِ يَوْمِ ٱلدِّينِ", tr: "3. Din gününün (hesap gününün) tek sahibidir." },
+                    { ar: "إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ", tr: "4. (Rabbimiz!) Yalnız sana kulluk eder ve yalnız senden yardım dileriz." },
+                    { ar: "ٱهْدِنَا ٱلصِّرَٰطَ ٱلْمُسْتَقِيمَ", tr: "5. Bizi dosdoğru yola ilet;" },
+                    { ar: "صِرَٰطَ ٱلَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ ٱلْمَغْضُوبِ عَلَيْهِمْ وَلَا ٱلضَّآلِّينَ", tr: "6-7. Nimet verdiğin kimselerin yoluna; gazaba uğramışların ve sapmışların yoluna değil!" }
+                ]
             },
-            dergah: {
-                name: 'Ahşap Dergah',
-                micGain: 1.1,
-                reverbMix: 0.35,
-                reverbDecay: 2.2,
-                wallDamp: 4500,
-                echoTime: 0.16,
-                echoFeedback: 0.22,
-                gateThreshold: -50,
-                compThreshold: -20,
-                compRatio: 2.5,
-                eq: [3, 2, 0, 1, 1]
+            "112": {
+                name: "İhlas Suresi",
+                verses: [
+                    { ar: "قُلْ هُوَ ٱللَّهُ أَحَدٌ", tr: "1. De ki: O Allah tektir." },
+                    { ar: "ٱللَّهُ ٱلصَّمَدُ", tr: "2. Allah Samed'dir (Her şey O'na muhtaçtır, O hiçbir şeye muhtaç değildir)." },
+                    { ar: "لَمْ يَلِدْ وَلَمْ يُولَدْ", tr: "3. O doğurmamış ve doğurulmamıştır." },
+                    { ar: "وَلَمْ يَكُن لَّهُۥ كُفُوًا أَحَدٌ", tr: "4. Hiçbir şey O'nun dengi ve benzeri değildir." }
+                ]
             },
-            minare: {
-                name: 'Minare / Açık',
-                micGain: 1.3,
-                reverbMix: 0.20,
-                reverbDecay: 5.0,
-                wallDamp: 2800,
-                echoTime: 0.42,
-                echoFeedback: 0.50,
-                gateThreshold: -45,
-                compThreshold: -18,
-                compRatio: 4,
-                eq: [-2, 0, 1, 4, 4]
+            "113": {
+                name: "Felak Suresi",
+                verses: [
+                    { ar: "قُلْ أَعُوذُ بِرَبِّ ٱلْفَلَقِ", tr: "1. De ki: Sabahın Rabbine sığınırım;" },
+                    { ar: "مِن شَرِّ مَا خَلَقَ", tr: "2. Yarattığı şeylerin şerrinden," },
+                    { ar: "وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ", tr: "3. Karanlığı çöktüğü zaman gecenin şerrinden," },
+                    { ar: "وَمِن شَرِّ ٱلنَّفَّٰثَٰتِ فِي ٱلْعُقَدِ", tr: "4. Düğümlere üfleyen büyücülerin şerrinden," },
+                    { ar: "وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ", tr: "5. Ve haset ettiği zaman hasetçinin şerrinden!" }
+                ]
             },
-            studio: {
-                name: 'Stüdyo Kayıt',
-                micGain: 1.0,
-                reverbMix: 0.15,
-                reverbDecay: 1.2,
-                wallDamp: 8000,
-                echoTime: 0.08,
-                echoFeedback: 0.10,
-                gateThreshold: -60,
-                compThreshold: -28,
-                compRatio: 4,
-                eq: [1, 1, 0, 2, 2]
+            "114": {
+                name: "Nas Suresi",
+                verses: [
+                    { ar: "قُلْ أَعُوذُ بِرَبِّ ٱلنَّاسِ", tr: "1. De ki: İnsanların Rabbine sığınırım;" },
+                    { ar: "مَلِكِ ٱلنَّاسِ", tr: "2. İnsanların hükümdarına," },
+                    { ar: "إِلَٰهِ ٱلنَّاسِ", tr: "3. İnsanların mabuduna;" },
+                    { ar: "مِن شَرِّ ٱلْوَسْوَاسِ ٱلْخَنَّاسِ", tr: "4. Sinsi vesvesecinin şerrinden," },
+                    { ar: "ٱلَّذِي يُوَسْوِسُ فِي صُدُورِ ٱلنَّاسِ", tr: "5. Ki o, insanların göğüslerine vesvese verir," },
+                    { ar: "مِنَ ٱلْجِنَّةِ وَٱلنَّاسِ", tr: "6. Gerek cinlerden, gerek insanlardan!" }
+                ]
             },
-            makam: {
-                name: 'Makam Çalışma',
-                micGain: 1.1,
-                reverbMix: 0.30,
-                reverbDecay: 2.5,
-                wallDamp: 5000,
-                echoTime: 0.20,
-                echoFeedback: 0.25,
-                gateThreshold: -50,
-                compThreshold: -22,
-                compRatio: 3,
-                eq: [0, 1, 0, 3, 2]
+            "67": {
+                name: "Mülk Suresi (İlk 3 Ayet)",
+                verses: [
+                    { ar: "تَبَٰرَكَ ٱلَّذِي بِيَدِهِ ٱلْمُلْكُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ", tr: "1. Mülk ve hakimiyet elinde olan Allah ne yücedir. O her şeye kadirdir." },
+                    { ar: "ٱلَّذِي خَلَقَ ٱلْمَوْتَ وَٱلْحَيَوٰةَ لِيَبْلُوَكُمْ أَيُّكُمْ أَحْسَنُ عَمَلًا وَهُوَ ٱلْعَزِيزُ ٱلْغَفُورُ", tr: "2. O, hanginizin daha güzel amel yapacağını sınamak için ölümü ve hayatı yaratmıştır." },
+                    { ar: "ٱلَّذِي خَلَقَ سَبْعَ سَمَٰوَٰتٍ طِبَاقًا مَّا تَرَىٰ فِي خَلْقِ ٱلرَّحْمَٰنِ مِن تَفَٰوُتٍ", tr: "3. O, yedi göğü birbiriyle ahenk içinde yaratandır. Rahmân'ın yaratışında hiçbir düzensizlik göremezsin." }
+                ]
+            },
+            "36": {
+                name: "Yasin Suresi (Giriş)",
+                verses: [
+                    { ar: "يسٓ", tr: "1. Yâ-Sîn." },
+                    { ar: "وَٱلْقُرْءَانِ ٱلْحَكِيمِ", tr: "2. Hikmet dolu Kur'an'a andolsun ki," },
+                    { ar: "إِنَّكَ لَمِنَ ٱلْمُرْسَلِينَ", tr: "3. Sen hiç şüphesiz gönderilen elçilerdensin." },
+                    { ar: "عَلَىٰ صِرَٰطٍ مُّسْتَقِيمٍ", tr: "4. Dosdoğru bir yol üzerindesin." }
+                ]
+            },
+            "78": {
+                name: "Nebe Suresi (Giriş)",
+                verses: [
+                    { ar: "عَمَّ يَتَسَآءَلُونَ", tr: "1. Birbirlerine neyi soruyorlar?" },
+                    { ar: "عَنِ ٱلنَّبَإِ ٱلْعَظِيمِ", tr: "2. O büyük haberi mi?" },
+                    { ar: "ٱلَّذِي هُمْ فِيهِ مُخْتَلِفُونَ", tr: "3. Ki onlar onun hakkında anlaşmazlık içindedirler." }
+                ]
+            },
+            "55": {
+                name: "Rahman Suresi (Giriş)",
+                verses: [
+                    { ar: "ٱلرَّحْمَٰنُ", tr: "1. Rahmân (olan Allah)," },
+                    { ar: "عَلَّمَ ٱلْقُرْءَانَ", tr: "2. Kur'an'ı öğretti." },
+                    { ar: "خَلَقَ ٱلْإِنسَٰنَ", tr: "3. İnsanı yarattı," },
+                    { ar: "عَلَّمَهُ ٱلْبَيَانَ", tr: "4. Ona beyanı (açıklamayı ve konuşmayı) öğretti." }
+                ]
             }
         };
 
-        let activePresetKey = 'sultanahmet';
+        let currentFontSize = 28;
+        let isAutoScrolling = false;
+        let scrollInterval = null;
 
-        // UI References
-        const masterPowerBtn = document.getElementById('masterPowerBtn');
-        const masterPowerIcon = document.getElementById('masterPowerIcon');
-        const masterPowerText = document.getElementById('masterPowerText');
-        const statusDot = document.getElementById('statusDot');
-        const statusText = document.getElementById('statusText');
-        const activePresetBadge = document.getElementById('activePresetBadge');
-        const toggleMonitorBtn = document.getElementById('toggleMonitorBtn');
-        const monitorStatusText = document.getElementById('monitorStatusText');
+        function loadSelectedSurah() {
+            const select = document.getElementById('surahSelect');
+            const customBox = document.getElementById('customInputBox');
+            const container = document.getElementById('quranContainer');
+            const val = select.value;
 
-        // Slider References
-        const micGainInput = document.getElementById('micGain');
-        const reverbMixInput = document.getElementById('reverbMix');
-        const reverbDecayInput = document.getElementById('reverbDecay');
-        const wallDampInput = document.getElementById('wallDamp');
-        const echoTimeInput = document.getElementById('echoTime');
-        const echoFeedbackInput = document.getElementById('echoFeedback');
-        const gateThresholdInput = document.getElementById('gateThreshold');
-        const compThresholdInput = document.getElementById('compThreshold');
-        const compRatioInput = document.getElementById('compRatio');
-        const masterVolInput = document.getElementById('masterVol');
+            if (val === 'custom') {
+                customBox.classList.remove('hidden');
+                return;
+            } else {
+                customBox.classList.add('hidden');
+            }
 
-        const canvas = document.getElementById('studioVisualizer');
-        const canvasCtx = canvas.getContext('2d');
-        const vuMeterBar = document.getElementById('vuMeterBar');
-        const vuMeterDb = document.getElementById('vuMeterDb');
+            const data = QURAN_DATA[val];
+            if (!data) return;
 
-        // --- AUDIO ENGINE INITIALIZATION ---
-        async function startAudioEngine() {
-            try {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                audioCtx = new AudioContext({ latencyHint: 'interactive' });
+            container.innerHTML = '';
+            data.verses.forEach((v, idx) => {
+                const item = document.createElement('div');
+                item.className = "bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 shadow-sm";
+                item.innerHTML = `
+                    <div class="arabic-text text-amber-300 font-bold mb-2 tracking-wide text-right" style="font-size: ${currentFontSize}px">
+                        ${v.ar} <span class="text-xs text-amber-500 font-sans font-normal border border-amber-500/40 rounded-full px-2 py-0.5 ml-2">${idx + 1}</span>
+                    </div>
+                    <div class="text-slate-400 text-xs sm:text-sm font-sans border-t border-slate-800/60 pt-2">
+                        ${v.tr}
+                    </div>
+                `;
+                container.appendChild(item);
+            });
 
-                micStream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: false,
-                        noiseSuppression: false,
-                        autoGainControl: false,
-                        latency: 0
-                    }
-                });
+            document.getElementById('ayahCount').innerText = `${data.verses.length} Ayet Yüklendi`;
+        }
 
-                // Create Audio Nodes
-                micSource = audioCtx.createMediaStreamSource(micStream);
-                micGainNode = audioCtx.createGain();
+        function applyCustomText() {
+            const txt = document.getElementById('customText').value.trim();
+            if (!txt) return;
+            const container = document.getElementById('quranContainer');
+            container.innerHTML = `
+                <div class="bg-slate-900/80 p-5 rounded-xl border border-amber-500/30 whitespace-pre-line text-amber-200 arabic-text" style="font-size: ${currentFontSize}px">
+                    ${txt}
+                </div>
+            `;
+            document.getElementById('ayahCount').innerText = "Özel Metin Modu";
+        }
 
-                // Compressor Node
-                compNode = audioCtx.createDynamicsCompressor();
+        function changeFontSize(delta) {
+            currentFontSize = Math.max(18, Math.min(48, currentFontSize + delta));
+            document.getElementById('fontSizeDisplay').innerText = `${currentFontSize}px`;
+            
+            // Apply to existing Arabic elements
+            document.querySelectorAll('.arabic-text').forEach(el => {
+                el.style.fontSize = `${currentFontSize}px`;
+            });
+        }
 
-                // Convolver & Filter
-                convolverNode = audioCtx.createConvolver();
-                wallDampFilter = audioCtx.createBiquadFilter();
-                wallDampFilter.type = 'lowpass';
+        function toggleAutoScroll() {
+            const reader = document.getElementById('readerContent');
+            const icon = document.getElementById('scrollIcon');
+            const btn = document.getElementById('scrollToggleBtn');
 
-                // Delay / Echo
-                delayNode = audioCtx.createDelay(2.0);
-                feedbackGainNode = audioCtx.createGain();
+            isAutoScrolling = !isAutoScrolling;
 
-                // Mix Nodes
-                wetGainNode = audioCtx.createGain();
-                dryGainNode = audioCtx.createGain();
-                masterGainNode = audioCtx.createGain();
-                monitorGainNode = audioCtx.createGain();
-                analyserNode = audioCtx.createAnalyser();
-
-                // Create 5-Band EQ
-                const eqFreqs = [80, 250, 1000, 4000, 10000];
-                const eqKeys = ['eqSub', 'eqBass', 'eqMid', 'eqPresence', 'eqAir'];
-
-                let prevEqNode = null;
-                eqKeys.forEach((key, index) => {
-                    const filter = audioCtx.createBiquadFilter();
-                    if (index === 0) filter.type = 'lowshelf';
-                    else if (index === eqKeys.length - 1) filter.type = 'highshelf';
-                    else filter.type = 'peaking';
-
-                    filter.frequency.value = eqFreqs[index];
-                    eqNodes[key] = filter;
-
-                    if (prevEqNode) {
-                        prevEqNode.connect(filter);
-                    }
-                    prevEqNode = filter;
-                });
-
-                // --- AUDIO GRAPH ROUTING ---
-                // Mic -> MicGain -> Comp -> EQ Chain
-                micSource.connect(micGainNode);
-                micGainNode.connect(compNode);
-                compNode.connect(eqNodes['eqSub']); // Start of EQ Chain
-
-                // End of EQ Chain -> Dry / Wet Split
-                const lastEqNode = eqNodes['eqAir'];
-
-                // Dry Path
-                lastEqNode.connect(dryGainNode);
-                dryGainNode.connect(masterGainNode);
-
-                // Wet Path (Wall Damp -> Convolver / Delay)
-                lastEqNode.connect(wallDampFilter);
-                wallDampFilter.connect(convolverNode);
-                convolverNode.connect(wetGainNode);
-
-                // Delay Feedback Loop
-                wallDampFilter.connect(delayNode);
-                delayNode.connect(feedbackGainNode);
-                feedbackGainNode.connect(delayNode);
-                delayNode.connect(wetGainNode);
-
-                wetGainNode.connect(masterGainNode);
-
-                // Master -> Analyser & Destination
-                masterGainNode.connect(analyserNode);
-                analyserNode.connect(monitorGainNode);
-                monitorGainNode.connect(audioCtx.destination);
-
-                // Recorder Stream Destination
-                destStreamNode = audioCtx.createMediaStreamDestination();
-                masterGainNode.connect(destStreamNode);
-
-                // Generate Impulse Response
-                updateReverbBuffer(PRESETS[activePresetKey].reverbDecay);
-
-                // Apply Parameters
-                applyPresetValues(PRESETS[activePresetKey]);
-
-                isEngineRunning = true;
-                updateEngineUIState();
-                startVisualizer();
-
-                // Enable Record Button
-                const startRecordBtn = document.getElementById('startRecordBtn');
-                startRecordBtn.disabled = false;
-                startRecordBtn.classList.remove('bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
-                startRecordBtn.classList.add('bg-red-600/20', 'hover:bg-red-600/30', 'text-red-400', 'border', 'border-red-500/30');
-
-            } catch (err) {
-                console.error("Audio Initialization Error:", err);
-                alert("Mikrofon erişimi başlatılamadı. Lütfen izinlerinizi kontrol edin.");
+            if (isAutoScrolling) {
+                btn.classList.add('text-amber-400');
+                icon.className = "fa-solid fa-pause text-amber-400";
+                startAutoScroll();
+            } else {
+                btn.classList.remove('text-amber-400');
+                icon.className = "fa-solid fa-angles-down text-emerald-400";
+                clearInterval(scrollInterval);
             }
         }
 
-        function stopAudioEngine() {
-            if (audioCtx) audioCtx.close();
-            if (micStream) micStream.getTracks().forEach(t => t.stop());
-
-            isEngineRunning = false;
-            updateEngineUIState();
+        function startAutoScroll() {
+            clearInterval(scrollInterval);
+            const reader = document.getElementById('readerContent');
+            const speedInput = document.getElementById('scrollSpeed');
+            
+            scrollInterval = setInterval(() => {
+                if (!isAutoScrolling) return;
+                const speed = parseInt(speedInput.value);
+                reader.scrollTop += speed * 0.5;
+                
+                // Reset scroll if reached bottom
+                if (reader.scrollTop + reader.clientHeight >= reader.scrollHeight - 5) {
+                    reader.scrollTop = 0;
+                }
+            }, 50);
         }
 
-        // --- SYNTHESIZE IMPULSE RESPONSE BUFFER ---
-        function updateReverbBuffer(decayTime) {
+        function updateScrollSpeed() {
+            if (isAutoScrolling) startAutoScroll();
+        }
+
+
+        /* ----------------------------------------------------
+         * 2. WEB AUDIO API & ACOUSTIC DSP FX ENGINE
+         * ---------------------------------------------------- */
+        let audioCtx = null;
+        let micStream = null;
+        let micSource = null;
+        
+        // Audio Nodes
+        let gainNode = null;
+        let filterNode = null;
+        let delayNode = null;
+        let feedbackNode = null;
+        let convolverNode = null;
+        let analyserNode = null;
+        let destStreamNode = null;
+
+        let isMicActive = false;
+
+        // Presets Definition
+        const PRESETS = {
+            ulu: { reverb: 3.5, delay: 280, feedback: 45, tone: 3800, gain: 100 },
+            mescit: { reverb: 1.5, delay: 120, feedback: 20, tone: 5500, gain: 100 },
+            minare: { reverb: 4.5, delay: 450, feedback: 60, tone: 2800, gain: 110 },
+            studio: { reverb: 0.2, delay: 0, feedback: 0, tone: 10000, gain: 100 }
+        };
+
+        async function initAudioEngine() {
+            if (audioCtx) return;
+
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+
+            // Create Nodes
+            gainNode = audioCtx.createGain();
+            filterNode = audioCtx.createBiquadFilter();
+            filterNode.type = "lowpass";
+
+            delayNode = audioCtx.createDelay();
+            feedbackNode = audioCtx.createGain();
+
+            convolverNode = audioCtx.createConvolver();
+            analyserNode = audioCtx.createAnalyser();
+            analyserNode.fftSize = 256;
+
+            destStreamNode = audioCtx.createMediaStreamDestination();
+
+            // Synthesize Synthetic Reverb Impulse Response
+            updateReverbImpulse(parseFloat(document.getElementById('fxReverb').value));
+
+            // Default FX Setup
+            updateFX();
+        }
+
+        function updateReverbImpulse(duration) {
             if (!audioCtx) return;
-            const rate = audioCtx.sampleRate;
-            const length = rate * decayTime;
-            const impulse = audioCtx.createBuffer(2, length, rate);
+            const sampleRate = audioCtx.sampleRate;
+            const length = sampleRate * duration;
+            const impulse = audioCtx.createBuffer(2, length, sampleRate);
             const left = impulse.getChannelData(0);
             const right = impulse.getChannelData(1);
 
             for (let i = 0; i < length; i++) {
-                const decay = Math.pow(1 - i / length, 2.5);
+                const decay = Math.exp(-i / (sampleRate * (duration / 3)));
                 left[i] = (Math.random() * 2 - 1) * decay;
                 right[i] = (Math.random() * 2 - 1) * decay;
             }
+
             convolverNode.buffer = impulse;
         }
 
-        // Master Power Toggle
-        masterPowerBtn.addEventListener('click', () => {
-            if (!isEngineRunning) startAudioEngine();
-            else stopAudioEngine();
-        });
+        async function toggleMicrophone() {
+            if (!audioCtx) await initAudioEngine();
+            if (audioCtx.state === 'suspended') {
+                await audioCtx.resume();
+            }
 
-        function updateEngineUIState() {
-            if (isEngineRunning) {
-                masterPowerBtn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
-                masterPowerBtn.classList.add('bg-red-600', 'hover:bg-red-500');
-                masterPowerText.textContent = 'Sistemi Durdur';
-                masterPowerIcon.className = 'fa-solid fa-power-off';
-
-                statusDot.className = 'w-3 h-3 rounded-full bg-emerald-500 animate-pulse';
-                statusText.textContent = 'Canlı Ses Aktif';
-                statusText.className = 'text-xs font-semibold text-emerald-400';
+            if (isMicActive) {
+                stopMicrophone();
             } else {
-                masterPowerBtn.classList.remove('bg-red-600', 'hover:bg-red-500');
-                masterPowerBtn.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
-                masterPowerText.textContent = 'Sistemi Başlat';
-
-                statusDot.className = 'w-3 h-3 rounded-full bg-red-500';
-                statusText.textContent = 'Sistem Kapalı';
-                statusText.className = 'text-xs font-semibold text-slate-400';
+                startMicrophone();
             }
         }
 
-        // Toggle Monitor Listen
-        toggleMonitorBtn.addEventListener('click', () => {
-            isMonitorActive = !isMonitorActive;
-            if (monitorGainNode && audioCtx) {
-                monitorGainNode.gain.setValueAtTime(isMonitorActive ? 1 : 0, audioCtx.currentTime);
-            }
-            if (isMonitorActive) {
-                monitorStatusText.textContent = "Canlı Dinleme Açık";
-                toggleMonitorBtn.className = "bg-emerald-950 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-md font-medium flex items-center space-x-1.5";
-            } else {
-                monitorStatusText.textContent = "Sessiz (Mute)";
-                toggleMonitorBtn.className = "bg-red-950 text-red-300 border border-red-500/40 px-2.5 py-1 rounded-md font-medium flex items-center space-x-1.5";
-            }
-        });
-
-        // --- UPDATE AUDIO PARAMETERS ---
-        function syncAudioParameters() {
-            if (!audioCtx || !isEngineRunning) return;
-
-            const micGain = parseFloat(micGainInput.value);
-            const reverbMix = parseFloat(reverbMixInput.value);
-            const wallDamp = parseFloat(wallDampInput.value);
-            const echoTime = parseFloat(echoTimeInput.value);
-            const echoFeedback = parseFloat(echoFeedbackInput.value);
-            const compThresh = parseFloat(compThresholdInput.value);
-            const compRatio = parseFloat(compRatioInput.value);
-            const masterVol = parseFloat(masterVolInput.value);
-
-            micGainNode.gain.setTargetAtTime(micGain, audioCtx.currentTime, 0.02);
-            dryGainNode.gain.setTargetAtTime(1 - (reverbMix * 0.4), audioCtx.currentTime, 0.02);
-            wetGainNode.gain.setTargetAtTime(reverbMix * 1.2, audioCtx.currentTime, 0.02);
-
-            wallDampFilter.frequency.setTargetAtTime(wallDamp, audioCtx.currentTime, 0.02);
-            delayNode.delayTime.setTargetAtTime(echoTime, audioCtx.currentTime, 0.02);
-            feedbackGainNode.gain.setTargetAtTime(echoFeedback, audioCtx.currentTime, 0.02);
-
-            compNode.threshold.setTargetAtTime(compThresh, audioCtx.currentTime, 0.02);
-            compNode.ratio.setTargetAtTime(compRatio, audioCtx.currentTime, 0.02);
-
-            masterGainNode.gain.setTargetAtTime(masterVol, audioCtx.currentTime, 0.02);
-
-            // Update EQ Nodes
-            eqNodes['eqSub'].gain.setTargetAtTime(parseFloat(document.getElementById('eqSub').value), audioCtx.currentTime, 0.02);
-            eqNodes['eqBass'].gain.setTargetAtTime(parseFloat(document.getElementById('eqBass').value), audioCtx.currentTime, 0.02);
-            eqNodes['eqMid'].gain.setTargetAtTime(parseFloat(document.getElementById('eqMid').value), audioCtx.currentTime, 0.02);
-            eqNodes['eqPresence'].gain.setTargetAtTime(parseFloat(document.getElementById('eqPresence').value), audioCtx.currentTime, 0.02);
-            eqNodes['eqAir'].gain.setTargetAtTime(parseFloat(document.getElementById('eqAir').value), audioCtx.currentTime, 0.02);
-
-            // UI Label Sync
-            document.getElementById('micGainVal').textContent = micGain.toFixed(1) + 'x';
-            document.getElementById('reverbMixVal').textContent = Math.round(reverbMix * 100) + '%';
-            document.getElementById('wallDampVal').textContent = wallDamp + ' Hz';
-            document.getElementById('echoTimeVal').textContent = Math.round(echoTime * 1000) + ' ms';
-            document.getElementById('echoFeedbackVal').textContent = Math.round(echoFeedback * 100) + '%';
-            document.getElementById('compThresholdVal').textContent = compThresh + ' dB';
-            document.getElementById('compRatioVal').textContent = compRatio + ':1';
-            document.getElementById('masterVolVal').textContent = Math.round(masterVol * 100) + '%';
-        }
-
-        // Bind All Inputs
-        document.querySelectorAll('input[type=range]').forEach(input => {
-            input.addEventListener('input', syncAudioParameters);
-        });
-
-        // Reverb Decay Specific Trigger
-        reverbDecayInput.addEventListener('change', () => {
-            const decay = parseFloat(reverbDecayInput.value);
-            document.getElementById('reverbDecayVal').textContent = decay.toFixed(1) + ' s';
-            updateReverbBuffer(decay);
-        });
-
-        // --- PRESET LOADER ---
-        function applyPresetValues(preset) {
-            micGainInput.value = preset.micGain;
-            reverbMixInput.value = preset.reverbMix;
-            reverbDecayInput.value = preset.reverbDecay;
-            wallDampInput.value = preset.wallDamp;
-            echoTimeInput.value = preset.echoTime;
-            echoFeedbackInput.value = preset.echoFeedback;
-            gateThresholdInput.value = preset.gateThreshold;
-            compThresholdInput.value = preset.compThreshold;
-            compRatioInput.value = preset.compRatio;
-
-            // Apply EQ
-            const eqKeys = ['eqSub', 'eqBass', 'eqMid', 'eqPresence', 'eqAir'];
-            preset.eq.forEach((val, i) => {
-                document.getElementById(eqKeys[i]).value = val;
-                document.getElementById(eqKeys[i] + 'Val').textContent = (val > 0 ? '+' : '') + val + 'dB';
-            });
-
-            activePresetBadge.textContent = `Preset: ${preset.name}`;
-            document.getElementById('reverbDecayVal').textContent = preset.reverbDecay.toFixed(1) + ' s';
-
-            if (audioCtx && isEngineRunning) {
-                updateReverbBuffer(preset.reverbDecay);
-                syncAudioParameters();
-            }
-        }
-
-        document.querySelectorAll('.preset-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.preset-btn').forEach(b => {
-                    b.classList.remove('active', 'bg-emerald-950/80', 'border-emerald-500/60', 'text-amber-300');
-                    b.classList.add('bg-slate-900/80', 'border-slate-800', 'text-slate-300');
+        async function startMicrophone() {
+            try {
+                micStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: false, // Disable browser's auto echo cancel to allow natural reverb
+                        noiseSuppression: true,
+                        autoGainControl: false
+                    } 
                 });
-                btn.classList.add('active', 'bg-emerald-950/80', 'border-emerald-500/60', 'text-amber-300');
 
-                const pKey = btn.getAttribute('data-preset');
-                activePresetKey = pKey;
-                applyPresetValues(PRESETS[pKey]);
-            });
-        });
+                micSource = audioCtx.createMediaStreamSource(micStream);
 
-        // --- DSP TABS NAV ---
-        document.querySelectorAll('.dsp-tab-btn').forEach(tabBtn => {
-            tabBtn.addEventListener('click', () => {
-                document.querySelectorAll('.dsp-tab-btn').forEach(b => b.classList.remove('active-tab'));
-                document.querySelectorAll('.dsp-tab-content').forEach(c => c.classList.add('hidden'));
+                // DSP Routing Network:
+                // Mic -> Filter -> Gain -> (Dry/Wet Split)
+                // Wet 1: Delay -> Feedback -> Delay
+                // Wet 2: Convolver (Reverb)
+                // Mix -> Analyser -> Speakers & Recorder Stream
 
-                tabBtn.classList.add('active-tab');
-                const targetId = tabBtn.getAttribute('data-tab');
-                document.getElementById(targetId).classList.remove('hidden');
-            });
-        });
+                micSource.connect(filterNode);
+                filterNode.connect(gainNode);
 
-        // --- AMBIENCE / DEM GENERATOR ---
-        document.querySelectorAll('.ambience-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (isAmbiencePlaying) {
-                    stopAmbience();
-                    btn.classList.remove('bg-emerald-600', 'text-white');
-                } else {
-                    startDemDrone(btn.getAttribute('data-note') || 'Rast');
-                    btn.classList.add('bg-emerald-600', 'text-white');
-                }
-            });
-        });
+                // Delay / Echo Loop
+                gainNode.connect(delayNode);
+                delayNode.connect(feedbackNode);
+                feedbackNode.connect(delayNode);
+                delayNode.connect(analyserNode);
 
-        function startDemDrone(note) {
+                // Reverb
+                gainNode.connect(convolverNode);
+                convolverNode.connect(analyserNode);
+
+                // Direct Dry Signal
+                gainNode.connect(analyserNode);
+
+                // Output to Speakers & Recorder
+                analyserNode.connect(audioCtx.destination);
+                analyserNode.connect(destStreamNode);
+
+                isMicActive = true;
+
+                // UI Status Update
+                document.getElementById('statusDot').className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+                document.getElementById('statusText').innerText = "Canlı Mikrofon Aktif";
+                document.getElementById('statusBadge').className = "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700 flex items-center gap-2";
+                
+                document.getElementById('toggleMicBtn').className = "px-4 py-2 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-bold rounded-lg shadow-md transition-all flex items-center gap-2 active:scale-95 border border-red-400/30";
+                document.getElementById('micBtnText').innerText = "Mikrofonu Kapat";
+                document.getElementById('micIcon').className = "fa-solid fa-microphone-slash";
+
+                document.getElementById('visPlaceholder').classList.add('hidden');
+                document.getElementById('recBtn').disabled = false;
+
+                startVisualizer();
+
+            } catch (err) {
+                alert("Mikrofon erişimi sağlanamadı: " + err.message);
+                console.error(err);
+            }
+        }
+
+        function stopMicrophone() {
+            if (micStream) {
+                micStream.getTracks().forEach(track => track.stop());
+            }
+            if (micSource) {
+                micSource.disconnect();
+            }
+
+            isMicActive = false;
+
+            document.getElementById('statusDot').className = "w-2 h-2 rounded-full bg-slate-500";
+            document.getElementById('statusText').innerText = "Mikrofon Kapalı";
+            document.getElementById('statusBadge').className = "px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-2";
+
+            document.getElementById('toggleMicBtn').className = "px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold rounded-lg shadow-md transition-all flex items-center gap-2 active:scale-95 border border-emerald-400/30";
+            document.getElementById('micBtnText').innerText = "Canlı Mikrofonu Aç";
+            document.getElementById('micIcon').className = "fa-solid fa-microphone";
+
+            document.getElementById('visPlaceholder').classList.remove('hidden');
+        }
+
+        function updateFX() {
+            const reverbVal = parseFloat(document.getElementById('fxReverb').value);
+            const delayVal = parseInt(document.getElementById('fxDelay').value);
+            const feedbackVal = parseInt(document.getElementById('fxFeedback').value);
+            const toneVal = parseInt(document.getElementById('fxTone').value);
+            const gainVal = parseInt(document.getElementById('fxGain').value);
+
+            // Display Labels
+            document.getElementById('valReverb').innerText = `${reverbVal.toFixed(1)}s`;
+            document.getElementById('valDelay').innerText = `${delayVal} ms`;
+            document.getElementById('valFeedback').innerText = `${feedbackVal}%`;
+            document.getElementById('valTone').innerText = `${toneVal} Hz`;
+            document.getElementById('valGain').innerText = `${gainVal}%`;
+
             if (!audioCtx) return;
-            isAmbiencePlaying = true;
-            ambienceOsc = audioCtx.createOscillator();
-            ambienceGain = audioCtx.createGain();
 
-            // Note Frequencies
-            const freqs = { 'Rast': 146.83, 'Saba': 155.56, 'Segah': 164.81 };
-            ambienceOsc.frequency.value = freqs[note] || 146.83;
-            ambienceOsc.type = 'sawtooth';
+            // Apply to Web Audio API Nodes
+            filterNode.frequency.setValueAtTime(toneVal, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(gainVal / 100, audioCtx.currentTime);
+            delayNode.delayTime.setValueAtTime(delayVal / 1000, audioCtx.currentTime);
+            feedbackNode.gain.setValueAtTime(feedbackVal / 100, audioCtx.currentTime);
 
-            const filter = audioCtx.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.value = 400;
-
-            const vol = parseFloat(document.getElementById('ambienceVol').value);
-            ambienceGain.gain.setValueAtTime(vol * 0.15, audioCtx.currentTime);
-
-            ambienceOsc.connect(filter);
-            filter.connect(ambienceGain);
-            ambienceGain.connect(masterGainNode);
-
-            ambienceOsc.start();
+            updateReverbImpulse(reverbVal);
         }
 
-        function stopAmbience() {
-            if (ambienceOsc) ambienceOsc.stop();
-            isAmbiencePlaying = false;
+        function applyPreset(key) {
+            const p = PRESETS[key];
+            if (!p) return;
+
+            document.getElementById('fxReverb').value = p.reverb;
+            document.getElementById('fxDelay').value = p.delay;
+            document.getElementById('fxFeedback').value = p.feedback;
+            document.getElementById('fxTone').value = p.tone;
+            document.getElementById('fxGain').value = p.gain;
+
+            // Highlight Active Preset Button UI
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.className = "preset-btn p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-left hover:border-amber-400 transition-all flex flex-col gap-1 group";
+            });
+            const activeBtn = document.getElementById(`preset-${key}`);
+            if (activeBtn) {
+                activeBtn.className = "preset-btn p-3 rounded-xl border border-emerald-500 bg-emerald-950/80 text-left hover:border-amber-400 transition-all flex flex-col gap-1 group gold-glow";
+            }
+
+            updateFX();
         }
 
-        // --- CANVAS STEREO VISUALIZER ---
-        function resizeCanvas() {
-            canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = canvas.parentElement.clientHeight;
+        function resetFX() {
+            applyPreset('studio');
         }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
+
+
+        /* ----------------------------------------------------
+         * 3. VISUALIZER ENGINE (CANVAS)
+         * ---------------------------------------------------- */
+        let visType = 'bars';
+
+        function setVisType(type) {
+            visType = type;
+            document.getElementById('visBtnBars').className = type === 'bars' 
+                ? "text-xs px-2 py-1 rounded bg-emerald-800/60 text-emerald-200 border border-emerald-600/40" 
+                : "text-xs px-2 py-1 rounded bg-slate-800 text-slate-400 border border-slate-700";
+
+            document.getElementById('visBtnWave').className = type === 'wave' 
+                ? "text-xs px-2 py-1 rounded bg-emerald-800/60 text-emerald-200 border border-emerald-600/40" 
+                : "text-xs px-2 py-1 rounded bg-slate-800 text-slate-400 border border-slate-700";
+        }
 
         function startVisualizer() {
-            analyserNode.fftSize = 256;
-            const bufferLength = analyserNode.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
+            const canvas = document.getElementById('visualizerCanvas');
+            const ctx = canvas.getContext('2d');
 
-            function draw() {
-                if (!isEngineRunning) {
-                    canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-                    vuMeterBar.style.width = '0%';
-                    vuMeterDb.textContent = '-INF dB';
+            function render() {
+                if (!isMicActive) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
                     return;
                 }
 
-                requestAnimationFrame(draw);
-                analyserNode.getByteFrequencyData(dataArray);
+                requestAnimationFrame(render);
 
-                canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+                // Handle canvas sizing dynamically
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
 
-                const barWidth = (canvas.width / bufferLength) * 2.2;
-                let barHeight;
-                let x = 0;
-                let total = 0;
+                const bufferLength = analyserNode.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
 
-                for (let i = 0; i < bufferLength; i++) {
-                    barHeight = (dataArray[i] / 255) * canvas.height * 0.75;
-                    total += dataArray[i];
+                if (visType === 'bars') {
+                    analyserNode.getByteFrequencyData(dataArray);
 
-                    const grad = canvasCtx.createLinearGradient(0, canvas.height, 0, 0);
-                    grad.addColorStop(0, 'rgba(16, 185, 129, 0.1)');
-                    grad.addColorStop(0.5, 'rgba(234, 179, 8, 0.5)');
-                    grad.addColorStop(1, 'rgba(234, 179, 8, 0.9)');
+                    ctx.fillStyle = 'rgb(2, 44, 34)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    canvasCtx.fillStyle = grad;
-                    canvasCtx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
+                    const barWidth = (canvas.width / bufferLength) * 2.2;
+                    let x = 0;
 
-                    x += barWidth + 1;
+                    for (let i = 0; i < bufferLength; i++) {
+                        const barHeight = (dataArray[i] / 255) * canvas.height;
+
+                        // Emerald to Amber Gradient
+                        const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
+                        gradient.addColorStop(0, '#059669');
+                        gradient.addColorStop(0.7, '#f59e0b');
+                        gradient.addColorStop(1, '#fde047');
+
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+
+                        x += barWidth + 1;
+                    }
+                } else {
+                    // Oscilloscope Waveform
+                    analyserNode.getByteTimeDomainData(dataArray);
+
+                    ctx.fillStyle = 'rgb(2, 44, 34)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = '#f59e0b';
+                    ctx.beginPath();
+
+                    const sliceWidth = canvas.width * 1.0 / bufferLength;
+                    let x = 0;
+
+                    for (let i = 0; i < bufferLength; i++) {
+                        const v = dataArray[i] / 128.0;
+                        const y = v * canvas.height / 2;
+
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+
+                        x += sliceWidth;
+                    }
+
+                    ctx.lineTo(canvas.width, canvas.height / 2);
+                    ctx.stroke();
                 }
-
-                // VU Meter Peak
-                const avg = total / bufferLength;
-                const pct = Math.min(100, Math.round((avg / 128) * 100));
-                vuMeterBar.style.width = pct + '%';
-                vuMeterDb.textContent = avg > 0 ? (20 * Math.log10(avg / 255)).toFixed(1) + ' dB' : '-INF dB';
             }
 
-            draw();
+            render();
         }
 
-        // --- READ & PRACTICE ASSISTANT AUTO-SCROLL ---
-        const readerViewport = document.getElementById('readerViewport');
-        const autoScrollBtn = document.getElementById('autoScrollBtn');
 
-        autoScrollBtn.addEventListener('click', () => {
-            if (autoScrollInterval) {
-                clearInterval(autoScrollInterval);
-                autoScrollInterval = null;
-                autoScrollBtn.classList.remove('bg-emerald-600', 'text-white');
-            } else {
-                const speed = parseInt(document.getElementById('scrollSpeed').value);
-                autoScrollInterval = setInterval(() => {
-                    readerViewport.scrollTop += 1;
-                }, 100 / speed);
-                autoScrollBtn.classList.add('bg-emerald-600', 'text-white');
+        /* ----------------------------------------------------
+         * 4. AUDIO RECORDER & TRACK MANAGEMENT
+         * ---------------------------------------------------- */
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let isRecording = false;
+        let recordTimerInterval = null;
+        let recordSeconds = 0;
+        let tracksList = [];
+
+        function toggleRecording() {
+            if (!isMicActive) {
+                alert("Lütfen önce canlı mikrofonu açın!");
+                return;
             }
-        });
 
-        // --- RECORD STUDIO ---
-        const startRecordBtn = document.getElementById('startRecordBtn');
-        const stopRecordBtn = document.getElementById('stopRecordBtn');
-        const recordTimer = document.getElementById('recordTimer');
-        const recordStatus = document.getElementById('recordStatus');
-        const recordingHistory = document.getElementById('recordingHistory');
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
 
-        startRecordBtn.addEventListener('click', () => {
-            if (!isEngineRunning || !destStreamNode) return;
-
+        function startRecording() {
             recordedChunks = [];
-            mediaRecorder = new MediaRecorder(destStreamNode.stream, { mimeType: 'audio/webm' });
+            
+            // Record the processed audio stream from Web Audio API
+            const stream = destStreamNode.stream;
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
 
             mediaRecorder.ondataavailable = (e) => {
                 if (e.data.size > 0) recordedChunks.push(e.data);
             };
 
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(recordedChunks, { type: 'audio/webm' });
-                const url = URL.createObjectURL(blob);
-
-                const item = document.createElement('div');
-                item.className = "p-2 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between";
-                item.innerHTML = `
-                    <audio src="${url}" controls class="h-7 w-40"></audio>
-                    <a href="${url}" download="cami-okuma-${Date.now()}.webm" class="text-amber-400 hover:text-amber-300 font-semibold text-xs px-2 py-1 bg-amber-500/10 rounded-lg">İndir</a>
-                `;
-                if (recordingHistory.children[0]?.tagName === 'P') recordingHistory.innerHTML = '';
-                recordingHistory.prepend(item);
-            };
+            mediaRecorder.onstop = saveRecordedTrack;
 
             mediaRecorder.start();
-            recordStartTime = Date.now();
-            recordStatus.textContent = "Kaydediliyor...";
-            recordStatus.className = "text-xs text-red-400 font-medium animate-pulse";
+            isRecording = true;
 
+            // UI Adjustments
+            document.getElementById('recIcon').className = "fa-solid fa-square text-lg";
+            document.getElementById('recStatus').innerText = "Kayıt Yapılıyor...";
+            document.getElementById('recStatus').className = "text-xs px-2.5 py-1 rounded bg-red-950 text-red-300 border border-red-800 animate-pulse";
+
+            recordSeconds = 0;
             recordTimerInterval = setInterval(() => {
-                const elapsed = Math.floor((Date.now() - recordStartTime) / 1000);
-                const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
-                const s = String(elapsed % 60).padStart(2, '0');
-                recordTimer.textContent = `${m}:${s}`;
+                recordSeconds++;
+                const mins = String(Math.floor(recordSeconds / 60)).padStart(2, '0');
+                const secs = String(recordSeconds % 60).padStart(2, '0');
+                document.getElementById('recTimer').innerText = `${mins}:${secs}`;
             }, 1000);
+        }
 
-            startRecordBtn.disabled = true;
-            startRecordBtn.className = "px-4 py-3 rounded-xl font-semibold text-xs transition-all flex items-center justify-center space-x-2 bg-slate-800 text-slate-500 cursor-not-allowed";
+        function stopRecording() {
+            if (!mediaRecorder) return;
+            mediaRecorder.stop();
+            isRecording = false;
+            clearInterval(recordTimerInterval);
 
-            stopRecordBtn.disabled = false;
-            stopRecordBtn.className = "px-4 py-3 rounded-xl font-semibold text-xs transition-all flex items-center justify-center space-x-2 bg-red-600/30 hover:bg-red-600/50 text-red-300 border border-red-500/40";
-        });
+            document.getElementById('recIcon').className = "fa-solid fa-circle text-lg";
+            document.getElementById('recStatus').innerText = "Kayıt Tamamlandı";
+            document.getElementById('recStatus').className = "text-xs px-2.5 py-1 rounded bg-slate-950 text-slate-400 border border-slate-800";
+        }
 
-        stopRecordBtn.addEventListener('click', () => {
-            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                mediaRecorder.stop();
-                clearInterval(recordTimerInterval);
-                recordStatus.textContent = "Kayıt Tamamlandı";
-                recordStatus.className = "text-xs text-emerald-400 font-medium";
+        function saveRecordedTrack() {
+            const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+            const audioUrl = URL.createObjectURL(blob);
 
-                stopRecordBtn.disabled = true;
-                stopRecordBtn.className = "px-4 py-3 rounded-xl font-semibold text-xs transition-all flex items-center justify-center space-x-2 bg-slate-800 text-slate-500 cursor-not-allowed";
+            const select = document.getElementById('surahSelect');
+            const surahTitle = select.options[select.selectedIndex].text;
+            
+            const track = {
+                id: Date.now(),
+                title: `${surahTitle} Kaydı`,
+                date: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+                duration: document.getElementById('recTimer').innerText,
+                url: audioUrl
+            };
 
-                startRecordBtn.disabled = false;
-                startRecordBtn.className = "px-4 py-3 rounded-xl font-semibold text-xs transition-all flex items-center justify-center space-x-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30";
+            tracksList.unshift(track);
+            renderTrackList();
+            saveTracksToLocalStorage();
+        }
+
+        function renderTrackList() {
+            const container = document.getElementById('trackList');
+            const countBadge = document.getElementById('trackCountBadge');
+
+            countBadge.innerText = `${tracksList.length} Kayıt`;
+
+            if (tracksList.length === 0) {
+                container.innerHTML = `
+                    <div id="emptyTracksMsg" class="text-center py-6 text-slate-500 text-xs border border-dashed border-slate-800 rounded-xl">
+                        Henüz ses kaydı yapılmadı. "Akustik Kayıt" butonunu kullanarak kayda başlayın.
+                    </div>
+                `;
+                return;
             }
-        });
+
+            container.innerHTML = '';
+            tracksList.forEach(track => {
+                const card = document.createElement('div');
+                card.className = "bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-3 hover:border-emerald-700/50 transition-all";
+                card.innerHTML = `
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <button onclick="playTrack('${track.url}', this)" class="w-9 h-9 rounded-lg bg-emerald-900/60 text-emerald-300 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors flex-shrink-0">
+                            <i class="fa-solid fa-play"></i>
+                        </button>
+                        <div class="truncate">
+                            <div class="text-xs font-bold text-slate-200 truncate">${track.title}</div>
+                            <div class="text-[10px] text-slate-400">${track.date} &bull; Süre: ${track.duration}</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <a href="${track.url}" download="${track.title}.webm" class="p-2 text-xs text-amber-400 hover:text-amber-300 bg-slate-900 hover:bg-slate-800 rounded-lg border border-slate-800" title="İndir">
+                            <i class="fa-solid fa-download"></i>
+                        </a>
+                        <button onclick="deleteTrack(${track.id})" class="p-2 text-xs text-red-400 hover:text-red-300 bg-slate-900 hover:bg-slate-800 rounded-lg border border-slate-800" title="Sil">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        let currentAudio = null;
+        let currentPlayBtn = null;
+
+        function playTrack(url, btn) {
+            if (currentAudio) {
+                currentAudio.pause();
+                if (currentPlayBtn) currentPlayBtn.innerHTML = `<i class="fa-solid fa-play"></i>`;
+            }
+
+            if (currentAudio && currentAudio.src === url && !currentAudio.paused) {
+                return;
+            }
+
+            currentAudio = new Audio(url);
+            currentPlayBtn = btn;
+            btn.innerHTML = `<i class="fa-solid fa-pause"></i>`;
+
+            currentAudio.play();
+            currentAudio.onended = () => {
+                btn.innerHTML = `<i class="fa-solid fa-play"></i>`;
+            };
+        }
+
+        function deleteTrack(id) {
+            tracksList = tracksList.filter(t => t.id !== id);
+            renderTrackList();
+            saveTracksToLocalStorage();
+        }
+
+        function saveTracksToLocalStorage() {
+            // Note: Blob URLs cannot be persisted in localStorage across page reloads, 
+            // but structure is ready for metadata.
+            localStorage.setItem('cami_studio_tracks_meta', JSON.stringify(tracksList.map(t => ({ id: t.id, title: t.title, date: t.date, duration: t.duration }))));
+        }
+
+        /* ----------------------------------------------------
+         * 5. INITIALIZATION ON PAGE LOAD
+         * ---------------------------------------------------- */
+        window.onload = function() {
+            loadSelectedSurah();
+            document.getElementById('recBtn').disabled = true;
+            applyPreset('ulu'); // Default Preset
+        };
     </script>
 </body>
 </html>
-```
