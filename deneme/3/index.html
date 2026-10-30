@@ -3,276 +3,307 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Akıllı Canlı TV Kaynak Tarayıcısı</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Akıllı Canlı TV Tarayıcısı</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#f2f4f7;color:#202938;font-family:Arial,sans-serif}
-header{background:#172b4d;color:white;padding:22px 16px;text-align:center}
+body{margin:0;background:#f2f4f7;color:#263445;font-family:Arial,sans-serif}
+header{background:#183451;color:white;padding:22px;text-align:center}
 header h2{margin:0 0 7px}
-main{max-width:950px;margin:22px auto;padding:0 14px}
-.panel{background:white;border:1px solid #dce1e8;border-radius:12px;padding:18px;margin-bottom:16px}
-label{display:block;font-weight:bold;margin-bottom:8px}
-input{width:100%;padding:13px;border:1px solid #cbd2dc;border-radius:8px;font-size:15px}
-button{border:0;border-radius:8px;padding:12px 17px;font-size:14px;font-weight:bold;cursor:pointer}
+main{max-width:950px;margin:20px auto;padding:0 13px}
+.panel{background:white;border:1px solid #dce2e9;border-radius:12px;padding:17px;margin-bottom:15px}
+textarea{width:100%;min-height:125px;resize:vertical;padding:12px;border:1px solid #cbd3dd;border-radius:8px;font:14px Arial}
+button{padding:12px 16px;border:0;border-radius:8px;font-weight:bold;cursor:pointer}
 .primary{background:#1769aa;color:white}
-.secondary{background:#e8edf3;color:#25364a}
-button:disabled{opacity:.5;cursor:wait}
+.secondary{background:#e8edf3;color:#263445}
+button:disabled{opacity:.5}
 .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
-.status{padding:12px;border-radius:8px;background:#eef3f8;margin-top:12px;white-space:pre-wrap}
+.status{white-space:pre-wrap;background:#edf2f7;padding:12px;border-radius:8px;margin-top:12px;font-size:14px}
 .item{padding:12px;border:1px solid #e0e5eb;border-radius:8px;margin-top:9px;overflow-wrap:anywhere}
 .item strong{display:block;margin-bottom:6px}
-.small{font-size:12px;color:#697586;overflow-wrap:anywhere}
-.tag{display:inline-block;background:#e8f1fa;color:#185b91;padding:4px 7px;border-radius:5px;font-size:11px;margin-bottom:6px}
-h3{margin:0 0 12px}
-.counter{font-size:13px;color:#667085;margin-top:8px}
-footer{text-align:center;color:#77808d;font-size:12px;padding:20px}
+.small{font-size:12px;color:#667085;overflow-wrap:anywhere}
+.tag{display:inline-block;background:#e8f1fa;color:#185b91;padding:4px 7px;border-radius:5px;font-size:11px;margin:5px 0}
+h3{margin:0 0 10px}
+.counter{font-size:13px;color:#667085;margin:8px 0}
+.siteResult{border-left:3px solid #1769aa;padding:8px 10px;margin:8px 0;background:#f7f9fb}
 </style>
 </head>
 <body>
-
 <header>
 <h2>Akıllı Canlı TV Kaynak Tarayıcısı</h2>
-<div>Otomatik kanal ve M3U / M3U8 kaynak bulucu</div>
+<div>Çoklu site • Otomatik kanal keşfi • M3U listesi</div>
 </header>
 
 <main>
 <section class="panel">
-<label for="site">Taranacak internet sitesi</label>
-<input id="site" type="url"
-placeholder="https://blog.canlitvizle.tv"
-value="https://blog.canlitvizle.tv">
-
+<h3>Tarama adresleri</h3>
+<p class="small">Her satıra bir HTTPS site adresi yaz. Birden fazla siteyi aynı anda sırayla taratabilirsin.</p>
+<textarea id="addresses" placeholder="https://www.canlitv.you/tr
+https://blog.canlitvizle.tv
+https://ornek-site.com"></textarea>
 <div class="actions">
-<button class="primary" id="scanBtn" onclick="startScan()">Taramayı Başlat</button>
-<button class="secondary" onclick="clearResults()">Temizle</button>
+<button class="primary" id="scanBtn" onclick="startScan()">Tüm Adresleri Tara</button>
+<button class="secondary" onclick="clearAll()">Temizle</button>
 </div>
-
-<div class="status" id="status">Tarama için internet sitesi adresini girin.</div>
+<div class="status" id="status">Tarama için site adreslerini gir.</div>
 <div class="counter" id="progress"></div>
 </section>
 
 <section class="panel">
+<h3>Tarama sonuçları</h3>
+<div id="siteResults" class="small">Henüz tarama yapılmadı.</div>
+</section>
+
+<section class="panel">
 <h3>Bulunan yayınlar</h3>
-<div class="counter" id="streamCount">Henüz yayın bulunmadı.</div>
+<div class="counter" id="streamCount">0 yayın</div>
 <div id="streams"></div>
 <div class="actions">
-<button class="primary" onclick="downloadM3U()">M3U Listesini İndir</button>
+<button class="primary" onclick="downloadM3U()">Tek M3U Listesi İndir</button>
 <button class="secondary" onclick="copyM3U()">M3U Metnini Kopyala</button>
 </div>
 </section>
 
 <section class="panel">
-<h3>Bulunan kategori ve kanal sayfaları</h3>
-<div class="counter" id="pageCount">Henüz sayfa bulunmadı.</div>
+<h3>Bulunan kanal ve kategori sayfaları</h3>
+<div class="counter" id="pageCount">0 sayfa</div>
 <div id="pages"></div>
 </section>
 
 <section class="panel">
 <h3>Tarama ayrıntıları</h3>
-<div id="details" class="small">Tarama henüz yapılmadı.</div>
+<div id="details" class="small">Henüz tarama yapılmadı.</div>
 </section>
 </main>
 
-<footer>
-Yalnızca erişime açık ve izin verilen yayın kaynaklarını listeler.
-</footer>
-
 <script>
 const API = "https://tvliste.onrender.com";
+let allStreams = [];
+let allPages = [];
+let scanDetails = [];
 
-let foundStreams = [];
-let foundPages = [];
+function uniqueAddresses() {
+  const lines = document.getElementById("addresses").value
+    .split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+  const result = [];
+  const seen = new Set();
 
-function setStatus(message) {
-  document.getElementById("status").textContent = message;
+  for (const line of lines) {
+    try {
+      const u = new URL(line);
+      if (u.protocol !== "https:") continue;
+      if (!seen.has(u.href)) {
+        seen.add(u.href);
+        result.push(u.href);
+      }
+    } catch {}
+  }
+  return result;
+}
+
+function setStatus(t) {
+  document.getElementById("status").textContent = t;
+}
+
+function addUnique(target, incoming) {
+  const seen = new Set(target.map(x => x.url));
+  for (const item of incoming) {
+    if (item && item.url && !seen.has(item.url)) {
+      seen.add(item.url);
+      target.push(item);
+    }
+  }
 }
 
 async function startScan() {
-  const input = document.getElementById("site");
-  const btn = document.getElementById("scanBtn");
-  const address = input.value.trim();
-
-  let parsed;
-  try {
-    parsed = new URL(address);
-    if (parsed.protocol !== "https:") throw new Error();
-  } catch {
-    setStatus("Geçerli bir HTTPS adresi girin.");
+  const addresses = uniqueAddresses();
+  if (!addresses.length) {
+    setStatus("Geçerli HTTPS adresi bulunamadı. Adresleri ayrı satırlara yaz.");
     return;
   }
 
+  const btn = document.getElementById("scanBtn");
   btn.disabled = true;
   btn.textContent = "Taranıyor...";
-  foundStreams = [];
-  foundPages = [];
-  renderResults();
-  setStatus("Sunucuya bağlanılıyor...\nSayfalar açılıyor ve yayın istekleri aranıyor.");
-  document.getElementById("details").textContent = "Tarama devam ediyor.";
+  allStreams = [];
+  allPages = [];
+  scanDetails = [];
+  render();
 
-  try {
-    const endpoint = API + "/scan?url=" + encodeURIComponent(parsed.href);
-    const response = await fetch(endpoint);
-    const data = await response.json();
+  const resultBox = document.getElementById("siteResults");
+  resultBox.innerHTML = "";
 
-    if (!response.ok || !data.ok) {
-      throw new Error(data.error || "Sunucu taramayı tamamlayamadı.");
+  let completed = 0;
+
+  for (const address of addresses) {
+    setStatus("Adres taranıyor:\n" + address);
+    document.getElementById("progress").textContent =
+      completed + " / " + addresses.length + " site tamamlandı.";
+
+    const row = document.createElement("div");
+    row.className = "siteResult";
+    row.textContent = "Taranıyor: " + address;
+    resultBox.appendChild(row);
+
+    try {
+      const endpoint = API + "/scan?url=" + encodeURIComponent(address);
+      const response = await fetch(endpoint);
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "Sunucu taramayı reddetti.");
+      }
+
+      const items = Array.isArray(data.items) ? data.items : [];
+      const streams = items.filter(x => x.type === "stream" && x.url);
+      const pages = items.filter(x => x.type === "channel" && x.url);
+
+      addUnique(allStreams, streams);
+      addUnique(allPages, pages);
+
+      const detail = {
+        address,
+        ok:true,
+        scannedPages:data.scannedPages || 0,
+        streamCount:streams.length,
+        pageCount:pages.length,
+        errors:Array.isArray(data.errors) ? data.errors : []
+      };
+      scanDetails.push(detail);
+
+      row.textContent = "Tamamlandı: " + address +
+        " | Sayfa: " + detail.scannedPages +
+        " | Yayın: " + streams.length;
+
+    } catch (error) {
+      scanDetails.push({address,ok:false,error:error.message});
+      row.textContent = "Hata: " + address + " | " + error.message;
     }
 
-    const items = Array.isArray(data.items) ? data.items : [];
-
-    foundStreams = items.filter(x =>
-      x.type === "stream" && x.url
-    );
-
-    foundPages = items.filter(x =>
-      x.type === "channel" && x.url
-    );
-
-    renderResults();
-
-    setStatus(data.message || "Tarama tamamlandı.");
+    completed++;
+    render();
     document.getElementById("progress").textContent =
-      "Taranan sayfa: " + (data.scannedPages || 0);
-
-    const errors = Array.isArray(data.errors) ? data.errors : [];
-    document.getElementById("details").textContent =
-      "Motor: " + (data.engine || "Playwright") +
-      "\nSürüm: " + (data.version || "-") +
-      "\nTaranan sayfa: " + (data.scannedPages || 0) +
-      "\nBulunan yayın: " + foundStreams.length +
-      "\nSayfa hatası: " + errors.length +
-      (errors.length ? "\n\n" + errors.map(e =>
-        e.url + "\n" + e.error
-      ).join("\n\n") : "");
-
-  } catch (error) {
-    setStatus(
-      "Tarama yapılamadı: " + error.message +
-      "\n\nSunucunun çalıştığını ve /health adresinin yanıt verdiğini kontrol edin."
-    );
-    document.getElementById("details").textContent =
-      "Bağlantı veya tarama hatası.";
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "Taramayı Başlat";
+      completed + " / " + addresses.length + " site tamamlandı.";
   }
+
+  const totalErrors = scanDetails.filter(x => !x.ok).length;
+  setStatus("Tarama tamamlandı.\n" +
+    "Taranan adres: " + addresses.length +
+    "\nBulunan benzersiz yayın: " + allStreams.length +
+    "\nHata alınan adres: " + totalErrors);
+
+  document.getElementById("details").textContent =
+    scanDetails.map(x => x.address + "\n" +
+      (x.ok
+        ? "Taranan sayfa: " + x.scannedPages +
+          " | Yayın: " + x.streamCount +
+          " | Kanal sayfası: " + x.pageCount +
+          (x.errors.length ? "\nHata: " + x.errors.length : "")
+        : "Hata: " + x.error)
+    ).join("\n\n");
+
+  btn.disabled = false;
+  btn.textContent = "Tüm Adresleri Tara";
 }
 
-function renderResults() {
+function render() {
+  document.getElementById("streamCount").textContent =
+    allStreams.length + " benzersiz yayın";
+  document.getElementById("pageCount").textContent =
+    allPages.length + " kanal/kategori sayfası";
+
   const streamBox = document.getElementById("streams");
   const pageBox = document.getElementById("pages");
-
-  document.getElementById("streamCount").textContent =
-    foundStreams.length + " yayın bulundu.";
-
-  document.getElementById("pageCount").textContent =
-    foundPages.length + " sayfa bulundu.";
-
   streamBox.innerHTML = "";
   pageBox.innerHTML = "";
 
-  if (!foundStreams.length) {
-    streamBox.textContent = "Bu taramada M3U/M3U8 yayını yakalanmadı.";
+  if (!allStreams.length) {
+    streamBox.textContent = "Henüz yayın bulunamadı.";
   }
 
-  foundStreams.forEach((item, index) => {
+  allStreams.forEach((item, i) => {
     const div = document.createElement("div");
     div.className = "item";
 
-    const title = document.createElement("strong");
-    title.textContent = item.channelName || item.title || "Bulunan yayın";
+    const name = document.createElement("strong");
+    name.textContent = item.channelName || item.title || "TV Kanalı";
 
     const tag = document.createElement("span");
     tag.className = "tag";
-    tag.textContent = item.temporary
-      ? "Geçici / süreli bağlantı olabilir"
-      : "M3U / M3U8";
+    tag.textContent = "M3U / M3U8";
 
     const url = document.createElement("div");
     url.className = "small";
     url.textContent = item.url;
 
-    div.append(title, tag, url);
+    div.append(name, tag, url);
     streamBox.appendChild(div);
   });
 
-  if (!foundPages.length) {
-    pageBox.textContent = "Kanal sayfası bulunmadı.";
-  }
+  if (!allPages.length) pageBox.textContent = "Kanal sayfası bulunamadı.";
 
-  foundPages.forEach(item => {
+  allPages.forEach(item => {
     const div = document.createElement("div");
     div.className = "item";
-
-    const title = document.createElement("strong");
-    title.textContent = item.title || "Kanal sayfası";
-
+    const name = document.createElement("strong");
+    name.textContent = item.title || "Kanal sayfası";
     const link = document.createElement("a");
     link.href = item.url;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
     link.textContent = item.url;
-
-    div.append(title, link);
+    div.append(name, link);
     pageBox.appendChild(div);
   });
 }
 
 function makeM3U() {
-  let output = "#EXTM3U\n";
-
-  foundStreams.forEach(item => {
+  let text = "#EXTM3U\n";
+  allStreams.forEach(item => {
     const name = (item.channelName || item.title || "TV Kanalı")
-      .replace(/[\r\n,]/g, " ")
-      .trim();
-
-    output += "#EXTINF:-1," + name + "\n";
-    output += item.url + "\n";
+      .replace(/[\r\n,]/g, " ").trim();
+    text += "#EXTINF:-1," + name + "\n" + item.url + "\n";
   });
-
-  return output;
+  return text;
 }
 
 function downloadM3U() {
-  if (!foundStreams.length) {
+  if (!allStreams.length) {
     alert("İndirilecek yayın bulunamadı.");
     return;
   }
-
-  const blob = new Blob([makeM3U()], {
-    type: "audio/x-mpegurl;charset=utf-8"
-  });
-
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "canli_tv_listesi.m3u";
-  link.click();
-
-  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  const blob = new Blob([makeM3U()], {type:"audio/x-mpegurl;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "birlesik_canli_tv_listesi.m3u";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 async function copyM3U() {
-  if (!foundStreams.length) {
+  if (!allStreams.length) {
     alert("Kopyalanacak yayın bulunamadı.");
     return;
   }
-
   try {
     await navigator.clipboard.writeText(makeM3U());
     alert("M3U listesi kopyalandı.");
   } catch {
-    alert("Kopyalama izni verilemedi. M3U dosyasını indirebilirsiniz.");
+    alert("Kopyalama izni verilemedi.");
   }
 }
 
-function clearResults() {
-  foundStreams = [];
-  foundPages = [];
-  renderResults();
-  setStatus("Liste temizlendi. Yeni tarama yapabilirsiniz.");
-  document.getElementById("progress").textContent = "";
+function clearAll() {
+  allStreams = [];
+  allPages = [];
+  scanDetails = [];
+  render();
+  document.getElementById("addresses").value = "";
+  document.getElementById("siteResults").textContent = "Henüz tarama yapılmadı.";
   document.getElementById("details").textContent = "Henüz tarama yapılmadı.";
+  document.getElementById("progress").textContent = "";
+  setStatus("Liste temizlendi.");
 }
 </script>
 </body>
