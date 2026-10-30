@@ -267,7 +267,7 @@
     <section>
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-          <i data-lucide="layout-grid" class="w-4 h-4"></i> TV Kanalları (Sürükleyip Sıralayabilirsiniz)
+          <i data-lucide="layout-grid" class="w-4 h-4"></i> TV Kanalları
         </h3>
         <span id="kanalSayisiMetni" class="text-xs text-slate-500">0 kanal bulundu</span>
       </div>
@@ -769,8 +769,14 @@
             <p class="text-[11px] font-bold text-slate-200 truncate group-hover:text-white leading-tight">${kanal.ad}</p>
           </div>
 
-          <div class="flex items-center justify-center w-full pt-1 border-t border-slate-800/60 mt-0.5">
+          <div class="flex items-center justify-between w-full pt-1 border-t border-slate-800/60 mt-0.5" onclick="event.stopPropagation()">
+            <button type="button" onclick="izlemeKanalTasi('${kanal.id}', 'sol')" class="p-0.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded" title="Sola Taşı">
+              <i data-lucide="chevron-left" class="w-3 h-3"></i>
+            </button>
             <span class="text-[9px] text-slate-500 font-mono">${indis + 1}</span>
+            <button type="button" onclick="izlemeKanalTasi('${kanal.id}', 'sag')" class="p-0.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded" title="Sağa Taşı">
+              <i data-lucide="chevron-right" class="w-3 h-3"></i>
+            </button>
           </div>
         </div>
       `}).join("");
@@ -798,6 +804,21 @@
 
       izlemeSirasiniKaydet(gosterimListesi);
       suruklenenKanalId = null;
+      kanallariCiz();
+    }
+
+    function izlemeKanalTasi(kanalId, yon) {
+      let gosterimListesi = izlemeKanallariniGetir();
+      const eskiIndis = gosterimListesi.findIndex(k => k.id === kanalId);
+      if (eskiIndis === -1) return;
+
+      let yeniIndis = yon === 'sol' ? eskiIndis - 1 : eskiIndis + 1;
+      if (yeniIndis < 0 || yeniIndis >= gosterimListesi.length) return;
+
+      const [tasinan] = gosterimListesi.splice(eskiIndis, 1);
+      gosterimListesi.splice(yeniIndis, 0, tasinan);
+
+      izlemeSirasiniKaydet(gosterimListesi);
       kanallariCiz();
     }
 
