@@ -855,7 +855,10 @@
 
         const aramaUyum = k.ad.toLowerCase().includes(aramaMetni.toLowerCase()) || 
                            (k.kategori && k.kategori.toLowerCase().includes(aramaMetni.toLowerCase()));
-        return katUyum && aramaUyum;
+        // Şifreli kategoriler, kilit açılana kadar Tümü/Favoriler/arama dahil hiçbir listede görünmez.
+        const kategoriKilitli = !!(k.kategori && kategoriSifreleri[kategoriAnahtari(k.kategori)]);
+        const kategoriErisimiVar = !kategoriKilitli || acikKategoriler.has(k.kategori);
+        return katUyum && aramaUyum && kategoriErisimiVar;
       });
 
       kanalSayisiMetni.textContent = `${filtrelenmis.length} kanal bulundu`;
