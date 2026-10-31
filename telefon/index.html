@@ -92,6 +92,7 @@
             <div class="space-y-3">
                 <input type="text" id="auth-phone" placeholder="Telefon Numarası (Örn: 5551234567)" class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-3 text-sm font-mono font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent))]">
                 <input type="text" id="auth-name" placeholder="Adınız Soyadınız" class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-3 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent))]">
+                <input type="password" id="auth-pin" placeholder="Güvenlik PIN Kodu (Veri Çakışmasını Önler)" class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-3 text-sm font-mono font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent))]">
             </div>
             <div class="pt-2">
                 <button onclick="registerAccount()" class="w-full bg-[rgb(var(--accent))] text-white py-3 rounded-xl text-sm font-bold shadow-lg flex items-center justify-center gap-2 hover:opacity-90">
@@ -214,7 +215,7 @@
                 <div id="history-list" class="space-y-2"></div>
             </div>
 
-            <!-- 6. AYARLAR -->
+            <!-- 6. AYARLAR (Yerel Zil Sesi Yükleme Eklendi) -->
             <div id="tab-settings" class="tab-content hidden space-y-4">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Gelişmiş Ayarlar</h3>
                 
@@ -226,6 +227,16 @@
                         <button onclick="setThemeColor('amber')" class="h-9 rounded-xl bg-amber-500 text-white text-xs font-bold">Turuncu</button>
                         <button onclick="setThemeColor('rose')" class="h-9 rounded-xl bg-rose-500 text-white text-xs font-bold">Gül</button>
                     </div>
+                </div>
+
+                <!-- YEREL ÖZEL ZİL SESİ YÜKLEME -->
+                <div class="glass-panel p-4 rounded-2xl space-y-2">
+                    <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Özel Zil Sesi Yükle (MP3/WAV)</span>
+                    <label class="w-full py-2.5 bg-[rgb(var(--accent))]/20 text-[rgb(var(--accent))] text-xs font-bold rounded-xl border border-[rgb(var(--accent))]/30 flex items-center justify-center gap-1 cursor-pointer">
+                        <i data-lucide="music" class="w-4 h-4"></i> Müzik Dosyası Seç
+                        <input type="file" accept="audio/*" onchange="uploadCustomRingtone(this)" class="hidden">
+                    </label>
+                    <button onclick="resetCustomRingtone()" class="w-full py-1.5 text-[10px] text-slate-400 hover:text-white underline">Varsayılan Zile Dön</button>
                 </div>
 
                 <div class="glass-panel p-4 rounded-2xl space-y-2">
@@ -246,14 +257,6 @@
                     <select id="dnd-status-select" onchange="updateUserStatus(this.value)" class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none">
                         <option value="online">Müsait (Çevrimiçi)</option>
                         <option value="dnd">Rahatsız Etmeyin (Meşgul)</option>
-                    </select>
-                </div>
-
-                <div class="glass-panel p-4 rounded-2xl space-y-2">
-                    <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Zil Sesi Melodisi</span>
-                    <select id="ringtone-select" onchange="localStorage.setItem('nextalk_ringtone', this.value)" class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none">
-                        <option value="beep">Standart Bip</option>
-                        <option value="classic">Klasik Telefon</option>
                     </select>
                 </div>
 
@@ -340,7 +343,7 @@
 
     <!-- Ses ve Zil Elementleri -->
     <audio id="remote-audio" autoplay></audio>
-    <audio id="ringtone-audio" loop></audio>
+    <audio id="custom-ringtone-audio" loop></audio>
 
     <script>
         const FirebaseConfig = {
@@ -365,6 +368,7 @@
 
         let currentPhone = localStorage.getItem('nextalk_phone');
         let currentName = localStorage.getItem('nextalk_name');
+        let currentPin = localStorage.getItem('nextalk_pin');
         let peer = null, currentCall = null, dataConn = null, localStream = null;
         let isVideoCall = false, isScreenSharing = false, isRecording = false, isMuted = false, voiceMode = 'normal';
         let mediaRecorder = null, recordedChunks = [];
@@ -380,7 +384,7 @@
                 document.getElementById('auth-screen').classList.remove('hidden');
                 document.getElementById('auth-screen').classList.add('flex');
             } else {
-                initApp();
+                verifyAndInitApp();
             }
             checkAutoSunset();
         });
@@ -405,22 +409,46 @@
             }, 4000);
         }
 
+        // --- ÇAKIŞMA ÖNLEME: PIN KODU KONTROLÜ ---
         function registerAccount() {
             const phone = document.getElementById('auth-phone').value.trim();
             const name = document.getElementById('auth-name').value.trim();
-            if(!phone || !name) return alert("Lütfen telefon numarası ve adınızı soyadınızı girin!");
+            const pin = document.getElementById('auth-pin').value.trim();
+            if(!phone || !name || !pin) return alert("Lütfen telefon numarası, ad soyad ve güvenlik PIN kodunu doldurun!");
 
-            currentPhone = phone;
-            currentName = name;
+            db.ref(FirebaseConfig.rootPath + '/' + phone).once('value', snap => {
+                const existingData = snap.val();
+                if(existingData && existingData.pin && existingData.pin !== pin) {
+                    alert("Bu telefon numarası başka bir kullanıcı tarafından kayıtlı ve PIN kodu uyuşmuyor! Başka bir numara girin.");
+                    return;
+                }
 
-            localStorage.setItem('nextalk_phone', phone);
-            localStorage.setItem('nextalk_name', name);
+                currentPhone = phone;
+                currentName = name;
+                currentPin = pin;
 
-            db.ref(FirebaseConfig.rootPath + '/' + phone).update({ name: name, status: 'online' });
+                localStorage.setItem('nextalk_phone', phone);
+                localStorage.setItem('nextalk_name', name);
+                localStorage.setItem('nextalk_pin', pin);
 
-            document.getElementById('auth-screen').classList.remove('flex');
-            document.getElementById('auth-screen').classList.add('hidden');
-            initApp();
+                db.ref(FirebaseConfig.rootPath + '/' + phone).update({ name: name, pin: pin, status: 'online' });
+
+                document.getElementById('auth-screen').classList.remove('flex');
+                document.getElementById('auth-screen').classList.add('hidden');
+                initApp();
+            });
+        }
+
+        function verifyAndInitApp() {
+            db.ref(FirebaseConfig.rootPath + '/' + currentPhone + '/pin').once('value', snap => {
+                const cloudPin = snap.val();
+                if(cloudPin && cloudPin !== currentPin) {
+                    alert("Güvenlik Uyarısı: Bu numara için farklı bir PIN tanımlı. Lütfen tekrar giriş yapın.");
+                    logoutAccount();
+                    return;
+                }
+                initApp();
+            });
         }
 
         function logoutAccount() {
@@ -428,6 +456,7 @@
                 db.ref(FirebaseConfig.rootPath + '/' + currentPhone).update({ status: 'offline' });
                 localStorage.removeItem('nextalk_phone');
                 localStorage.removeItem('nextalk_name');
+                localStorage.removeItem('nextalk_pin');
                 location.reload();
             }
         }
@@ -477,6 +506,67 @@
             loadCloudHistory();
         }
 
+        // --- YEREL ÖZEL ZİL SESİ YÜKLEME ---
+        function uploadCustomRingtone(input) {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                localStorage.setItem('nextalk_custom_ringtone', e.target.result);
+                showToast("Zil Sesi", "Özel zil sesi başarıyla yüklendi!", "success");
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function resetCustomRingtone() {
+            localStorage.removeItem('nextalk_custom_ringtone');
+            showToast("Zil Sesi", "Varsayılan zil sesine geri dönüldü.", "info");
+        }
+
+        function playRingtone() {
+            try {
+                stopAllAudioAndRingtones();
+                const customAudioData = localStorage.getItem('nextalk_custom_ringtone');
+                if(customAudioData) {
+                    const audio = document.getElementById('custom-ringtone-audio');
+                    audio.src = customAudioData;
+                    audio.play().catch(e => playDefaultRingtone());
+                } else {
+                    playDefaultRingtone();
+                }
+            } catch(e) { playDefaultRingtone(); }
+        }
+
+        function playDefaultRingtone() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            window.incomingAudioCtx = ctx;
+            window.ringInterval = setInterval(() => {
+                if(!window.incomingAudioCtx) return;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.frequency.value = 880;
+                gain.gain.value = 0.1;
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(); osc.stop(ctx.currentTime + 0.4);
+            }, 1000);
+        }
+
+        function stopRingtone() { 
+            if(window.ringInterval) {
+                clearInterval(window.ringInterval);
+                window.ringInterval = null;
+            }
+            if(window.incomingAudioCtx) {
+                try { window.incomingAudioCtx.close(); } catch(e) {}
+                window.incomingAudioCtx = null;
+            }
+            try {
+                const audio = document.getElementById('custom-ringtone-audio');
+                audio.pause();
+                audio.currentTime = 0;
+            } catch(e) {}
+        }
+
         function startRingbackTone() {
             try {
                 stopAllAudioAndRingtones();
@@ -505,17 +595,9 @@
             }
         }
 
-        // --- GELİŞTİRİLDİ: Tüm sesleri ve zilleri anında tamamen durduran garanti fonksiyon ---
         function stopAllAudioAndRingtones() {
             stopRingbackTone();
             stopRingtone();
-            try {
-                const ringAudio = document.getElementById('ringtone-audio');
-                if(ringAudio) {
-                    ringAudio.pause();
-                    ringAudio.currentTime = 0;
-                }
-            } catch(e) {}
         }
 
         function exportBackup() {
@@ -604,33 +686,6 @@
         function requestNotificationPermission() {
             if(Notification) {
                 Notification.requestPermission().then(perm => showToast("Bildirim", "İzin durumu: " + perm, "success"));
-            }
-        }
-
-        function playRingtone() {
-            try {
-                stopAllAudioAndRingtones();
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                window.incomingAudioCtx = ctx;
-                window.ringInterval = setInterval(() => {
-                    if(!window.incomingAudioCtx) return;
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.frequency.value = 880;
-                    gain.gain.value = 0.1;
-                    osc.connect(gain); gain.connect(ctx.destination);
-                    osc.start(); osc.stop(ctx.currentTime + 0.4);
-                }, 1000);
-            } catch(e) {}
-        }
-        function stopRingtone() { 
-            if(window.ringInterval) {
-                clearInterval(window.ringInterval);
-                window.ringInterval = null;
-            }
-            if(window.incomingAudioCtx) {
-                try { window.incomingAudioCtx.close(); } catch(e) {}
-                window.incomingAudioCtx = null;
             }
         }
 
