@@ -60,7 +60,6 @@
             transform: translateY(-2px); 
         }
 
-        /* GÖRÜŞME İÇİ KONTROL BUTONLARI İÇİN BELİRGİN STİL */
         .call-ctrl-btn {
             background: rgba(255, 255, 255, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.3);
@@ -78,7 +77,6 @@
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 theme-indigo">
 
-    <!-- MODERN BİLDİRİM TOAST CONTAINER -->
     <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
     <!-- İLK GİRİŞ EKRANI -->
@@ -128,7 +126,7 @@
         <!-- İÇERİK SEKMELERİ -->
         <main class="flex-1 overflow-y-auto relative p-5">
             
-            <!-- 1. TUŞ TAKIMI / ARAMA (Ses Efektli) -->
+            <!-- 1. TUŞ TAKIMI / ARAMA (Sessiz Tuşlar) -->
             <div id="tab-dialer" class="tab-content flex flex-col h-full justify-between">
                 <div class="flex flex-col items-center justify-center my-2">
                     <input type="text" id="phone-display" placeholder="Numara Ara..." 
@@ -269,7 +267,7 @@
             </div>
         </div>
 
-        <!-- AKTİF ARAMA OVERLAY (NET VE BELİRGİN KONTROL BUTONLARI İLE) -->
+        <!-- AKTİF ARAMA OVERLAY -->
         <div id="call-overlay" class="absolute inset-0 bg-slate-950 flex flex-col justify-between p-6 z-50 transform translate-y-full transition-transform duration-300">
             
             <div id="video-container" class="relative flex-1 bg-black rounded-2xl overflow-hidden hidden mb-2 flex items-center justify-center">
@@ -296,7 +294,7 @@
                 </div>
             </div>
 
-            <!-- Belirgin Çağrı Kontrolleri -->
+            <!-- Çağrı Kontrolleri -->
             <div class="space-y-4 pb-2">
                 <div class="flex justify-center gap-2.5 flex-wrap">
                     <button id="btn-mute" onclick="toggleMute()" title="Sustur / Mute" class="w-12 h-12 rounded-2xl call-ctrl-btn flex items-center justify-center shadow-lg"><i data-lucide="mic-off" class="w-5 h-5"></i></button>
@@ -313,7 +311,7 @@
             </div>
         </div>
 
-        <!-- BELİRGİN VE MODERN ALT MENÜ (5 SEKME) -->
+        <!-- ALT MENÜ (5 SEKME) -->
         <nav class="border-t border-slate-200 dark:border-slate-700 bg-slate-100/90 dark:bg-slate-900/90 backdrop-blur-md p-2 grid grid-cols-5 gap-1.5">
             <button onclick="switchTab('dialer')" id="nav-dialer" class="flex flex-col items-center py-2 rounded-2xl text-[rgb(var(--accent))] bg-[rgb(var(--accent))]/15 font-bold transition-all shadow-sm"><i data-lucide="grid" class="w-5 h-5 mb-1"></i><span class="text-[10px]">Tuşlar</span></button>
             <button onclick="switchTab('contacts')" id="nav-contacts" class="flex flex-col items-center py-2 rounded-2xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-bold transition-all"><i data-lucide="users" class="w-5 h-5 mb-1"></i><span class="text-[10px]">Rehber</span></button>
@@ -439,8 +437,15 @@
                 if(navigator.vibrate) navigator.vibrate([500, 200, 500]);
                 
                 playRingtone();
-                showToast("Gelen Arama", incomingCall.peer.replace('nextalk-', '') + " sizi arıyor...", "success");
+                showToast("Gelen Arama", incomingCall.peer.replace('nextalk-', '') + (isVideoCall ? " görüntülü arıyor..." : " sesli arıyor..."), "success");
                 showIncomingCallOverlay(incomingCall.peer.replace('nextalk-', ''));
+                
+                // Karşı taraf aramayı kapatırsa anlık olarak yakala
+                currentCall.on('close', () => {
+                    stopRingtone();
+                    resetCallUI();
+                    showToast("Bilgi", "Arama sonlandırıldı.", "info");
+                });
             });
 
             peer.on('connection', (conn) => {
@@ -451,32 +456,6 @@
             loadMyContacts();
             loadChatContacts();
             loadCloudHistory();
-        }
-
-        // --- TUŞ SESİ (DTMF TONE) ÇALMA FONKSİYONU ---
-        function playDtmfTone(char) {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                
-                // Tuşlara göre farklı frekanslar (DTMF standartlarına yakın)
-                const frequencies = {
-                    '1': 697, '2': 697, '3': 697,
-                    '4': 770, '5': 770, '6': 770,
-                    '7': 852, '8': 852, '9': 852,
-                    '*': 941, '0': 941, '#': 941
-                };
-                
-                osc.frequency.value = frequencies[char] || 800;
-                gain.gain.value = 0.15;
-                
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                
-                osc.start();
-                osc.stop(ctx.currentTime + 0.15);
-            } catch(e) {}
         }
 
         function toggleMute() {
@@ -830,29 +809,35 @@
             makeCall(false);
         }
 
+        // --- DÜZELTİLDİ: Sesli veya Görüntülü Arama Doğru Ayarlanıyor ---
         async function makeCall(video = false) {
             let targetPhone = document.getElementById('phone-display').value.trim();
             if(!targetPhone) return alert("Numara girin!");
 
             try {
+                // Eğer video false ise sadece ses (audio: true, video: false) iste
                 localStream = await navigator.mediaDevices.getUserMedia({ 
                     audio: { echoCancellation: true, noiseSuppression: true }, 
                     video: video 
                 });
             } catch(e) { return alert("Medya izni alınamadı!"); }
 
-            showCallOverlay(targetPhone, video ? "Görüntülü Aranıyor..." : "Aranıyor...");
+            showCallOverlay(targetPhone, video ? "Görüntülü Aranıyor..." : "Sesli Aranıyor...");
             document.getElementById('btn-accept').classList.add('hidden');
 
             if(video) {
                 document.getElementById('video-container').classList.remove('hidden');
                 document.getElementById('audio-call-ui').classList.add('hidden');
                 document.getElementById('local-video').srcObject = localStream;
+            } else {
+                document.getElementById('video-container').classList.add('hidden');
+                document.getElementById('audio-call-ui').classList.remove('hidden');
             }
 
             dataConn = peer.connect('nextalk-' + targetPhone);
             setupDataChannel();
 
+            // Metaveriye video parametresi açıkça ekleniyor
             currentCall = peer.call('nextalk-' + targetPhone, localStream, { metadata: { video } });
             handleCallEvents(currentCall, localStream);
             addCloudHistory(targetPhone, video ? 'video-outgoing' : 'outgoing');
@@ -866,14 +851,24 @@
         async function acceptCall() {
             stopRingtone();
             try {
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: true });
+                // Gelen aramanın türüne göre medya al (video çağrıysa kamera aç, değilse sadece ses)
+                localStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: { echoCancellation: true, noiseSuppression: true }, 
+                    video: isVideoCall 
+                });
             } catch(e) { return alert("Medya izni alınamadı!"); }
 
             document.getElementById('btn-accept').classList.add('hidden');
             document.getElementById('call-status-label').innerText = "Bağlandı";
-            document.getElementById('video-container').classList.remove('hidden');
-            document.getElementById('audio-call-ui').classList.add('hidden');
-            document.getElementById('local-video').srcObject = localStream;
+
+            if(isVideoCall) {
+                document.getElementById('video-container').classList.remove('hidden');
+                document.getElementById('audio-call-ui').classList.add('hidden');
+                document.getElementById('local-video').srcObject = localStream;
+            } else {
+                document.getElementById('video-container').classList.add('hidden');
+                document.getElementById('audio-call-ui').classList.remove('hidden');
+            }
 
             currentCall.answer(localStream);
             handleCallEvents(currentCall, localStream);
@@ -884,7 +879,11 @@
                 document.getElementById('remote-video').srcObject = remoteStream;
                 document.getElementById('call-status-label').innerText = "Bağlandı";
             });
-            call.on('close', () => resetCallUI());
+            // Karşı taraf aramayı kapattığında anlık tetiklenir
+            call.on('close', () => {
+                resetCallUI();
+                showToast("Bilgi", "Arama karşı tarafça sonlandırıldı.", "info");
+            });
         }
 
         function endCall() {
@@ -1013,10 +1012,9 @@
             db.ref(FirebaseConfig.rootPath + '/' + currentPhone).update({ status: status });
         }
 
-        // --- TUŞLARA BASINCA SES ÇALMASI ENTEGRE EDİLDİ ---
+        // --- TUŞ SESLERİ (DTMF) TAMAMEN KALDIRILDI ---
         function appendNum(char) { 
             document.getElementById('phone-display').value += char; 
-            playDtmfTone(char);
         }
         function deleteNum() { 
             let d = document.getElementById('phone-display'); 
