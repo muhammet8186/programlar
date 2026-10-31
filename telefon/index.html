@@ -13,7 +13,6 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
@@ -40,22 +39,22 @@
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 theme-indigo">
 
-    <!-- GİRİŞ EKRANI (AUTH MODAL) -->
+    <!-- TELEFON NUMARASI İLE GİRİŞ EKRANI -->
     <div id="auth-screen" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-4 z-50">
         <div class="glass-panel w-full max-w-sm p-6 rounded-3xl space-y-4 shadow-2xl">
             <div class="text-center">
                 <div class="w-12 h-12 rounded-2xl bg-[rgb(var(--accent))]/20 text-[rgb(var(--accent))] flex items-center justify-center mx-auto mb-2"><i data-lucide="phone-call" class="w-6 h-6"></i></div>
                 <h2 class="text-xl font-bold text-slate-800 dark:text-white">NexTalk Enterprise</h2>
-                <p class="text-xs text-slate-400">Devam etmek için giriş yapın veya kayıt olun</p>
+                <p class="text-xs text-slate-400">Telefon numaranız ile sisteme bağlanın</p>
             </div>
             <div class="space-y-3">
-                <input type="email" id="auth-email" placeholder="E-posta Adresi" class="w-full bg-slate-100 dark:bg-slate-900 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none">
-                <input type="password" id="auth-pass" placeholder="Şifre" class="w-full bg-slate-100 dark:bg-slate-900 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none">
-                <input type="text" id="auth-username" placeholder="Kullanıcı Adı (Örn: ahmet)" class="w-full bg-slate-100 dark:bg-slate-900 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none">
+                <input type="text" id="auth-phone" placeholder="Telefon Numarası (Örn: 5551234567)" class="w-full bg-slate-100 dark:bg-slate-900 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm font-mono text-slate-800 dark:text-white focus:outline-none">
+                <input type="text" id="auth-name" placeholder="Adınız (Örn: Ahmet Yılmaz)" class="w-full bg-slate-100 dark:bg-slate-900 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-800 dark:text-white focus:outline-none">
             </div>
-            <div class="flex gap-2 pt-2">
-                <button onclick="handleLogin()" class="flex-1 bg-[rgb(var(--accent))] text-white py-2.5 rounded-xl text-sm font-semibold shadow-lg">Giriş Yap</button>
-                <button onclick="handleRegister()" class="flex-1 glass-btn py-2.5 rounded-xl text-sm font-semibold">Kayıt Ol</button>
+            <div class="pt-2">
+                <button onclick="handlePhoneLogin()" class="w-full bg-[rgb(var(--accent))] text-white py-3 rounded-xl text-sm font-semibold shadow-lg flex items-center justify-center gap-2">
+                    <i data-lucide="log-in" class="w-4 h-4"></i> Sisteme Giriş Yap
+                </button>
             </div>
         </div>
     </div>
@@ -88,9 +87,9 @@
             <!-- 1. TUŞ TAKIMI / ARAMA -->
             <div id="tab-dialer" class="tab-content flex flex-col h-full justify-between">
                 <div class="flex flex-col items-center justify-center my-2">
-                    <input type="text" id="phone-display" placeholder="@kullaniciadi ara..." 
+                    <input type="text" id="phone-display" placeholder="Aranacak Numara..." 
                         class="bg-transparent text-center text-2xl font-mono font-bold tracking-wide text-[rgb(var(--accent))] placeholder:text-slate-400 focus:outline-none w-full">
-                    <span class="text-[11px] text-slate-400 mt-1">Kullanıcı adı ile arama yapın</span>
+                    <span class="text-[11px] text-slate-400 mt-1">Telefon numarası ile arama yapın</span>
                 </div>
 
                 <div class="grid grid-cols-3 gap-2.5 my-auto">
@@ -103,7 +102,7 @@
                     <button onclick="appendNum('7')" class="glass-btn h-12 rounded-2xl flex flex-col items-center justify-center"><span class="text-lg font-semibold">7</span><span class="text-[8px] text-slate-400">PQRS</span></button>
                     <button onclick="appendNum('8')" class="glass-btn h-12 rounded-2xl flex flex-col items-center justify-center"><span class="text-lg font-semibold">8</span><span class="text-[8px] text-slate-400">TUV</span></button>
                     <button onclick="appendNum('9')" class="glass-btn h-12 rounded-2xl flex flex-col items-center justify-center"><span class="text-lg font-semibold">9</span><span class="text-[8px] text-slate-400">WXYZ</span></button>
-                    <button onclick="appendNum('@')" class="glass-btn h-12 rounded-2xl flex items-center justify-center text-lg font-bold text-slate-400">@</button>
+                    <button onclick="appendNum('*')" class="glass-btn h-12 rounded-2xl flex items-center justify-center text-lg font-bold text-slate-400">*</button>
                     <button onclick="appendNum('0')" class="glass-btn h-12 rounded-2xl flex items-center justify-center text-lg font-semibold">0</button>
                     <button onclick="deleteNum()" class="glass-btn h-12 rounded-2xl flex items-center justify-center text-lg font-bold text-slate-400">⌫</button>
                 </div>
@@ -127,7 +126,7 @@
                 <div id="history-list" class="space-y-2"></div>
             </div>
 
-            <!-- 4. AYARLAR & TEMA ZAMANLAYICI -->
+            <!-- 4. AYARLAR -->
             <div id="tab-settings" class="tab-content hidden space-y-4">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Gelişmiş Ayarlar</h3>
                 
@@ -142,16 +141,8 @@
                 </div>
 
                 <div class="glass-panel p-4 rounded-2xl space-y-2">
-                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Zil Sesi Melodisi</span>
-                    <select id="ringtone-select" onchange="localStorage.setItem('ringtone', this.value)" class="w-full bg-slate-100 dark:bg-slate-900 text-xs text-slate-800 dark:text-white border border-black/10 dark:border-white/10 rounded-xl p-2">
-                        <option value="standard">Standart Çift Ton</option>
-                        <option value="classic">Klasik Zil</option>
-                    </select>
-                </div>
-
-                <div class="glass-panel p-4 rounded-2xl space-y-2">
-                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Otomatik Karanlık Mod (Gün Batımı Zamanlayıcısı)</span>
-                    <button onclick="toggleAutoSunset()" id="sunset-btn" class="w-full py-2 bg-indigo-600 text-white text-xs font-semibold rounded-xl">Gün Batımına Göre Otomatik: AÇIK</button>
+                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Otomatik Karanlık Mod</span>
+                    <button onclick="toggleAutoSunset()" class="w-full py-2 bg-indigo-600 text-white text-xs font-semibold rounded-xl">Gün Batımına Göre Otomatik</button>
                 </div>
             </div>
         </main>
@@ -163,16 +154,15 @@
                 <div class="w-24 h-24 rounded-full bg-[rgb(var(--accent))]/20 border-2 border-[rgb(var(--accent))]/40 flex items-center justify-center mx-auto mb-2 relative" id="call-avatar-wrap">
                     <i data-lucide="user" class="w-10 h-10 text-[rgb(var(--accent))]"></i>
                 </div>
-                <h2 id="call-remote-id" class="text-xl font-bold text-white tracking-wide">Kullanıcı: ----</h2>
+                <h2 id="call-remote-id" class="text-xl font-bold text-white tracking-wide">Numara: ----</h2>
                 <p id="call-timer" class="text-slate-400 text-xs mt-1 font-mono">00:00</p>
             </div>
 
-            <!-- ÇAĞRI KONTROLLERİ (Hold, 3-Way, Voicemail) -->
             <div class="space-y-4 pb-4">
                 <div class="flex justify-center gap-3 flex-wrap">
                     <button id="btn-hold" onclick="toggleHold()" title="Beklet / Müzik Çal" class="w-12 h-12 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="pause" class="w-5 h-5"></i></button>
-                    <button onclick="promptTransfer()" title="3 Yönlü Konferans / Aktar" class="w-12 h-12 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="users" class="w-5 h-5"></i></button>
-                    <button onclick="recordVoicemail()" title="Sesli Mesaj Bırak" class="w-12 h-12 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="mic" class="w-5 h-5"></i></button>
+                    <button onclick="promptTransfer()" title="3 Yönlü Konferans" class="w-12 h-12 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="users" class="w-5 h-5"></i></button>
+                    <button onclick="recordVoicemail()" title="Sesli Mesaj" class="w-12 h-12 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="mic" class="w-5 h-5"></i></button>
                 </div>
 
                 <div class="flex justify-center items-center gap-6">
@@ -195,7 +185,6 @@
     <script>
         // =========================================================================
         // 🛠️ MERKEZİ FIREBASE & KÖK BAŞLIK YAPILANDIRMASI
-        // Sizin sağladığınız gerçek Firebase konfigürasyon bilgileriniz entegre edilmiştir.
         // =========================================================================
         const FirebaseConfig = {
             config: {
@@ -208,62 +197,48 @@
                 appId: "1:559947698789:web:5f64226d43d0b4233e6c8c",
                 measurementId: "G-3CT3SC5BR6"
             },
-            // Veritabanı Kök Dizin Yolu
-            rootPath: "users" 
+            rootPath: "phones" 
         };
 
-        // Firebase Başlatma
         firebase.initializeApp(FirebaseConfig.config);
-        const auth = firebase.auth();
         const db = firebase.database();
 
         lucide.createIcons();
 
-        let currentUser = null;
-        let currentUsername = "";
+        let currentPhone = "";
+        let currentName = "";
         let peer = null, currentCall = null, localStream = null;
-        let isHold = false, holdAudioContext = null, holdInterval = null;
+        let isHold = false, holdInterval = null;
         let callHistory = JSON.parse(localStorage.getItem('nextalk_history') || '[]');
 
-        // Auth İşlemleri
-        function handleRegister() {
-            const email = document.getElementById('auth-email').value;
-            const pass = document.getElementById('auth-pass').value;
-            const uname = document.getElementById('auth-username').value.replace('@','');
-            if(!email || !pass || !uname) return alert("Tüm alanları doldurun!");
+        // Telefon Numarası ile Giriş / Kayıt (Auth istemez, doğrudan Realtime DB kullanır)
+        function handlePhoneLogin() {
+            const phone = document.getElementById('auth-phone').value.trim();
+            const name = document.getElementById('auth-name').value.trim();
+            if(!phone || !name) return alert("Lütfen telefon numaranızı ve adınızı girin!");
 
-            auth.createUserWithEmailAndPassword(email, pass).then((res) => {
-                db.ref(FirebaseConfig.rootPath + '/' + res.user.uid).set({ username: uname, status: 'online' });
-                initApp(res.user, uname);
-            }).catch(err => alert(err.message));
+            currentPhone = phone;
+            currentName = name;
+
+            // Veritabanına kaydet ve çevrimiçi yap
+            db.ref(FirebaseConfig.rootPath + '/' + phone).set({ name: name, status: 'online' });
+            
+            // Sayfadan çıkarken veya yenilerken çevrimdışı yap
+            db.ref(FirebaseConfig.rootPath + '/' + phone).onDisconnect().update({ status: 'offline' });
+
+            initApp();
         }
 
-        function handleLogin() {
-            const email = document.getElementById('auth-email').value;
-            const pass = document.getElementById('auth-pass').value;
-            if(!email || !pass) return alert("E-posta ve şifre girin!");
-
-            auth.signInWithEmailAndPassword(email, pass).then((res) => {
-                db.ref(FirebaseConfig.rootPath + '/' + res.user.uid).once('value', snapshot => {
-                    const data = snapshot.val();
-                    const uname = data ? data.username : email.split('@')[0];
-                    initApp(res.user, uname);
-                });
-            }).catch(err => alert(err.message));
-        }
-
-        function initApp(user, uname) {
-            currentUser = user;
-            currentUsername = uname;
+        function initApp() {
             document.getElementById('auth-screen').style.display = 'none';
-            document.getElementById('user-display-name').innerText = "@" + uname;
+            document.getElementById('user-display-name').innerText = currentName + " (" + currentPhone + ")";
 
-            // PeerJS Bağlantısı
-            peer = new Peer('nextalk-' + uname, { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
+            // PeerJS Bağlantısı (Telefon numarasını Peer ID olarak kullanıyoruz)
+            peer = new Peer('nextalk-' + currentPhone, { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
+            
             peer.on('open', () => {
                 document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
                 document.getElementById('status-text').innerText = "Çevrimiçi";
-                db.ref(FirebaseConfig.rootPath + '/' + user.uid).update({ status: 'online' });
             });
 
             peer.on('call', (incomingCall) => {
@@ -276,22 +251,25 @@
             checkAutoSunset();
         }
 
-        // Çevrimiçi Kullanıcı Listesi (Presence)
+        // Çevrimiçi Kullanıcı Listesi
         function loadOnlineUsers() {
             db.ref(FirebaseConfig.rootPath).on('value', snapshot => {
                 const users = snapshot.val();
                 const container = document.getElementById('online-users-list');
                 container.innerHTML = "";
-                for(let uid in users) {
-                    let u = users[uid];
-                    if(u.username === currentUsername) continue;
+                for(let phone in users) {
+                    let u = users[phone];
+                    if(phone === currentPhone) continue;
                     container.innerHTML += `
                         <div class="glass-btn p-3 rounded-2xl flex justify-between items-center">
                             <div class="flex items-center gap-2">
                                 <span class="w-2.5 h-2.5 rounded-full ${u.status === 'online' ? 'bg-emerald-500' : 'bg-slate-500'}"></span>
-                                <h4 class="text-sm font-semibold">@${u.username}</h4>
+                                <div>
+                                    <h4 class="text-sm font-semibold">${u.name}</h4>
+                                    <p class="text-xs text-slate-400 font-mono">${phone}</p>
+                                </div>
                             </div>
-                            <button onclick="quickCall('${u.username}')" class="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl"><i data-lucide="phone" class="w-4 h-4"></i></button>
+                            <button onclick="quickCall('${phone}')" class="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl"><i data-lucide="phone" class="w-4 h-4"></i></button>
                         </div>
                     `;
                 }
@@ -299,7 +277,7 @@
             });
         }
 
-        // Bekletme Müziği (Call Hold)
+        // Bekletme Müziği
         function toggleHold() {
             isHold = !isHold;
             const btn = document.getElementById('btn-hold');
@@ -307,7 +285,7 @@
             if(isHold) {
                 if(localStream) localStream.getAudioTracks()[0].enabled = false;
                 startHoldMusic();
-                alert("Arama bekletmeye alındı. Karşı tarafa bekletme müziği çalınıyor.");
+                alert("Arama bekletmeye alındı.");
             } else {
                 if(localStream) localStream.getAudioTracks()[0].enabled = true;
                 stopHoldMusic();
@@ -328,9 +306,9 @@
         function stopHoldMusic() { if(holdInterval) clearInterval(holdInterval); }
 
         function promptTransfer() {
-            const target = prompt("Konferansa eklenecek kullanıcı adını girin (@kullanici):");
+            const target = prompt("Aktarılacak telefon numarasını girin:");
             if(!target) return;
-            alert("@" + target + " konferansa dahil ediliyor...");
+            alert(target + " numarasına aktarılıyor...");
         }
 
         function recordVoicemail() {
@@ -338,10 +316,10 @@
                 const recorder = new MediaRecorder(stream);
                 let chunks = [];
                 recorder.ondataavailable = e => chunks.push(e.data);
-                recorder.onstop = () => { alert("Sesli mesaj kaydedildi ve sisteme bırakıldı."); };
+                recorder.onstop = () => { alert("Sesli mesaj kaydedildi ve bırakıldı."); };
                 recorder.start();
                 setTimeout(() => recorder.stop(), 5000);
-                alert("Sesli mesaj kaydediliyor (5 sn)... Konuşun.");
+                alert("Sesli mesaj kaydediliyor (5 sn)...");
             });
         }
 
@@ -354,20 +332,20 @@
         function toggleAutoSunset() { document.documentElement.classList.toggle('dark'); }
 
         async function makeCall(video = false) {
-            let targetID = document.getElementById('phone-display').value.trim().replace('@','');
-            if(!targetID) return alert("Kullanıcı adı girin!");
+            let targetPhone = document.getElementById('phone-display').value.trim();
+            if(!targetPhone) return alert("Numara girin!");
 
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            showCallOverlay(targetID, "Aranıyor...");
+            showCallOverlay(targetPhone, "Aranıyor...");
             document.getElementById('btn-accept').classList.add('hidden');
 
-            currentCall = peer.call('nextalk-' + targetID, localStream);
+            currentCall = peer.call('nextalk-' + targetPhone, localStream);
             handleCallEvents(currentCall);
-            addHistory(targetID, 'outgoing');
+            addHistory(targetPhone, 'outgoing');
         }
 
-        function showIncomingCallOverlay(remoteID) {
-            showCallOverlay(remoteID, "Gelen Arama...");
+        function showIncomingCallOverlay(remotePhone) {
+            showCallOverlay(remotePhone, "Gelen Arama...");
             document.getElementById('btn-accept').classList.remove('hidden');
         }
 
@@ -392,8 +370,8 @@
             resetCallUI();
         }
 
-        function showCallOverlay(id, status) {
-            document.getElementById('call-remote-id').innerText = "@" + id;
+        function showCallOverlay(phone, status) {
+            document.getElementById('call-remote-id').innerText = "Tel: " + phone;
             document.getElementById('call-status-label').innerText = status;
             document.getElementById('call-overlay').classList.remove('translate-y-full');
         }
@@ -406,7 +384,7 @@
 
         function appendNum(char) { document.getElementById('phone-display').value += char; }
         function deleteNum() { let d = document.getElementById('phone-display'); d.value = d.value.slice(0, -1); }
-        function quickCall(uname) { document.getElementById('phone-display').value = uname; switchTab('dialer'); makeCall(); }
+        function quickCall(phone) { document.getElementById('phone-display').value = phone; switchTab('dialer'); makeCall(); }
 
         function switchTab(tab) {
             document.querySelectorAll('.tab-content').forEach(e => e.classList.add('hidden'));
@@ -414,15 +392,15 @@
         }
         function setThemeColor(color) { document.body.className = document.body.className.replace(/theme-\w+/, '') + ' theme-' + color; }
 
-        function addHistory(id, type) {
-            callHistory.unshift({ id, type, time: new Date().toLocaleTimeString() });
+        function addHistory(phone, type) {
+            callHistory.unshift({ phone, type, time: new Date().toLocaleTimeString() });
             localStorage.setItem('nextalk_history', JSON.stringify(callHistory));
             renderHistory();
         }
         function renderHistory() {
             document.getElementById('history-list').innerHTML = callHistory.map(h => `
                 <div class="glass-btn p-3 rounded-2xl flex justify-between items-center text-xs">
-                    <div><b>@${h.id}</b> • ${h.type}</div><span>${h.time}</span>
+                    <div><b>${h.phone}</b> • ${h.type}</div><span>${h.time}</span>
                 </div>
             `).join('');
         }
