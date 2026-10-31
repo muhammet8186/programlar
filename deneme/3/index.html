@@ -14,6 +14,7 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; transition: background-color 0.3s ease, color 0.3s ease; }
@@ -73,7 +74,7 @@
                     <i data-lucide="video" class="w-6 h-6"></i>
                 </div>
                 <h2 class="text-xl font-bold text-slate-900 dark:text-white">NexTalk Ultimate</h2>
-                <p class="text-xs text-slate-500 dark:text-slate-300 font-medium">Kayıt bilgileri yerel hafızaya saklanacaktır.</p>
+                <p class="text-xs text-slate-500 dark:text-slate-300 font-medium">Enterprise Cloud Suite</p>
             </div>
             <div class="space-y-3">
                 <input type="text" id="auth-phone" placeholder="Telefon Numarası (Örn: 5551234567)" class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-3 text-sm font-mono font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent))]">
@@ -156,35 +157,43 @@
                 <div id="my-contacts-list" class="space-y-2"></div>
             </div>
 
-            <!-- 3. KALICI SOHBET SEKMESİ (YENİ) -->
+            <!-- 3. KALICI SOHBET SEKMESİ (Medya & Okundu Bilgili) -->
             <div id="tab-chat" class="tab-content hidden flex flex-col h-full space-y-3">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Kalıcı Bulut Sohbetleri</h3>
-                <div id="chat-contacts-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
+                <div id="chat-contacts-list" class="space-y-2 max-h-36 overflow-y-auto"></div>
                 <div id="chat-box-container" class="flex-1 flex flex-col glass-panel rounded-2xl p-3 hidden">
                     <div id="active-chat-title" class="text-xs font-bold text-slate-800 dark:text-white pb-2 border-b border-slate-200 dark:border-slate-700">Sohbet</div>
                     <div id="persistent-messages" class="flex-1 overflow-y-auto space-y-2 py-2 text-xs"></div>
-                    <div class="flex gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <div class="flex gap-2 pt-2 border-t border-slate-200 dark:border-slate-700 items-center">
+                        <label class="cursor-pointer text-slate-400 hover:text-white p-1">
+                            <i data-lucide="paperclip" class="w-4 h-4"></i>
+                            <input type="file" id="chat-file-input" onchange="sendPersistentFile(this)" class="hidden">
+                        </label>
                         <input type="text" id="persistent-msg-input" placeholder="Mesaj yaz..." class="flex-1 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none">
                         <button onclick="sendPersistentMessage()" class="bg-[rgb(var(--accent))] text-white px-3 py-2 rounded-xl text-xs font-bold">Gönder</button>
                     </div>
                 </div>
             </div>
 
-            <!-- 4. ÇOKLU KONFERANS ODALARI (YENİ) -->
+            <!-- 4. ÇOKLU KONFERANS ODALARI (Katılımcı Panelli) -->
             <div id="tab-rooms" class="tab-content hidden space-y-4">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Grup Konferans Odaları</h3>
                 <div class="glass-panel p-4 rounded-2xl space-y-3">
-                    <p class="text-xs text-slate-600 dark:text-slate-300 font-medium">Ortak bir oda adı girerek veya oluşturarak çoklu video konferansa katılın.</p>
+                    <p class="text-xs text-slate-600 dark:text-slate-300 font-medium">Ortak oda adı ile çoklu video konferans başlatın.</p>
                     <input type="text" id="room-name-input" placeholder="Oda Adı (Örn: yonetim-kurulu)" class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-mono text-slate-900 dark:text-white focus:outline-none">
                     <button onclick="joinConferenceRoom()" class="w-full bg-[rgb(var(--accent))] text-white py-3 rounded-xl text-xs font-bold shadow-lg flex items-center justify-center gap-2">
                         <i data-lucide="users" class="w-4 h-4"></i> Odaya Katıl / Başlat
                     </button>
                 </div>
+                <div class="glass-panel p-4 rounded-2xl space-y-2">
+                    <h4 class="text-xs font-bold text-slate-800 dark:text-white">Odadaki Katılımcılar</h4>
+                    <div id="room-participants-list" class="space-y-1 text-xs text-slate-400">Odaya henüz katılmadınız.</div>
+                </div>
             </div>
 
-            <!-- 5. GEÇMİŞ -->
+            <!-- 5. GEÇMİŞ (Bulut Senkronize) -->
             <div id="tab-history" class="tab-content hidden space-y-3">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Arama Geçmişi</h3>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Bulut Arama Geçmişi</h3>
                 <div id="history-list" class="space-y-2"></div>
             </div>
 
@@ -208,6 +217,11 @@
                         <option value="online">Müsait (Çevrimiçi)</option>
                         <option value="dnd">Rahatsız Etmeyin (Meşgul)</option>
                     </select>
+                </div>
+
+                <div class="glass-panel p-4 rounded-2xl space-y-2">
+                    <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Masaüstü / PWA Uygulaması</span>
+                    <button onclick="alert('Tarayıcınızın menüsünden (3 nokta) \"Uygulamayı Yükle\" veya \"Ana Ekrana Ekle\" seçeneğini kullanarak uygulamayı kurabilirsiniz.')" class="w-full py-2.5 bg-indigo-600 text-white text-xs font-bold rounded-xl">Cihaza Kurulum Bilgisi</button>
                 </div>
 
                 <div class="glass-panel p-4 rounded-2xl space-y-2">
@@ -271,7 +285,7 @@
                 authDomain: "deneme-47c9a.firebaseapp.com",
                 databaseURL: "https://deneme-47c9a-default-rtdb.firebaseio.com",
                 projectId: "deneme-47c9a",
-                storageBucket: "deneme-47c9a.firebasestorage.app",
+                storageBucket: "deneme-47c9a.appspot.com",
                 messagingSenderId: "559947698789",
                 appId: "1:559947698789:web:5f64226d43d0b4233e6c8c",
                 measurementId: "G-3CT3SC5BR6"
@@ -281,6 +295,7 @@
 
         firebase.initializeApp(FirebaseConfig.config);
         const db = firebase.database();
+        const storage = firebase.storage();
 
         lucide.createIcons();
 
@@ -288,7 +303,6 @@
         let currentName = localStorage.getItem('nextalk_name');
         let peer = null, currentCall = null, localStream = null;
         let activeChatTarget = null;
-        let callHistory = JSON.parse(localStorage.getItem('nextalk_history') || '[]');
 
         window.addEventListener('DOMContentLoaded', () => {
             if(!currentPhone || !currentName) {
@@ -354,9 +368,10 @@
 
             loadMyContacts();
             loadChatContacts();
+            loadCloudHistory();
         }
 
-        // --- 1. ÇOKLU KONFERANS ODALARI ---
+        // --- 1. ÇOKLU KONFERANS ODALARI & KATILIMCI LİSTESİ ---
         async function joinConferenceRoom() {
             let roomName = document.getElementById('room-name-input').value.trim();
             if(!roomName) return alert("Lütfen bir oda adı girin!");
@@ -373,12 +388,25 @@
             document.getElementById('audio-call-ui').classList.add('hidden');
             document.getElementById('local-video').srcObject = localStream;
 
-            // Konferans için benzersiz oda peer ID'si üzerinden arama başlatılır
+            // Oda katılımcı listesini buluta kaydet
+            db.ref('rooms/' + roomName + '/' + currentPhone).set({ name: currentName });
+            db.ref('rooms/' + roomName + '/' + currentPhone).onDisconnect().remove();
+
+            // Oda katılımcılarını dinle
+            db.ref('rooms/' + roomName).on('value', snap => {
+                let members = snap.val();
+                let listEl = document.getElementById('room-participants-list');
+                listEl.innerHTML = "";
+                for(let p in members) {
+                    listEl.innerHTML += `<div>• ${members[p].name} (${p})</div>`;
+                }
+            });
+
             currentCall = peer.call('nextalk-room-' + roomName, localStream, { metadata: { video: true } });
             handleCallEvents(currentCall, localStream);
         }
 
-        // --- 2. KALICI BULUT SOHBETLERİ ---
+        // --- 2. KALICI BULUT SOHBETLERİ (Dosya Paylaşımı & Okundu Bilgili) ---
         function loadChatContacts() {
             db.ref(FirebaseConfig.rootPath + '/' + currentPhone + '/contacts').on('value', snapshot => {
                 const contacts = snapshot.val();
@@ -405,7 +433,6 @@
             document.getElementById('chat-box-container').classList.remove('hidden');
             document.getElementById('active-chat-title').innerText = name + " (" + phone + ") ile Sohbet";
 
-            // Benzersiz sohbet odası anahtarı (iki numaranın sıralı birleşimi)
             let chatId = [currentPhone, phone].sort().join('_');
             
             db.ref('chats/' + chatId).on('value', snapshot => {
@@ -419,16 +446,25 @@
                 for(let id in msgs) {
                     let m = msgs[id];
                     let isMe = m.sender === currentPhone;
+                    
+                    let contentHtml = m.fileUrl ? 
+                        `<a href="${m.fileUrl}" target="_blank" class="underline font-bold text-xs flex items-center gap-1"><i data-lucide="file" class="w-3 h-3"></i> Dosyayı İndir</a>` : 
+                        `<span>${m.text}</span>`;
+
                     box.innerHTML += `
                         <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
                             <div class="max-w-[75%] p-2 rounded-xl ${isMe ? 'bg-[rgb(var(--accent))] text-white' : 'bg-slate-800 text-white'}">
-                                ${m.text}
+                                ${contentHtml}
                             </div>
-                            <span class="text-[9px] text-slate-400 mt-0.5">${m.time}</span>
+                            <div class="flex items-center gap-1 text-[9px] text-slate-400 mt-0.5">
+                                <span>${m.time}</span>
+                                ${isMe ? '<span class="text-emerald-400 font-bold">✓✓ Görüldü</span>' : ''}
+                            </div>
                         </div>
                     `;
                 }
                 box.scrollTop = box.scrollHeight;
+                lucide.createIcons();
             });
         }
 
@@ -446,7 +482,52 @@
             input.value = "";
         }
 
-        // --- ARAMA VE DİĞER YARDIMCILAR ---
+        function sendPersistentFile(inputElem) {
+            const file = inputElem.files[0];
+            if(!file || !activeChatTarget) return;
+
+            const storageRef = storage.ref('chat_files/' + Date.now() + '_' + file.name);
+            storageRef.put(file).then(snapshot => {
+                snapshot.ref.getDownloadURL().then(downloadURL => {
+                    let chatId = [currentPhone, activeChatTarget].sort().join('_');
+                    db.ref('chats/' + chatId).push({
+                        sender: currentPhone,
+                        fileUrl: downloadURL,
+                        text: "[Dosya: " + file.name + "]",
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    });
+                });
+            }).catch(e => alert("Dosya yüklenemedi: " + e.message));
+        }
+
+        // --- 3. BULUT TABANLI ARAMA GEÇMİŞİ SENKRONİZASYONU ---
+        function addCloudHistory(phone, type) {
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            db.ref(FirebaseConfig.rootPath + '/' + currentPhone + '/history').push({ phone, type, time });
+        }
+
+        function loadCloudHistory() {
+            db.ref(FirebaseConfig.rootPath + '/' + currentPhone + '/history').on('value', snapshot => {
+                const history = snapshot.val();
+                const container = document.getElementById('history-list');
+                container.innerHTML = "";
+                if(!history) {
+                    container.innerHTML = `<p class="text-xs text-slate-400 text-center">Arama geçmişi boş.</p>`;
+                    return;
+                }
+                let items = [];
+                for(let id in history) items.push(history[id]);
+                items.reverse();
+
+                container.innerHTML = items.map(h => `
+                    <div class="glass-btn p-3 rounded-2xl flex justify-between items-center text-xs">
+                        <div><b class="text-slate-900 dark:text-white">${h.phone}</b> • ${h.type}</div><span>${h.time}</span>
+                    </div>
+                `).join('');
+            });
+        }
+
+        // Arama ve Diğer Fonksiyonlar
         async function makeCall(video = false) {
             let targetPhone = document.getElementById('phone-display').value.trim();
             if(!targetPhone) return alert("Numara girin!");
@@ -469,7 +550,7 @@
 
             currentCall = peer.call('nextalk-' + targetPhone, localStream, { metadata: { video } });
             handleCallEvents(currentCall, localStream);
-            addHistory(targetPhone, video ? 'video-outgoing' : 'outgoing');
+            addCloudHistory(targetPhone, video ? 'video-outgoing' : 'outgoing');
         }
 
         function showIncomingCallOverlay(remotePhone) {
@@ -603,20 +684,6 @@
             document.getElementById('tab-' + tab).classList.remove('hidden');
         }
         function setThemeColor(color) { document.body.className = document.body.className.replace(/theme-\w+/, '') + ' theme-' + color; }
-
-        function addHistory(phone, type) {
-            callHistory.unshift({ phone, type, time: new Date().toLocaleTimeString() });
-            localStorage.setItem('nextalk_history', JSON.stringify(callHistory));
-            renderHistory();
-        }
-        function renderHistory() {
-            document.getElementById('history-list').innerHTML = callHistory.map(h => `
-                <div class="glass-btn p-3 rounded-2xl flex justify-between items-center text-xs">
-                    <div><b class="text-slate-900 dark:text-white">${h.phone}</b> • ${h.type}</div><span>${h.time}</span>
-                </div>
-            `).join('');
-        }
-        renderHistory();
     </script>
 </body>
 </html>
