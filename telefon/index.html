@@ -60,6 +60,18 @@
             transform: translateY(-2px); 
         }
 
+        /* GÖRÜŞME İÇİ KONTROL BUTONLARI İÇİN BELİRGİN STİL */
+        .call-ctrl-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #ffffff;
+            transition: all 0.2s ease;
+        }
+        .call-ctrl-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: rgba(150, 150, 150, 0.4); border-radius: 3px; }
     </style>
@@ -116,7 +128,7 @@
         <!-- İÇERİK SEKMELERİ -->
         <main class="flex-1 overflow-y-auto relative p-5">
             
-            <!-- 1. TUŞ TAKIMI / ARAMA -->
+            <!-- 1. TUŞ TAKIMI / ARAMA (Ses Efektli) -->
             <div id="tab-dialer" class="tab-content flex flex-col h-full justify-between">
                 <div class="flex flex-col items-center justify-center my-2">
                     <input type="text" id="phone-display" placeholder="Numara Ara..." 
@@ -160,7 +172,7 @@
                 <div id="my-contacts-list" class="space-y-2"></div>
             </div>
 
-            <!-- 3. KALICI SOHBET SEKMESİ (Düzenleme / Silme Destekli) -->
+            <!-- 3. KALICI SOHBET SEKMESİ -->
             <div id="tab-chat" class="tab-content hidden flex flex-col h-full space-y-3">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Kalıcı Bulut Sohbetleri</h3>
                 <div id="chat-contacts-list" class="space-y-2 max-h-36 overflow-y-auto"></div>
@@ -195,7 +207,7 @@
                 </div>
             </div>
 
-            <!-- 5. GEÇMİŞ (Tekrar Arama Özellikli) -->
+            <!-- 5. GEÇMİŞ -->
             <div id="tab-history" class="tab-content hidden space-y-3">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Bulut Arama Geçmişi</h3>
                 <div id="history-list" class="space-y-2"></div>
@@ -257,7 +269,7 @@
             </div>
         </div>
 
-        <!-- AKTİF ARAMA OVERLAY -->
+        <!-- AKTİF ARAMA OVERLAY (NET VE BELİRGİN KONTROL BUTONLARI İLE) -->
         <div id="call-overlay" class="absolute inset-0 bg-slate-950 flex flex-col justify-between p-6 z-50 transform translate-y-full transition-transform duration-300">
             
             <div id="video-container" class="relative flex-1 bg-black rounded-2xl overflow-hidden hidden mb-2 flex items-center justify-center">
@@ -284,14 +296,14 @@
                 </div>
             </div>
 
-            <!-- Çağrı Kontrolleri -->
+            <!-- Belirgin Çağrı Kontrolleri -->
             <div class="space-y-4 pb-2">
-                <div class="flex justify-center gap-2 flex-wrap">
-                    <button id="btn-mute" onclick="toggleMute()" title="Sustur / Mute" class="w-11 h-11 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="mic-off" class="w-4 h-4"></i></button>
-                    <button id="btn-record" onclick="toggleCallRecording()" title="Görüşmeyi Kaydet" class="w-11 h-11 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="disc" class="w-4 h-4"></i></button>
-                    <button onclick="toggleVoiceChanger()" title="Ses Değiştirici" class="w-11 h-11 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="mic" class="w-4 h-4"></i></button>
-                    <button id="btn-screen" onclick="toggleScreenShare()" title="Ekran Paylaş" class="w-11 h-11 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="monitor" class="w-4 h-4"></i></button>
-                    <button onclick="toggleInCallChat()" title="Sohbet" class="w-11 h-11 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="message-square" class="w-4 h-4"></i></button>
+                <div class="flex justify-center gap-2.5 flex-wrap">
+                    <button id="btn-mute" onclick="toggleMute()" title="Sustur / Mute" class="w-12 h-12 rounded-2xl call-ctrl-btn flex items-center justify-center shadow-lg"><i data-lucide="mic-off" class="w-5 h-5"></i></button>
+                    <button id="btn-record" onclick="toggleCallRecording()" title="Görüşmeyi Kaydet" class="w-12 h-12 rounded-2xl call-ctrl-btn flex items-center justify-center shadow-lg"><i data-lucide="disc" class="w-5 h-5"></i></button>
+                    <button onclick="toggleVoiceChanger()" title="Ses Değiştirici" class="w-12 h-12 rounded-2xl call-ctrl-btn flex items-center justify-center shadow-lg"><i data-lucide="mic" class="w-5 h-5"></i></button>
+                    <button id="btn-screen" onclick="toggleScreenShare()" title="Ekran Paylaş" class="w-12 h-12 rounded-2xl call-ctrl-btn flex items-center justify-center shadow-lg"><i data-lucide="monitor" class="w-5 h-5"></i></button>
+                    <button onclick="toggleInCallChat()" title="Sohbet" class="w-12 h-12 rounded-2xl call-ctrl-btn flex items-center justify-center shadow-lg"><i data-lucide="message-square" class="w-5 h-5"></i></button>
                 </div>
 
                 <div class="flex justify-center items-center gap-6">
@@ -439,6 +451,32 @@
             loadMyContacts();
             loadChatContacts();
             loadCloudHistory();
+        }
+
+        // --- TUŞ SESİ (DTMF TONE) ÇALMA FONKSİYONU ---
+        function playDtmfTone(char) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                // Tuşlara göre farklı frekanslar (DTMF standartlarına yakın)
+                const frequencies = {
+                    '1': 697, '2': 697, '3': 697,
+                    '4': 770, '5': 770, '6': 770,
+                    '7': 852, '8': 852, '9': 852,
+                    '*': 941, '0': 941, '#': 941
+                };
+                
+                osc.frequency.value = frequencies[char] || 800;
+                gain.gain.value = 0.15;
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                osc.start();
+                osc.stop(ctx.currentTime + 0.15);
+            } catch(e) {}
         }
 
         function toggleMute() {
@@ -593,7 +631,6 @@
             }
         }
 
-        // Çoklu Konferans Odaları
         async function joinConferenceRoom() {
             let roomName = document.getElementById('room-name-input').value.trim();
             if(!roomName) return alert("Lütfen bir oda adı girin!");
@@ -626,7 +663,6 @@
             handleCallEvents(currentCall, localStream);
         }
 
-        // Kalıcı Bulut Sohbetleri (Düzenleme, Silme, Sesli Not)
         function loadChatContacts() {
             db.ref(FirebaseConfig.rootPath + '/' + currentPhone + '/contacts').on('value', snapshot => {
                 const contacts = snapshot.val();
@@ -755,7 +791,6 @@
             }).catch(e => alert("Dosya yüklenemedi: " + e.message));
         }
 
-        // Bulut Arama Geçmişi & Tekrar Arama
         function addCloudHistory(phone, type) {
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             db.ref(FirebaseConfig.rootPath + '/' + currentPhone + '/history').push({ phone, type, time });
@@ -877,7 +912,6 @@
             isMuted = false;
         }
 
-        // Rehber Yönetimi
         function openAddContactModal(editPhone = '', editName = '', editTitle = '') {
             document.getElementById('contact-modal').classList.remove('hidden');
             document.getElementById('contact-modal').classList.add('flex');
@@ -979,8 +1013,15 @@
             db.ref(FirebaseConfig.rootPath + '/' + currentPhone).update({ status: status });
         }
 
-        function appendNum(char) { document.getElementById('phone-display').value += char; }
-        function deleteNum() { let d = document.getElementById('phone-display'); d.value = d.value.slice(0, -1); }
+        // --- TUŞLARA BASINCA SES ÇALMASI ENTEGRE EDİLDİ ---
+        function appendNum(char) { 
+            document.getElementById('phone-display').value += char; 
+            playDtmfTone(char);
+        }
+        function deleteNum() { 
+            let d = document.getElementById('phone-display'); 
+            d.value = d.value.slice(0, -1); 
+        }
         function quickCall(phone, video) { document.getElementById('phone-display').value = phone; switchTab('dialer'); makeCall(video); }
 
         function switchTab(tab) {
