@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexTalk Ultimate - Enterprise Cloud VoIP</title>
+    <title>NexTalk Ultimate - Enterprise Cloud Suite</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { darkMode: 'class' }</script>
@@ -156,13 +156,39 @@
                 <div id="my-contacts-list" class="space-y-2"></div>
             </div>
 
-            <!-- 3. GEÇMİŞ -->
+            <!-- 3. KALICI SOHBET SEKMESİ (YENİ) -->
+            <div id="tab-chat" class="tab-content hidden flex flex-col h-full space-y-3">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Kalıcı Bulut Sohbetleri</h3>
+                <div id="chat-contacts-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
+                <div id="chat-box-container" class="flex-1 flex flex-col glass-panel rounded-2xl p-3 hidden">
+                    <div id="active-chat-title" class="text-xs font-bold text-slate-800 dark:text-white pb-2 border-b border-slate-200 dark:border-slate-700">Sohbet</div>
+                    <div id="persistent-messages" class="flex-1 overflow-y-auto space-y-2 py-2 text-xs"></div>
+                    <div class="flex gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                        <input type="text" id="persistent-msg-input" placeholder="Mesaj yaz..." class="flex-1 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none">
+                        <button onclick="sendPersistentMessage()" class="bg-[rgb(var(--accent))] text-white px-3 py-2 rounded-xl text-xs font-bold">Gönder</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. ÇOKLU KONFERANS ODALARI (YENİ) -->
+            <div id="tab-rooms" class="tab-content hidden space-y-4">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Grup Konferans Odaları</h3>
+                <div class="glass-panel p-4 rounded-2xl space-y-3">
+                    <p class="text-xs text-slate-600 dark:text-slate-300 font-medium">Ortak bir oda adı girerek veya oluşturarak çoklu video konferansa katılın.</p>
+                    <input type="text" id="room-name-input" placeholder="Oda Adı (Örn: yonetim-kurulu)" class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-mono text-slate-900 dark:text-white focus:outline-none">
+                    <button onclick="joinConferenceRoom()" class="w-full bg-[rgb(var(--accent))] text-white py-3 rounded-xl text-xs font-bold shadow-lg flex items-center justify-center gap-2">
+                        <i data-lucide="users" class="w-4 h-4"></i> Odaya Katıl / Başlat
+                    </button>
+                </div>
+            </div>
+
+            <!-- 5. GEÇMİŞ -->
             <div id="tab-history" class="tab-content hidden space-y-3">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Arama Geçmişi</h3>
                 <div id="history-list" class="space-y-2"></div>
             </div>
 
-            <!-- 4. AYARLAR & YENİ GELİŞMİŞ ÖZELLİKLER -->
+            <!-- 6. AYARLAR -->
             <div id="tab-settings" class="tab-content hidden space-y-4">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Gelişmiş Ayarlar</h3>
                 
@@ -185,24 +211,6 @@
                 </div>
 
                 <div class="glass-panel p-4 rounded-2xl space-y-2">
-                    <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Zil Sesi Melodisi</span>
-                    <select id="ringtone-select" onchange="localStorage.setItem('nextalk_ringtone', this.value)" class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none">
-                        <option value="beep">Standart Bip</option>
-                        <option value="classic">Klasik Telefon</option>
-                    </select>
-                </div>
-
-                <div class="glass-panel p-4 rounded-2xl space-y-2">
-                    <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Otomatik Karanlık Mod (Akşam 19:00 - Sabah 06:00)</span>
-                    <button onclick="toggleAutoSunsetMode()" id="sunset-mode-btn" class="w-full py-2.5 bg-indigo-600 text-white text-xs font-bold rounded-xl">Akıllı Zamanlayıcı: AÇIK</button>
-                </div>
-
-                <div class="glass-panel p-4 rounded-2xl space-y-2">
-                    <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Masaüstü Bildirimleri</span>
-                    <button onclick="requestNotificationPermission()" class="w-full py-2.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-xl border border-emerald-500/30">Bildirim İzni Ver</button>
-                </div>
-
-                <div class="glass-panel p-4 rounded-2xl space-y-2">
                     <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Oturum Bilgileri</span>
                     <button onclick="logoutAccount()" class="w-full py-2.5 bg-rose-500/20 text-rose-500 dark:text-rose-400 text-xs font-bold rounded-xl border border-rose-500/30">Hesaptan Çıkış Yap / Sıfırla</button>
                 </div>
@@ -222,60 +230,39 @@
             </div>
         </div>
 
-        <!-- AKTİF ARAMA / GÖRÜNTÜLÜ & YENİ ÖZELLİKLER OVERLAY -->
+        <!-- AKTİF ARAMA / KONFERANS OVERLAY -->
         <div id="call-overlay" class="absolute inset-0 bg-slate-950 flex flex-col justify-between p-6 z-50 transform translate-y-full transition-transform duration-300">
             
-            <div id="video-container" class="relative flex-1 bg-black rounded-2xl overflow-hidden hidden mb-2">
+            <div id="video-container" class="relative flex-1 bg-black rounded-2xl overflow-hidden hidden mb-2 flex items-center justify-center">
                 <video id="remote-video" autoplay playsinline class="w-full h-full object-cover"></video>
                 <video id="local-video" autoplay playsinline muted class="absolute bottom-3 right-3 w-28 h-40 object-cover rounded-xl border-2 border-white/30 shadow-lg"></video>
             </div>
 
             <div id="audio-call-ui" class="text-center pt-8">
                 <span id="call-status-label" class="text-xs font-bold uppercase tracking-widest text-[rgb(var(--accent))] mb-2 block">Aranıyor...</span>
-                <div class="w-24 h-24 rounded-full bg-[rgb(var(--accent))]/20 border-2 border-[rgb(var(--accent))]/50 flex items-center justify-center mx-auto mb-2" id="call-avatar-wrap">
-                    <i data-lucide="user" class="w-10 h-10 text-[rgb(var(--accent))]"></i>
+                <div class="w-24 h-24 rounded-full bg-[rgb(var(--accent))]/20 border-2 border-[rgb(var(--accent))]/50 flex items-center justify-center mx-auto mb-2">
+                    <i data-lucide="video" class="w-10 h-10 text-[rgb(var(--accent))]"></i>
                 </div>
-                <h2 id="call-remote-id" class="text-xl font-bold text-white tracking-wide">Numara: ----</h2>
-                <p id="call-timer" class="text-slate-400 text-xs mt-1 font-mono">00:00</p>
+                <h2 id="call-remote-id" class="text-xl font-bold text-white tracking-wide">Numara/Oda: ----</h2>
             </div>
 
-            <!-- In-Call Canlı Mesajlaşma Paneli -->
-            <div id="in-call-chat-panel" class="flex-1 my-2 flex flex-col hidden overflow-hidden bg-slate-900/80 p-3 rounded-2xl border border-white/10">
-                <div class="text-[10px] uppercase font-bold text-slate-400 mb-1">Görüşme İçi Sohbet</div>
-                <div id="chat-messages" class="flex-1 overflow-y-auto space-y-1.5 text-xs text-white"></div>
-                <div class="flex gap-2 mt-2">
-                    <input type="text" id="chat-input" placeholder="Mesaj yaz..." class="flex-1 bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
-                    <button onclick="sendChatMessage()" class="bg-[rgb(var(--accent))] text-white px-3 py-2 rounded-xl text-xs font-bold">Gönder</button>
-                </div>
-            </div>
-
-            <!-- Çağrı Kontrolleri -->
-            <div class="space-y-4 pb-2">
-                <div class="flex justify-center gap-2 flex-wrap">
-                    <button id="btn-record" onclick="toggleCallRecording()" title="Görüşmeyi Kaydet" class="w-11 h-11 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="disc" class="w-4 h-4"></i></button>
-                    <button onclick="toggleVoiceChanger()" title="Ses Değiştirici" class="w-11 h-11 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="mic" class="w-4 h-4"></i></button>
-                    <button id="btn-screen" onclick="toggleScreenShare()" title="Ekran Paylaş" class="w-11 h-11 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="monitor" class="w-4 h-4"></i></button>
-                    <button onclick="toggleInCallChat()" title="Sohbet" class="w-11 h-11 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="message-square" class="w-4 h-4"></i></button>
-                </div>
-
-                <div class="flex justify-center items-center gap-6">
-                    <button id="btn-accept" onclick="acceptCall()" class="hidden w-14 h-14 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg"><i data-lucide="phone" class="w-6 h-6"></i></button>
-                    <button onclick="endCall()" class="w-14 h-14 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-lg"><i data-lucide="phone-off" class="w-6 h-6"></i></button>
-                </div>
+            <div class="flex justify-center items-center gap-6 pb-6">
+                <button id="btn-accept" onclick="acceptCall()" class="hidden w-14 h-14 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg"><i data-lucide="phone" class="w-6 h-6"></i></button>
+                <button onclick="endCall()" class="w-14 h-14 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-lg"><i data-lucide="phone-off" class="w-6 h-6"></i></button>
             </div>
         </div>
 
-        <!-- ALT MENÜ -->
-        <nav class="border-t border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 p-3 grid grid-cols-3 gap-2">
-            <button onclick="switchTab('dialer')" id="nav-dialer" class="flex flex-col items-center py-2 rounded-xl text-[rgb(var(--accent))] bg-[rgb(var(--accent))]/10 font-bold"><i data-lucide="grid" class="w-5 h-5 mb-1"></i><span class="text-[10px]">Tuşlar</span></button>
-            <button onclick="switchTab('contacts')" id="nav-contacts" class="flex flex-col items-center py-2 rounded-xl text-slate-600 dark:text-slate-300 font-bold"><i data-lucide="users" class="w-5 h-5 mb-1"></i><span class="text-[10px]">Rehber</span></button>
-            <button onclick="switchTab('history')" id="nav-history" class="flex flex-col items-center py-2 rounded-xl text-slate-600 dark:text-slate-300 font-bold"><i data-lucide="clock" class="w-5 h-5 mb-1"></i><span class="text-[10px]">Geçmiş</span></button>
+        <!-- ALT MENÜ (5 SEKME) -->
+        <nav class="border-t border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 p-2 grid grid-cols-5 gap-1">
+            <button onclick="switchTab('dialer')" id="nav-dialer" class="flex flex-col items-center py-1.5 rounded-xl text-[rgb(var(--accent))] bg-[rgb(var(--accent))]/10 font-bold"><i data-lucide="grid" class="w-4 h-4 mb-1"></i><span class="text-[9px]">Tuşlar</span></button>
+            <button onclick="switchTab('contacts')" id="nav-contacts" class="flex flex-col items-center py-1.5 rounded-xl text-slate-600 dark:text-slate-300 font-bold"><i data-lucide="users" class="w-4 h-4 mb-1"></i><span class="text-[9px]">Rehber</span></button>
+            <button onclick="switchTab('chat')" id="nav-chat" class="flex flex-col items-center py-1.5 rounded-xl text-slate-600 dark:text-slate-300 font-bold"><i data-lucide="message-square" class="w-4 h-4 mb-1"></i><span class="text-[9px]">Sohbet</span></button>
+            <button onclick="switchTab('rooms')" id="nav-rooms" class="flex flex-col items-center py-1.5 rounded-xl text-slate-600 dark:text-slate-300 font-bold"><i data-lucide="video" class="w-4 h-4 mb-1"></i><span class="text-[9px]">Odalar</span></button>
+            <button onclick="switchTab('history')" id="nav-history" class="flex flex-col items-center py-1.5 rounded-xl text-slate-600 dark:text-slate-300 font-bold"><i data-lucide="clock" class="w-4 h-4 mb-1"></i><span class="text-[9px]">Geçmiş</span></button>
         </nav>
     </div>
 
-    <!-- Ses ve Zil Elementleri -->
     <audio id="remote-audio" autoplay></audio>
-    <audio id="ringtone-audio" loop></audio>
 
     <script>
         const FirebaseConfig = {
@@ -299,9 +286,8 @@
 
         let currentPhone = localStorage.getItem('nextalk_phone');
         let currentName = localStorage.getItem('nextalk_name');
-        let peer = null, currentCall = null, dataConn = null, localStream = null;
-        let isVideoCall = false, isScreenSharing = false, isRecording = false, voiceMode = 'normal';
-        let mediaRecorder = null, recordedChunks = [];
+        let peer = null, currentCall = null, localStream = null;
+        let activeChatTarget = null;
         let callHistory = JSON.parse(localStorage.getItem('nextalk_history') || '[]');
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -355,7 +341,6 @@
             });
 
             peer.on('call', async (incomingCall) => {
-                // DND (Rahatsız Etmeyin) Kontrolü
                 let myStatusSnap = await db.ref(FirebaseConfig.rootPath + '/' + currentPhone + '/status').once('value');
                 if(myStatusSnap.val() === 'dnd') {
                     incomingCall.close();
@@ -363,67 +348,190 @@
                 }
 
                 currentCall = incomingCall;
-                isVideoCall = !!incomingCall.metadata?.video;
                 if(navigator.vibrate) navigator.vibrate([500, 200, 500]);
-                
-                playRingtone();
-                showDesktopNotification("Gelen Arama", incomingCall.peer.replace('nextalk-', '') + " sizi arıyor...");
                 showIncomingCallOverlay(incomingCall.peer.replace('nextalk-', ''));
             });
 
-            peer.on('connection', (conn) => {
-                dataConn = conn;
-                setupDataChannel();
-            });
-
             loadMyContacts();
+            loadChatContacts();
         }
 
-        // --- 1. OTOMATİK KARANLIK MOD ZAMANLAYICISI ---
-        function checkAutoSunset() {
-            const hour = new Date().getHours();
-            // Akşam 19:00 ile sabah 06:00 arası otomatik karanlık mod
-            if(hour < 6 || hour >= 19) {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
+        // --- 1. ÇOKLU KONFERANS ODALARI ---
+        async function joinConferenceRoom() {
+            let roomName = document.getElementById('room-name-input').value.trim();
+            if(!roomName) return alert("Lütfen bir oda adı girin!");
+
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+            } catch(e) {
+                return alert("Kamera ve mikrofon izni alınamadı!");
             }
-        }
-        function toggleAutoSunsetMode() {
-            document.documentElement.classList.toggle('dark');
+
+            showCallOverlay("Oda: " + roomName, "Konferans Odasına Bağlanılıyor...");
+            document.getElementById('btn-accept').classList.add('hidden');
+            document.getElementById('video-container').classList.remove('hidden');
+            document.getElementById('audio-call-ui').classList.add('hidden');
+            document.getElementById('local-video').srcObject = localStream;
+
+            // Konferans için benzersiz oda peer ID'si üzerinden arama başlatılır
+            currentCall = peer.call('nextalk-room-' + roomName, localStream, { metadata: { video: true } });
+            handleCallEvents(currentCall, localStream);
         }
 
-        // --- 2. KURUMSAL DURUM (DND / MÜSAİT) ---
-        function updateUserStatus(status) {
-            db.ref(FirebaseConfig.rootPath + '/' + currentPhone).update({ status: status });
-            const dot = document.getElementById('status-dot');
-            const txt = document.getElementById('status-text');
-            if(status === 'dnd') {
-                dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
-                txt.innerText = "Rahatsız Etmeyin";
-            } else {
-                dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
-                txt.innerText = "Çevrimiçi";
+        // --- 2. KALICI BULUT SOHBETLERİ ---
+        function loadChatContacts() {
+            db.ref(FirebaseConfig.rootPath + '/' + currentPhone + '/contacts').on('value', snapshot => {
+                const contacts = snapshot.val();
+                const container = document.getElementById('chat-contacts-list');
+                container.innerHTML = "";
+                if(!contacts) {
+                    container.innerHTML = `<p class="text-xs text-slate-400">Sohbet için rehbere kişi ekleyin.</p>`;
+                    return;
+                }
+                for(let phone in contacts) {
+                    let c = contacts[phone];
+                    container.innerHTML += `
+                        <button onclick="openPersistentChat('${c.phone}', '${c.name}')" class="w-full glass-btn p-2.5 rounded-xl text-left text-xs font-bold flex justify-between items-center">
+                            <span>${c.name}</span>
+                            <span class="text-[10px] text-slate-400 font-mono">${c.phone}</span>
+                        </button>
+                    `;
+                }
+            });
+        }
+
+        function openPersistentChat(phone, name) {
+            activeChatTarget = phone;
+            document.getElementById('chat-box-container').classList.remove('hidden');
+            document.getElementById('active-chat-title').innerText = name + " (" + phone + ") ile Sohbet";
+
+            // Benzersiz sohbet odası anahtarı (iki numaranın sıralı birleşimi)
+            let chatId = [currentPhone, phone].sort().join('_');
+            
+            db.ref('chats/' + chatId).on('value', snapshot => {
+                const msgs = snapshot.val();
+                const box = document.getElementById('persistent-messages');
+                box.innerHTML = "";
+                if(!msgs) {
+                    box.innerHTML = `<p class="text-slate-400 text-center">Henüz mesaj yok.</p>`;
+                    return;
+                }
+                for(let id in msgs) {
+                    let m = msgs[id];
+                    let isMe = m.sender === currentPhone;
+                    box.innerHTML += `
+                        <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
+                            <div class="max-w-[75%] p-2 rounded-xl ${isMe ? 'bg-[rgb(var(--accent))] text-white' : 'bg-slate-800 text-white'}">
+                                ${m.text}
+                            </div>
+                            <span class="text-[9px] text-slate-400 mt-0.5">${m.time}</span>
+                        </div>
+                    `;
+                }
+                box.scrollTop = box.scrollHeight;
+            });
+        }
+
+        function sendPersistentMessage() {
+            const input = document.getElementById('persistent-msg-input');
+            const text = input.value.trim();
+            if(!text || !activeChatTarget) return;
+
+            let chatId = [currentPhone, activeChatTarget].sort().join('_');
+            db.ref('chats/' + chatId).push({
+                sender: currentPhone,
+                text: text,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+            input.value = "";
+        }
+
+        // --- ARAMA VE DİĞER YARDIMCILAR ---
+        async function makeCall(video = false) {
+            let targetPhone = document.getElementById('phone-display').value.trim();
+            if(!targetPhone) return alert("Numara girin!");
+
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: { echoCancellation: true, noiseSuppression: true }, 
+                    video: video 
+                });
+            } catch(e) { return alert("Medya izni alınamadı!"); }
+
+            showCallOverlay(targetPhone, video ? "Görüntülü Aranıyor..." : "Aranıyor...");
+            document.getElementById('btn-accept').classList.add('hidden');
+
+            if(video) {
+                document.getElementById('video-container').classList.remove('hidden');
+                document.getElementById('audio-call-ui').classList.add('hidden');
+                document.getElementById('local-video').srcObject = localStream;
             }
+
+            currentCall = peer.call('nextalk-' + targetPhone, localStream, { metadata: { video } });
+            handleCallEvents(currentCall, localStream);
+            addHistory(targetPhone, video ? 'video-outgoing' : 'outgoing');
         }
 
-        // --- 3. REHBER DÜZENLEME VE SİLME ---
+        function showIncomingCallOverlay(remotePhone) {
+            showCallOverlay(remotePhone, "Gelen Arama...");
+            document.getElementById('btn-accept').classList.remove('hidden');
+        }
+
+        async function acceptCall() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: true });
+            } catch(e) { return alert("Medya izni alınamadı!"); }
+
+            document.getElementById('btn-accept').classList.add('hidden');
+            document.getElementById('call-status-label').innerText = "Bağlandı";
+            document.getElementById('video-container').classList.remove('hidden');
+            document.getElementById('audio-call-ui').classList.add('hidden');
+            document.getElementById('local-video').srcObject = localStream;
+
+            currentCall.answer(localStream);
+            handleCallEvents(currentCall, localStream);
+        }
+
+        function handleCallEvents(call, stream) {
+            call.on('stream', (remoteStream) => {
+                document.getElementById('remote-video').srcObject = remoteStream;
+                document.getElementById('call-status-label').innerText = "Bağlandı";
+            });
+            call.on('close', () => resetCallUI());
+        }
+
+        function endCall() {
+            if(currentCall) currentCall.close();
+            resetCallUI();
+        }
+
+        function showCallOverlay(target, status) {
+            document.getElementById('call-remote-id').innerText = target;
+            document.getElementById('call-status-label').innerText = status;
+            document.getElementById('call-overlay').classList.remove('translate-y-full');
+        }
+
+        function resetCallUI() {
+            document.getElementById('call-overlay').classList.add('translate-y-full');
+            document.getElementById('video-container').classList.add('hidden');
+            document.getElementById('audio-call-ui').classList.remove('hidden');
+            if(localStream) localStream.getTracks().forEach(t => t.stop());
+            currentCall = null;
+        }
+
         function openAddContactModal(editPhone = '', editName = '') {
             document.getElementById('contact-modal').classList.remove('hidden');
             document.getElementById('contact-modal').classList.add('flex');
             const phoneInput = document.getElementById('contact-phone-input');
             const nameInput = document.getElementById('contact-name-input');
-            
             if(editPhone) {
                 phoneInput.value = editPhone;
-                phoneInput.disabled = true; // Numara anahtardır, değiştirilemez
+                phoneInput.disabled = true;
                 nameInput.value = editName;
-                document.getElementById('contact-modal-title').innerText = "Kişiyi Düzenle";
             } else {
                 phoneInput.value = "";
                 phoneInput.disabled = false;
                 nameInput.value = "";
-                document.getElementById('contact-modal-title').innerText = "Rehbere Kişi Ekle";
             }
         }
 
@@ -436,13 +544,12 @@
             const name = document.getElementById('contact-name-input').value.trim();
             const phone = document.getElementById('contact-phone-input').value.trim();
             if(!name || !phone) return alert("Alanları doldurun!");
-
             db.ref(FirebaseConfig.rootPath + '/' + currentPhone + '/contacts/' + phone).set({ name, phone });
             closeAddContactModal();
         }
 
         function deleteContact(phone) {
-            if(confirm("Bu kişiyi rehberinizden silmek istiyor musunuz?")) {
+            if(confirm("Silmek istiyor musunuz?")) {
                 db.ref(FirebaseConfig.rootPath + '/' + currentPhone + '/contacts/' + phone).remove();
             }
         }
@@ -452,256 +559,39 @@
                 const contacts = snapshot.val();
                 const container = document.getElementById('my-contacts-list');
                 container.innerHTML = "";
-                
                 if(!contacts) {
-                    container.innerHTML = `<p class="text-xs text-slate-400 font-medium text-center py-4">Rehberiniz boş. Sağ üstten kişi ekleyin.</p>`;
+                    container.innerHTML = `<p class="text-xs text-slate-400 font-medium text-center py-4">Rehberiniz boş.</p>`;
                     return;
                 }
-
                 for(let phone in contacts) {
                     let c = contacts[phone];
-                    db.ref(FirebaseConfig.rootPath + '/' + phone + '/status').once('value', statusSnap => {
-                        let statusVal = statusSnap.val();
-                        let isOnline = statusVal === 'online';
-                        let isDnd = statusVal === 'dnd';
-                        
-                        let dotColor = isDnd ? 'bg-rose-500' : (isOnline ? 'bg-emerald-500' : 'bg-slate-400');
-                        
-                        container.innerHTML += `
-                            <div class="glass-btn p-3 rounded-2xl flex justify-between items-center">
-                                <div class="flex items-center gap-3">
-                                    <span class="w-2.5 h-2.5 rounded-full ${dotColor}"></span>
-                                    <div>
-                                        <h4 class="text-sm font-bold text-slate-900 dark:text-white">${c.name}</h4>
-                                        <p class="text-xs text-slate-500 dark:text-slate-300 font-mono font-semibold">${c.phone}</p>
-                                    </div>
-                                </div>
-                                <div class="flex gap-1.5">
-                                    <button onclick="openAddContactModal('${c.phone}', '${c.name}')" title="Düzenle" class="p-2 bg-slate-500/10 text-slate-600 dark:text-slate-300 rounded-xl"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i></button>
-                                    <button onclick="deleteContact('${c.phone}')" title="Sil" class="p-2 bg-rose-500/10 text-rose-500 rounded-xl"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
-                                    <button onclick="quickCall('${c.phone}', false)" class="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl"><i data-lucide="phone" class="w-4 h-4"></i></button>
-                                    <button onclick="quickCall('${c.phone}', true)" class="p-2 bg-[rgb(var(--accent))]/10 text-[rgb(var(--accent))] rounded-xl"><i data-lucide="video" class="w-4 h-4"></i></button>
-                                </div>
+                    container.innerHTML += `
+                        <div class="glass-btn p-3 rounded-2xl flex justify-between items-center">
+                            <div>
+                                <h4 class="text-sm font-bold text-slate-900 dark:text-white">${c.name}</h4>
+                                <p class="text-xs text-slate-500 dark:text-slate-300 font-mono font-semibold">${c.phone}</p>
                             </div>
-                        `;
-                        lucide.createIcons();
-                    });
+                            <div class="flex gap-1.5">
+                                <button onclick="openAddContactModal('${c.phone}', '${c.name}')" class="p-2 bg-slate-500/10 text-slate-600 dark:text-slate-300 rounded-xl"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i></button>
+                                <button onclick="deleteContact('${c.phone}')" class="p-2 bg-rose-500/10 text-rose-500 rounded-xl"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                                <button onclick="quickCall('${c.phone}', false)" class="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl"><i data-lucide="phone" class="w-4 h-4"></i></button>
+                                <button onclick="quickCall('${c.phone}', true)" class="p-2 bg-[rgb(var(--accent))]/10 text-[rgb(var(--accent))] rounded-xl"><i data-lucide="video" class="w-4 h-4"></i></button>
+                            </div>
+                        </div>
+                    `;
+                    lucide.createIcons();
                 }
             });
         }
 
-        // --- 4. GÜRÜLTÜ BASTIRMA VE SES İŞLEME İLE ARAMA ---
-        async function makeCall(video = false) {
-            isVideoCall = video;
-            let targetPhone = document.getElementById('phone-display').value.trim();
-            if(!targetPhone) return alert("Numara girin!");
-
-            try {
-                // Kurumsal Gürültü Önleme ve Yankı İptali (Echo Cancellation & Noise Suppression)
-                localStream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true
-                    }, 
-                    video: video 
-                });
-            } catch(e) {
-                return alert("Kamera veya mikrofon izni alınamadı!");
-            }
-
-            showCallOverlay(targetPhone, video ? "Görüntülü Aranıyor..." : "Aranıyor...");
-            document.getElementById('btn-accept').classList.add('hidden');
-
-            if(video) {
-                document.getElementById('video-container').classList.remove('hidden');
-                document.getElementById('audio-call-ui').classList.add('hidden');
-                document.getElementById('local-video').srcObject = localStream;
-            }
-
-            dataConn = peer.connect('nextalk-' + targetPhone);
-            setupDataChannel();
-
-            currentCall = peer.call('nextalk-' + targetPhone, localStream, { metadata: { video } });
-            handleCallEvents(currentCall, localStream);
-            addHistory(targetPhone, video ? 'video-outgoing' : 'outgoing');
+        function checkAutoSunset() {
+            const hour = new Date().getHours();
+            if(hour < 6 || hour >= 19) document.documentElement.classList.add('dark');
+            else document.documentElement.classList.remove('dark');
         }
 
-        function showIncomingCallOverlay(remotePhone) {
-            showCallOverlay(remotePhone, isVideoCall ? "Gelen Görüntülü Arama..." : "Gelen Arama...");
-            document.getElementById('btn-accept').classList.remove('hidden');
-        }
-
-        async function acceptCall() {
-            stopRingtone();
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true
-                    }, 
-                    video: isVideoCall 
-                });
-            } catch(e) {
-                return alert("Kamera veya mikrofon izni alınamadı!");
-            }
-
-            document.getElementById('btn-accept').classList.add('hidden');
-            document.getElementById('call-status-label').innerText = "Bağlandı";
-
-            if(isVideoCall) {
-                document.getElementById('video-container').classList.remove('hidden');
-                document.getElementById('audio-call-ui').classList.add('hidden');
-                document.getElementById('local-video').srcObject = localStream;
-            }
-
-            currentCall.answer(localStream);
-            handleCallEvents(currentCall, localStream);
-        }
-
-        function handleCallEvents(call, stream) {
-            call.on('stream', (remoteStream) => {
-                if(isVideoCall) {
-                    document.getElementById('video-container').classList.remove('hidden');
-                    document.getElementById('audio-call-ui').classList.add('hidden');
-                    document.getElementById('remote-video').srcObject = remoteStream;
-                    document.getElementById('local-video').srcObject = stream;
-                } else {
-                    document.getElementById('remote-audio').srcObject = remoteStream;
-                }
-                document.getElementById('call-status-label').innerText = "Bağlandı";
-            });
-            call.on('close', () => resetCallUI());
-        }
-
-        function endCall() {
-            stopRingtone();
-            if(currentCall) currentCall.close();
-            if(dataConn) dataConn.close();
-            if(isRecording && mediaRecorder) mediaRecorder.stop();
-            resetCallUI();
-        }
-
-        // Bildirim & Zil Sesi Yardımcıları
-        function requestNotificationPermission() {
-            if(Notification) {
-                Notification.requestPermission().then(perm => alert("Bildirim izni: " + perm));
-            }
-        }
-        function showDesktopNotification(title, body) {
-            if(Notification && Notification.permission === "granted") {
-                new Notification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/724/724715.png' });
-            }
-        }
-        function playRingtone() {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                window.ringInterval = setInterval(() => {
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.frequency.value = 880;
-                    gain.gain.value = 0.1;
-                    osc.connect(gain); gain.connect(ctx.destination);
-                    osc.start(); osc.stop(ctx.currentTime + 0.4);
-                }, 1000);
-            } catch(e) {}
-        }
-        function stopRingtone() { if(window.ringInterval) clearInterval(window.ringInterval); }
-
-        function toggleVoiceChanger() {
-            if(voiceMode === 'normal') { voiceMode = 'robot'; alert("Ses Modu: Robot"); }
-            else { voiceMode = 'normal'; alert("Ses Modu: Normal"); }
-        }
-
-        function toggleCallRecording() {
-            if(!isRecording) {
-                try {
-                    recordedChunks = [];
-                    mediaRecorder = new MediaRecorder(localStream);
-                    mediaRecorder.ondataavailable = e => recordedChunks.push(e.data);
-                    mediaRecorder.onstop = () => {
-                        const blob = new Blob(recordedChunks, { type: 'audio/webm' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = 'nextalk-gorusme-' + Date.now() + '.webm';
-                        a.click();
-                    };
-                    mediaRecorder.start();
-                    isRecording = true;
-                    document.getElementById('btn-record').classList.add('bg-rose-500', 'text-white');
-                    alert("Kayıt başlatıldı!");
-                } catch(e) { alert("Kayıt başlatılamadı."); }
-            } else {
-                mediaRecorder.stop();
-                isRecording = false;
-                document.getElementById('btn-record').classList.remove('bg-rose-500', 'text-white');
-                alert("Kayıt indirildi.");
-            }
-        }
-
-        async function toggleScreenShare() {
-            if(!isScreenSharing) {
-                try {
-                    const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-                    const videoTrack = screenStream.getVideoTracks()[0];
-                    const sender = currentCall.peerConnection.getSenders().find(s => s.track.kind === 'video');
-                    if(sender) sender.replaceTrack(videoTrack);
-                    document.getElementById('local-video').srcObject = screenStream;
-                    isScreenSharing = true;
-                    videoTrack.onended = () => toggleScreenShare();
-                } catch(e) { alert("Ekran paylaşılamadı."); }
-            } else {
-                navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
-                    const videoTrack = stream.getVideoTracks()[0];
-                    const sender = currentCall.peerConnection.getSenders().find(s => s.track.kind === 'video');
-                    if(sender) sender.replaceTrack(videoTrack);
-                    document.getElementById('local-video').srcObject = stream;
-                    isScreenSharing = false;
-                });
-            }
-        }
-
-        function setupDataChannel() {
-            if(!dataConn) return;
-            dataConn.on('data', (data) => {
-                if(data.type === 'chat') {
-                    const box = document.getElementById('chat-messages');
-                    box.innerHTML += `<div class="bg-slate-800 p-2 rounded-xl"><b>Karşı Taraf:</b> ${data.text}</div>`;
-                    box.scrollTop = box.scrollHeight;
-                }
-            });
-        }
-
-        function toggleInCallChat() { document.getElementById('in-call-chat-panel').classList.toggle('hidden'); }
-        function sendChatMessage() {
-            const input = document.getElementById('chat-input');
-            const text = input.value.trim();
-            if(!text) return;
-            if(dataConn && dataConn.open) {
-                dataConn.send({ type: 'chat', text: text });
-                const box = document.getElementById('chat-messages');
-                box.innerHTML += `<div class="bg-[rgb(var(--accent))]/30 p-2 rounded-xl text-right"><b>Siz:</b> ${text}</div>`;
-                box.scrollTop = box.scrollHeight;
-                input.value = '';
-            }
-        }
-
-        function showCallOverlay(phone, status) {
-            document.getElementById('call-remote-id').innerText = "Tel: " + phone;
-            document.getElementById('call-status-label').innerText = status;
-            document.getElementById('call-overlay').classList.remove('translate-y-full');
-        }
-
-        function resetCallUI() {
-            document.getElementById('call-overlay').classList.add('translate-y-full');
-            document.getElementById('video-container').classList.add('hidden');
-            document.getElementById('audio-call-ui').classList.remove('hidden');
-            document.getElementById('in-call-chat-panel').classList.add('hidden');
-            if(localStream) localStream.getTracks().forEach(t => t.stop());
-            currentCall = null;
-            dataConn = null;
+        function updateUserStatus(status) {
+            db.ref(FirebaseConfig.rootPath + '/' + currentPhone).update({ status: status });
         }
 
         function appendNum(char) { document.getElementById('phone-display').value += char; }
