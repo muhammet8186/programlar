@@ -461,7 +461,7 @@
                 showIncomingCallOverlay(incomingCall.peer.replace('nextalk-', ''));
                 
                 currentCall.on('close', () => {
-                    stopRingtone();
+                    stopAllAudioAndRingtones();
                     resetCallUI();
                     showToast("Bilgi", "Arama sonlandırıldı.", "info");
                 });
@@ -479,8 +479,11 @@
 
         function startRingbackTone() {
             try {
+                stopAllAudioAndRingtones();
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                window.ringbackAudioCtx = ctx;
                 ringbackInterval = setInterval(() => {
+                    if(!window.ringbackAudioCtx) return;
                     const osc = ctx.createOscillator();
                     const gain = ctx.createGain();
                     osc.frequency.value = 425;
@@ -496,6 +499,23 @@
                 clearInterval(ringbackInterval);
                 ringbackInterval = null;
             }
+            if(window.ringbackAudioCtx) {
+                try { window.ringbackAudioCtx.close(); } catch(e) {}
+                window.ringbackAudioCtx = null;
+            }
+        }
+
+        // --- GELİŞTİRİLDİ: Tüm sesleri ve zilleri anında tamamen durduran garanti fonksiyon ---
+        function stopAllAudioAndRingtones() {
+            stopRingbackTone();
+            stopRingtone();
+            try {
+                const ringAudio = document.getElementById('ringtone-audio');
+                if(ringAudio) {
+                    ringAudio.pause();
+                    ringAudio.currentTime = 0;
+                }
+            } catch(e) {}
         }
 
         function exportBackup() {
@@ -589,8 +609,11 @@
 
         function playRingtone() {
             try {
+                stopAllAudioAndRingtones();
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                window.incomingAudioCtx = ctx;
                 window.ringInterval = setInterval(() => {
+                    if(!window.incomingAudioCtx) return;
                     const osc = ctx.createOscillator();
                     const gain = ctx.createGain();
                     osc.frequency.value = 880;
@@ -600,7 +623,16 @@
                 }, 1000);
             } catch(e) {}
         }
-        function stopRingtone() { if(window.ringInterval) clearInterval(window.ringInterval); }
+        function stopRingtone() { 
+            if(window.ringInterval) {
+                clearInterval(window.ringInterval);
+                window.ringInterval = null;
+            }
+            if(window.incomingAudioCtx) {
+                try { window.incomingAudioCtx.close(); } catch(e) {}
+                window.incomingAudioCtx = null;
+            }
+        }
 
         function toggleVoiceChanger() {
             if(voiceMode === 'normal') { voiceMode = 'robot'; showToast("Ses Modu", "Robot sesi aktif", "info"); }
@@ -666,8 +698,7 @@
                     box.innerHTML += `<div class="bg-slate-800 p-2 rounded-xl"><b>Karşı Taraf:</b> ${data.text}</div>`;
                     box.scrollTop = box.scrollHeight;
                 } else if(data.type === 'busy') {
-                    // Karşı taraf aramayı meşgule aldı (reddeti)
-                    stopRingbackTone();
+                    stopAllAudioAndRingtones();
                     resetCallUI();
                     showToast("Arama Reddedildi", "Karşı taraf aramayı meşgule aldı.", "success");
                 }
@@ -698,6 +729,7 @@
                 return alert("Kamera ve mikrofon izni alınamadı!");
             }
 
+            stopAllAudioAndRingtones();
             showCallOverlay("Oda: " + roomName, "Konferans Odasına Bağlanılıyor...");
             document.getElementById('btn-accept').classList.add('hidden');
             document.getElementById('btn-reject').classList.add('hidden');
@@ -918,6 +950,7 @@
                 });
             } catch(e) { return alert("Medya izni alınamadı!"); }
 
+            stopAllAudioAndRingtones();
             showCallOverlay(targetPhone, video ? "Görüntülü Aranıyor..." : "Sesli Aranıyor...");
             document.getElementById('btn-accept').classList.add('hidden');
             document.getElementById('btn-reject').classList.add('hidden');
@@ -951,8 +984,7 @@
         }
 
         async function acceptCall() {
-            stopRingtone();
-            stopRingbackTone();
+            stopAllAudioAndRingtones();
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ 
                     audio: { echoCancellation: true, noiseSuppression: true }, 
@@ -978,9 +1010,8 @@
             handleCallEvents(currentCall, localStream);
         }
 
-        // --- GELDİ: Meşgule Atma / Reddetme Fonksiyonu ---
         function rejectCall() {
-            stopRingtone();
+            stopAllAudioAndRingtones();
             if(dataConn && dataConn.open) {
                 dataConn.send({ type: 'busy' });
             }
@@ -993,20 +1024,19 @@
 
         function handleCallEvents(call, stream) {
             call.on('stream', (remoteStream) => {
-                stopRingbackTone();
+                stopAllAudioAndRingtones();
                 document.getElementById('remote-video').srcObject = remoteStream;
                 document.getElementById('call-status-label').innerText = "Bağlandı";
             });
             call.on('close', () => {
-                stopRingbackTone();
+                stopAllAudioAndRingtones();
                 resetCallUI();
                 showToast("Bilgi", "Arama sonlandırıldı.", "info");
             });
         }
 
         function endCall() {
-            stopRingtone();
-            stopRingbackTone();
+            stopAllAudioAndRingtones();
             if(activeRoomName) {
                 db.ref('rooms/' + activeRoomName + '/' + currentPhone).remove();
                 activeRoomName = null;
@@ -1026,7 +1056,7 @@
         }
 
         function resetCallUI() {
-            stopRingbackTone();
+            stopAllAudioAndRingtones();
             document.getElementById('call-overlay').classList.add('translate-y-full');
             document.getElementById('video-container').classList.add('hidden');
             document.getElementById('audio-call-ui').classList.remove('hidden');
