@@ -1,1 +1,594 @@
-...
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexTalk - Modern VoIP Phone</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- PeerJS for WebRTC -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0b0f19;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.15) 0px, transparent 50%);
+        }
+
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .glass-btn:active {
+            transform: translateY(0);
+        }
+
+        .pulse-ring {
+            position: relative;
+        }
+
+        .pulse-ring::before {
+            content: '';
+            position: absolute;
+            left: -8px; top: -8px; right: -8px; bottom: -8px;
+            border: 2px solid #6366f1;
+            border-radius: 50%;
+            animation: pulse-out 2s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+        }
+
+        @keyframes pulse-out {
+            0% { transform: scale(0.9); opacity: 1; }
+            100% { transform: scale(1.4); opacity: 0; }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex items-center justify-center p-4">
+
+    <!-- Ana Uygulama Konteyneri -->
+    <div class="glass-panel w-full max-w-md rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[750px] relative">
+        
+        <!-- Üst Bar / Durum Bilgisi -->
+        <header class="p-5 border-b border-white/5 flex justify-between items-center bg-slate-900/40">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                    <i data-lucide="phone-call" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base tracking-wide text-white">NexTalk VoIP</h1>
+                    <div class="flex items-center gap-2">
+                        <span id="status-dot" class="w-2 h-2 rounded-full bg-amber-500"></span>
+                        <span id="status-text" class="text-xs text-slate-400 font-medium">Bağlanıyor...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kullanıcının Kendi Peer ID'si -->
+            <div class="bg-indigo-950/50 border border-indigo-500/20 px-3 py-1.5 rounded-xl text-right">
+                <span class="text-[10px] uppercase tracking-wider text-indigo-300 font-semibold block">Oda Numaranız</span>
+                <div class="flex items-center gap-1.5 justify-end">
+                    <span id="my-id" class="text-sm font-mono font-bold text-indigo-400">----</span>
+                    <button onclick="copyMyID()" title="Kopyala" class="text-slate-400 hover:text-white transition-colors">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- İçerik Alanı (Sekmeler) -->
+        <main class="flex-1 overflow-y-auto relative p-5">
+            
+            <!-- SEKMELER 1: TUŞ TAKIMI (DIALER) -->
+            <div id="tab-dialer" class="tab-content flex flex-col h-full justify-between">
+                <!-- Numara / ID Ekranı -->
+                <div class="flex flex-col items-center justify-center my-4">
+                    <input type="text" id="phone-display" readonly placeholder="ID Giriniz..." 
+                        class="bg-transparent text-center text-3xl font-mono font-bold tracking-widest text-indigo-400 placeholder:text-slate-600 focus:outline-none w-full">
+                    <span id="display-subtext" class="text-xs text-slate-500 mt-2 h-4">Aranacak 4 haneli ID'yi tuşlayın</span>
+                </div>
+
+                <!-- Tuş Takımı Izgarası -->
+                <div class="grid grid-cols-3 gap-3 my-auto">
+                    <button onclick="appendNum('1')" class="glass-btn h-14 rounded-2xl flex flex-col items-center justify-center">
+                        <span class="text-xl font-semibold">1</span>
+                        <span class="text-[9px] text-slate-500 tracking-widest font-bold"></span>
+                    </button>
+                    <button onclick="appendNum('2')" class="glass-btn h-14 rounded-2xl flex flex-col items-center justify-center">
+                        <span class="text-xl font-semibold">2</span>
+                        <span class="text-[9px] text-slate-500 tracking-widest">ABC</span>
+                    </button>
+                    <button onclick="appendNum('3')" class="glass-btn h-14 rounded-2xl flex flex-col items-center justify-center">
+                        <span class="text-xl font-semibold">3</span>
+                        <span class="text-[9px] text-slate-500 tracking-widest">DEF</span>
+                    </button>
+                    <button onclick="appendNum('4')" class="glass-btn h-14 rounded-2xl flex flex-col items-center justify-center">
+                        <span class="text-xl font-semibold">4</span>
+                        <span class="text-[9px] text-slate-500 tracking-widest">GHI</span>
+                    </button>
+                    <button onclick="appendNum('5')" class="glass-btn h-14 rounded-2xl flex flex-col items-center justify-center">
+                        <span class="text-xl font-semibold">5</span>
+                        <span class="text-[9px] text-slate-500 tracking-widest">JKL</span>
+                    </button>
+                    <button onclick="appendNum('6')" class="glass-btn h-14 rounded-2xl flex flex-col items-center justify-center">
+                        <span class="text-xl font-semibold">6</span>
+                        <span class="text-[9px] text-slate-500 tracking-widest">MNO</span>
+                    </button>
+                    <button onclick="appendNum('7')" class="glass-btn h-14 rounded-2xl flex flex-col items-center justify-center">
+                        <span class="text-xl font-semibold">7</span>
+                        <span class="text-[9px] text-slate-500 tracking-widest">PQRS</span>
+                    </button>
+                    <button onclick="appendNum('8')" class="glass-btn h-14 rounded-2xl flex flex-col items-center justify-center">
+                        <span class="text-xl font-semibold">8</span>
+                        <span class="text-[9px] text-slate-500 tracking-widest">TUV</span>
+                    </button>
+                    <button onclick="appendNum('9')" class="glass-btn h-14 rounded-2xl flex flex-col items-center justify-center">
+                        <span class="text-xl font-semibold">9</span>
+                        <span class="text-[9px] text-slate-500 tracking-widest">WXYZ</span>
+                    </button>
+                    <button onclick="appendNum('*')" class="glass-btn h-14 rounded-2xl flex items-center justify-center text-xl font-bold text-slate-400">*</button>
+                    <button onclick="appendNum('0')" class="glass-btn h-14 rounded-2xl flex flex-col items-center justify-center">
+                        <span class="text-xl font-semibold">0</span>
+                        <span class="text-[9px] text-slate-500 tracking-widest">+</span>
+                    </button>
+                    <button onclick="appendNum('#')" class="glass-btn h-14 rounded-2xl flex items-center justify-center text-xl font-bold text-slate-400">#</button>
+                </div>
+
+                <!-- Arama ve Silme Aksiyon Butonları -->
+                <div class="flex items-center justify-center gap-6 mt-4">
+                    <div class="w-12"></div> <!-- Hizalama için boşluk -->
+                    
+                    <button onclick="makeCall()" class="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 transition-all active:scale-95">
+                        <i data-lucide="phone" class="w-7 h-7 fill-current"></i>
+                    </button>
+                    
+                    <button onclick="deleteNum()" class="w-12 h-12 rounded-full glass-btn text-slate-400 hover:text-rose-400 flex items-center justify-center">
+                        <i data-lucide="delete" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- SEKMELER 2: REHBER -->
+            <div id="tab-contacts" class="tab-content hidden space-y-3">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Kayıtlı Kişiler</h3>
+                <div id="contacts-list" class="space-y-2">
+                    <!-- Dinamik kişiler buraya dolacak -->
+                </div>
+            </div>
+
+            <!-- SEKMELER 3: GEÇMİŞ -->
+            <div id="tab-history" class="tab-content hidden space-y-3">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Son Arama Geçmişi</h3>
+                    <button onclick="clearHistory()" class="text-xs text-slate-500 hover:text-rose-400 transition-colors">Temizle</button>
+                </div>
+                <div id="history-list" class="space-y-2">
+                    <!-- Dinamik geçmiş buraya dolacak -->
+                </div>
+            </div>
+
+        </main>
+
+        <!-- AKTİF ARAMA / GELEN ARAMA MODALI OVERLAY -->
+        <div id="call-overlay" class="absolute inset-0 bg-slate-950/95 backdrop-blur-2xl flex flex-col justify-between p-8 z-50 transform translate-y-full transition-transform duration-300">
+            <div class="text-center pt-8">
+                <span id="call-status-label" class="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-4 block">Aranıyor...</span>
+                <div class="w-28 h-28 rounded-full bg-indigo-600/20 border-2 border-indigo-500/40 flex items-center justify-center mx-auto mb-4 relative" id="call-avatar-wrap">
+                    <i data-lucide="user" class="w-12 h-12 text-indigo-300"></i>
+                </div>
+                <h2 id="call-remote-id" class="text-2xl font-bold text-white tracking-wide">ID: ----</h2>
+                <p id="call-timer" class="text-slate-400 text-sm mt-2 font-mono">00:00</p>
+            </div>
+
+            <!-- Arama Kontrolleri -->
+            <div class="space-y-6 pb-6">
+                <!-- Aktif Çağrı Butonları (Mute, Speaker) -->
+                <div id="active-controls" class="flex justify-center gap-6">
+                    <button id="btn-mute" onclick="toggleMute()" class="w-14 h-14 rounded-2xl glass-btn text-white flex items-center justify-center">
+                        <i data-lucide="mic" class="w-6 h-6"></i>
+                    </button>
+                </div>
+
+                <!-- Gelen / Giden Çağrı Aksiyonları -->
+                <div class="flex justify-center items-center gap-8">
+                    <!-- Gelen Arama Kabul Butonu -->
+                    <button id="btn-accept" onclick="acceptCall()" class="hidden w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                        <i data-lucide="phone" class="w-7 h-7 fill-current"></i>
+                    </button>
+                    <!-- Aramayı Sonlandır / Reddet -->
+                    <button id="btn-hangup" onclick="endCall()" class="w-16 h-16 rounded-full bg-rose-500 hover:bg-rose-400 text-white flex items-center justify-center shadow-lg shadow-rose-500/30">
+                        <i data-lucide="phone-off" class="w-7 h-7 fill-current"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alt Gezinti Barı (Bottom Navigation) -->
+        <nav class="border-t border-white/5 bg-slate-900/60 p-3 grid grid-cols-3 gap-2">
+            <button onclick="switchTab('dialer')" id="nav-dialer" class="flex flex-col items-center py-2 rounded-xl text-indigo-400 bg-indigo-500/10">
+                <i data-lucide="grid" class="w-5 h-5 mb-1"></i>
+                <span class="text-[10px] font-semibold">Tuşlar</span>
+            </button>
+            <button onclick="switchTab('contacts')" id="nav-contacts" class="flex flex-col items-center py-2 rounded-xl text-slate-400 hover:text-slate-200">
+                <i data-lucide="users" class="w-5 h-5 mb-1"></i>
+                <span class="text-[10px] font-semibold">Rehber</span>
+            </button>
+            <button onclick="switchTab('history')" id="nav-history" class="flex flex-col items-center py-2 rounded-xl text-slate-400 hover:text-slate-200">
+                <i data-lucide="clock" class="w-5 h-5 mb-1"></i>
+                <span class="text-[10px] font-semibold">Geçmiş</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Gizli Ses Öğesi (Karşı Tarafın Sesini Çalmak İçin) -->
+    <audio id="remote-audio" autoplay></audio>
+
+    <script>
+        // Lucide ikonlarını başlat
+        lucide.createIcons();
+
+        // -----------------------------------------------------------------
+        // Ücretsiz Web Audio API ile DTMF ve Arama Sesi Efektleri
+        // -----------------------------------------------------------------
+        const AudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playDTMF(freq1, freq2) {
+            if (AudioCtx.state === 'suspended') AudioCtx.resume();
+            const osc1 = AudioCtx.createOscillator();
+            const osc2 = AudioCtx.createOscillator();
+            const gain = AudioCtx.createGain();
+
+            osc1.frequency.value = freq1;
+            osc2.frequency.value = freq2;
+            gain.gain.value = 0.05;
+
+            osc1.connect(gain);
+            osc2.connect(gain);
+            gain.connect(AudioCtx.destination);
+
+            osc1.start(); osc2.start();
+            setTimeout(() => { osc1.stop(); osc2.stop(); }, 120);
+        }
+
+        const dtmfFreqs = {
+            '1': [697, 1209], '2': [697, 1336], '3': [697, 1477],
+            '4': [770, 1209], '5': [770, 1336], '6': [770, 1477],
+            '7': [852, 1209], '8': [852, 1336], '9': [852, 1477],
+            '*': [941, 1209], '0': [941, 1336], '#': [941, 1477]
+        };
+
+        // -----------------------------------------------------------------
+        // Uygulama Durumu & PeerJS (WebRTC)
+        // -----------------------------------------------------------------
+        let peer = null;
+        let currentCall = null;
+        let localStream = null;
+        let myPeerID = '';
+        let timerInterval = null;
+        let secondsElapsed = 0;
+        let isMuted = false;
+
+        // Örnek Rehber
+        const contacts = [
+            { name: "Ahmet Yılmaz", id: "1024", role: "Yazılım Uzmanı" },
+            { name: "Ayşe Kaya", id: "5542", role: "Tasarımcı" },
+            { name: "Mehmet Demir", id: "8890", role: "Ürün Yöneticisi" }
+        ];
+
+        let callHistory = JSON.parse(localStorage.getItem('nextalk_history') || '[]');
+
+        // Rastgele 4 Haneli ID Üretici
+        function generateShortID() {
+            return Math.floor(1000 + Math.random() * 9000).toString();
+        }
+
+        // WebRTC / PeerJS Başlatma
+        function initPeer() {
+            myPeerID = generateShortID();
+            peer = new Peer('nextalk-' + myPeerID);
+
+            peer.on('open', (id) => {
+                document.getElementById('my-id').innerText = myPeerID;
+                document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+                document.getElementById('status-text').innerText = "Çevrimiçi";
+            });
+
+            peer.on('error', (err) => {
+                console.error("PeerJS Hatası:", err);
+                if (err.type === 'unavailable-id') {
+                    initPeer(); // ID doluysa yeniden üret
+                } else {
+                    document.getElementById('status-text').innerText = "Bağlantı Hatası";
+                    document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-rose-500";
+                }
+            });
+
+            // Gelen Arama Dinleyicisi
+            peer.on('call', (incomingCall) => {
+                currentCall = incomingCall;
+                showIncomingCallOverlay(incomingCall.peer.replace('nextalk-', ''));
+            });
+        }
+
+        // Mikrofon İzni Al
+        async function getMediaStream() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                return localStream;
+            } catch (err) {
+                alert("Mikrofon erişim izni reddedildi. Sesli görüşme yapılamaz.");
+                return null;
+            }
+        }
+
+        // Arama Yap (Giden Arama)
+        async function makeCall() {
+            const targetID = document.getElementById('phone-display').value.trim();
+            if (!targetID) {
+                alert("Lütfen aramak istediğiniz ID'yi girin!");
+                return;
+            }
+            if (targetID === myPeerID) {
+                alert("Kendi ID'nizi arayamazsınız!");
+                return;
+            }
+
+            const stream = await getMediaStream();
+            if (!stream) return;
+
+            showCallOverlay(targetID, "Aranıyor...");
+            document.getElementById('btn-accept').classList.add('hidden');
+
+            const fullPeerID = 'nextalk-' + targetID;
+            currentCall = peer.call(fullPeerID, stream);
+
+            currentCall.on('stream', (remoteStream) => {
+                document.getElementById('remote-audio').srcObject = remoteStream;
+                startCallTimer();
+                document.getElementById('call-status-label').innerText = "Bağlandı";
+            });
+
+            currentCall.on('close', () => {
+                resetCallUI();
+            });
+
+            addHistory(targetID, 'outgoing');
+        }
+
+        // Gelen Aramayı Göster
+        function showIncomingCallOverlay(remoteID) {
+            showCallOverlay(remoteID, "Gelen Arama...");
+            document.getElementById('btn-accept').classList.remove('hidden');
+            document.getElementById('call-avatar-wrap').classList.add('pulse-ring');
+        }
+
+        // Gelen Aramayı Kabul Et
+        async function acceptCall() {
+            const stream = await getMediaStream();
+            if (!stream) return;
+
+            document.getElementById('btn-accept').classList.add('hidden');
+            document.getElementById('call-avatar-wrap').classList.remove('pulse-ring');
+            document.getElementById('call-status-label').innerText = "Bağlandı";
+
+            currentCall.answer(stream);
+
+            currentCall.on('stream', (remoteStream) => {
+                document.getElementById('remote-audio').srcObject = remoteStream;
+                startCallTimer();
+            });
+
+            currentCall.on('close', () => {
+                resetCallUI();
+            });
+
+            addHistory(currentCall.peer.replace('nextalk-', ''), 'incoming');
+        }
+
+        // Aramayı Sonlandır
+        function endCall() {
+            if (currentCall) {
+                currentCall.close();
+            }
+            resetCallUI();
+        }
+
+        // Arama Ekranını Aç
+        function showCallOverlay(id, statusText) {
+            document.getElementById('call-remote-id').innerText = "ID: " + id;
+            document.getElementById('call-status-label').innerText = statusText;
+            document.getElementById('call-overlay').classList.remove('translate-y-full');
+        }
+
+        // Arama UI Sıfırla
+        function resetCallUI() {
+            document.getElementById('call-overlay').classList.add('translate-y-full');
+            document.getElementById('call-avatar-wrap').classList.remove('pulse-ring');
+            stopCallTimer();
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            currentCall = null;
+        }
+
+        // Sessize Al (Mute)
+        function toggleMute() {
+            if (!localStream) return;
+            isMuted = !isMuted;
+            localStream.getAudioTracks()[0].enabled = !isMuted;
+            const btn = document.getElementById('btn-mute');
+            if (isMuted) {
+                btn.classList.add('bg-rose-500/20', 'text-rose-400', 'border-rose-500/30');
+            } else {
+                btn.classList.remove('bg-rose-500/20', 'text-rose-400', 'border-rose-500/30');
+            }
+        }
+
+        // Süre Sayacı
+        function startCallTimer() {
+            stopCallTimer();
+            secondsElapsed = 0;
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+                const secs = String(secondsElapsed % 60).padStart(2, '0');
+                document.getElementById('call-timer').innerText = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function stopCallTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            document.getElementById('call-timer').innerText = "00:00";
+        }
+
+        // -----------------------------------------------------------------
+        // Tuş Takımı ve Arayüz Fonksiyonları
+        // -----------------------------------------------------------------
+        function appendNum(num) {
+            const display = document.getElementById('phone-display');
+            if (display.value.length < 6) {
+                display.value += num;
+                if (dtmfFreqs[num]) playDTMF(dtmfFreqs[num][0], dtmfFreqs[num][1]);
+            }
+        }
+
+        function deleteNum() {
+            const display = document.getElementById('phone-display');
+            display.value = display.value.slice(0, -1);
+        }
+
+        function copyMyID() {
+            navigator.clipboard.writeText(myPeerID);
+            alert("Oda ID'niz kopyalandı: " + myPeerID);
+        }
+
+        // Sekme Değiştirici
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-' + tabName).classList.remove('hidden');
+
+            const navs = ['dialer', 'contacts', 'history'];
+            navs.forEach(nav => {
+                const btn = document.getElementById('nav-' + nav);
+                if (nav === tabName) {
+                    btn.className = "flex flex-col items-center py-2 rounded-xl text-indigo-400 bg-indigo-500/10";
+                } else {
+                    btn.className = "flex flex-col items-center py-2 rounded-xl text-slate-400 hover:text-slate-200";
+                }
+            });
+        }
+
+        // Rehber Render
+        function renderContacts() {
+            const container = document.getElementById('contacts-list');
+            container.innerHTML = contacts.map(c => `
+                <div class="glass-btn p-3 rounded-2xl flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-slate-800 border border-white/5 flex items-center justify-center font-bold text-indigo-400">
+                            ${c.name.charAt(0)}
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-semibold text-white">${c.name}</h4>
+                            <p class="text-xs text-slate-400">ID: ${c.id} • ${c.role}</p>
+                        </div>
+                    </div>
+                    <button onclick="quickCall('${c.id}')" class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white flex items-center justify-center transition-colors">
+                        <i data-lucide="phone" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function quickCall(id) {
+            document.getElementById('phone-display').value = id;
+            switchTab('dialer');
+            makeCall();
+        }
+
+        // Geçmiş Yönetimi
+        function addHistory(id, type) {
+            const item = {
+                id,
+                type,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+            callHistory.unshift(item);
+            localStorage.setItem('nextalk_history', JSON.stringify(callHistory));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('history-list');
+            if (callHistory.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 text-center py-8">Henüz arama kaydı yok.</p>`;
+                return;
+            }
+            container.innerHTML = callHistory.map(h => `
+                <div class="glass-btn p-3 rounded-2xl flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl ${h.type === 'outgoing' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-emerald-500/10 text-emerald-400'} flex items-center justify-center">
+                            <i data-lucide="${h.type === 'outgoing' ? 'phone-outgoing' : 'phone-incoming'}" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-semibold text-white">ID: ${h.id}</h4>
+                            <p class="text-xs text-slate-400">${h.type === 'outgoing' ? 'Giden Arama' : 'Gelen Arama'} • ${h.time}</p>
+                        </div>
+                    </div>
+                    <button onclick="quickCall('${h.id}')" class="text-slate-400 hover:text-white p-2">
+                        <i data-lucide="phone" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function clearHistory() {
+            callHistory = [];
+            localStorage.removeItem('nextalk_history');
+            renderHistory();
+        }
+
+        // Sayfa Yüklendiğinde Başlat
+        window.addEventListener('DOMContentLoaded', () => {
+            initPeer();
+            renderContacts();
+            renderHistory();
+        });
+    </script>
+</body>
+</html>
