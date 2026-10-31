@@ -11,7 +11,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- PeerJS -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <!-- Firebase SDK (Auth & Database) -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
@@ -167,7 +167,7 @@
                 <p id="call-timer" class="text-slate-400 text-xs mt-1 font-mono">00:00</p>
             </div>
 
-            <!-- GELİŞMİŞ ÇAĞRI KONTROLLERİ (Hold, 3-Way, Voicemail) -->
+            <!-- ÇAĞRI KONTROLLERİ (Hold, 3-Way, Voicemail) -->
             <div class="space-y-4 pb-4">
                 <div class="flex justify-center gap-3 flex-wrap">
                     <button id="btn-hold" onclick="toggleHold()" title="Beklet / Müzik Çal" class="w-12 h-12 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="pause" class="w-5 h-5"></i></button>
@@ -193,14 +193,25 @@
     <audio id="remote-audio" autoplay></audio>
 
     <script>
-        // Firebase Yapılandırması (Ücretsiz Demo Entegrasyonu)
-        const firebaseConfig = {
-            apiKey: "AIzaSyDemoKeyForNextalk12345",
-            authDomain: "nextalk-enterprise.firebaseapp.com",
-            databaseURL: "https://nextalk-enterprise-default-rtdb.firebaseio.com",
-            projectId: "nextalk-enterprise"
+        // =========================================================================
+        // 🛠️ MERKEZİ FIREBASE & KÖK BAŞLIK YAPILANDIRMASI
+        // Kendi Firebase projenizin bilgilerini ve veritabanı kök dizinini 
+        // sadece bu alandan kolayca değiştirebilirsiniz.
+        // =========================================================================
+        const FirebaseConfig = {
+            // Firebase Proje Konfigürasyon Bilgileri
+            config: {
+                apiKey: "AIzaSyDemoKeyForNextalk12345",
+                authDomain: "nextalk-enterprise.firebaseapp.com",
+                databaseURL: "https://nextalk-enterprise-default-rtdb.firebaseio.com",
+                projectId: "nextalk-enterprise"
+            },
+            // Veritabanı Kök Dizin (Root) Yolu / Tablo Adı Başlığı
+            rootPath: "users" 
         };
-        firebase.initializeApp(firebaseConfig);
+
+        // Firebase Başlatma
+        firebase.initializeApp(FirebaseConfig.config);
         const auth = firebase.auth();
         const db = firebase.database();
 
@@ -220,7 +231,7 @@
             if(!email || !pass || !uname) return alert("Tüm alanları doldurun!");
 
             auth.createUserWithEmailAndPassword(email, pass).then((res) => {
-                db.ref('users/' + res.user.uid).set({ username: uname, status: 'online' });
+                db.ref(FirebaseConfig.rootPath + '/' + res.user.uid).set({ username: uname, status: 'online' });
                 initApp(res.user, uname);
             }).catch(err => alert(err.message));
         }
@@ -231,7 +242,7 @@
             if(!email || !pass) return alert("E-posta ve şifre girin!");
 
             auth.signInWithEmailAndPassword(email, pass).then((res) => {
-                db.ref('users/' + res.user.uid).once('value', snapshot => {
+                db.ref(FirebaseConfig.rootPath + '/' + res.user.uid).once('value', snapshot => {
                     const data = snapshot.val();
                     const uname = data ? data.username : email.split('@')[0];
                     initApp(res.user, uname);
@@ -242,21 +253,20 @@
         function initApp(user, uname) {
             currentUser = user;
             currentUsername = uname;
-            document.getElementById('auth-screen.classList').add('hidden'); // Düzeltildi
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('user-display-name').innerText = "@" + uname;
 
-            // PeerJS Bağlantısı (Kullanıcı adını Peer ID olarak kullanıyoruz)
+            // PeerJS Bağlantısı
             peer = new Peer('nextalk-' + uname, { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
             peer.on('open', () => {
                 document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
                 document.getElementById('status-text').innerText = "Çevrimiçi";
-                db.ref('users/' + user.uid).update({ status: 'online' });
+                db.ref(FirebaseConfig.rootPath + '/' + user.uid).update({ status: 'online' });
             });
 
             peer.on('call', (incomingCall) => {
                 currentCall = incomingCall;
-                if(navigator.vibrate) navigator.vibrate([500, 200, 500]); // Titreşim API
+                if(navigator.vibrate) navigator.vibrate([500, 200, 500]);
                 showIncomingCallOverlay(incomingCall.peer.replace('nextalk-', ''));
             });
 
@@ -266,7 +276,7 @@
 
         // Çevrimiçi Kullanıcı Listesi (Presence)
         function loadOnlineUsers() {
-            db.ref('users').on('value', snapshot => {
+            db.ref(FirebaseConfig.rootPath).on('value', snapshot => {
                 const users = snapshot.val();
                 const container = document.getElementById('online-users-list');
                 container.innerHTML = "";
@@ -307,7 +317,7 @@
             holdInterval = setInterval(() => {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
-                osc.frequency.value = 523.25; // Do notu melodi
+                osc.frequency.value = 523.25;
                 gain.gain.value = 0.05;
                 osc.connect(gain); gain.connect(ctx.destination);
                 osc.start(); osc.stop(ctx.currentTime + 0.3);
@@ -315,44 +325,32 @@
         }
         function stopHoldMusic() { if(holdInterval) clearInterval(holdInterval); }
 
-        // 3 Yönlü Konferans (Call Transfer)
         function promptTransfer() {
             const target = prompt("Konferansa eklenecek kullanıcı adını girin (@kullanici):");
             if(!target) return;
             alert("@" + target + " konferansa dahil ediliyor...");
         }
 
-        // Sesli Mesaj Bırakma (Voicemail)
         function recordVoicemail() {
             navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
                 const recorder = new MediaRecorder(stream);
                 let chunks = [];
                 recorder.ondataavailable = e => chunks.push(e.data);
-                recorder.onstop = () => {
-                    const blob = new Blob(chunks, { type: 'audio/webm' });
-                    alert("Sesli mesaj kaydedildi ve sisteme bırakıldı.");
-                };
+                recorder.onstop = () => { alert("Sesli mesaj kaydedildi ve sisteme bırakıldı."); };
                 recorder.start();
-                setTimeout(() => recorder.stop(), 5000); // 5 saniye sesli mesaj
+                setTimeout(() => recorder.stop(), 5000);
                 alert("Sesli mesaj kaydediliyor (5 sn)... Konuşun.");
             });
         }
 
-        // Gün Batımı Otomatik Karanlık Mod
         function checkAutoSunset() {
             const hour = new Date().getHours();
-            if(hour < 6 || hour >= 19) {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
+            if(hour < 6 || hour >= 19) document.documentElement.classList.add('dark');
+            else document.documentElement.classList.remove('dark');
         }
 
-        function toggleAutoSunset() {
-            document.documentElement.classList.toggle('dark');
-        }
+        function toggleAutoSunset() { document.documentElement.classList.toggle('dark'); }
 
-        // Arama ve Bağlantı İşlemleri
         async function makeCall(video = false) {
             let targetID = document.getElementById('phone-display').value.trim().replace('@','');
             if(!targetID) return alert("Kullanıcı adı girin!");
