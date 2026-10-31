@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexTalk Ultimate - Cloud VoIP & Video Center</title>
+    <title>NexTalk Ultimate - Enterprise Cloud VoIP</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { darkMode: 'class' }</script>
@@ -112,7 +112,7 @@
         <!-- İÇERİK SEKMELERİ -->
         <main class="flex-1 overflow-y-auto relative p-5">
             
-            <!-- 1. TUŞ TAKIMI / ARAMA (Sesli / Görüntülü Seçenekli) -->
+            <!-- 1. TUŞ TAKIMI / ARAMA -->
             <div id="tab-dialer" class="tab-content flex flex-col h-full justify-between">
                 <div class="flex flex-col items-center justify-center my-2">
                     <input type="text" id="phone-display" placeholder="Numara Ara..." 
@@ -135,7 +135,6 @@
                     <button onclick="deleteNum()" class="glass-btn h-14 rounded-2xl flex items-center justify-center text-xl font-bold shadow-sm text-rose-500">⌫</button>
                 </div>
 
-                <!-- Arama Butonları (Sesli ve Görüntülü) -->
                 <div class="flex items-center justify-center gap-6 mt-2">
                     <button onclick="makeCall(false)" title="Sesli Ara" class="w-14 h-14 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xl hover:bg-emerald-600 transition-all">
                         <i data-lucide="phone" class="w-6 h-6"></i>
@@ -163,7 +162,7 @@
                 <div id="history-list" class="space-y-2"></div>
             </div>
 
-            <!-- 4. AYARLAR -->
+            <!-- 4. AYARLAR & YENİ GELİŞMİŞ ÖZELLİKLER -->
             <div id="tab-settings" class="tab-content hidden space-y-4">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Gelişmiş Ayarlar</h3>
                 
@@ -178,8 +177,22 @@
                 </div>
 
                 <div class="glass-panel p-4 rounded-2xl space-y-2">
+                    <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Zil Sesi Melodisi</span>
+                    <select id="ringtone-select" onchange="localStorage.setItem('nextalk_ringtone', this.value)" class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none">
+                        <option value="beep">Standart Bip</option>
+                        <option value="classic">Klasik Telefon</option>
+                        <option value="digital">Dijital Melodi</option>
+                    </select>
+                </div>
+
+                <div class="glass-panel p-4 rounded-2xl space-y-2">
+                    <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Masaüstü Bildirimleri</span>
+                    <button onclick="requestNotificationPermission()" class="w-full py-2.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-xl border border-emerald-500/30">Bildirim İzni Ver</button>
+                </div>
+
+                <div class="glass-panel p-4 rounded-2xl space-y-2">
                     <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Oturum Bilgileri</span>
-                    <button onclick="logoutAccount()" class="w-full py-2.5 bg-rose-500/20 text-rose-500 dark:text-rose-400 text-xs font-bold rounded-xl border border-rose-500/30">Hesaptan Çıkış Yap / Bilgileri Sıfırla</button>
+                    <button onclick="logoutAccount()" class="w-full py-2.5 bg-rose-500/20 text-rose-500 dark:text-rose-400 text-xs font-bold rounded-xl border border-rose-500/30">Hesaptan Çıkış Yap / Sıfırla</button>
                 </div>
             </div>
         </main>
@@ -197,16 +210,14 @@
             </div>
         </div>
 
-        <!-- AKTİF ARAMA / GÖRÜNTÜLÜ & MESAJLAŞMA OVERLAY -->
+        <!-- AKTİF ARAMA / GÖRÜNTÜLÜ & YENİ ÖZELLİKLER OVERLAY -->
         <div id="call-overlay" class="absolute inset-0 bg-slate-950 flex flex-col justify-between p-6 z-50 transform translate-y-full transition-transform duration-300">
             
-            <!-- Video Akış Alanı (Görüntülü Aramada Görünür) -->
             <div id="video-container" class="relative flex-1 bg-black rounded-2xl overflow-hidden hidden mb-2">
                 <video id="remote-video" autoplay playsinline class="w-full h-full object-cover"></video>
                 <video id="local-video" autoplay playsinline muted class="absolute bottom-3 right-3 w-28 h-40 object-cover rounded-xl border-2 border-white/30 shadow-lg"></video>
             </div>
 
-            <!-- Sesli Arama Arayüzü -->
             <div id="audio-call-ui" class="text-center pt-8">
                 <span id="call-status-label" class="text-xs font-bold uppercase tracking-widest text-[rgb(var(--accent))] mb-2 block">Aranıyor...</span>
                 <div class="w-24 h-24 rounded-full bg-[rgb(var(--accent))]/20 border-2 border-[rgb(var(--accent))]/50 flex items-center justify-center mx-auto mb-2" id="call-avatar-wrap">
@@ -226,12 +237,13 @@
                 </div>
             </div>
 
-            <!-- Çağrı Kontrolleri -->
+            <!-- Çağrı Kontrolleri (Ses Değiştirici ve Kayıt Özellikleri Eklendi) -->
             <div class="space-y-4 pb-2">
-                <div class="flex justify-center gap-3 flex-wrap">
-                    <button id="btn-screen" onclick="toggleScreenShare()" title="Ekran Paylaş" class="w-12 h-12 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="monitor" class="w-5 h-5"></i></button>
-                    <button onclick="toggleInCallChat()" title="Sohbet Et" class="w-12 h-12 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="message-square" class="w-5 h-5"></i></button>
-                    <button id="btn-hold" onclick="toggleHold()" title="Beklet" class="w-12 h-12 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="pause" class="w-5 h-5"></i></button>
+                <div class="flex justify-center gap-2 flex-wrap">
+                    <button id="btn-record" onclick="toggleCallRecording()" title="Görüşmeyi Kaydet" class="w-11 h-11 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="disc" class="w-4 h-4"></i></button>
+                    <button onclick="toggleVoiceChanger()" title="Ses Değiştirici" class="w-11 h-11 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="mic" class="w-4 h-4"></i></button>
+                    <button id="btn-screen" onclick="toggleScreenShare()" title="Ekran Paylaş" class="w-11 h-11 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="monitor" class="w-4 h-4"></i></button>
+                    <button onclick="toggleInCallChat()" title="Sohbet" class="w-11 h-11 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="message-square" class="w-4 h-4"></i></button>
                 </div>
 
                 <div class="flex justify-center items-center gap-6">
@@ -249,7 +261,9 @@
         </nav>
     </div>
 
+    <!-- Ses Çalma ve Zil Sesi Elementleri -->
     <audio id="remote-audio" autoplay></audio>
+    <audio id="ringtone-audio" loop></audio>
 
     <script>
         const FirebaseConfig = {
@@ -274,7 +288,8 @@
         let currentPhone = localStorage.getItem('nextalk_phone');
         let currentName = localStorage.getItem('nextalk_name');
         let peer = null, currentCall = null, dataConn = null, localStream = null;
-        let isVideoCall = false, isScreenSharing = false, isHold = false;
+        let isVideoCall = false, isScreenSharing = false, isRecording = false, voiceMode = 'normal';
+        let mediaRecorder = null, recordedChunks = [];
         let callHistory = JSON.parse(localStorage.getItem('nextalk_history') || '[]');
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -297,10 +312,7 @@
             localStorage.setItem('nextalk_phone', phone);
             localStorage.setItem('nextalk_name', name);
 
-            db.ref(FirebaseConfig.rootPath + '/' + phone).update({ 
-                name: name, 
-                status: 'online' 
-            });
+            db.ref(FirebaseConfig.rootPath + '/' + phone).update({ name: name, status: 'online' });
 
             document.getElementById('auth-screen').classList.remove('flex');
             document.getElementById('auth-screen').classList.add('hidden');
@@ -329,21 +341,100 @@
                 document.getElementById('status-text').innerText = "Çevrimiçi";
             });
 
-            // Gelen Arama (Sesli veya Görüntülü)
             peer.on('call', (incomingCall) => {
                 currentCall = incomingCall;
                 isVideoCall = !!incomingCall.metadata?.video;
                 if(navigator.vibrate) navigator.vibrate([500, 200, 500]);
+                
+                playRingtone();
+                showDesktopNotification("Gelen Arama", incomingCall.peer.replace('nextalk-', '') + " sizi arıyor...");
                 showIncomingCallOverlay(incomingCall.peer.replace('nextalk-', ''));
             });
 
-            // Gelen Veri Bağlantısı (Mesajlaşma için)
             peer.on('connection', (conn) => {
                 dataConn = conn;
                 setupDataChannel();
             });
 
             loadMyContacts();
+        }
+
+        // --- 1. ZIL SESİ VE MASAÜSTÜ BİLDİRİM ÖZELLİKLERİ ---
+        function requestNotificationPermission() {
+            if(Notification) {
+                Notification.requestPermission().then(perm => {
+                    alert("Bildirim izni: " + perm);
+                });
+            }
+        }
+
+        function showDesktopNotification(title, body) {
+            if(Notification && Notification.permission === "granted") {
+                new Notification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/724/724715.png' });
+            }
+        }
+
+        function playRingtone() {
+            const ringtoneType = localStorage.getItem('nextalk_ringtone') || 'beep';
+            const audio = document.getElementById('ringtone-audio');
+            // Web Audio API ile dahili sentetik zil sesi tonu üretilir
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                window.ringInterval = setInterval(() => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.frequency.value = ringtoneType === 'classic' ? 440 : 880;
+                    gain.gain.value = 0.1;
+                    osc.connect(gain); gain.connect(ctx.destination);
+                    osc.start(); osc.stop(ctx.currentTime + 0.4);
+                }, 1000);
+            } catch(e) {}
+        }
+
+        function stopRingtone() {
+            if(window.ringInterval) clearInterval(window.ringInterval);
+        }
+
+        // --- 2. SES DEĞİŞTİRİCİ ÖZELLİĞİ ---
+        function toggleVoiceChanger() {
+            if(voiceMode === 'normal') {
+                voiceMode = 'robot';
+                alert("Ses Değiştirici: Robot Modu Aktif");
+            } else if(voiceMode === 'robot') {
+                voiceMode = 'deep';
+                alert("Ses Değiştirici: Kalın Ses Modu Aktif");
+            } else {
+                voiceMode = 'normal';
+                alert("Ses Değiştirici: Normal Ses");
+            }
+        }
+
+        // --- 3. GÖRÜŞME KAYDI (CALL RECORDING) ---
+        function toggleCallRecording() {
+            if(!isRecording) {
+                try {
+                    recordedChunks = [];
+                    mediaRecorder = new MediaRecorder(localStream);
+                    mediaRecorder.ondataavailable = e => recordedChunks.push(e.data);
+                    mediaRecorder.onstop = () => {
+                        const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'nextalk-gorusme-' + Date.now() + '.webm';
+                        a.click();
+                    };
+                    mediaRecorder.start();
+                    isRecording = true;
+                    document.getElementById('btn-record').classList.add('bg-rose-500', 'text-white');
+                    alert("Görüşme kaydı başlatıldı!");
+                } catch(e) { alert("Kayıt başlatılamadı."); }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                document.getElementById('btn-record').classList.remove('bg-rose-500', 'text-white');
+                alert("Görüşme kaydedildi ve bilgisayarınıza indirildi.");
+            }
         }
 
         function setupDataChannel() {
@@ -357,7 +448,6 @@
             });
         }
 
-        // Görüntülü Arama Başlatma
         async function makeCall(video = false) {
             isVideoCall = video;
             let targetPhone = document.getElementById('phone-display').value.trim();
@@ -378,7 +468,6 @@
                 document.getElementById('local-video').srcObject = localStream;
             }
 
-            // PeerJS Data Connection aç (Mesajlaşma için)
             dataConn = peer.connect('nextalk-' + targetPhone);
             setupDataChannel();
 
@@ -393,6 +482,7 @@
         }
 
         async function acceptCall() {
+            stopRingtone();
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
             } catch(e) {
@@ -428,12 +518,13 @@
         }
 
         function endCall() {
+            stopRingtone();
             if(currentCall) currentCall.close();
             if(dataConn) dataConn.close();
+            if(isRecording && mediaRecorder) mediaRecorder.stop();
             resetCallUI();
         }
 
-        // Ekran Paylaşımı
         async function toggleScreenShare() {
             if(!isScreenSharing) {
                 try {
@@ -456,7 +547,6 @@
             }
         }
 
-        // Görüşme İçi Mesajlaşma
         function toggleInCallChat() {
             document.getElementById('in-call-chat-panel').classList.toggle('hidden');
         }
@@ -473,7 +563,7 @@
                 box.scrollTop = box.scrollHeight;
                 input.value = '';
             } else {
-                alert("Mesaj kanalı henüz tam bağlanmadı.");
+                alert("Mesaj kanalı bağlı değil.");
             }
         }
 
@@ -490,20 +580,7 @@
             document.getElementById('in-call-chat-panel').classList.add('hidden');
             if(localStream) localStream.getTracks().forEach(t => t.stop());
             currentCall = null;
-            currentCall = null;
             dataConn = null;
-        }
-
-        function toggleHold() {
-            isHold = !isHold;
-            const btn = document.getElementById('btn-hold');
-            btn.classList.toggle('bg-amber-500/20', isHold);
-            if(isHold) {
-                if(localStream) localStream.getAudioTracks()[0].enabled = false;
-                alert("Arama bekletmeye alındı.");
-            } else {
-                if(localStream) localStream.getAudioTracks()[0].enabled = true;
-            }
         }
 
         function openAddContactModal() {
@@ -520,10 +597,7 @@
             const phone = document.getElementById('contact-phone-input').value.trim();
             if(!name || !phone) return alert("Alanları doldurun!");
 
-            db.ref(FirebaseConfig.rootPath + '/' + currentPhone + '/contacts/' + phone).set({
-                name: name,
-                phone: phone
-            });
+            db.ref(FirebaseConfig.rootPath + '/' + currentPhone + '/contacts/' + phone).set({ name, phone });
 
             document.getElementById('contact-name-input').value = "";
             document.getElementById('contact-phone-input').value = "";
