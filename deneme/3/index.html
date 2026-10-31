@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexTalk Enterprise - Cloud VoIP Phone</title>
+    <title>NexTalk Enterprise - High Contrast Cloud VoIP</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { darkMode: 'class' }</script>
@@ -15,44 +15,73 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; transition: background-color 0.3s ease, color 0.3s ease; }
+        
         body.theme-indigo { --accent: 99, 102, 241; --accent-hex: #6366f1; }
         body.theme-emerald { --accent: 16, 185, 129; --accent-hex: #10b981; }
         body.theme-amber { --accent: 245, 158, 11; --accent-hex: #f59e0b; }
         body.theme-rose { --accent: 244, 63, 94; --accent-hex: #f43f5e; }
 
-        .dark body { background-color: #0b0f19; background-image: radial-gradient(at 0% 0%, rgba(var(--accent), 0.15) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.15) 0px, transparent 50%); }
-        body { background-color: #f1f5f9; background-image: radial-gradient(at 0% 0%, rgba(var(--accent), 0.08) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.08) 0px, transparent 50%); }
-        .dark .glass-panel { background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
-        .glass-panel { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px); border: 1px solid rgba(0, 0, 0, 0.08); }
-        .dark .glass-btn { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); color: #f8fafc; }
-        .dark .glass-btn:hover { background: rgba(255, 255, 255, 0.08); }
-        .glass-btn { background: rgba(0, 0, 0, 0.03); border: 1px solid rgba(0, 0, 0, 0.06); color: #0f172a; transition: all 0.2s ease; }
-        .glass-btn:hover { background: rgba(0, 0, 0, 0.06); transform: translateY(-2px); }
-        .pulse-ring { position: relative; }
-        .pulse-ring::before { content: ''; position: absolute; left: -12px; top: -12px; right: -12px; bottom: -12px; border: 2px solid var(--accent-hex); border-radius: 50%; animation: pulse-out 1.5s infinite cubic-bezier(0.215, 0.61, 0.355, 1); }
-        @keyframes pulse-out { 0% { transform: scale(0.95); opacity: 1; } 100% { transform: scale(1.35); opacity: 0; } }
+        .dark body { background-color: #0f172a; }
+        body { background-color: #f8fafc; }
+
+        /* Yüksek Kontrastlı Panel ve Tuş Tasarımları */
+        .dark .glass-panel { 
+            background: #1e293b; 
+            border: 1px solid #334155; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .glass-panel { 
+            background: #ffffff; 
+            border: 1px solid #cbd5e1; 
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark .glass-btn { 
+            background: #334155; 
+            border: 1px solid #475569; 
+            color: #ffffff; 
+        }
+        .dark .glass-btn:hover { 
+            background: #475569; 
+            border-color: #64748b; 
+            transform: translateY(-2px);
+        }
+
+        .glass-btn { 
+            background: #e2e8f0; 
+            border: 1px solid #cbd5e1; 
+            color: #0f172a; 
+            transition: all 0.2s ease; 
+        }
+        .glass-btn:hover { 
+            background: #cbd5e1; 
+            transform: translateY(-2px); 
+        }
+
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: rgba(150, 150, 150, 0.2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: rgba(150, 150, 150, 0.4); border-radius: 3px; }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 theme-indigo">
 
-    <!-- İLK GİRİŞ EKRANI (SADECE İLK KEZ GÖSTERİLİR) -->
-    <div id="auth-screen" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl hidden items-center justify-center p-4 z-50">
-        <div class="glass-panel w-full max-w-sm p-6 rounded-3xl space-y-4 shadow-2xl">
+    <!-- İLK GİRİŞ EKRANI -->
+    <div id="auth-screen" class="fixed inset-0 bg-slate-950/95 backdrop-blur-xl hidden items-center justify-center p-4 z-50">
+        <div class="glass-panel w-full max-w-sm p-6 rounded-3xl space-y-4">
             <div class="text-center">
-                <div class="w-12 h-12 rounded-2xl bg-[rgb(var(--accent))]/20 text-[rgb(var(--accent))] flex items-center justify-center mx-auto mb-2"><i data-lucide="phone-call" class="w-6 h-6"></i></div>
-                <h2 class="text-xl font-bold text-slate-800 dark:text-white">NexTalk Enterprise</h2>
-                <p class="text-xs text-slate-400">İlk kez kayıt olun, bir daha bilgi sorulmayacak</p>
+                <div class="w-12 h-12 rounded-2xl bg-[rgb(var(--accent))]/20 text-[rgb(var(--accent))] flex items-center justify-center mx-auto mb-2 border border-[rgb(var(--accent))]/40">
+                    <i data-lucide="phone-call" class="w-6 h-6"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-900 dark:text-white">NexTalk Enterprise</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-300 font-medium">Kayıt bilgileri yerel hafızaya saklanacaktır.</p>
             </div>
             <div class="space-y-3">
-                <input type="text" id="auth-phone" placeholder="Telefon Numarası (Örn: 5551234567)" class="w-full bg-slate-100 dark:bg-slate-900 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm font-mono text-slate-800 dark:text-white focus:outline-none">
-                <input type="text" id="auth-name" placeholder="Adınız Soyadınız" class="w-full bg-slate-100 dark:bg-slate-900 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-800 dark:text-white focus:outline-none">
+                <input type="text" id="auth-phone" placeholder="Telefon Numarası (Örn: 5551234567)" class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-3 text-sm font-mono font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent))]">
+                <input type="text" id="auth-name" placeholder="Adınız Soyadınız" class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-3 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent))]">
             </div>
             <div class="pt-2">
-                <button onclick="registerAccount()" class="w-full bg-[rgb(var(--accent))] text-white py-3 rounded-xl text-sm font-semibold shadow-lg flex items-center justify-center gap-2">
+                <button onclick="registerAccount()" class="w-full bg-[rgb(var(--accent))] text-white py-3 rounded-xl text-sm font-bold shadow-lg flex items-center justify-center gap-2 hover:opacity-90">
                     <i data-lucide="check-circle" class="w-4 h-4"></i> Kaydı Tamamla & Başla
                 </button>
             </div>
@@ -60,24 +89,24 @@
     </div>
 
     <!-- ANA UYGULAMA KONTEYNERİ -->
-    <div class="glass-panel w-full max-w-md rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[850px] relative">
+    <div class="glass-panel w-full max-w-md rounded-3xl overflow-hidden flex flex-col h-[850px] relative">
         
         <!-- ÜST BAR -->
-        <header class="p-4 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-white/40 dark:bg-slate-900/40">
+        <header class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-100 dark:bg-slate-800">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-[rgb(var(--accent))]/20 border border-[rgb(var(--accent))]/30 flex items-center justify-center text-[rgb(var(--accent))]">
+                <div class="w-10 h-10 rounded-xl bg-[rgb(var(--accent))]/20 border border-[rgb(var(--accent))]/40 flex items-center justify-center text-[rgb(var(--accent))]">
                     <i data-lucide="phone-call" class="w-5 h-5"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-base tracking-wide text-slate-800 dark:text-white" id="user-display-name">NexTalk</h1>
+                    <h1 class="font-bold text-base tracking-wide text-slate-900 dark:text-white" id="user-display-name">NexTalk</h1>
                     <div class="flex items-center gap-2">
-                        <span id="status-dot" class="w-2 h-2 rounded-full bg-amber-500"></span>
-                        <span id="status-text" class="text-xs text-slate-500 dark:text-slate-400 font-medium">Bağlanıyor...</span>
+                        <span id="status-dot" class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                        <span id="status-text" class="text-xs text-slate-600 dark:text-slate-300 font-semibold">Bağlanıyor...</span>
                     </div>
                 </div>
             </div>
             <div class="flex items-center gap-2">
-                <button onclick="switchTab('settings')" class="p-2.5 rounded-xl glass-btn text-slate-500 dark:text-slate-300"><i data-lucide="settings" class="w-4 h-4"></i></button>
+                <button onclick="switchTab('settings')" class="p-2.5 rounded-xl glass-btn text-slate-700 dark:text-slate-200"><i data-lucide="settings" class="w-5 h-5"></i></button>
             </div>
         </header>
 
@@ -88,58 +117,59 @@
             <div id="tab-dialer" class="tab-content flex flex-col h-full justify-between">
                 <div class="flex flex-col items-center justify-center my-2">
                     <input type="text" id="phone-display" placeholder="Numara Ara..." 
-                        class="bg-transparent text-center text-2xl font-mono font-bold tracking-wide text-[rgb(var(--accent))] placeholder:text-slate-400 focus:outline-none w-full">
-                    <span class="text-[11px] text-slate-400 mt-1">Tuşlayarak arama yapın</span>
+                        class="bg-transparent text-center text-3xl font-mono font-extrabold tracking-wider text-[rgb(var(--accent))] placeholder:text-slate-400 focus:outline-none w-full">
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">Aramak için numara tuşlayın</span>
                 </div>
 
-                <div class="grid grid-cols-3 gap-2.5 my-auto">
-                    <button onclick="appendNum('1')" class="glass-btn h-12 rounded-2xl flex items-center justify-center text-lg font-semibold">1</button>
-                    <button onclick="appendNum('2')" class="glass-btn h-12 rounded-2xl flex flex-col items-center justify-center"><span class="text-lg font-semibold">2</span><span class="text-[8px] text-slate-400">ABC</span></button>
-                    <button onclick="appendNum('3')" class="glass-btn h-12 rounded-2xl flex flex-col items-center justify-center"><span class="text-lg font-semibold">3</span><span class="text-[8px] text-slate-400">DEF</span></button>
-                    <button onclick="appendNum('4')" class="glass-btn h-12 rounded-2xl flex flex-col items-center justify-center"><span class="text-lg font-semibold">4</span><span class="text-[8px] text-slate-400">GHI</span></button>
-                    <button onclick="appendNum('5')" class="glass-btn h-12 rounded-2xl flex flex-col items-center justify-center"><span class="text-lg font-semibold">5</span><span class="text-[8px] text-slate-400">JKL</span></button>
-                    <button onclick="appendNum('6')" class="glass-btn h-12 rounded-2xl flex flex-col items-center justify-center"><span class="text-lg font-semibold">6</span><span class="text-[8px] text-slate-400">MNO</span></button>
-                    <button onclick="appendNum('7')" class="glass-btn h-12 rounded-2xl flex flex-col items-center justify-center"><span class="text-lg font-semibold">7</span><span class="text-[8px] text-slate-400">PQRS</span></button>
-                    <button onclick="appendNum('8')" class="glass-btn h-12 rounded-2xl flex flex-col items-center justify-center"><span class="text-lg font-semibold">8</span><span class="text-[8px] text-slate-400">TUV</span></button>
-                    <button onclick="appendNum('9')" class="glass-btn h-12 rounded-2xl flex flex-col items-center justify-center"><span class="text-lg font-semibold">9</span><span class="text-[8px] text-slate-400">WXYZ</span></button>
-                    <button onclick="appendNum('*')" class="glass-btn h-12 rounded-2xl flex items-center justify-center text-lg font-bold text-slate-400">*</button>
-                    <button onclick="appendNum('0')" class="glass-btn h-12 rounded-2xl flex items-center justify-center text-lg font-semibold">0</button>
-                    <button onclick="deleteNum()" class="glass-btn h-12 rounded-2xl flex items-center justify-center text-lg font-bold text-slate-400">⌫</button>
+                <!-- Yüksek Kontrastlı Canlı Tuşlar -->
+                <div class="grid grid-cols-3 gap-3 my-auto">
+                    <button onclick="appendNum('1')" class="glass-btn h-14 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-sm">1</button>
+                    <button onclick="appendNum('2')" class="glass-btn h-14 rounded-2xl flex flex-col items-center justify-center shadow-sm"><span class="text-xl font-bold leading-none">2</span><span class="text-[10px] font-bold text-slate-400 dark:text-slate-300 mt-1">ABC</span></button>
+                    <button onclick="appendNum('3')" class="glass-btn h-14 rounded-2xl flex flex-col items-center justify-center shadow-sm"><span class="text-xl font-bold leading-none">3</span><span class="text-[10px] font-bold text-slate-400 dark:text-slate-300 mt-1">DEF</span></button>
+                    <button onclick="appendNum('4')" class="glass-btn h-14 rounded-2xl flex flex-col items-center justify-center shadow-sm"><span class="text-xl font-bold leading-none">4</span><span class="text-[10px] font-bold text-slate-400 dark:text-slate-300 mt-1">GHI</span></button>
+                    <button onclick="appendNum('5')" class="glass-btn h-14 rounded-2xl flex flex-col items-center justify-center shadow-sm"><span class="text-xl font-bold leading-none">5</span><span class="text-[10px] font-bold text-slate-400 dark:text-slate-300 mt-1">JKL</span></button>
+                    <button onclick="appendNum('6')" class="glass-btn h-14 rounded-2xl flex flex-col items-center justify-center shadow-sm"><span class="text-xl font-bold leading-none">6</span><span class="text-[10px] font-bold text-slate-400 dark:text-slate-300 mt-1">MNO</span></button>
+                    <button onclick="appendNum('7')" class="glass-btn h-14 rounded-2xl flex flex-col items-center justify-center shadow-sm"><span class="text-xl font-bold leading-none">7</span><span class="text-[10px] font-bold text-slate-400 dark:text-slate-300 mt-1">PQRS</span></button>
+                    <button onclick="appendNum('8')" class="glass-btn h-14 rounded-2xl flex flex-col items-center justify-center shadow-sm"><span class="text-xl font-bold leading-none">8</span><span class="text-[8px] font-bold text-slate-400 dark:text-slate-300 mt-1">TUV</span></button>
+                    <button onclick="appendNum('9')" class="glass-btn h-14 rounded-2xl flex flex-col items-center justify-center shadow-sm"><span class="text-xl font-bold leading-none">9</span><span class="text-[10px] font-bold text-slate-400 dark:text-slate-300 mt-1">WXYZ</span></button>
+                    <button onclick="appendNum('*')" class="glass-btn h-14 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-sm text-slate-400 dark:text-slate-300">*</button>
+                    <button onclick="appendNum('0')" class="glass-btn h-14 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-sm">0</button>
+                    <button onclick="deleteNum()" class="glass-btn h-14 rounded-2xl flex items-center justify-center text-xl font-bold shadow-sm text-rose-500">⌫</button>
                 </div>
 
                 <div class="flex items-center justify-center gap-4 mt-2">
-                    <button onclick="makeCall(false)" class="w-16 h-16 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                        <i data-lucide="phone" class="w-7 h-7"></i>
+                    <button onclick="makeCall()" class="w-16 h-16 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xl hover:bg-emerald-600 transition-all">
+                        <i data-lucide="phone" class="w-8 h-8"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- 2. KİŞİSEL REHBER VE ÇEVRİMİÇİ KULLANICILAR -->
+            <!-- 2. REHBER VE ÇEVRİMİÇİ KULLANICILAR -->
             <div id="tab-contacts" class="tab-content hidden space-y-4">
                 <div class="flex justify-between items-center">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Özel Rehberim</h3>
-                    <button onclick="openAddContactModal()" class="text-xs bg-[rgb(var(--accent))]/10 text-[rgb(var(--accent))] border border-[rgb(var(--accent))]/30 px-3 py-1.5 rounded-xl font-semibold flex items-center gap-1">
-                        <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Kişi Ekle
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Özel Rehberim</h3>
+                    <button onclick="openAddContactModal()" class="text-xs bg-[rgb(var(--accent))]/10 text-[rgb(var(--accent))] border border-[rgb(var(--accent))]/40 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i> Kişi Ekle
                     </button>
                 </div>
                 <div id="my-contacts-list" class="space-y-2"></div>
 
-                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 pt-4">Ağdaki Çevrimiçi Kullanıcılar</h3>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 pt-4">Ağdaki Çevrimiçi Kullanıcılar</h3>
                 <div id="online-users-list" class="space-y-2"></div>
             </div>
 
             <!-- 3. GEÇMİŞ -->
             <div id="tab-history" class="tab-content hidden space-y-3">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Arama Geçmişi</h3>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Arama Geçmişi</h3>
                 <div id="history-list" class="space-y-2"></div>
             </div>
 
             <!-- 4. AYARLAR -->
             <div id="tab-settings" class="tab-content hidden space-y-4">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Gelişmiş Ayarlar</h3>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Gelişmiş Ayarlar</h3>
                 
                 <div class="glass-panel p-4 rounded-2xl space-y-2">
-                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Tema Rengi</span>
+                    <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Tema Rengi</span>
                     <div class="grid grid-cols-4 gap-2">
                         <button onclick="setThemeColor('indigo')" class="h-9 rounded-xl bg-indigo-500 text-white text-xs font-bold">İndigo</button>
                         <button onclick="setThemeColor('emerald')" class="h-9 rounded-xl bg-emerald-500 text-white text-xs font-bold">Yeşil</button>
@@ -149,30 +179,30 @@
                 </div>
 
                 <div class="glass-panel p-4 rounded-2xl space-y-2">
-                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Oturum Bilgileri</span>
-                    <button onclick="logoutAccount()" class="w-full py-2 bg-rose-500/20 text-rose-500 text-xs font-semibold rounded-xl border border-rose-500/30">Hesaptan Çıkış Yap / Bilgileri Sıfırla</button>
+                    <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Oturum Bilgileri</span>
+                    <button onclick="logoutAccount()" class="w-full py-2.5 bg-rose-500/20 text-rose-500 dark:text-rose-400 text-xs font-bold rounded-xl border border-rose-500/30">Hesaptan Çıkış Yap / Bilgileri Sıfırla</button>
                 </div>
             </div>
         </main>
 
         <!-- KİŞİ EKLEME MODALI -->
-        <div id="contact-modal" class="absolute inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-6 z-50">
-            <div class="glass-panel w-full p-6 rounded-3xl space-y-4 shadow-2xl">
-                <h3 class="font-bold text-slate-800 dark:text-white text-base">Rehbere Kişi Ekle</h3>
-                <input type="text" id="contact-name-input" placeholder="Kişinin Adı Soyadı" class="w-full bg-slate-100 dark:bg-slate-900 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none">
-                <input type="text" id="contact-phone-input" placeholder="Telefon Numarası" class="w-full bg-slate-100 dark:bg-slate-900 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2 text-sm font-mono text-slate-800 dark:text-white focus:outline-none">
+        <div id="contact-modal" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center p-6 z-50">
+            <div class="glass-panel w-full p-6 rounded-3xl space-y-4">
+                <h3 class="font-bold text-slate-900 dark:text-white text-base">Rehbere Kişi Ekle</h3>
+                <input type="text" id="contact-name-input" placeholder="Kişinin Adı Soyadı" class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none">
+                <input type="text" id="contact-phone-input" placeholder="Telefon Numarası" class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-mono text-slate-900 dark:text-white focus:outline-none">
                 <div class="flex gap-3 pt-2">
-                    <button onclick="closeAddContactModal()" class="flex-1 glass-btn py-2.5 rounded-xl text-sm font-semibold">İptal</button>
-                    <button onclick="saveContactToCloud()" class="flex-1 bg-[rgb(var(--accent))] text-white py-2.5 rounded-xl text-sm font-semibold">Kaydet</button>
+                    <button onclick="closeAddContactModal()" class="flex-1 glass-btn py-2.5 rounded-xl text-sm font-bold">İptal</button>
+                    <button onclick="saveContactToCloud()" class="flex-1 bg-[rgb(var(--accent))] text-white py-2.5 rounded-xl text-sm font-bold">Kaydet</button>
                 </div>
             </div>
         </div>
 
-        <!-- AKTİF ARAMA VE GELEN ÇAĞRI OVERLAY -->
-        <div id="call-overlay" class="absolute inset-0 bg-slate-900/98 dark:bg-slate-950/98 backdrop-blur-2xl flex flex-col justify-between p-6 z-50 transform translate-y-full transition-transform duration-300">
+        <!-- AKTİF ARAMA OVERLAY -->
+        <div id="call-overlay" class="absolute inset-0 bg-slate-950 flex flex-col justify-between p-6 z-50 transform translate-y-full transition-transform duration-300">
             <div class="text-center pt-8">
-                <span id="call-status-label" class="text-xs font-semibold uppercase tracking-widest text-[rgb(var(--accent))] mb-2 block">Aranıyor...</span>
-                <div class="w-24 h-24 rounded-full bg-[rgb(var(--accent))]/20 border-2 border-[rgb(var(--accent))]/40 flex items-center justify-center mx-auto mb-2 relative" id="call-avatar-wrap">
+                <span id="call-status-label" class="text-xs font-bold uppercase tracking-widest text-[rgb(var(--accent))] mb-2 block">Aranıyor...</span>
+                <div class="w-24 h-24 rounded-full bg-[rgb(var(--accent))]/20 border-2 border-[rgb(var(--accent))]/50 flex items-center justify-center mx-auto mb-2" id="call-avatar-wrap">
                     <i data-lucide="user" class="w-10 h-10 text-[rgb(var(--accent))]"></i>
                 </div>
                 <h2 id="call-remote-id" class="text-xl font-bold text-white tracking-wide">Numara: ----</h2>
@@ -181,7 +211,7 @@
 
             <div class="space-y-4 pb-4">
                 <div class="flex justify-center gap-3 flex-wrap">
-                    <button id="btn-hold" onclick="toggleHold()" title="Beklet / Müzik Çal" class="w-12 h-12 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="pause" class="w-5 h-5"></i></button>
+                    <button id="btn-hold" onclick="toggleHold()" title="Beklet" class="w-12 h-12 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="pause" class="w-5 h-5"></i></button>
                     <button onclick="promptTransfer()" title="3 Yönlü Konferans" class="w-12 h-12 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="users" class="w-5 h-5"></i></button>
                     <button onclick="recordVoicemail()" title="Sesli Mesaj" class="w-12 h-12 rounded-2xl glass-btn text-white flex items-center justify-center"><i data-lucide="mic" class="w-5 h-5"></i></button>
                 </div>
@@ -194,19 +224,16 @@
         </div>
 
         <!-- ALT MENÜ -->
-        <nav class="border-t border-black/5 dark:border-white/5 bg-white/60 dark:bg-slate-900/60 p-3 grid grid-cols-3 gap-2">
-            <button onclick="switchTab('dialer')" id="nav-dialer" class="flex flex-col items-center py-2 rounded-xl text-[rgb(var(--accent))] bg-[rgb(var(--accent))]/10"><i data-lucide="grid" class="w-5 h-5 mb-1"></i><span class="text-[10px] font-semibold">Tuşlar</span></button>
-            <button onclick="switchTab('contacts')" id="nav-contacts" class="flex flex-col items-center py-2 rounded-xl text-slate-400 hover:text-white"><i data-lucide="users" class="w-5 h-5 mb-1"></i><span class="text-[10px] font-semibold">Rehber</span></button>
-            <button onclick="switchTab('history')" id="nav-history" class="flex flex-col items-center py-2 rounded-xl text-slate-400 hover:text-white"><i data-lucide="clock" class="w-5 h-5 mb-1"></i><span class="text-[10px] font-semibold">Geçmiş</span></button>
+        <nav class="border-t border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 p-3 grid grid-cols-3 gap-2">
+            <button onclick="switchTab('dialer')" id="nav-dialer" class="flex flex-col items-center py-2 rounded-xl text-[rgb(var(--accent))] bg-[rgb(var(--accent))]/10 font-bold"><i data-lucide="grid" class="w-5 h-5 mb-1"></i><span class="text-[10px]">Tuşlar</span></button>
+            <button onclick="switchTab('contacts')" id="nav-contacts" class="flex flex-col items-center py-2 rounded-xl text-slate-600 dark:text-slate-300 font-bold"><i data-lucide="users" class="w-5 h-5 mb-1"></i><span class="text-[10px]">Rehber</span></button>
+            <button onclick="switchTab('history')" id="nav-history" class="flex flex-col items-center py-2 rounded-xl text-slate-600 dark:text-slate-300 font-bold"><i data-lucide="clock" class="w-5 h-5 mb-1"></i><span class="text-[10px]">Geçmiş</span></button>
         </nav>
     </div>
 
     <audio id="remote-audio" autoplay></audio>
 
     <script>
-        // =========================================================================
-        // 🛠️ MERKEZİ FIREBASE CONFIG VE KÖK BAŞLIK YAPILANDIRMASI
-        // =========================================================================
         const FirebaseConfig = {
             config: {
                 apiKey: "AIzaSyBSnLEGFgEas1fc-5oHQ8K_tM_Hlz_Maw8",
@@ -218,7 +245,7 @@
                 appId: "1:559947698789:web:5f64226d43d0b4233e6c8c",
                 measurementId: "G-3CT3SC5BR6"
             },
-            rootPath: "phones" // Veritabanı kök başlığı
+            rootPath: "phones"
         };
 
         firebase.initializeApp(FirebaseConfig.config);
@@ -229,10 +256,9 @@
         let currentPhone = localStorage.getItem('nextalk_phone');
         let currentName = localStorage.getItem('nextalk_name');
         let peer = null, currentCall = null, localStream = null;
-        let isHold = false, holdInterval = null;
+        let isHold = false;
         let callHistory = JSON.parse(localStorage.getItem('nextalk_history') || '[]');
 
-        // Sayfa Yüklenme Kontrolü (LocalStorage'da kayıt var mı?)
         window.addEventListener('DOMContentLoaded', () => {
             if(!currentPhone || !currentName) {
                 document.getElementById('auth-screen').classList.remove('hidden');
@@ -242,7 +268,6 @@
             }
         });
 
-        // İlk Kayıt İşlemi (Local + Firebase)
         function registerAccount() {
             const phone = document.getElementById('auth-phone').value.trim();
             const name = document.getElementById('auth-name').value.trim();
@@ -251,11 +276,9 @@
             currentPhone = phone;
             currentName = name;
 
-            // LocalStorage'a kaydet (bir daha sormasın)
             localStorage.setItem('nextalk_phone', phone);
             localStorage.setItem('nextalk_name', name);
 
-            // Firebase'e hesap kaydı oluştur
             db.ref(FirebaseConfig.rootPath + '/' + phone).update({ 
                 name: name, 
                 status: 'online' 
@@ -278,15 +301,13 @@
         function initApp() {
             document.getElementById('user-display-name').innerText = currentName + " (" + currentPhone + ")";
 
-            // Firebase'de çevrimiçi yap ve çıkışta offline yap
             db.ref(FirebaseConfig.rootPath + '/' + currentPhone).update({ status: 'online' });
             db.ref(FirebaseConfig.rootPath + '/' + currentPhone).onDisconnect().update({ status: 'offline' });
 
-            // PeerJS Bağlantısı
             peer = new Peer('nextalk-' + currentPhone, { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
             
             peer.on('open', () => {
-                document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+                document.getElementById('status-dot').className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
                 document.getElementById('status-text').innerText = "Çevrimiçi";
             });
 
@@ -300,9 +321,6 @@
             loadOnlineUsers();
         }
 
-        // =========================================================================
-        // KİŞİSEL REHBER YÖNETİMİ (KİMSE KİMKİNKİNİ GÖREMEZ)
-        // =========================================================================
         function openAddContactModal() {
             document.getElementById('contact-modal').classList.remove('hidden');
             document.getElementById('contact-modal').classList.add('flex');
@@ -317,7 +335,6 @@
             const phone = document.getElementById('contact-phone-input').value.trim();
             if(!name || !phone) return alert("Alanları doldurun!");
 
-            // Sadece bu kullanıcının hesabının altına kaydedilir
             db.ref(FirebaseConfig.rootPath + '/' + currentPhone + '/contacts/' + phone).set({
                 name: name,
                 phone: phone
@@ -334,7 +351,7 @@
                 const container = document.getElementById('my-contacts-list');
                 container.innerHTML = "";
                 if(!contacts) {
-                    container.innerHTML = `<p class="text-xs text-slate-400">Rehberiniz boş.</p>`;
+                    container.innerHTML = `<p class="text-xs text-slate-400 font-medium">Rehberiniz boş.</p>`;
                     return;
                 }
                 for(let phone in contacts) {
@@ -342,8 +359,8 @@
                     container.innerHTML += `
                         <div class="glass-btn p-3 rounded-2xl flex justify-between items-center">
                             <div>
-                                <h4 class="text-sm font-semibold">${c.name}</h4>
-                                <p class="text-xs text-slate-400 font-mono">${c.phone}</p>
+                                <h4 class="text-sm font-bold text-slate-900 dark:text-white">${c.name}</h4>
+                                <p class="text-xs text-slate-500 dark:text-slate-300 font-mono font-semibold">${c.phone}</p>
                             </div>
                             <button onclick="quickCall('${c.phone}')" class="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl"><i data-lucide="phone" class="w-4 h-4"></i></button>
                         </div>
@@ -353,7 +370,6 @@
             });
         }
 
-        // Çevrimiçi Kullanıcılar Listesi
         function loadOnlineUsers() {
             db.ref(FirebaseConfig.rootPath).on('value', snapshot => {
                 const users = snapshot.val();
@@ -367,8 +383,8 @@
                             <div class="flex items-center gap-2">
                                 <span class="w-2.5 h-2.5 rounded-full ${u.status === 'online' ? 'bg-emerald-500' : 'bg-slate-500'}"></span>
                                 <div>
-                                    <h4 class="text-sm font-semibold">${u.name}</h4>
-                                    <p class="text-xs text-slate-400 font-mono">${phone}</p>
+                                    <h4 class="text-sm font-bold text-slate-900 dark:text-white">${u.name}</h4>
+                                    <p class="text-xs text-slate-500 dark:text-slate-300 font-mono font-semibold">${phone}</p>
                                 </div>
                             </div>
                             <button onclick="quickCall('${phone}')" class="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl"><i data-lucide="phone" class="w-4 h-4"></i></button>
@@ -379,7 +395,6 @@
             });
         }
 
-        // Arama ve Diğer Fonksiyonlar
         async function makeCall() {
             let targetPhone = document.getElementById('phone-display').value.trim();
             if(!targetPhone) return alert("Numara girin!");
@@ -464,7 +479,7 @@
         function renderHistory() {
             document.getElementById('history-list').innerHTML = callHistory.map(h => `
                 <div class="glass-btn p-3 rounded-2xl flex justify-between items-center text-xs">
-                    <div><b>${h.phone}</b> • ${h.type}</div><span>${h.time}</span>
+                    <div><b class="text-slate-900 dark:text-white">${h.phone}</b> • ${h.type}</div><span>${h.time}</span>
                 </div>
             `).join('');
         }
