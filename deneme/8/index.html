@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Telsiz</title>
+  <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #6a11cb, #a4508b);
+      color: #fff;
+      padding: 15px;
+      box-sizing: border-box;
+    }
+
+    h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      text-align: center;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    button {
+      margin: 6px;
+      padding: 12px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.25s;
+      font-weight: 600;
+      width: 100%;
+      max-width: 200px;
+    }
+    #joinBtn { background: #7d5fff; color: white; }
+    #leaveBtn { background: #e74c3c; color: white; }
+    #talkBtn { background: #9d4edd; color: white; font-weight: bold; }
+    button:hover { transform: scale(1.05); opacity: 0.9; }
+
+    /* Telsiz kareleri */
+    .telsiz-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 40px;
+      margin-top: 40px;
+      flex-wrap: wrap;
+    }
+
+    .telsiz {
+      width: 100px;
+      height: 100px;
+      background: #b5179e;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.25);
+      transition: 0.3s;
+      position: relative;
+    }
+
+    .telsiz.active {
+      background: #e0aaff;
+    }
+
+    .label {
+      position: absolute;
+      bottom: -28px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-weight: bold;
+      color: white;
+      font-size: 14px;
+    }
+
+    /* Mobil uyum */
+    @media (max-width: 600px) {
+      h2 { font-size: 20px; }
+      .telsiz-container { gap: 25px; margin-top: 25px; }
+      .telsiz {
+        width: 80px;
+        height: 80px;
+      }
+      .label { font-size: 12px; bottom: -22px; }
+    }
+  </style>
+</head>
+<body>
+  <h2>📡 Fatma Hanımmm Telsiz Odası</h2>
+  <div style="display:flex; flex-direction:column; align-items:center; width:100%; max-width:220px;">
+    <button id="joinBtn" onclick="joinChannel()">Bağlan</button>
+    <button id="leaveBtn" onclick="leaveChannel()">Ayrıl</button>
+    <button id="talkBtn" onmousedown="startTalking()" onmouseup="stopTalking()" 
+            ontouchstart="startTalking()" ontouchend="stopTalking()" disabled>
+      🎙️ Bas Konuş
+    </button>
+  </div>
+
+  <div class="telsiz-container" id="telsizArea" style="display:none;">
+    <div class="telsiz" id="me"><div class="label">Ben</div></div>
+    <div class="telsiz" id="other"><div class="label">Karşı</div></div>
+  </div>
+
+  <script>
+    const APP_ID = "3a9c361155c0462e9fa540cf3ba6bb3a"; 
+    const CHANNEL_NAME = "reyhan";
+    const TOKEN = null;
+    let client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+    let localTrack;
+    let joined = false;
+
+    async function joinChannel() {
+      if (joined) {
+        alert("Zaten kanaldasın!");
+        return;
+      }
+      const UID = String(Math.floor(Math.random() * 10000));
+      await client.join(APP_ID, CHANNEL_NAME, TOKEN, UID);
+
+      client.on("user-published", async (user, mediaType) => {
+        await client.subscribe(user, mediaType);
+        if (mediaType === "audio") {
+          user.audioTrack.play();
+          document.getElementById("other").classList.add("active");
+        }
+      });
+
+      client.on("user-unpublished", () => {
+        document.getElementById("other").classList.remove("active");
+      });
+
+      localTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      joined = true;
+      alert("Fatma odasına bağlandın!");
+
+      document.getElementById("talkBtn").disabled = false;
+      document.getElementById("telsizArea").style.display = "flex";
+    }
+
+    async function leaveChannel() {
+      if (!joined) return;
+      stopTalking();
+      await client.leave();
+      joined = false;
+      document.getElementById("talkBtn").disabled = true;
+      document.getElementById("telsizArea").style.display = "none";
+      alert("Kanaldan ayrıldın!");
+    }
+
+    async function startTalking() {
+      if (localTrack && joined) {
+        await client.publish(localTrack);
+        document.getElementById("me").classList.add("active");
+      }
+    }
+
+    async function stopTalking() {
+      if (localTrack && joined) {
+        await client.unpublish(localTrack);
+        document.getElementById("me").classList.remove("active");
+      }
+    }
+  </script>
+</body>
+</html>
