@@ -781,9 +781,9 @@
 
                 <select id="limit-select" class="select-field">
                     <option value="50">50 Sonuç</option>
-                    <option value="100" selected>100 Sonuç</option>
+                    <option value="100">100 Sonuç</option>
                     <option value="200">200 Sonuç</option>
-                    <option value="500">Tüm Liste (500)</option>
+                    <option value="1000" selected>Tüm Liste (Tümü)</option>
                 </select>
 
                 <button class="btn btn-primary" id="search-btn">
@@ -968,7 +968,9 @@
                         const opt = document.createElement('option');
                         opt.value = c.name;
                         opt.textContent = `${c.name} (${c.stationcount})`;
-                        if (c.name.toLowerCase() === 'turkey') opt.selected = true;
+                        if (c.name.toLowerCase() === 'turkey') {
+                            opt.selected = true;
+                        }
                         countrySelect.appendChild(opt);
                     }
                 });
@@ -1211,7 +1213,6 @@
             playerFavBtn.style.color = isFav ? 'var(--danger-color)' : '';
         }
 
-        // Previous / Next Channel Navigation
         function changeChannel(direction) {
             let list = getActiveList();
             if (!list || list.length === 0) return;
@@ -1232,7 +1233,6 @@
         prevBtn.addEventListener('click', () => changeChannel(-1));
         nextBtn.addEventListener('click', () => changeChannel(1));
 
-        // Shuffle / Random Channel
         shuffleBtn.addEventListener('click', () => {
             let list = getActiveList();
             if (!list || list.length === 0) return;
