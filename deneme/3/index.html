@@ -1663,4 +1663,466 @@
           btn.className = "pb-2 px-3 text-xs sm:text-sm font-semibold text-brand-500 border-b-2 border-brand-500 whitespace-nowrap flex items-center gap-1.5";
         } else {
           icerik.classList.add("hidden");
-          btn.className = "pb-2 px-3 text
+          btn.className = "pb-2 px-3 text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-200 whitespace-nowrap flex items-center gap-1.5";
+        }
+      });
+    }
+
+    function capitalize(s) {
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+
+    function kategoriEkle(e) {
+      e.preventDefault();
+      const input = document.getElementById("yeniKategoriAdi");
+      const yeniKat = input.value.trim();
+
+      if (!yeniKat) return;
+      if (tumKategoriler.includes(yeniKat)) {
+        ozelOnayGoster("Uyarı", "Bu kategori zaten mevcut!", () => {}, true);
+        return;
+      }
+
+      tumKategoriler.push(yeniKat);
+      input.value = "";
+      tumVerileriKaydet();
+      yoneticiKategoriListesiniCiz();
+      formKategoriSecenekleriniDoldur();
+    }
+
+    function kategoriSil(katAdi) {
+      const kayitliKanalVarMi = tumKanallar.some(k => k.kategori === katAdi);
+      if (kayitliKanalVarMi) {
+        ozelOnayGoster("Silme Engellendi", `"${katAdi}" kategorisine ait kayıtlı kanallar bulunduğu için silinemez!`, () => {}, true);
+        return;
+      }
+
+      ozelOnayGoster("Kategori Sil", `"${katAdi}" kategorisini silmek istediğinize emin misiniz?`, (onay) => {
+        if (onay) {
+          tumKategoriler = tumKategoriler.filter(k => k !== katAdi);
+          tumVerileriKaydet();
+          yoneticiKategoriListesiniCiz();
+          formKategoriSecenekleriniDoldur();
+        }
+      });
+    }
+
+    function yoneticiKategoriListesiniCiz() {
+      const kapsayici = document.getElementById("yoneticiKategoriListesi");
+      kapsayici.innerHTML = tumKategoriler.map((kat, indis) => `
+        <div class="flex items-center justify-between p-2 bg-slate-900 border border-slate-800 rounded-lg text-xs">
+          <span class="font-bold text-slate-200 flex items-center gap-2">${kategoriSifreleri[kategoriAnahtari(kat)] ? '🔒' : '📁'} ${kat}</span>
+          <div class="flex items-center gap-2">
+          <button type="button" onclick="kategoriSifresiAyarla('${kat.replace(/'/g, "\\'")}')" class="text-amber-400 hover:text-amber-300 p-1" title="Kategori şifresi ayarla/kaldır">
+            <i data-lucide="${kategoriSifreleri[kategoriAnahtari(kat)] ? 'lock' : 'key-round'}" class="w-3.5 h-3.5"></i>
+          </button>
+          <button type="button" onclick="kategoriSil('${kat.replace(/'/g, "\\'")}')" class="text-red-400 hover:text-red-300 p-1">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+          </div>
+        </div>
+      `).join("");
+      lucide.createIcons();
+    }
+
+    function formKategoriSecenekleriniDoldur() {
+      const select = document.getElementById("formKanalKategori");
+      select.innerHTML = tumKategoriler.map(kat => `<option value="${kat}">${kat}</option>`).join("");
+    }
+
+    let yayinTestHls = null;
+    let yayinTestZamanlayici = null;
+    let aktifTestUrl = "";
+
+    async function formYayinTestEt(tip) {
+      const inputId = tip === 'ana' ? 'formKanalYayinUrl' : 'formKanalYedekYayinUrl';
+      const sonucId = tip === 'ana' ? 'anaYayinTestSonuc' : 'yedekYayinTestSonuc';
+      const url = document.getElementById(inputId).value.trim();
+      const sonucEl = document.getElementById(sonucId);
+
+      if (!url) {
+        sonucEl.textContent = "Lütfen önce test edilecek bir yayın linki girin!";
+        sonucEl.className = "text-[11px] mt-1 text-amber-400 block";
+        return;
+      }
+      if (!/^https?:\/\//i.test(url)) {
+        sonucEl.textContent = "Geçerli bir http/https yayın adresi girin.";
+        sonucEl.className = "text-[11px] mt-1 text-red-400 block";
+        return;
+      }
+
+      sonucEl.textContent = "Yayın oynatıcıda test ediliyor...";
+      sonucEl.className = "text-[11px] mt-1 text-slate-400 block";
+      yayinTestBaslat(url, tip === 'ana' ? 'Ana yayın' : 'Yedek yayın', sonucEl);
+    }
+
+    function yayinTestDurumGuncelle(mesaj, basarili = false, hata = false) {
+      const durum = document.getElementById('yayinTestDurum');
+      const ikon = document.getElementById('yayinTestDurumIkon');
+      const yukleme = document.getElementById('yayinTestYukleme');
+      durum.textContent = mesaj;
+      ikon.innerHTML = basarili
+        ? '<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>'
+        : hata ? '<i data-lucide="alert-circle" class="w-4 h-4 text-red-400"></i>'
+        : '<i data-lucide="loader-circle" class="w-4 h-4 animate-spin text-amber-400"></i>';
+      if (basarili || hata) yukleme.classList.add('hidden');
+      else yukleme.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function yayinTestBaslat(url, baslik, sonucEl) {
+      yayinTestKapat(false);
+      aktifTestUrl = url;
+      const modal = document.getElementById('yayinTestModali');
+      const video = document.getElementById('yayinTestVideo');
+      document.getElementById('yayinTestBaslik').textContent = baslik + ' • ' + url;
+      modal.classList.remove('hidden');
+      testVideoModunaDon();
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+      yayinTestDurumGuncelle('Yayın bağlantısı kuruluyor...');
+
+      let tamamlandi = false;
+      const basarili = () => {
+        if (tamamlandi) return;
+        tamamlandi = true;
+        yayinTestDurumGuncelle('Yayın başarıyla açıldı. İzleyebilirsiniz.', true);
+        sonucEl.textContent = '✓ Yayın oynatıcıda başarıyla açıldı.';
+        sonucEl.className = 'text-[11px] mt-1 text-emerald-400 font-semibold block';
+      };
+      const hatali = (mesaj) => {
+        if (tamamlandi) return;
+        tamamlandi = true;
+        yayinTestDurumGuncelle('Video oynatılamadı, Web Viewer ile açılıyor...', false, true);
+        sonucEl.textContent = '⚠ Video oynatılamadı, Web Viewer üzerinden açıldı.';
+        sonucEl.className = 'text-[11px] mt-1 text-cyan-400 font-semibold block';
+        setTimeout(() => { testWebViewerIleAc(); }, 1200);
+      };
+
+      video.addEventListener('playing', basarili, { once: true });
+      video.addEventListener('error', () => hatali(), { once: true });
+      yayinTestZamanlayici = setTimeout(() => {
+        if (!tamamlandi) hatali();
+      }, 15000);
+
+      if (Hls.isSupported()) {
+        yayinTestHls = new Hls({ enableWorker: true, lowLatencyMode: true });
+        yayinTestHls.loadSource(url);
+        yayinTestHls.attachMedia(video);
+        yayinTestHls.on(Hls.Events.MANIFEST_PARSED, () => {
+          video.play().catch(() => {});
+        });
+        yayinTestHls.on(Hls.Events.ERROR, (event, data) => {
+          if (data.fatal) hatali();
+        });
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = url;
+        video.play().catch(() => hatali());
+      } else {
+        hatali();
+      }
+    }
+
+    function testWebViewerIleAc() {
+      if (!aktifTestUrl) return;
+      const webViewKapsayici = document.getElementById('yayinTestWebViewKapsayici');
+      const testFrame = document.getElementById('yayinTestFrame');
+      const yukleme = document.getElementById('yayinTestYukleme');
+      const video = document.getElementById('yayinTestVideo');
+
+      video.pause();
+      if (yayinTestHls) {
+        yayinTestHls.destroy();
+        yayinTestHls = null;
+      }
+
+      testFrame.src = aktifTestUrl;
+      webViewKapsayici.classList.remove('hidden');
+      yukleme.classList.add('hidden');
+      yayinTestDurumGuncelle('Web Viewer (İframe) üzerinden açıldı.', true);
+    }
+
+    function testVideoModunaDon() {
+      const webViewKapsayici = document.getElementById('yayinTestWebViewKapsayici');
+      const testFrame = document.getElementById('yayinTestFrame');
+      webViewKapsayici.classList.add('hidden');
+      testFrame.src = '';
+    }
+
+    function yayinTestKapat(kapatSonuc = true) {
+      if (yayinTestZamanlayici) { clearTimeout(yayinTestZamanlayici); yayinTestZamanlayici = null; }
+      if (yayinTestHls) { yayinTestHls.destroy(); yayinTestHls = null; }
+      const video = document.getElementById('yayinTestVideo');
+      if (video) { video.pause(); video.removeAttribute('src'); video.load(); }
+      testVideoModunaDon();
+      const modal = document.getElementById('yayinTestModali');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function kanalKaydet(e) {
+      e.preventDefault();
+      const düzenleId = document.getElementById("düzenlenecekKanalId").value;
+      const ad = document.getElementById("formKanalAd").value.trim();
+      const kategori = document.getElementById("formKanalKategori").value;
+      const yayinUrl = document.getElementById("formKanalYayinUrl").value.trim();
+      const yedekYayinUrl = document.getElementById("formKanalYedekYayinUrl").value.trim();
+      const logoUrl = document.getElementById("formKanalLogoUrl").value.trim();
+
+      if (düzenleId) {
+        const indis = tumKanallar.findIndex(k => k.id === düzenleId);
+        if (indis !== -1) {
+          tumKanallar[indis] = { id: düzenleId, ad, kategori, yayinUrl, yedekYayinUrl, logoUrl };
+        }
+      } else {
+        const yeniKanal = {
+          id: "kanal_" + Date.now(),
+          ad, kategori, yayinUrl, yedekYayinUrl, logoUrl
+        };
+        tumKanallar.push(yeniKanal);
+      }
+
+      tumVerileriKaydet();
+      formuTemizle();
+      yoneticiKanalListesiniCiz();
+    }
+
+    function kanalDuzenle(id) {
+      const kanal = tumKanallar.find(k => k.id === id);
+      if (!kanal) return;
+
+      document.getElementById("düzenlenecekKanalId").value = kanal.id;
+      document.getElementById("formKanalAd").value = kanal.ad;
+      document.getElementById("formKanalKategori").value = kanal.kategori || tumKategoriler[0];
+      document.getElementById("formKanalYayinUrl").value = kanal.yayinUrl;
+      document.getElementById("formKanalYedekYayinUrl").value = kanal.yedekYayinUrl || "";
+      document.getElementById("formKanalLogoUrl").value = kanal.logoUrl || "";
+      document.getElementById("formBasligi").textContent = "Kanalı Düzenle";
+      
+      document.getElementById("anaYayinTestSonuc").className = "hidden";
+      document.getElementById("yedekYayinTestSonuc").className = "hidden";
+    }
+
+    function kanalSil(id) {
+      ozelOnayGoster("Kanalı Sil", "Bu kanalı silmek istediğinize emin misiniz?", (onay) => {
+        if (onay) {
+          tumKanallar = tumKanallar.filter(k => k.id !== id);
+          tumVerileriKaydet();
+          yoneticiKanalListesiniCiz();
+        }
+      });
+    }
+
+    function formuTemizle() {
+      document.getElementById("kanalFormu").reset();
+      document.getElementById("düzenlenecekKanalId").value = "";
+      document.getElementById("formBasligi").textContent = "Yeni Kanal Ekle";
+      document.getElementById("anaYayinTestSonuc").className = "hidden";
+      document.getElementById("yedekYayinTestSonuc").className = "hidden";
+    }
+
+    function yoneticiKanalListesiniCiz() {
+      const liste = document.getElementById("yoneticiKanalListesi");
+      const arama = (document.getElementById("yoneticiKanalAramaGirdisi")?.value || "").toLowerCase();
+
+      const filtrelenmis = tumKanallar.filter(k => k.ad.toLowerCase().includes(arama));
+
+      liste.innerHTML = filtrelenmis.map((k, indis) => {
+        const durum = kanalBaglantiDurumlari[k.id];
+        let durumEtiketi = '';
+        if (durum === 'ok') durumEtiketi = '<span class="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded">Çalışıyor</span>';
+        else if (durum === 'error') durumEtiketi = '<span class="text-[9px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">Hata</span>';
+
+        return `
+        <div class="flex items-center justify-between p-2 bg-slate-900 border border-slate-800 rounded-lg text-xs">
+          <div class="flex items-center gap-2 truncate">
+            <span class="font-bold text-slate-400 w-5">${indis + 1}.</span>
+            <span class="font-bold text-slate-200 truncate">${k.ad}</span>
+            <span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">${k.kategori || 'Genel'}</span>
+            ${durumEtiketi}
+          </div>
+          <div class="flex items-center gap-1">
+            <button type="button" onclick="kanalDuzenle('${k.id}')" class="p-1 hover:bg-slate-800 text-slate-300 hover:text-white rounded" title="Düzenle">
+              <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+            </button>
+            <button type="button" onclick="kanalSil('${k.id}')" class="p-1 hover:bg-slate-800 text-red-400 hover:text-red-300 rounded" title="Sil">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+      `}).join("");
+      lucide.createIcons();
+    }
+
+    function kanallarImzasi() {
+      return tumKanallar.map(k => `${k.id}|${k.yayinUrl}|${k.yedekYayinUrl || ""}`).join("||");
+    }
+
+    async function tumBaglantilariTara(bildirimGoster = false) {
+      if (taramaDevamEdiyor) return;
+      taramaDevamEdiyor = true;
+      if (bildirimGoster) ozelOnayGoster("Tarama Başlatıldı", "Kanal bağlantıları yeniden kontrol ediliyor.", () => {}, true);
+      try {
+        for (const k of tumKanallar) {
+          try {
+            await fetch(k.yayinUrl, { method: 'HEAD', mode: 'no-cors', cache: 'no-store' });
+            kanalBaglantiDurumlari[k.id] = 'ok';
+          } catch (e) {
+            kanalBaglantiDurumlari[k.id] = 'error';
+          }
+          localStorage.setItem("canli_tv_tarama_sonuclari", JSON.stringify(kanalBaglantiDurumlari));
+        }
+        localStorage.setItem("canli_tv_tarama_imzasi", kanallarImzasi());
+      } finally {
+        taramaDevamEdiyor = false;
+        kanallariCiz();
+        if (yoneticiGirisYapildi) yoneticiKanalListesiniCiz();
+      }
+    }
+
+    function m3uIceAktar() {
+      const metin = document.getElementById("m3uMetinAlani").value;
+      if (!metin.trim()) return;
+
+      const satirlar = metin.split("\n");
+      let eklenenSayisi = 0;
+      let geciciKanal = {};
+
+      satirlar.forEach(satir => {
+        satir = satir.trim();
+        if (satir.startsWith("#EXTINF:")) {
+          const adEslestirme = satir.match(/,(.+)$/);
+          const logoEslestirme = satir.match(/tvg-logo="([^"]+)"/);
+          const katEslestirme = satir.match(/group-title="([^"]+)"/);
+
+          geciciKanal.ad = adEslestirme ? adEslestirme[1].trim() : "İsimsiz Kanal";
+          geciciKanal.logoUrl = logoEslestirme ? logoEslestirme[1] : "";
+          geciciKanal.kategori = katEslestirme ? katEslestirme[1] : "Diğer";
+        } else if (satir.startsWith("http")) {
+          geciciKanal.yayinUrl = satir;
+          geciciKanal.id = "m3u_" + Date.now() + "_" + Math.floor(Math.random()*1000);
+          
+          if (!tumKategoriler.includes(geciciKanal.kategori)) {
+            tumKategoriler.push(geciciKanal.kategori);
+          }
+
+          tumKanallar.push({...geciciKanal});
+          eklenenSayisi++;
+          geciciKanal = {};
+        }
+      });
+
+      tumVerileriKaydet();
+      document.getElementById("m3uMetinAlani").value = "";
+      ozelOnayGoster("Başarılı", `${eklenenSayisi} adet kanal eklendi!`, () => {}, true);
+    }
+
+    async function firebaseKanallariniM3uIndir() {
+      try {
+        const snapshot = await veritabani.ref(`${FIREBASE_ROOT_PATH}/kanallar`).once("value");
+        const kayit = snapshot.val();
+        const kanallar = Array.isArray(kayit) ? kayit : (kayit ? Object.values(kayit) : tumKanallar);
+        const gecerliKanallar = kanallar.filter(k => k && k.ad && k.yayinUrl);
+        if (!gecerliKanallar.length) {
+          ozelOnayGoster("Kanal bulunamadı", "Firebase üzerinde dışa aktarılabilecek kayıtlı kanal bulunamadı.", () => {}, true);
+          return;
+        }
+        const temizle = deger => String(deger || "").replace(/[\r\n]/g, " ").replace(/"/g, "&quot;");
+        const satirlar = ["#EXTM3U"];
+        gecerliKanallar.forEach(kanal => {
+          const logo = kanal.logoUrl ? ` tvg-logo="${temizle(kanal.logoUrl)}"` : "";
+          const grup = temizle(kanal.kategori || "Diğer");
+          satirlar.push(`#EXTINF:-1${logo} group-title="${grup}",${temizle(kanal.ad)}`);
+          satirlar.push(String(kanal.yayinUrl).trim());
+        });
+        const dosya = new Blob(["\uFEFF" + satirlar.join("\r\n") + "\r\n"], { type: "audio/x-mpegurl;charset=utf-8" });
+        const url = URL.createObjectURL(dosya);
+        const baglanti = document.createElement("a");
+        baglanti.href = url;
+        baglanti.download = `canli_tv_kanallar_${new Date().toISOString().slice(0,10)}.m3u`;
+        document.body.appendChild(baglanti);
+        baglanti.click();
+        baglanti.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+        ozelOnayGoster("M3U hazır", `${gecerliKanallar.length} kayıtlı kanal M3U dosyası olarak indirildi.`, () => {}, true);
+      } catch (hata) {
+        console.error("M3U dışa aktarma hatası:", hata);
+        ozelOnayGoster("İndirme başarısız", "Firebase kanal listesi okunamadı.", () => {}, true);
+      }
+    }
+
+    function verileriDisaAktar() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ surum: 1, yedekTarihi: new Date().toISOString(), kanallar: tumKanallar, kategoriler: tumKategoriler, kategoriSifreleri, yoneticiSifresi }, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `canli_tv_yedek_${Date.now()}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function yedektenGeriYukle() {
+      const input = document.getElementById("yedekDosyaInput");
+      input.value = "";
+      input.click();
+    }
+
+    async function yedekDosyasiniOku(event) {
+      const dosya = event.target.files && event.target.files[0];
+      if (!dosya) return;
+      try {
+        const yedek = JSON.parse(await dosya.text());
+        if (!yedek || !Array.isArray(yedek.kanallar) || !Array.isArray(yedek.kategoriler)) {
+          throw new Error("Yedek dosyasında kanallar veya kategoriler bulunamadı.");
+        }
+        ozelOnayGoster("Yedeği Geri Yükle", `${yedek.kanallar.length} kanal ve ${yedek.kategoriler.length} kategori mevcut verilerin üzerine yüklenecek. Devam edilsin mi?`, async onay => {
+          if (!onay) return;
+          try {
+            await veritabani.ref(FIREBASE_ROOT_PATH).update({
+              kanallar: yedek.kanallar,
+              kategoriler: yedek.kategoriler,
+              ...(yedek.kategoriSifreleri ? { kategoriSifreleri: yedek.kategoriSifreleri } : {}),
+              ...(yedek.yoneticiSifresi ? { yoneticiSifresi: yedek.yoneticiSifresi } : {})
+            });
+            tumKanallar = yedek.kanallar;
+            tumKategoriler = yedek.kategoriler;
+            if (yedek.kategoriSifreleri) kategoriSifreleri = yedek.kategoriSifreleri;
+            if (yedek.yoneticiSifresi) yoneticiSifresi = yedek.yoneticiSifresi;
+            localStorage.removeItem("canli_tv_tarama_imzasi");
+            ekranGuncelle();
+            ozelOnayGoster("Başarılı", "Veritabanı yedekten geri yüklendi.", () => {}, true);
+          } catch (hata) {
+            ozelOnayGoster("Geri yükleme hatası", hata.message || "Firebase kaydı yapılamadı.", () => {}, true);
+          }
+        });
+      } catch (hata) {
+        ozelOnayGoster("Geçersiz yedek", hata.message || "JSON dosyası okunamadı.", () => {}, true);
+      }
+      event.target.value = "";
+    }
+
+    function sifreGuncelle(e) {
+      e.preventDefault();
+      const mevcut = document.getElementById("mevcutSifreGirdisi").value;
+      const yeni = document.getElementById("yeniSifreGirdisi").value;
+      const yeniTekrar = document.getElementById("yeniSifreTekrarGirdisi").value;
+
+      if (mevcut !== yoneticiSifresi) {
+        ozelOnayGoster("Hata", "Mevcut şifre yanlış!", () => {}, true);
+        return;
+      }
+      if (yeni !== yeniTekrar) {
+        ozelOnayGoster("Hata", "Yeni şifreler eşleşmiyor!", () => {}, true);
+        return;
+      }
+
+      yoneticiSifresi = yeni;
+      veritabani.ref(`${FIREBASE_ROOT_PATH}/yoneticiSifresi`).set(yeni);
+      ozelOnayGoster("Başarılı", "Şifre güncellendi!", () => {}, true);
+      document.getElementById("mevcutSifreGirdisi").value = "";
+      document.getElementById("yeniSifreGirdisi").value = "";
+      document.getElementById("yeniSifreTekrarGirdisi").value = "";
+    }
+  </script>
+</body>
+</html>
