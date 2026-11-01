@@ -2080,7 +2080,7 @@
             </div>
         </div>
     </div>
-    <audio id="recording-preview-audio" preload="metadata"></audio>
+    <audio id="recording-preview-audio" preload="auto" playsinline webkit-playsinline></audio>
 
     <!-- HTML5 ses oynatma öğesi -->
     <audio id="audio-engine" crossorigin="anonymous" preload="none" playsinline></audio>
@@ -2480,7 +2480,12 @@
             }
             if (activeRecordingObjectUrl) URL.revokeObjectURL(activeRecordingObjectUrl);
             activeRecordingObjectUrl = URL.createObjectURL(rec.blob);
+            preview.pause();
+            preview.removeAttribute('src');
             preview.src = activeRecordingObjectUrl;
+            preview.preload = 'auto';
+            preview.playsInline = true;
+            preview.load();
             try { await preview.play(); currentlyPlayingRecordingId = id; renderRecordings(); showToast(`${rec.name} kaydı çalınıyor.`, 'success'); }
             catch (err) { currentlyPlayingRecordingId = null; showToast('Kayıt bu cihazda oynatılamadı.', 'error'); }
         };
@@ -2996,12 +3001,19 @@
                         return;
                     }
 
-                    // iOS Safari'de captureStream yerine Web Audio MediaStreamDestination kullan.
-                    if (!recordingDestination) initAudioContext();
-                    let stream = recordingDestination && recordingDestination.stream;
-                    if (!stream) {
-                        const capture = audioEngine.captureStream || audioEngine.mozCaptureStream;
-                        if (capture) stream = capture.call(audioEngine);
+                    // Önce oynatıcının gerçek ses çıkışını yakala. Bu yol, CORS izinleri
+                    // nedeniyle Web Audio grafiği sessiz kalan bazı yayınlarda daha uygundur.
+                    let stream = null;
+                    const capture = audioEngine.captureStream || audioEngine.mozCaptureStream;
+                    if (capture) {
+                        try { stream = capture.call(audioEngine); } catch (captureError) {
+                            console.warn('Doğrudan ses akışı yakalanamadı; Web Audio yedeği denenecek:', captureError);
+                        }
+                    }
+                    // captureStream bulunmuyorsa Safari/iPadOS için Web Audio yedeği.
+                    if (!stream || !stream.getAudioTracks || !stream.getAudioTracks().length) {
+                        if (!recordingDestination) initAudioContext();
+                        stream = recordingDestination && recordingDestination.stream;
                     }
                     if (!stream || !stream.getAudioTracks || !stream.getAudioTracks().length) {
                         showToast('Bu yayın tarayıcı tarafından kayda aktarılamıyor. Farklı bir radyo yayını deneyin.', 'error', 5500);
