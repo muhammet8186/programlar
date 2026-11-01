@@ -134,13 +134,12 @@
       header { flex: 0 0 64px; height: 64px; }
       header > div {
         display: grid !important;
-        grid-template-columns: minmax(190px, 1fr) minmax(260px, 560px) minmax(320px, 1fr) !important;
+        grid-template-columns: minmax(190px, 1fr) auto !important;
         width: 100% !important;
         max-width: none !important;
       }
       header > div > :first-child { justify-self: start; }
-      header > div > :nth-child(2) { justify-self: center; width: 100%; }
-      header > div > :nth-child(3) { justify-self: end; }
+      header > div > :nth-child(2) { justify-self: end; }
       #anaIcerikKapsayici {
         height: calc(100vh - 64px) !important;
         min-height: 0 !important;
@@ -253,18 +252,6 @@
         </div>
       </div>
 
-      <!-- Arama Kutusu -->
-      <div class="w-full max-w-2xl justify-self-center relative hidden sm:block">
-        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-        <input 
-          type="text" 
-          id="aramaGirdisi" 
-          placeholder="Kanal veya kategori ara..." 
-          oninput="kanalAramaYap(this.value)"
-          class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 transition-colors"
-        >
-      </div>
-
       <!-- Sağ Araç Barı -->
       <div class="flex items-center gap-3">
         
@@ -298,20 +285,6 @@
 
     </div>
   </header>
-
-  <!-- Mobil Arama Alanı -->
-  <div class="p-3 bg-slate-900 border-b border-slate-800 sm:hidden">
-    <div class="relative">
-      <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-      <input 
-        type="text" 
-        id="mobilAramaGirdisi" 
-        placeholder="Kanal veya kategori ara..." 
-        oninput="kanalAramaYap(this.value)"
-        class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500"
-      />
-    </div>
-  </div>
 
   <!-- Ana İçerik -->
   <main id="anaIcerikKapsayici" class="flex-1 w-full max-w-none mx-0 p-0 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(380px,30vw)] gap-0 items-stretch transition-all duration-300">
@@ -425,6 +398,17 @@
     <!-- Kanal Listesi: kategoriler üstte, liste sağa ve aşağıya uzanır -->
     <aside id="kanalPaneli" class="min-w-0 bg-slate-900/70 border-y border-l-0 lg:border-l border-r-0 border-slate-800 rounded-none p-3 flex flex-col lg:h-[calc(100vh-76px)] lg:sticky lg:top-[76px]">
     <div id="kategoriFiltreLisesi" class="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 mb-3 border-b border-slate-800/80"></div>
+    <div id="kanalAramaAlani" class="relative flex-shrink-0 mb-3">
+      <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+      <input
+        type="text"
+        id="aramaGirdisi"
+        placeholder="Kanal ara..."
+        oninput="kanalAramaYap(this.value)"
+        class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 transition-colors"
+        aria-label="Kanal ara"
+      >
+    </div>
     <section class="min-h-0 flex-1 flex flex-col">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
@@ -708,6 +692,9 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button type="button" onclick="verileriDisaAktar()" class="py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5">
                 <i data-lucide="download" class="w-4 h-4"></i> JSON Yedek İndir
+              </button>
+              <button type="button" onclick="firebaseKanallariniM3uIndir()" class="py-2 bg-indigo-700 hover:bg-indigo-600 text-white border border-indigo-600 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5">
+                <i data-lucide="list-video" class="w-4 h-4"></i> Kanalları M3U İndir
               </button>
               <button type="button" onclick="yedektenGeriYukle()" class="py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5">
                 <i data-lucide="upload" class="w-4 h-4"></i> Yedekten Geri Yükle
@@ -1552,7 +1539,8 @@
     function varsayilanaDon() {
       aktifKategori = "Tümü";
       aramaMetni = "";
-      document.getElementById("aramaGirdisi").value = "";
+      const aramaAlani = document.getElementById("aramaGirdisi");
+      if (aramaAlani) aramaAlani.value = "";
       ekranGuncelle();
     }
 
@@ -1972,6 +1960,41 @@
       tumVerileriKaydet();
       document.getElementById("m3uMetinAlani").value = "";
       ozelOnayGoster("Başarılı", `${eklenenSayisi} adet kanal eklendi!`, () => {}, true);
+    }
+
+    async function firebaseKanallariniM3uIndir() {
+      try {
+        // İndirme öncesi Firebase'den güncel kanal listesini al.
+        const snapshot = await veritabani.ref(`${FIREBASE_ROOT_PATH}/kanallar`).once("value");
+        const kayit = snapshot.val();
+        const kanallar = Array.isArray(kayit) ? kayit : (kayit ? Object.values(kayit) : tumKanallar);
+        const gecerliKanallar = kanallar.filter(k => k && k.ad && k.yayinUrl);
+        if (!gecerliKanallar.length) {
+          ozelOnayGoster("Kanal bulunamadı", "Firebase üzerinde dışa aktarılabilecek kayıtlı kanal bulunamadı.", () => {}, true);
+          return;
+        }
+        const temizle = deger => String(deger || "").replace(/[\r\n]/g, " ").replace(/"/g, "&quot;");
+        const satirlar = ["#EXTM3U"];
+        gecerliKanallar.forEach(kanal => {
+          const logo = kanal.logoUrl ? ` tvg-logo="${temizle(kanal.logoUrl)}"` : "";
+          const grup = temizle(kanal.kategori || "Diğer");
+          satirlar.push(`#EXTINF:-1${logo} group-title="${grup}",${temizle(kanal.ad)}`);
+          satirlar.push(String(kanal.yayinUrl).trim());
+        });
+        const dosya = new Blob(["\uFEFF" + satirlar.join("\r\n") + "\r\n"], { type: "audio/x-mpegurl;charset=utf-8" });
+        const url = URL.createObjectURL(dosya);
+        const baglanti = document.createElement("a");
+        baglanti.href = url;
+        baglanti.download = `canli_tv_kanallar_${new Date().toISOString().slice(0,10)}.m3u`;
+        document.body.appendChild(baglanti);
+        baglanti.click();
+        baglanti.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+        ozelOnayGoster("M3U hazır", `${gecerliKanallar.length} kayıtlı kanal M3U dosyası olarak indirildi.`, () => {}, true);
+      } catch (hata) {
+        console.error("M3U dışa aktarma hatası:", hata);
+        ozelOnayGoster("İndirme başarısız", "Firebase kanal listesi okunamadı. Bağlantıyı ve veritabanı izinlerini kontrol edin.", () => {}, true);
+      }
     }
 
     function verileriDisaAktar() {
