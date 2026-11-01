@@ -882,9 +882,58 @@
         #settings-modal .settings-close-x:hover { color:white; background:var(--danger-color); border-color:var(--danger-color); }
         #settings-modal .settings-modal-content { padding:20px 22px 22px; }
         #settings-modal .modal-section { min-width:0; }
+        /* Ayarlar penceresinde kaydırma yalnızca içerik alanında gerçekleşir */
+        body.settings-open { overflow:hidden !important; overscroll-behavior:none; }
+        #settings-modal {
+            position:fixed;
+            inset:0;
+            height:100dvh;
+            overflow:hidden !important;
+            overscroll-behavior:contain;
+            touch-action:pan-y;
+        }
+        #settings-modal .settings-modal-card {
+            display:flex;
+            flex-direction:column;
+            min-height:0;
+            overflow:hidden !important;
+            overscroll-behavior:contain;
+            touch-action:pan-y;
+        }
+        #settings-modal .modal-title {
+            flex:0 0 auto;
+            background:linear-gradient(115deg, color-mix(in srgb, var(--accent-primary) 24%, var(--bg-surface)), color-mix(in srgb, var(--accent-secondary) 13%, var(--bg-surface))) !important;
+            border-bottom:2px solid var(--accent-primary);
+            box-shadow:0 5px 20px rgba(0,0,0,.18);
+            font-size:20px;
+            letter-spacing:.2px;
+        }
+        #settings-modal .settings-title-text { font-weight:850; }
+        #settings-modal .settings-title-text i {
+            width:42px;
+            height:42px;
+            display:grid;
+            place-items:center;
+            flex:0 0 42px;
+            border-radius:13px;
+            color:#fff !important;
+            background:var(--accent-gradient);
+            box-shadow:0 5px 16px color-mix(in srgb, var(--accent-primary) 30%, transparent);
+        }
+        #settings-modal .settings-modal-content {
+            flex:1 1 auto;
+            min-height:0;
+            overflow-y:auto;
+            overflow-x:hidden;
+            -webkit-overflow-scrolling:touch;
+            overscroll-behavior-y:contain;
+            touch-action:pan-y;
+            scrollbar-gutter:stable;
+        }
         @media (min-width:641px) and (max-width:992px) {
             #settings-modal { padding:16px; }
-            #settings-modal .settings-modal-card { width:min(720px,100%); max-height:calc(100dvh - 32px); }
+            #settings-modal .settings-modal-card { width:min(720px,100%); height:min(820px,calc(100dvh - 32px)); max-height:calc(100dvh - 32px); }
+            #settings-modal .modal-title { padding:17px 20px; font-size:19px; }
         }
         @media (max-width:640px) {
             #settings-modal { padding:0; align-items:stretch; }
@@ -2697,8 +2746,15 @@
 
         // --- Ayarlar penceresi ve özel yayın ---
         const settingsModal = document.getElementById('settings-modal');
-        const closeSettingsModal = () => settingsModal.classList.remove('show');
-        document.getElementById('settings-btn').addEventListener('click', () => settingsModal.classList.add('show'));
+        const openSettingsModal = () => {
+            settingsModal.classList.add('show');
+            document.body.classList.add('settings-open');
+        };
+        const closeSettingsModal = () => {
+            settingsModal.classList.remove('show');
+            document.body.classList.remove('settings-open');
+        };
+        document.getElementById('settings-btn').addEventListener('click', openSettingsModal);
         document.getElementById('settings-close-x').addEventListener('click', closeSettingsModal);
         settingsModal.addEventListener('click', (event) => { if (event.target === settingsModal) closeSettingsModal(); });
         document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && settingsModal.classList.contains('show')) closeSettingsModal(); });
