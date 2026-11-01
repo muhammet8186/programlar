@@ -1568,6 +1568,67 @@
             #settings-modal .settings-modal-card { height:100dvh !important; max-height:100dvh !important; }
         }
 
+
+        /* iPadOS / Safari uyumluluğu: ayarlar penceresinde bağımsız kaydırma */
+        #settings-modal {
+            position:fixed !important;
+            inset:0 !important;
+            height:100vh !important;
+            height:100dvh !important;
+            display:flex !important;
+            align-items:center !important;
+            justify-content:center !important;
+            overflow:hidden !important;
+            padding:16px !important;
+            touch-action:pan-y !important;
+            -webkit-overflow-scrolling:touch;
+        }
+        #settings-modal .settings-modal-card {
+            display:flex !important;
+            flex-direction:column !important;
+            width:min(780px,100%) !important;
+            height:min(820px,calc(100vh - 32px)) !important;
+            height:min(820px,calc(100dvh - 32px)) !important;
+            max-height:calc(100vh - 32px) !important;
+            max-height:calc(100dvh - 32px) !important;
+            min-height:0 !important;
+            margin:auto !important;
+            padding:0 !important;
+            overflow:hidden !important;
+            touch-action:pan-y !important;
+        }
+        #settings-modal .modal-title {
+            position:relative !important;
+            flex:0 0 auto !important;
+            touch-action:pan-y !important;
+        }
+        #settings-modal .settings-modal-content {
+            display:block !important;
+            flex:1 1 0px !important;
+            height:auto !important;
+            min-height:0 !important;
+            max-height:none !important;
+            overflow-y:auto !important;
+            overflow-x:hidden !important;
+            -webkit-overflow-scrolling:touch !important;
+            overscroll-behavior-y:contain !important;
+            touch-action:pan-y !important;
+            padding-bottom:calc(24px + env(safe-area-inset-bottom)) !important;
+        }
+        @media (max-width:640px) {
+            #settings-modal { padding:0 !important; align-items:stretch !important; }
+            #settings-modal .settings-modal-card {
+                width:100% !important; height:100vh !important; height:100dvh !important;
+                max-height:100vh !important; max-height:100dvh !important;
+                margin:0 !important; border-radius:0 !important;
+            }
+        }
+        @supports (-webkit-touch-callout:none) {
+            #settings-modal .settings-modal-content {
+                overflow-y:scroll !important;
+                -webkit-overflow-scrolling:touch !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -2041,10 +2102,12 @@
             syncVisualizerToPlayerBar();
             resizeCanvas();
             drawVisualizer();
-            window.addEventListener('resize', () => {
+            const refreshVisualizerSize = () => {
                 syncVisualizerToPlayerBar();
                 resizeCanvas();
-            });
+            };
+            window.addEventListener('resize', refreshVisualizerSize, { passive:true });
+            window.addEventListener('orientationchange', () => setTimeout(refreshVisualizerSize, 250), { passive:true });
             if (window.ResizeObserver && playerBar) {
                 new ResizeObserver(() => {
                     syncVisualizerToPlayerBar();
@@ -2376,33 +2439,42 @@
 
         // --- Web Audio API ses görselleştiricisi ---
         function initAudioContext() {
-            if (!audioCtx) {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                audioCtx = new AudioContext();
-                analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 256;
+            try {
+                if (!audioCtx) {
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioContextClass) return false;
+                    audioCtx = new AudioContextClass();
+                    analyser = audioCtx.createAnalyser();
+                    analyser.fftSize = 256;
+                    analyser.smoothingTimeConstant = 0.82;
 
-                biquadFilter = audioCtx.createBiquadFilter();
-                biquadFilter.type = 'lowshelf';
-                biquadFilter.frequency.value = 250;
-                eqMidFilter = audioCtx.createBiquadFilter();
-                eqMidFilter.type = 'peaking';
-                eqMidFilter.frequency.value = 1000;
-                eqMidFilter.Q.value = 0.8;
-                eqTrebleFilter = audioCtx.createBiquadFilter();
-                eqTrebleFilter.type = 'highshelf';
-                eqTrebleFilter.frequency.value = 4000;
+                    biquadFilter = audioCtx.createBiquadFilter();
+                    biquadFilter.type = 'lowshelf';
+                    biquadFilter.frequency.value = 250;
+                    eqMidFilter = audioCtx.createBiquadFilter();
+                    eqMidFilter.type = 'peaking';
+                    eqMidFilter.frequency.value = 1000;
+                    eqMidFilter.Q.value = 0.8;
+                    eqTrebleFilter = audioCtx.createBiquadFilter();
+                    eqTrebleFilter.type = 'highshelf';
+                    eqTrebleFilter.frequency.value = 4000;
 
-                sourceNode = audioCtx.createMediaElementSource(audioEngine);
-                sourceNode.connect(biquadFilter);
-                biquadFilter.connect(eqMidFilter);
-                eqMidFilter.connect(eqTrebleFilter);
-                eqTrebleFilter.connect(analyser);
-                analyser.connect(audioCtx.destination);
-
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
+                    sourceNode = audioCtx.createMediaElementSource(audioEngine);
+                    sourceNode.connect(biquadFilter);
+                    biquadFilter.connect(eqMidFilter);
+                    eqMidFilter.connect(eqTrebleFilter);
+                    eqTrebleFilter.connect(analyser);
+                    analyser.connect(audioCtx.destination);
+                }
+                // iPadOS Safari ses bağlamını kullanıcı dokunuşunda uyandırmayı gerektirir.
+                if (audioCtx.state === 'suspended') {
+                    const resumeResult = audioCtx.resume();
+                    if (resumeResult && typeof resumeResult.catch === 'function') resumeResult.catch(() => {});
+                }
+                return true;
+            } catch (error) {
+                console.warn('Ses görselleştiricisi başlatılamadı:', error);
+                return false;
             }
         }
 
@@ -2494,15 +2566,22 @@
             const renderFrame = () => {
                 requestAnimationFrame(renderFrame);
                 let dataArray;
+                let hasAnalyserSignal = false;
                 if (analyser) {
                     dataArray = new Uint8Array(analyser.frequencyBinCount);
-                    analyser.getByteFrequencyData(dataArray);
-                } else {
-                    // Ses başlamadan önce de ana ve tam ekran ekolayzır alanları boş kalmasın.
+                    try {
+                        analyser.getByteFrequencyData(dataArray);
+                        hasAnalyserSignal = dataArray.some(value => value > 0);
+                    } catch (_) { hasAnalyserSignal = false; }
+                }
+                if (!hasAnalyserSignal) {
+                    // iPad Safari / CORS kısıtlarında spektrum verisi sıfır gelebilir; görseli canlı tut.
                     dataArray = new Uint8Array(128);
-                    const t = performance.now() / 520;
+                    const t = performance.now() / (audioEngine.paused ? 900 : 310);
                     for (let i = 0; i < dataArray.length; i++) {
-                        dataArray[i] = 7 + Math.round((Math.sin(t + i * 0.19) + 1) * 5);
+                        const wave = (Math.sin(t + i * 0.19) + 1) * 0.5;
+                        const detail = (Math.sin(t * 1.7 + i * 0.071) + 1) * 0.5;
+                        dataArray[i] = audioEngine.paused ? 5 + Math.round(wave * 8) : 12 + Math.round(wave * 48 + detail * 26);
                     }
                 }
                 paintSpectrum(canvasCtx, canvas, dataArray);
@@ -2861,16 +2940,40 @@
 
         // --- Ayarlar penceresi ve özel yayın ---
         const settingsModal = document.getElementById('settings-modal');
+        let settingsSavedScrollY = 0;
         const openSettingsModal = () => {
+            if (settingsModal.classList.contains('show')) return;
+            settingsSavedScrollY = window.scrollY || window.pageYOffset || 0;
             settingsModal.classList.add('show');
             document.documentElement.classList.add('settings-open');
             document.body.classList.add('settings-open');
+            // iPad Safari bazen yalnızca overflow:hidden ile arka sayfayı kilitlemez.
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${settingsSavedScrollY}px`;
+            document.body.style.left = '0';
+            document.body.style.right = '0';
+            document.body.style.width = '100%';
+            requestAnimationFrame(() => {
+                const content = settingsModal.querySelector('.settings-modal-content');
+                if (content) content.scrollTop = 0;
+            });
         };
         const closeSettingsModal = () => {
+            if (!settingsModal.classList.contains('show')) return;
             settingsModal.classList.remove('show');
             document.documentElement.classList.remove('settings-open');
             document.body.classList.remove('settings-open');
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.left = '';
+            document.body.style.right = '';
+            document.body.style.width = '';
+            window.scrollTo(0, settingsSavedScrollY);
         };
+        // Kaydırma hareketi içerik alanı dışındaysa arka sayfaya aktarılmasını engelle.
+        settingsModal.addEventListener('touchmove', (event) => {
+            if (!event.target.closest('.settings-modal-content')) event.preventDefault();
+        }, { passive:false });
         document.getElementById('settings-btn').addEventListener('click', openSettingsModal);
         document.getElementById('settings-close-x').addEventListener('click', closeSettingsModal);
         settingsModal.addEventListener('click', (event) => { if (event.target === settingsModal) closeSettingsModal(); });
