@@ -99,6 +99,7 @@
       #kategoriFiltreLisesi { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: thin; }
     }
     @media (max-width: 1023px) {
+      #sonIzlenenlerBolumu { scroll-margin-top: 76px; }
       #kanalPaneli { min-height: 320px; }
       #kanalIzgarasi { max-height: 55vh; }
     }
@@ -169,6 +170,24 @@
       #kanalIzgarasi { flex: 1 1 auto; min-height: 0; max-height: none !important; overflow-y: auto; }
     }
     @media (max-width: 1023px) {
+      /* Mobil/Tablet cihazlarda Header ve Oynatıcıyı Üstte Sabitleme */
+      header {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 50 !important;
+        flex: 0 0 64px !important;
+        height: 64px !important;
+      }
+
+      #anaIcerikKapsayici > div:first-child {
+        position: sticky !important;
+        top: 64px !important;
+        z-index: 40 !important;
+        background-color: #020617 !important;
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
+      }
+
       html, body { height: auto !important; min-height: 100%; overflow-x: hidden !important; overflow-y: auto !important; }
       body { min-height: 100vh; }
       #anaIcerikKapsayici {
@@ -180,12 +199,6 @@
         overflow: visible !important;
         gap: 12px !important;
         padding: 12px !important;
-      }
-      #anaIcerikKapsayici > div:first-child {
-        height: auto !important;
-        min-height: 0 !important;
-        overflow: visible !important;
-        padding: 0 !important;
       }
       #oynaticiKapsayici { height: auto !important; min-height: 0 !important; flex: none !important; }
       #videoKutusu { height: auto !important; min-height: 0 !important; aspect-ratio: 16 / 9 !important; flex: none !important; }
@@ -232,9 +245,6 @@
     @media (max-width: 639px) {
       #kanalIzgarasi { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
     }
-
-
-    /* Mobilde kanal seçildiğinde liste korunur; yalnızca oynatıcıya kaydırılır. */
 
 
     /* Mobil başlık: işlemler sağ kenara hizalı ve tek satırda */
@@ -1020,8 +1030,6 @@
       kategorileriCiz();
       kanallariCiz();
       
-      // Sayfa ilk açıldığında otomatik kanal seçme/oynatıcıya kaydırma yapma.
-      // Kullanıcı bir kanala dokunduğunda kanaliCal() çalışır.
       if (yoneticiGirisYapildi) {
         yoneticiKanalListesiniCiz();
         yoneticiKategoriListesiniCiz();
@@ -1234,13 +1242,12 @@
       lucide.createIcons();
     }
 
+    function mobilIzlemeBolumunuGoster() {
+      return;
+    }
+
     function kanaliCal(kanal, kullaniciTiklamasi = true) {
       aktifKanal = kanal;
-      if (kullaniciTiklamasi && window.matchMedia('(max-width: 1023px)').matches) {
-        setTimeout(() => {
-          document.getElementById('oynaticiKapsayici').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 80);
-      }
       aktifKaynakYedekMi = false;
       sonIzlenenEkle(kanal);
 
@@ -1314,7 +1321,6 @@
         hlsOynatici.on(Hls.Events.ERROR, (event, data) => {
           if (data.fatal) {
             durumMetni.textContent = "Video oynatılamadı, Web Viewer ile açılıyor...";
-            // OTOMATİK OLARAK WEB VIEWER İLE AÇ
             setTimeout(() => { webViewerIleAc(); }, 1200);
           }
         });
@@ -1331,7 +1337,6 @@
       }
     }
 
-    // --- WEB VIEWER (İFRAME) İLE AÇMA FONKSİYONLARI ---
     function webViewerIleAc() {
       if (!aktifKanal) return;
       const webViewKapsayici = document.getElementById("webViewKapsayici");
@@ -1358,7 +1363,6 @@
       webViewKapsayici.classList.add("hidden");
       canliFrame.src = "";
     }
-    // --------------------------------------------------
 
     function otomatikKaynaktanCek() {
       if (!aktifKanal) return;
@@ -1792,7 +1796,6 @@
         yayinTestDurumGuncelle('Video oynatılamadı, Web Viewer ile açılıyor...', false, true);
         sonucEl.textContent = '⚠ Video oynatılamadı, Web Viewer üzerinden açıldı.';
         sonucEl.className = 'text-[11px] mt-1 text-cyan-400 font-semibold block';
-        // Test ekranında da otomatik Web Viewer ile aç
         setTimeout(() => { testWebViewerIleAc(); }, 1200);
       };
 
@@ -1820,7 +1823,6 @@
       }
     }
 
-    // Test ekranı için Web Viewer fonksiyonları
     function testWebViewerIleAc() {
       if (!aktifTestUrl) return;
       const webViewKapsayici = document.getElementById('yayinTestWebViewKapsayici');
@@ -2016,7 +2018,6 @@
 
     async function firebaseKanallariniM3uIndir() {
       try {
-        // İndirme öncesi Firebase'den güncel kanal listesini al.
         const snapshot = await veritabani.ref(`${FIREBASE_ROOT_PATH}/kanallar`).once("value");
         const kayit = snapshot.val();
         const kanallar = Array.isArray(kayit) ? kayit : (kayit ? Object.values(kayit) : tumKanallar);
