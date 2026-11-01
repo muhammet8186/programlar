@@ -90,7 +90,7 @@
     @keyframes baglantiNabiz { 0%,100% { transform: scale(1); opacity: .75; } 50% { transform: scale(1.12); opacity: 1; } }
     .baglanti-nabiz { animation: baglantiNabiz 1.8s ease-in-out infinite; }
 
-    /* HEADER (LOGO + YÖNETİCİ BUTONU + ARAÇLAR) HER ZAMAN ÜSTTE SABİT */
+    /* TÜM EKRANLARDA HEADER (LOGO + YÖNETİCİ BUTONU + BUTONLAR) ÜSTTE SABİT */
     header {
       position: sticky !important;
       top: 0 !important;
@@ -99,7 +99,7 @@
       height: 64px !important;
     }
   
-    /* Masaüstü düzen */
+    /* Masaüstü: tam genişlik düzen, kategori şeritleri kanal listesinin üstünde */
     @media (min-width: 1024px) {
       #anaIcerikKapsayici { min-height: calc(100vh - 64px); }
       #kanalPaneli { height: calc(100vh - 64px); overflow: hidden; }
@@ -113,7 +113,7 @@
       #kanalIzgarasi { max-height: 55vh; }
     }
 
-    /* Masaüstü tam ekran yerleşimi */
+    /* Masaüstü tam ekran yerleşimi: logo solda, arama ortada, işlemler sağda */
     @media (min-width: 1024px) {
       #kategoriFiltreLisesi {
         flex: 0 0 auto !important;
@@ -177,6 +177,7 @@
     }
 
     @media (max-width: 1023px) {
+      /* Mobil/Tablet cihazlarda Header'ın altındaki oynatıcı alanının yapışma davranışı */
       #anaIcerikKapsayici > div:first-child {
         position: sticky !important;
         top: 64px !important;
@@ -244,7 +245,7 @@
       #kanalIzgarasi { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
     }
 
-    /* Mobil başlık düzeni */
+    /* Mobil başlık: işlemler sağ kenara hizalı ve tek satırda */
     @media (max-width: 640px) {
       header > div {
         display: grid !important;
@@ -284,7 +285,7 @@
 </head>
 <body data-theme="red" class="h-full flex flex-col font-sans antialiased selection:bg-brand-600 selection:text-white transition-colors duration-300">
 
-  <!-- Header -->
+  <!-- Header (Logo, Yönetici Paneli Butonu ve Araçlar Sayfada Sabit Kalır) -->
   <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
     <div class="w-full max-w-none mx-0 px-3 sm:px-4 lg:px-5 h-16 grid grid-cols-[auto_minmax(180px,1fr)_auto] items-center gap-4">
       
@@ -443,7 +444,7 @@
 
     </div>
 
-    <!-- Kanal Listesi -->
+    <!-- Kanal Listesi: kategoriler üstte, liste sağa ve aşağıya uzanır -->
     <aside id="kanalPaneli" class="min-w-0 bg-slate-900/70 border-y border-l-0 lg:border-l border-r-0 border-slate-800 rounded-none p-3 flex flex-col lg:h-[calc(100vh-64px)] lg:sticky lg:top-[64px]">
     <div id="kategoriFiltreLisesi" class="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 mb-3 border-b border-slate-800/80"></div>
     <div id="kanalAramaAlani" class="relative flex-shrink-0 mb-3">
@@ -545,7 +546,7 @@
     </div>
   </div>
 
-  <!-- YAYIN TESTİ MODERN İZLEME PENCERESİ -->
+  <!-- YAYIN TESTİ MODERN İZLEME PENCERESİ (YÖNETİCİ TEST EKRANI - İFRAME DESTEKLİ) -->
   <div id="yayinTestModali" class="fixed inset-0 bg-slate-950/90 backdrop-blur-lg z-[90] flex items-center justify-center p-3 sm:p-6 hidden" onclick="if(event.target===this)yayinTestKapat()">
     <div class="w-full max-w-4xl bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col">
       <div class="flex items-center justify-between gap-3 p-4 sm:p-5 border-b border-slate-800 bg-slate-900/90">
@@ -560,7 +561,7 @@
       <div class="bg-black aspect-video relative flex items-center justify-center">
         <video id="yayinTestVideo" controls autoplay muted playsinline class="w-full h-full object-contain"></video>
         
-        <!-- Test Ekranı Web Viewer Katmanı -->
+        <!-- Test Ekranı Web Viewer (İframe) Katmanı -->
         <div id="yayinTestWebViewKapsayici" class="absolute inset-0 bg-black hidden z-20 flex flex-col">
           <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center justify-between">
             <span class="text-xs text-cyan-400 font-medium flex items-center gap-1.5"><i data-lucide="globe" class="w-3.5 h-3.5"></i> Test Ekranı: Web Viewer (İframe) Modu</span>
@@ -667,7 +668,7 @@
               </div>
             </div>
 
-            <!-- ANA YAYIN LİNKİ -->
+            <!-- ANA YAYIN LİNKİ VE TEST BUTONU -->
             <div>
               <label class="block text-xs font-medium text-slate-400 mb-1">Ana Yayın Linki (.m3u8)</label>
               <div class="flex gap-2">
@@ -679,7 +680,7 @@
               <p id="anaYayinTestSonuc" class="text-[11px] mt-1 hidden"></p>
             </div>
 
-            <!-- YEDEK YAYIN LİNKİ -->
+            <!-- YEDEK YAYIN LİNKİ VE TEST BUTONU -->
             <div>
               <label class="block text-xs font-medium text-slate-400 mb-1">Yedek Yayın Linki (Opsiyonel)</label>
               <div class="flex gap-2">
@@ -877,12 +878,12 @@
 
       if (internetVar && firebaseBagliMi) {
         modal.classList.add("hidden");
+        canliIzleyiciSayaciBaslat();
         if (!uygulamaBaslatildi) {
           uygulamaBaslatildi = true;
           firebaseDinleyicileriniBaslat();
           favorileriCiz();
           sonIzlenenleriCiz();
-          canliIzleyiciSayaciBaslat();
         }
         return;
       }
@@ -892,12 +893,12 @@
       ikonAlani.className = "mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-amber-400/20 bg-amber-400/10 text-amber-300 shadow-lg shadow-amber-950/20 baglanti-nabiz";
       if (!internetVar) {
         baslik.textContent = "İnternet bağlantısı yok";
-        mesaj.textContent = "Cihazınız internete bağlı görünmüyor. Wi-Fi veya mobil verinizi açın.";
+        mesaj.textContent = "Cihazınız internete bağlı görünmüyor. Wi-Fi veya mobil verinizi açın. Bağlantı geldiğinde kontrol otomatik tekrarlanacaktır.";
         durum.innerHTML = '<span class="h-2 w-2 rounded-full bg-rose-400"></span><span class="text-rose-300">Çevrimdışı</span>';
         ikonAlani.innerHTML = '<i data-lucide="wifi-off" class="h-9 w-9"></i>';
       } else {
         baslik.textContent = "Sunucu bağlantısı bekleniyor";
-        mesaj.textContent = "İnternet bağlantısı var; ancak Canlı TV veritabanına henüz ulaşılamadı.";
+        mesaj.textContent = "İnternet bağlantısı var; ancak Canlı TV veritabanına henüz ulaşılamadı. Bağlantı kurulduğunda uygulama kendiliğinden açılacak.";
         durum.innerHTML = '<span class="h-2 w-2 rounded-full bg-amber-400 baglanti-nabiz"></span><span class="text-amber-300">Sunucuya bağlanılıyor…</span>';
         ikonAlani.innerHTML = '<i data-lucide="cloud-sync" class="h-9 w-9"></i>';
       }
@@ -1237,6 +1238,10 @@
       lucide.createIcons();
     }
 
+    function mobilIzlemeBolumunuGoster() {
+      return;
+    }
+
     function kanaliCal(kanal, kullaniciTiklamasi = true) {
       aktifKanal = kanal;
       aktifKaynakYedekMi = false;
@@ -1268,7 +1273,7 @@
       yayinYukle(url, kanal.ad);
       kanallariCiz();
 
-      // Mobilde kanala tıklandığında doğrudan oynatıcı alanına odaklanma/kaydırma
+      // Mobilde kanala tıklandığında doğrudan ekranın üstündeki izleme (oynatıcı) alanına kaydırır
       if (window.innerWidth < 1024) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
@@ -1476,40 +1481,121 @@
       veritabani.ref(`${FIREBASE_ROOT_PATH}/bildirimler`).remove();
     }
 
-    // CANLI İZLEYİCİ SAYACI (OTURUM YÖNETİMİ)
+    // Firebase canlı izleyici (presence) sistemi
+    // Her başarılı Firebase bağlantısında yeni ve benzersiz bir oturum kaydı açılır.
     let aktifIzleyiciRef = null;
     let izleyiciDinleyiciRef = null;
-    function canliIzleyiciSayaciBaslat() {
-      if (aktifIzleyiciRef) return; // Zaten başlatıldıysa tekrar tetikleme
-      const izleyiciRef = veritabani.ref(`${FIREBASE_ROOT_PATH}/aktifIzleyiciler`);
-      aktifIzleyiciRef = izleyiciRef.push();
-      aktifIzleyiciRef.onDisconnect().remove();
-      aktifIzleyiciRef.set({ aktif: true, baslangic: firebase.database.ServerValue.TIMESTAMP });
-      
-      izleyiciDinleyiciRef = izleyiciRef;
-      izleyiciDinleyiciRef.on('value', snapshot => {
-        const sayi = snapshot.numChildren();
-        const sayacEl = document.getElementById("canliIzleyiciSayaci");
-        if (sayacEl) {
-          sayacEl.innerHTML = `<i data-lucide="users" class="w-3 h-3"></i> ${sayi > 0 ? sayi : 1} İzleyici`;
-          lucide.createIcons();
-        }
+    let izleyiciBaglantiDinleyiciRef = null;
+    let izleyiciOturumuKapandi = false;
+    let izleyiciKaydiHazirlaniyor = false;
+    let izleyiciBaglantiNesli = 0;
+
+    function canliIzleyiciSayaciniGuncelle(snapshot) {
+      const sayac = document.getElementById("canliIzleyiciSayaci");
+      if (!sayac) return;
+      // Yalnızca aktif oturum nesnelerini say; boş/test verilerini sayma.
+      let sayi = 0;
+      snapshot.forEach(child => {
+        const kayit = child.val();
+        if (kayit && kayit.aktif === true) sayi++;
       });
+      sayac.innerHTML = `<i data-lucide="users" class="w-3 h-3"></i> ${sayi} İzleyici`;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    async function yeniIzleyiciOturumuAc(nesil) {
+      if (izleyiciOturumuKapandi || izleyiciKaydiHazirlaniyor) return;
+      izleyiciKaydiHazirlaniyor = true;
+
+      // Her bağlantı döngüsünde yeni anahtar: kopan eski bağlantının kaydı
+      // Firebase onDisconnect tarafından silinir; yeni bağlantı yeni anahtar alır.
+      const yeniRef = veritabani.ref(`${FIREBASE_ROOT_PATH}/aktifIzleyiciler`).push();
+
+      try {
+        await yeniRef.onDisconnect().remove();
+
+        // İşlem sürerken bağlantı değiştiyse bu kaydı kullanma.
+        if (izleyiciOturumuKapandi || nesil !== izleyiciBaglantiNesli) {
+          await yeniRef.remove();
+          return;
+        }
+
+        await yeniRef.set({
+          aktif: true,
+          baslangic: firebase.database.ServerValue.TIMESTAMP,
+          oturum: "web"
+        });
+
+        if (izleyiciOturumuKapandi || nesil !== izleyiciBaglantiNesli) {
+          await yeniRef.remove();
+          return;
+        }
+
+        aktifIzleyiciRef = yeniRef;
+        console.info("Canlı izleyici oturumu Firebase'e kaydedildi:", yeniRef.key);
+      } catch (hata) {
+        console.error("İzleyici Firebase'e kaydedilemedi:", hata);
+        try { await yeniRef.remove(); } catch (_) {}
+      } finally {
+        izleyiciKaydiHazirlaniyor = false;
+      }
+    }
+
+    function canliIzleyiciSayaciBaslat() {
+      if (!izleyiciDinleyiciRef) {
+        izleyiciDinleyiciRef = veritabani.ref(`${FIREBASE_ROOT_PATH}/aktifIzleyiciler`);
+        izleyiciDinleyiciRef.on("value", canliIzleyiciSayaciniGuncelle, hata => {
+          console.error("Canlı izleyici sayacı okunamadı:", hata);
+        });
+      }
+
+      if (!izleyiciBaglantiDinleyiciRef) {
+        izleyiciBaglantiDinleyiciRef = veritabani.ref(".info/connected");
+        izleyiciBaglantiDinleyiciRef.on("value", snapshot => {
+          if (izleyiciOturumuKapandi) return;
+
+          if (snapshot.val() === true) {
+            const buNesil = ++izleyiciBaglantiNesli;
+            // Önceki oturum kaydı kaldıysa temizle; onDisconnect ayrıca güvence sağlar.
+            if (aktifIzleyiciRef) {
+              aktifIzleyiciRef.remove().catch(() => {});
+              aktifIzleyiciRef = null;
+            }
+            yeniIzleyiciOturumuAc(buNesil);
+          } else {
+            // Bağlantı koptu. Yeni bağlantıda yeni bir oturum kaydı açılacak.
+            izleyiciBaglantiNesli++;
+            aktifIzleyiciRef = null;
+          }
+        }, hata => {
+          console.error("İzleyici bağlantı durumu okunamadı:", hata);
+        });
+      }
     }
 
     function izleyiciOturumunuKapat() {
+      if (izleyiciOturumuKapandi) return;
+      izleyiciOturumuKapandi = true;
+      izleyiciBaglantiNesli++;
+
+      // onDisconnect().cancel() kullanılmaz; bağlantı aniden koparsa sunucu kaydı siler.
       if (aktifIzleyiciRef) {
-        aktifIzleyiciRef.onDisconnect().cancel();
-        aktifIzleyiciRef.remove();
+        aktifIzleyiciRef.remove().catch(hata => {
+          console.warn("İzleyici çıkış kaydı silinemedi; Firebase onDisconnect temizleyecek:", hata);
+        });
         aktifIzleyiciRef = null;
       }
       if (izleyiciDinleyiciRef) {
-        izleyiciDinleyiciRef.off('value');
+        izleyiciDinleyiciRef.off("value", canliIzleyiciSayaciniGuncelle);
         izleyiciDinleyiciRef = null;
       }
+      if (izleyiciBaglantiDinleyiciRef) {
+        izleyiciBaglantiDinleyiciRef.off();
+        izleyiciBaglantiDinleyiciRef = null;
+      }
     }
+
     window.addEventListener("pagehide", izleyiciOturumunuKapat);
-    window.addEventListener("beforeunload", izleyiciOturumunuKapat);
 
     function kanalAramaYap(deger) {
       aramaMetni = deger;
@@ -2047,7 +2133,7 @@
         ozelOnayGoster("M3U hazır", `${gecerliKanallar.length} kayıtlı kanal M3U dosyası olarak indirildi.`, () => {}, true);
       } catch (hata) {
         console.error("M3U dışa aktarma hatası:", hata);
-        ozelOnayGoster("İndirme başarısız", "Firebase kanal listesi okunamadı.", () => {}, true);
+        ozelOnayGoster("İndirme başarısız", "Firebase kanal listesi okunamadı. Bağlantıyı ve veritabanı izinlerini kontrol edin.", () => {}, true);
       }
     }
 
@@ -2074,6 +2160,9 @@
         const yedek = JSON.parse(await dosya.text());
         if (!yedek || !Array.isArray(yedek.kanallar) || !Array.isArray(yedek.kategoriler)) {
           throw new Error("Yedek dosyasında kanallar veya kategoriler bulunamadı.");
+        }
+        if (!yedek.kanallar.every(k => k && k.id && k.ad && k.yayinUrl)) {
+          throw new Error("Yedek dosyasındaki kanal kayıtları geçersiz.");
         }
         ozelOnayGoster("Yedeği Geri Yükle", `${yedek.kanallar.length} kanal ve ${yedek.kategoriler.length} kategori mevcut verilerin üzerine yüklenecek. Devam edilsin mi?`, async onay => {
           if (!onay) return;
