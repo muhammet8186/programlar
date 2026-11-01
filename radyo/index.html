@@ -1453,6 +1453,121 @@
         .playlist-url-section #playlist-url-add { min-height:46px; font-weight:800; box-shadow:0 6px 16px color-mix(in srgb,var(--accent-primary) 25%,transparent); }
         @media(max-width:640px) { .playlist-url-section { padding:13px !important; } .playlist-url-input { min-height:48px !important; font-size:12px !important; } }
 
+    
+
+        /* Son arayüz düzenlemesi: ana başlık, kanal okları ve güvenilir ayarlar kaydırması */
+        .app-container > header {
+            position:sticky;
+            top:0;
+            z-index:110;
+            padding:15px 20px;
+            border:1px solid color-mix(in srgb,var(--accent-primary) 58%,var(--border-color));
+            border-bottom:3px solid var(--accent-primary);
+            border-radius:0 0 18px 18px;
+            background:linear-gradient(115deg,
+                color-mix(in srgb,var(--accent-primary) 20%,var(--bg-surface)),
+                color-mix(in srgb,var(--accent-secondary) 11%,var(--bg-surface)) 55%,
+                var(--bg-glass));
+            box-shadow:0 8px 26px color-mix(in srgb,var(--accent-primary) 17%,transparent), inset 0 1px 0 rgba(255,255,255,.10);
+        }
+        .app-container > header .brand-icon {
+            width:54px; height:54px; flex:0 0 54px;
+            border:2px solid rgba(255,255,255,.32);
+            box-shadow:0 7px 20px color-mix(in srgb,var(--accent-primary) 35%,transparent);
+        }
+        .app-container > header .brand-title h1 {
+            font-size:clamp(21px,2.3vw,27px);
+            font-weight:900;
+            letter-spacing:-.6px;
+            filter:drop-shadow(0 2px 8px color-mix(in srgb,var(--accent-primary) 18%,transparent));
+        }
+        .app-container > header .brand-title p { font-weight:700; letter-spacing:.15px; }
+        .app-container > header .header-controls .btn {
+            width:46px; height:46px; min-width:46px;
+            border:1px solid color-mix(in srgb,var(--accent-primary) 48%,var(--border-color));
+            background:color-mix(in srgb,var(--accent-primary) 13%,var(--bg-surface));
+            box-shadow:0 4px 12px rgba(0,0,0,.12);
+        }
+        .app-container > header .header-controls .btn:hover {
+            color:#fff; background:var(--accent-gradient); transform:translateY(-2px);
+        }
+        .control-btns > .primary-playback-group > #prev-btn,
+        .control-btns > .primary-playback-group > #next-btn {
+            width:58px !important; height:62px !important; min-width:58px !important;
+            flex:0 0 58px !important; padding:0 !important;
+            display:grid !important; place-items:center !important;
+            border:2px solid color-mix(in srgb,var(--accent-primary) 78%,white) !important;
+            border-radius:15px !important;
+            color:#fff !important;
+            background:linear-gradient(145deg,
+                color-mix(in srgb,var(--accent-primary) 92%,white),
+                color-mix(in srgb,var(--accent-secondary) 82%,var(--accent-primary))) !important;
+            box-shadow:0 6px 18px color-mix(in srgb,var(--accent-primary) 34%,transparent), inset 0 1px 0 rgba(255,255,255,.28) !important;
+            font-size:24px !important;
+        }
+        .control-btns > .primary-playback-group > #prev-btn i,
+        .control-btns > .primary-playback-group > #next-btn i { font-size:24px !important; }
+        .control-btns > .primary-playback-group > #prev-btn:hover,
+        .control-btns > .primary-playback-group > #next-btn:hover {
+            filter:brightness(1.12); transform:translateY(-2px) scale(1.035);
+            box-shadow:0 9px 22px color-mix(in srgb,var(--accent-primary) 42%,transparent) !important;
+        }
+        .control-btns > .primary-playback-group > #prev-btn:active,
+        .control-btns > .primary-playback-group > #next-btn:active { transform:scale(.96); }
+
+        /* Kaydırma alanı sadece ayarlar içeriği; arka sayfa sabit kalır */
+        html.settings-open, body.settings-open {
+            height:100% !important;
+            overflow:hidden !important;
+            overscroll-behavior:none !important;
+        }
+        #settings-modal {
+            touch-action:none !important;
+            overscroll-behavior:none !important;
+            align-items:center;
+        }
+        #settings-modal .settings-modal-card {
+            height:min(820px,calc(100dvh - 32px)) !important;
+            max-height:calc(100dvh - 32px) !important;
+            min-height:0 !important;
+            overflow:hidden !important;
+            touch-action:pan-y !important;
+        }
+        #settings-modal .modal-title {
+            position:relative !important;
+            top:auto !important;
+            flex:0 0 auto !important;
+            touch-action:none !important;
+        }
+        #settings-modal .settings-modal-content {
+            display:block;
+            flex:1 1 0% !important;
+            height:0;
+            min-height:0 !important;
+            max-height:none !important;
+            overflow-y:scroll !important;
+            overflow-x:hidden !important;
+            -webkit-overflow-scrolling:touch !important;
+            overscroll-behavior-y:contain !important;
+            touch-action:pan-y !important;
+            scrollbar-width:thin;
+        }
+        @media(max-width:640px) {
+            .app-container > header { padding:11px 12px; border-radius:0 0 14px 14px; gap:10px; }
+            .app-container > header .brand-icon { width:44px; height:44px; flex-basis:44px; }
+            .app-container > header .brand-title h1 { font-size:19px; }
+            .app-container > header .header-controls { gap:6px; }
+            .app-container > header .header-controls .btn { width:40px; height:40px; min-width:40px; }
+            .control-btns > .primary-playback-group > #prev-btn,
+            .control-btns > .primary-playback-group > #next-btn {
+                width:46px !important; height:50px !important; min-width:46px !important;
+                flex-basis:46px !important; border-radius:12px !important;
+            }
+            .control-btns > .primary-playback-group > #prev-btn i,
+            .control-btns > .primary-playback-group > #next-btn i { font-size:20px !important; }
+            #settings-modal .settings-modal-card { height:100dvh !important; max-height:100dvh !important; }
+        }
+
     </style>
 </head>
 <body>
@@ -2748,10 +2863,12 @@
         const settingsModal = document.getElementById('settings-modal');
         const openSettingsModal = () => {
             settingsModal.classList.add('show');
+            document.documentElement.classList.add('settings-open');
             document.body.classList.add('settings-open');
         };
         const closeSettingsModal = () => {
             settingsModal.classList.remove('show');
+            document.documentElement.classList.remove('settings-open');
             document.body.classList.remove('settings-open');
         };
         document.getElementById('settings-btn').addEventListener('click', openSettingsModal);
