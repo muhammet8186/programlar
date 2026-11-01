@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Symphony Radio | Dünya Radyoları & Canlı Oynatıcı</title>
-    <!-- FontAwesome & Google Fonts -->
+    <title>Online Radyo | Dünya Radyoları & Canlı Oynatıcı</title>
+    <!-- Simge ve yazı tipi kütüphaneleri -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
@@ -394,7 +394,7 @@
             border-color: transparent;
         }
 
-        /* Stations Grid */
+        /* Radyo kanalları ızgarası */
         .stations-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -545,7 +545,7 @@
             border-top: 1px solid var(--border-color);
         }
 
-        /* Modern Search Overlay */
+        /* Modern arama penceresi */
         .search-modal-overlay { position:fixed; inset:0; z-index:2500; display:none; align-items:flex-start; justify-content:center; padding: min(10vh,70px) 16px 24px; background:rgba(2,6,23,.76); backdrop-filter:blur(14px); overflow-y:auto; }
         .search-modal-overlay.show { display:flex; animation:searchFadeIn .22s ease; }
         @keyframes searchFadeIn { from { opacity:0; } to { opacity:1; } }
@@ -556,7 +556,7 @@
         .search-modal-card .search-panel { margin:0; padding:0; border:0; box-shadow:none; background:transparent; }
         .search-modal-card .search-row { grid-template-columns:1.5fr 1fr 1fr 1fr auto; }
 
-        /* Web Audio API Visualizer - player bar'dan ayrı, hemen üstünde */
+        /* Web Audio API ses görselleştiricisi - oynatıcı çubuğundan ayrı, hemen üstünde */
         .visualizer-wrapper {
             position: fixed;
             left: 0;
@@ -581,7 +581,7 @@
             display: block;
         }
 
-        /* Floating Player Bar */
+        /* Sabit oynatıcı çubuğu */
         .player-bar {
             position: fixed;
             bottom: 0;
@@ -725,7 +725,7 @@
             cursor: pointer;
         }
 
-        /* Web Viewer Modal */
+        /* Web görüntüleyici penceresi */
         .webview-modal {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -787,7 +787,7 @@
             background: white;
         }
 
-        /* Modern Settings Modal */
+        /* Modern ayarlar penceresi */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -841,6 +841,63 @@
         .eq-slider-row input { width:100%; accent-color:var(--accent-primary); cursor:pointer; }
         .eq-help { display:block; color:var(--text-muted); font-size:11px; margin-top:8px; line-height:1.5; }
         .modal-card { max-height: min(88vh, 780px); overflow-y:auto; overscroll-behavior:contain; }
+
+        /* Ayarlar penceresi: masaüstü, tablet ve mobil uyumlu */
+        #settings-modal { padding:20px; }
+        #settings-modal .settings-modal-card {
+            width:min(780px, 100%);
+            max-width:780px;
+            max-height:calc(100dvh - 40px);
+            padding:0;
+            overflow-y:auto;
+            overscroll-behavior:contain;
+            scrollbar-gutter:stable;
+        }
+        #settings-modal .modal-title {
+            position:sticky;
+            top:0;
+            z-index:5;
+            display:flex;
+            justify-content:space-between;
+            gap:14px;
+            margin:0;
+            padding:18px 22px;
+            background:var(--bg-surface);
+            border-bottom:1px solid var(--border-color);
+        }
+        #settings-modal .settings-title-text { display:flex; align-items:center; gap:10px; min-width:0; }
+        #settings-modal .settings-close-x {
+            flex:0 0 40px;
+            width:40px;
+            height:40px;
+            display:grid;
+            place-items:center;
+            border:1px solid var(--border-color);
+            border-radius:12px;
+            color:var(--text-primary);
+            background:var(--bg-surface-hover);
+            font-size:19px;
+            cursor:pointer;
+        }
+        #settings-modal .settings-close-x:hover { color:white; background:var(--danger-color); border-color:var(--danger-color); }
+        #settings-modal .settings-modal-content { padding:20px 22px 22px; }
+        #settings-modal .modal-section { min-width:0; }
+        @media (min-width:641px) and (max-width:992px) {
+            #settings-modal { padding:16px; }
+            #settings-modal .settings-modal-card { width:min(720px,100%); max-height:calc(100dvh - 32px); }
+        }
+        @media (max-width:640px) {
+            #settings-modal { padding:0; align-items:stretch; }
+            #settings-modal .settings-modal-card {
+                width:100%; max-width:none; max-height:100dvh; height:100%;
+                border-radius:0; border:0; padding:0;
+            }
+            #settings-modal .modal-title { padding:calc(12px + env(safe-area-inset-top)) 14px 12px; font-size:16px; }
+            #settings-modal .settings-close-x { width:42px; height:42px; flex-basis:42px; }
+            #settings-modal .settings-modal-content { padding:15px 14px calc(20px + env(safe-area-inset-bottom)); }
+            #settings-modal .modal-input { min-height:46px; font-size:16px; }
+            #settings-modal .modal-buttons { display:none; }
+        }
 
         /* Modern Uyku Zamanlayıcısı penceresi */
         .sleep-modal-overlay { position:fixed; inset:0; z-index:5000; display:flex; align-items:center; justify-content:center; padding:18px; background:rgba(2,6,23,.72); backdrop-filter:blur(12px); opacity:0; pointer-events:none; transition:var(--transition); }
@@ -950,7 +1007,7 @@
             .modal-buttons { position:sticky; bottom:-18px; background:var(--bg-surface); padding:10px 0 0; }
         }
 
-        /* Symphony Radio: compact station tiles, sticky library tabs and unified player controls */
+        /* Online Radyo: compact station tiles, sticky library tabs and unified player controls */
         .tabs-container {
             position: sticky;
             top: 74px;
@@ -1038,6 +1095,10 @@
         #github-list-btn.active { background:linear-gradient(135deg,#111827,#475569); box-shadow:0 4px 12px rgba(51,65,85,.3); }
         #existing-list-btn { background:linear-gradient(135deg,#0f766e,#2dd4bf); color:#fff; border-color:transparent; }
         #existing-list-btn.active { background:linear-gradient(135deg,#115e59,#14b8a6); box-shadow:0 4px 12px rgba(20,184,166,.25); }
+        .search-source-switch .source-btn { opacity:.62; filter:saturate(.72); transition:opacity .18s ease,filter .18s ease,transform .18s ease,box-shadow .18s ease; }
+        .search-source-switch #github-list-btn.active { opacity:1; filter:saturate(1.25) brightness(1.12); transform:translateY(-1px); outline:2px solid rgba(148,163,184,.5); outline-offset:2px; }
+        .search-source-switch #existing-list-btn.active { opacity:1; filter:saturate(1.25) brightness(1.12); transform:translateY(-1px); outline:2px solid rgba(45,212,191,.55); outline-offset:2px; }
+        #all-count { display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:22px; padding:0 6px; margin-left:4px; border-radius:999px; background:var(--accent-primary); color:#fff; font-size:11px; font-weight:800; line-height:1; }
         .theme-palette-select { margin-bottom:0; }
         /* Kaynak listesi butonları arama penceresinin en üstünde */
         .search-source-switch { display:flex; align-items:center; gap:10px; margin:0 0 16px; width:100%; }
@@ -1303,7 +1364,47 @@
             #fullscreen-player .fullscreen-utility-actions #fullscreen-fav { width:60px !important; height:60px !important; }
         }
 
-</style>
+
+        /* Ek M3U adresi için belirgin ayar alanı */
+        .playlist-url-section {
+            position:relative; overflow:hidden; padding:16px !important;
+            border:2px solid color-mix(in srgb,var(--accent-primary) 72%,var(--border-color)) !important;
+            border-radius:16px !important;
+            background:linear-gradient(145deg,color-mix(in srgb,var(--accent-primary) 19%,var(--bg-surface)),var(--bg-surface)) !important;
+            box-shadow:0 8px 24px color-mix(in srgb,var(--accent-primary) 17%,transparent);
+        }
+        .tabs-container { border:2px solid color-mix(in srgb,var(--accent-primary) 45%,var(--border-color)); box-shadow:0 9px 24px color-mix(in srgb,var(--accent-primary) 13%,transparent); }
+        .tab-btn[data-tab="all"], .tab-btn[data-tab="favorites"] { font-weight:900; border:1px solid color-mix(in srgb,var(--accent-primary) 40%,var(--border-color)); background:color-mix(in srgb,var(--accent-primary) 7%,var(--bg-surface)); }
+        .tab-btn[data-tab="favorites"] { color:#e11d48; border-color:rgba(225,29,72,.35); background:rgba(225,29,72,.08); }
+        .tab-btn[data-tab="all"].active { background:var(--accent-gradient); color:#fff; box-shadow:0 4px 14px color-mix(in srgb,var(--accent-primary) 28%,transparent); }
+        .tab-btn[data-tab="favorites"].active { background:linear-gradient(135deg,#be123c,#fb7185); color:#fff; box-shadow:0 4px 14px rgba(225,29,72,.28); }
+        @media(max-width:640px) { .playlist-url-section { padding:13px !important; } }
+
+        /* GitHub / M3U bağlantı alanı: kolay fark edilen, tema uyumlu bölüm */
+        .playlist-url-section {
+            position:relative; overflow:hidden;
+            padding:16px !important;
+            border:1px solid color-mix(in srgb,var(--accent-primary) 68%,var(--border-color)) !important;
+            border-radius:16px !important;
+            background:linear-gradient(145deg,color-mix(in srgb,var(--accent-primary) 16%,var(--bg-surface)),var(--bg-surface)) !important;
+            box-shadow:0 8px 24px color-mix(in srgb,var(--accent-primary) 15%,transparent),inset 0 1px 0 rgba(255,255,255,.08);
+        }
+        .playlist-url-section .modal-section-title { color:var(--accent-secondary); font-size:15px; font-weight:800; }
+        .playlist-url-section .eq-field-label { display:block; margin:12px 0 7px; font-weight:800; color:var(--text-primary); }
+        .playlist-url-input {
+            min-height:52px !important; padding:13px 14px !important;
+            border:2px solid var(--accent-primary) !important;
+            border-radius:12px !important;
+            background:var(--bg-base) !important;
+            color:var(--text-primary) !important;
+            font-size:13px !important; font-weight:600;
+            box-shadow:0 0 0 3px color-mix(in srgb,var(--accent-primary) 13%,transparent),0 5px 14px rgba(0,0,0,.12);
+        }
+        .playlist-url-input:focus { outline:none; border-color:var(--accent-secondary) !important; box-shadow:0 0 0 4px color-mix(in srgb,var(--accent-primary) 22%,transparent),0 7px 20px color-mix(in srgb,var(--accent-primary) 18%,transparent); }
+        .playlist-url-section #playlist-url-add { min-height:46px; font-weight:800; box-shadow:0 6px 16px color-mix(in srgb,var(--accent-primary) 25%,transparent); }
+        @media(max-width:640px) { .playlist-url-section { padding:13px !important; } .playlist-url-input { min-height:48px !important; font-size:12px !important; } }
+
+    </style>
 </head>
 <body>
 
@@ -1312,7 +1413,7 @@
         <div class="glow-2"></div>
     </div>
 
-    <!-- Toast Notification -->
+    <!-- Bildirim alanı -->
     <div id="toast" class="toast">
         <i id="toast-icon" class="fa-solid fa-circle-info"></i>
         <span id="toast-msg">Bildirim mesajı</span>
@@ -1343,7 +1444,7 @@
         </div>
     </div>
 
-    <!-- Web Viewer Modal -->
+    <!-- Web görüntüleyici penceresi -->
     <div id="webview-modal" class="webview-modal">
         <div class="webview-card">
             <div class="webview-header">
@@ -1361,11 +1462,14 @@
         </div>
     </div>
 
-    <!-- Modern Settings Modal -->
+    <!-- Modern ayarlar penceresi -->
     <div id="settings-modal" class="modal-overlay">
-        <div class="modal-card">
-            <div class="modal-title"><i class="fa-solid fa-gear" style="color:var(--accent-primary);"></i> Ayarlar & Yönetim</div>
-            
+        <div class="modal-card settings-modal-card" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+            <div class="modal-title" id="settings-modal-title">
+                <span class="settings-title-text"><i class="fa-solid fa-gear" style="color:var(--accent-primary);"></i> Ayarlar & Yönetim</span>
+                <button type="button" class="settings-close-x" id="settings-close-x" aria-label="Ayarları kapat" title="Kapat"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="settings-modal-content">
             <div class="modal-section">
                 <div class="modal-section-title"><i class="fa-solid fa-palette"></i> Tema Rengi (20 asil seçenek)</div>
                 <label class="eq-field-label" for="theme-palette">Renk temasını seç</label>
@@ -1423,7 +1527,7 @@
                 <label class="eq-field-label" for="eq-preset" style="margin-top:14px">Hazır ses profili</label>
                 <select id="eq-preset" class="modal-input eq-preset-settings">
                     <option value="flat">Düz (Varsayılan)</option>
-                    <option value="bass">Bass Boost</option>
+                    <option value="bass">Bas Güçlendirme</option>
                     <option value="pop">Pop</option>
                     <option value="rock">Rock</option>
                     <option value="vocal">Net Ses</option>
@@ -1434,6 +1538,15 @@
                 <div class="eq-slider-row"><label for="eq-treble">Tiz <span id="eq-treble-value">0 dB</span></label><input id="eq-treble" type="range" min="-12" max="12" step="1" value="0"></div>
                 <button class="btn" id="eq-reset" style="width:100%;justify-content:center;margin-top:8px"><i class="fa-solid fa-rotate-left"></i> Ekolayzırı Sıfırla</button>
                 <small class="eq-help">Ayarlar cihazınızda saklanır ve radyo çalarken uygulanır.</small>
+            </div>
+
+            <div class="modal-section playlist-url-section">
+                <div class="modal-section-title"><i class="fa-solid fa-list"></i> Ek M3U Kanal Listesi URL Adresi</div>
+                <label class="eq-field-label" for="playlist-url-input">Kanal listesinin bağlantısını buraya yapıştırın</label>
+                <input type="url" id="playlist-url-input" class="modal-input playlist-url-input" placeholder="https://raw.githubusercontent.com/kullanici/depo/main/radyo.m3u" aria-label="GitHub veya M3U kanal listesi URL adresi">
+                <small class="eq-help">GitHub Raw bağlantısı veya doğrudan M3U liste adresi ekleyebilirsiniz. Liste mevcut radyolarınıza eklenir ve cihazınızda saklanır.</small>
+                <button class="btn btn-primary" id="playlist-url-add" type="button" style="width:100%;justify-content:center;margin-top:8px"><i class="fa-solid fa-link"></i> Kanal Listesini Bağla</button>
+                <div id="playlist-url-status" class="eq-help" style="margin-top:8px" aria-live="polite"></div>
             </div>
 
             <div class="modal-section">
@@ -1454,21 +1567,19 @@
                 <input type="file" id="import-file-input" accept=".json" style="display:none;">
             </div>
 
-            <div class="modal-buttons">
-                <button class="btn btn-primary" id="settings-close" style="width:100%; justify-content:center;">Kapat</button>
             </div>
         </div>
     </div>
 
     <div class="app-container">
-        <!-- Header -->
+        <!-- Üst başlık alanı -->
         <header>
             <div class="brand">
                 <div class="brand-icon">
                     <i class="fa-solid fa-radio"></i>
                 </div>
                 <div class="brand-title">
-                    <h1>Symphony Radio</h1>
+                    <h1>Online Radyo</h1>
                     <p>Dünya Radyoları • Canlı Dinle</p>
                 </div>
             </div>
@@ -1485,7 +1596,7 @@
             </div>
         </header>
 
-        <!-- Search Panel: ayrı modern açılır ekran -->
+        <!-- Arama paneli: ayrı modern açılır ekran -->
         <div id="search-modal" class="search-modal-overlay" aria-hidden="true">
           <div class="search-modal-card">
             <div class="search-modal-heading">
@@ -1534,11 +1645,11 @@
           </div>
         </div>
 
-        <!-- Navigation Tabs -->
+        <!-- Gezinme sekmeleri -->
         <div class="tabs-container">
             <div class="tabs">
                 <button class="tab-btn active" data-tab="all">
-                    <i class="fa-solid fa-globe"></i> Tüm Radyolar
+                    <i class="fa-solid fa-globe"></i> Toplam Radyolar <span id="all-count">0</span>
                 </button>
                 <button class="tab-btn" data-tab="favorites">
                     <i class="fa-solid fa-heart"></i> Favorilerim <span id="fav-count">0</span>
@@ -1546,13 +1657,16 @@
                 <button class="tab-btn" data-tab="history">
                     <i class="fa-solid fa-clock-rotate-left"></i> Son Dinlenenler
                 </button>
+                <button class="tab-btn" data-tab="external-playlists">
+                    <i class="fa-solid fa-list"></i> M3U Kanal Listem <span id="external-playlist-count">0</span>
+                </button>
                 <button class="tab-btn" data-tab="recordings">
                     <i class="fa-solid fa-record-vinyl"></i> Radyo Kayıtları <span id="recording-count">0</span>
                 </button>
             </div>
         </div>
 
-        <!-- Radio Grid -->
+        <!-- Radyo kanalları alanı -->
         <div id="stations-grid" class="stations-grid">
             <div class="loading-state">
                 <i class="fa-solid fa-circle-notch spinner"></i>
@@ -1561,12 +1675,12 @@
         </div>
     </div>
 
-    <!-- Player bar'dan ayrı ekolayzır görseli -->
+    <!-- Oynatıcı çubuğundan ayrı ekolayzır görseli -->
     <div class="visualizer-wrapper" aria-label="Canlı ses ekolayzır görselleştirmesi">
         <canvas id="visualizer-canvas"></canvas>
     </div>
 
-    <!-- Floating Audio Player Bar -->
+    <!-- Sabit ses oynatıcı çubuğu -->
     <div class="player-bar">
         <div class="player-controls">
             <div class="now-playing">
@@ -1616,7 +1730,7 @@
 
     <section id="fullscreen-player" class="fullscreen-player" aria-hidden="true">
         <button class="btn btn-icon-only" id="fullscreen-close" style="position:absolute;top:22px;right:22px" title="Kapat"><i class="fa-solid fa-xmark"></i></button>
-        <div class="fullscreen-heading"><h2 id="fullscreen-title">Symphony Radio</h2><p id="fullscreen-sub">Canlı yayın</p></div>
+        <div class="fullscreen-heading"><h2 id="fullscreen-title">Online Radyo</h2><p id="fullscreen-sub">Canlı yayın</p></div>
         <canvas id="fullscreen-visualizer-canvas" class="fullscreen-visualizer" aria-label="Tam ekran canlı ses görselleştirmesi"></canvas>
         <div class="fullscreen-actions">
             <button class="btn btn-icon-only" id="fullscreen-prev" title="Önceki kanal"><i class="fa-solid fa-backward-step"></i></button>
@@ -1648,7 +1762,7 @@
     </div>
     <audio id="recording-preview-audio" preload="metadata"></audio>
 
-    <!-- HTML5 Audio Element -->
+    <!-- HTML5 ses oynatma öğesi -->
     <audio id="audio-engine" crossorigin="anonymous" preload="none" playsinline></audio>
 
     <script>
@@ -1663,6 +1777,8 @@
         let favorites = JSON.parse(localStorage.getItem('symphony_favs') || '[]');
         let history = JSON.parse(localStorage.getItem('symphony_history') || '[]');
         let customStations = JSON.parse(localStorage.getItem('symphony_custom') || '[]');
+        let externalPlaylistStations = JSON.parse(localStorage.getItem('symphony_external_playlists') || '[]');
+        let externalPlaylistUrls = JSON.parse(localStorage.getItem('symphony_external_playlist_urls') || '[]');
         let savedRecordings = [];
         let currentlyPlayingRecordingId = null;
         let activeRecordingObjectUrl = null;
@@ -1674,7 +1790,7 @@
         let activeTab = 'all';
         let activeSource = 'github';
         let githubStations = [];
-        const GITHUB_M3U_URL = 'https://raw.githubusercontent.com/muhammet8186/programlar/refs/heads/main/radyo/radyo.m3u';
+        let GITHUB_M3U_URL = localStorage.getItem('symphony_github_m3u_url') || 'https://raw.githubusercontent.com/muhammet8186/programlar/refs/heads/main/radyo/radyo.m3u';
 
         let mediaRecorder = null;
         let recordedChunks = [];
@@ -1753,6 +1869,8 @@
             updateFavCount();
             await populateFilters();
             await fetchStations();
+            const initialAllCount = document.getElementById('all-count');
+            if (initialAllCount) initialAllCount.textContent = String(currentStations.length);
             setupEventListeners();
             setupKeyboardShortcuts();
             await loadRecordings();
@@ -1838,10 +1956,10 @@
 
             try {
                 const data = await apiFetch(`stations/search?${params.join('&')}`);
-                currentStations = [...customStations, ...data];
+                currentStations = [...customStations, ...externalPlaylistStations, ...data];
                 renderStations();
             } catch (err) {
-                currentStations = [...customStations];
+                currentStations = [...customStations, ...externalPlaylistStations];
                 renderStations();
                 showToast('Mevcut radyo listesine erişilemedi.', 'error');
             }
@@ -1857,11 +1975,12 @@
                 if (!parsed.length) throw new Error('M3U içinde radyo bulunamadı');
                 githubStations = parsed;
                 const query = searchInput.value.trim().toLocaleLowerCase('tr');
-                currentStations = query ? githubStations.filter(st => (st.name || '').toLocaleLowerCase('tr').includes(query)) : [...githubStations];
+                const combined = [...githubStations, ...externalPlaylistStations, ...customStations];
+                currentStations = query ? combined.filter(st => (st.name || '').toLocaleLowerCase('tr').includes(query)) : combined;
                 renderStations();
             } catch (err) {
                 console.error('GitHub M3U yükleme hatası:', err);
-                currentStations = [];
+                currentStations = [...externalPlaylistStations, ...customStations];
                 renderStations();
                 showToast('GitHub listesi yüklenemedi. İnternet bağlantısını kontrol edip tekrar deneyin.', 'error', 5000);
             }
@@ -1898,6 +2017,7 @@
         function getActiveList() {
             if (activeTab === 'favorites') return favorites;
             if (activeTab === 'history') return history;
+            if (activeTab === 'external-playlists') return externalPlaylistStations;
             return currentStations;
         }
 
@@ -2028,6 +2148,8 @@
         function renderStations() {
             const stationGrid = document.getElementById('stations-grid');
             stationGrid.classList.toggle('recordings-view', activeTab === 'recordings');
+            const allCount = document.getElementById('all-count');
+            if (allCount) allCount.textContent = String(currentStations.length);
             if (activeTab === 'recordings') { renderRecordings(); return; }
             let listToRender = getActiveList();
 
@@ -2088,7 +2210,7 @@
             }).join('');
         }
 
-        // --- Web Audio API Visualizer ---
+        // --- Web Audio API ses görselleştiricisi ---
         function initAudioContext() {
             if (!audioCtx) {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -2263,7 +2385,7 @@
         setEqValues(eqValues);
 
 
-        // --- Audio Playback & Web Viewer Integration ---
+        // --- Ses oynatma ve web görüntüleyici bağlantısı ---
         function playStation(uuid) {
             let list = getActiveList();
             let st = list.find(s => s.changeuuid === uuid) 
@@ -2375,7 +2497,7 @@
             fullscreenTitle.textContent = currentStation.name;
             fullscreenSub.textContent = playerSub.textContent;
             if ('mediaSession' in navigator) {
-                navigator.mediaSession.metadata = new MediaMetadata({ title: currentStation.name, artist: currentStation.country || 'Symphony Radio', album: 'Canlı Radyo', artwork: art ? [{ src: art, sizes: '512x512', type: 'image/png' }] : [] });
+                navigator.mediaSession.metadata = new MediaMetadata({ title: currentStation.name, artist: currentStation.country || 'Online Radyo', album: 'Canlı Radyo', artwork: art ? [{ src: art, sizes: '512x512', type: 'image/png' }] : [] });
                 navigator.mediaSession.setActionHandler('play', () => audioEngine.play());
                 navigator.mediaSession.setActionHandler('pause', () => audioEngine.pause());
                 navigator.mediaSession.setActionHandler('previoustrack', () => changeChannel(-1));
@@ -2471,7 +2593,7 @@
             }
         });
 
-        // --- Stream Recording ---
+        // --- Yayın kaydı ---
         recordBtn.addEventListener('click', () => {
             if (!audioEngine.src || audioEngine.paused) {
                 showToast('Canlı ses kaydı yalnızca ses akışı oynatılırken yapılabilir.', 'error');
@@ -2515,7 +2637,7 @@
             }
         });
 
-        // --- Modern Sleep Timer ---
+        // --- Modern uyku zamanlayıcısı ---
         const sleepModal = document.getElementById('sleep-modal');
         const sleepCustomMinutes = document.getElementById('sleep-custom-minutes');
         const sleepModalStart = document.getElementById('sleep-modal-start');
@@ -2573,10 +2695,53 @@
             showToast('Uyku zamanlayıcısı iptal edildi.', 'success');
         });
 
-        // --- Settings Modal & Custom Stream ---
+        // --- Ayarlar penceresi ve özel yayın ---
         const settingsModal = document.getElementById('settings-modal');
+        const closeSettingsModal = () => settingsModal.classList.remove('show');
         document.getElementById('settings-btn').addEventListener('click', () => settingsModal.classList.add('show'));
-        document.getElementById('settings-close').addEventListener('click', () => settingsModal.classList.remove('show'));
+        document.getElementById('settings-close-x').addEventListener('click', closeSettingsModal);
+        settingsModal.addEventListener('click', (event) => { if (event.target === settingsModal) closeSettingsModal(); });
+        document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && settingsModal.classList.contains('show')) closeSettingsModal(); });
+        document.getElementById('playlist-url-add').addEventListener('click', async () => {
+            const input = document.getElementById('playlist-url-input');
+            const status = document.getElementById('playlist-url-status');
+            const rawUrl = input.value.trim();
+            let parsedUrl;
+            try { parsedUrl = new URL(rawUrl); } catch (_) { parsedUrl = null; }
+            if (!parsedUrl || !['http:', 'https:'].includes(parsedUrl.protocol)) {
+                showToast('Geçerli bir http:// veya https:// kanal listesi adresi girin.', 'error');
+                return;
+            }
+            status.textContent = 'Kanal listesi bağlantısı kontrol ediliyor...';
+            const addButton = document.getElementById('playlist-url-add');
+            addButton.disabled = true;
+            try {
+                const response = await fetch(parsedUrl.href, { cache: 'no-store' });
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                const playlistText = await response.text();
+                const parsed = parseM3U(playlistText);
+                if (!parsed.length) throw new Error('Bu bağlantıda okunabilir M3U kanal bulunamadı.');
+                const urlKey = parsedUrl.href;
+                const prefix = 'ext_' + Math.abs(Array.from(urlKey).reduce((a,c) => ((a * 31) + c.charCodeAt(0)) | 0, 7)) + '_';
+                const normalized = parsed.map((station, index) => { const streamUrl = new URL(station.url, urlKey).href; return { ...station, url: streamUrl, url_resolved: streamUrl, favicon: station.favicon ? new URL(station.favicon, urlKey).href : '', changeuuid: prefix + index + '_' + station.changeuuid, stationuuid: prefix + index + '_' + station.stationuuid, playlistUrl: urlKey }; });
+                externalPlaylistStations = externalPlaylistStations.filter(st => st.playlistUrl !== urlKey).concat(normalized);
+                if (!externalPlaylistUrls.includes(urlKey)) externalPlaylistUrls.push(urlKey);
+                localStorage.setItem('symphony_external_playlists', JSON.stringify(externalPlaylistStations));
+                localStorage.setItem('symphony_external_playlist_urls', JSON.stringify(externalPlaylistUrls));
+                const externalCount = document.getElementById('external-playlist-count');
+                if (externalCount) externalCount.textContent = externalPlaylistStations.length;
+                input.value = '';
+                status.textContent = `${normalized.length} kanal eklendi. Kayıtlı liste sayısı: ${externalPlaylistUrls.length}`;
+                if (activeSource === 'github') await fetchGitHubStations(); else await fetchStations();
+                showToast(`${normalized.length} kanal listene eklendi.`, 'success');
+            } catch (err) {
+                console.error('Harici kanal listesi yüklenemedi:', err);
+                status.textContent = 'Liste yüklenemedi. Bağlantının herkese açık ve CORS erişimine izin veriyor olduğundan emin olun.';
+                showToast('Kanal listesi okunamadı. URL veya sunucu CORS iznini kontrol edin.', 'error', 5000);
+            } finally {
+                addButton.disabled = false;
+            }
+        });
 
         document.getElementById('custom-save').addEventListener('click', () => {
             const name = document.getElementById('custom-name').value.trim();
@@ -2611,7 +2776,7 @@
             showToast('Özel radyo başarıyla eklendi!', 'success');
         });
 
-        // --- Favorites & Import/Export Backup ---
+        // --- Favoriler ve yedekleme / geri yükleme ---
         function toggleFav(e, uuid) {
             e.stopPropagation();
             let list = getActiveList();
@@ -2648,6 +2813,12 @@
         function updateFavCount() {
             favCountSpan.textContent = favorites.length;
         }
+
+        function updateExternalPlaylistCount() {
+            const count = document.getElementById('external-playlist-count');
+            if (count) count.textContent = externalPlaylistStations.length;
+        }
+        updateExternalPlaylistCount();
 
         function addToHistory(st) {
             history = history.filter(h => h.changeuuid !== st.changeuuid);
@@ -2694,7 +2865,7 @@
             showToast('Yedek JSON dosyası indirildi.', 'success');
         });
 
-        // --- Keyboard Shortcuts ---
+        // --- Klavye kısayolları ---
         function setupKeyboardShortcuts() {
             document.addEventListener('keydown', (e) => {
                 if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
