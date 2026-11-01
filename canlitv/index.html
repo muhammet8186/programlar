@@ -99,6 +99,7 @@
       #kategoriFiltreLisesi { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: thin; }
     }
     @media (max-width: 1023px) {
+      #sonIzlenenlerBolumu { scroll-margin-top: 76px; }
       #kanalPaneli { min-height: 320px; }
       #kanalIzgarasi { max-height: 55vh; }
     }
@@ -1234,17 +1235,25 @@
       lucide.createIcons();
     }
 
+    function mobilIzlemeBolumunuGoster() {
+      // Mobilde hedef, oynatıcının kendisi değil Son İzlenenler bölümüdür.
+      // Üst başlık sticky kaldığı için bu bölüm başlığın hemen altında görünür;
+      // oynatıcı da hemen arkasından gelir. Kanal listesi aşağıda kalır.
+      const sonIzlenenBolumu = document.getElementById('sonIzlenenlerBolumu');
+      if (!sonIzlenenBolumu) return;
+      sonIzlenenBolumu.style.scrollMarginTop = '76px';
+      requestAnimationFrame(() => {
+        sonIzlenenBolumu.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+
     function kanaliCal(kanal, kullaniciTiklamasi = true) {
       aktifKanal = kanal;
       aktifKaynakYedekMi = false;
       sonIzlenenEkle(kanal);
       if (kullaniciTiklamasi && window.matchMedia('(max-width: 1023px)').matches) {
-        // Kanal seçilince sayfanın en üstüne dön: başlık, Son İzlenenler
-        // ve hemen altındaki TV oynatıcı aynı akış içinde yeniden görünür.
-        // Kanal listesi gizlenmez; sayfanın aşağısında kalmaya devam eder.
-        setTimeout(() => {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }, 180);
+        // Yalnızca kullanıcı kanal seçtiğinde başlık + Son İzlenenler + oynatıcıya dön.
+        setTimeout(mobilIzlemeBolumunuGoster, 120);
       }
 
       videoOynaticiModunaDon();
