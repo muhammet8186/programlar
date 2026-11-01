@@ -1629,6 +1629,38 @@
                 -webkit-overflow-scrolling:touch !important;
             }
         }
+        /* Son düzenleme: iPad Safari dahil ayarlar içeriği için güvenilir kaydırma */
+        #settings-modal .settings-modal-card {
+            display:grid !important;
+            grid-template-rows:auto minmax(0,1fr) !important;
+            height:min(820px, calc(100dvh - 32px)) !important;
+            max-height:calc(100dvh - 32px) !important;
+            min-height:0 !important;
+            overflow:hidden !important;
+        }
+        #settings-modal .settings-modal-content {
+            display:block !important;
+            width:100% !important;
+            min-height:0 !important;
+            height:100% !important;
+            max-height:none !important;
+            overflow-y:auto !important;
+            overflow-x:hidden !important;
+            -webkit-overflow-scrolling:touch !important;
+            overscroll-behavior-y:contain !important;
+            touch-action:pan-y !important;
+            padding-bottom:calc(36px + env(safe-area-inset-bottom)) !important;
+            scrollbar-width:thin;
+        }
+        @media (max-width:640px) {
+            #settings-modal .settings-modal-card {
+                height:100dvh !important;
+                max-height:100dvh !important;
+            }
+            #settings-modal .settings-modal-content {
+                padding-bottom:calc(48px + env(safe-area-inset-bottom)) !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -2947,12 +2979,10 @@
             settingsModal.classList.add('show');
             document.documentElement.classList.add('settings-open');
             document.body.classList.add('settings-open');
-            // iPad Safari bazen yalnızca overflow:hidden ile arka sayfayı kilitlemez.
-            document.body.style.position = 'fixed';
-            document.body.style.top = `-${settingsSavedScrollY}px`;
-            document.body.style.left = '0';
-            document.body.style.right = '0';
-            document.body.style.width = '100%';
+            // iPad Safari'de body'yi fixed yapmak modalın kendi kaydırma alanını bozabilir.
+            // Arka planı overflow ile kilitleyip kaydırmayı yalnızca içerik alanında bırak.
+            document.documentElement.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden';
             requestAnimationFrame(() => {
                 const content = settingsModal.querySelector('.settings-modal-content');
                 if (content) content.scrollTop = 0;
@@ -2963,11 +2993,8 @@
             settingsModal.classList.remove('show');
             document.documentElement.classList.remove('settings-open');
             document.body.classList.remove('settings-open');
-            document.body.style.position = '';
-            document.body.style.top = '';
-            document.body.style.left = '';
-            document.body.style.right = '';
-            document.body.style.width = '';
+            document.documentElement.style.overflow = '';
+            document.body.style.overflow = '';
             window.scrollTo(0, settingsSavedScrollY);
         };
         // Kaydırma hareketi içerik alanı dışındaysa arka sayfaya aktarılmasını engelle.
