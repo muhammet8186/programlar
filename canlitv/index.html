@@ -239,6 +239,15 @@
 
 
     /* Mobil başlık: işlemler sağ kenara hizalı ve tek satırda */
+    @media (max-width: 1023px) {
+      header {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 50 !important;
+        flex: 0 0 64px !important;
+        height: 64px !important;
+      }
+    }
     @media (max-width: 640px) {
       header > div {
         display: grid !important;
@@ -1236,25 +1245,17 @@
     }
 
     function mobilIzlemeBolumunuGoster() {
-      // Mobilde hedef, oynatıcının kendisi değil Son İzlenenler bölümüdür.
-      // Üst başlık sticky kaldığı için bu bölüm başlığın hemen altında görünür;
-      // oynatıcı da hemen arkasından gelir. Kanal listesi aşağıda kalır.
-      const sonIzlenenBolumu = document.getElementById('sonIzlenenlerBolumu');
-      if (!sonIzlenenBolumu) return;
-      sonIzlenenBolumu.style.scrollMarginTop = '76px';
-      requestAnimationFrame(() => {
-        sonIzlenenBolumu.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
+      // Mobilde kanal seçildiğinde sayfa konumu değiştirilmez.
+      // Başlık üstte sabit kalır; Son İzlenenler ve oynatıcı mevcut
+      // sayfa düzeninde görünür olmaya devam eder.
+      return;
     }
 
     function kanaliCal(kanal, kullaniciTiklamasi = true) {
       aktifKanal = kanal;
       aktifKaynakYedekMi = false;
       sonIzlenenEkle(kanal);
-      if (kullaniciTiklamasi && window.matchMedia('(max-width: 1023px)').matches) {
-        // Yalnızca kullanıcı kanal seçtiğinde başlık + Son İzlenenler + oynatıcıya dön.
-        setTimeout(mobilIzlemeBolumunuGoster, 120);
-      }
+      // Kanal seçimi sayfayı kaydırmaz; mobil başlık sabit kalır.
 
       videoOynaticiModunaDon();
 
