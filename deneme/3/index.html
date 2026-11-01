@@ -233,6 +233,53 @@
       #kanalIzgarasi { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
     }
 
+
+    /* Mobilde kanal seçilince oynatıcıyı tek başına göster */
+    @media (max-width: 1023px) {
+      body.mobil-izleme-modu #kanalPaneli { display: none !important; }
+      body.mobil-izleme-modu #anaIcerikKapsayici { gap: 0 !important; }
+      body.mobil-izleme-modu #oynaticiKapsayici { width: 100% !important; }
+      body.mobil-izleme-modu #mobilKanallaraDonBtn { display: inline-flex !important; align-items: center; }
+    }
+
+
+    /* Mobil başlık: işlemler sağ kenara hizalı ve tek satırda */
+    @media (max-width: 640px) {
+      header > div {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) auto !important;
+        align-items: center !important;
+        gap: 6px !important;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+      }
+      header > div > :first-child { justify-self: start !important; min-width: 0; }
+      header > div > :nth-child(2) {
+        justify-self: end !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        flex-wrap: nowrap !important;
+        gap: 5px !important;
+        min-width: 0;
+      }
+      header > div > :nth-child(2) > button {
+        flex: 0 0 auto !important;
+        padding: 7px !important;
+        gap: 0 !important;
+      }
+      header > div > :nth-child(2) > div {
+        flex: 0 0 auto !important;
+        padding: 5px !important;
+        gap: 5px !important;
+      }
+      header > div > :nth-child(2) > div button {
+        width: 13px !important;
+        height: 13px !important;
+        flex: 0 0 13px !important;
+      }
+    }
+
 </style>
 </head>
 <body data-theme="red" class="h-full flex flex-col font-sans antialiased selection:bg-brand-600 selection:text-white transition-colors duration-300">
@@ -328,6 +375,7 @@
       </div>
 
       <div class="p-4 bg-slate-900 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <button id="mobilKanallaraDonBtn" type="button" onclick="mobilKanalListesineDon()" class="hidden lg:hidden px-3 py-2 bg-brand-600 text-white rounded-lg text-xs font-semibold">← Kanallara Dön</button>
         <div class="flex items-center gap-3">
           <div id="aktifKanalLogoKutusu" class="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden p-1 text-brand-500">
             <i data-lucide="tv" class="w-6 h-6"></i>
@@ -1195,6 +1243,12 @@
 
     function kanaliCal(kanal) {
       aktifKanal = kanal;
+      if (window.matchMedia('(max-width: 1023px)').matches) {
+        document.body.classList.add('mobil-izleme-modu');
+        setTimeout(() => {
+          document.getElementById('oynaticiKapsayici').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 80);
+      }
       aktifKaynakYedekMi = false;
       sonIzlenenEkle(kanal);
 
@@ -1223,6 +1277,13 @@
       const url = (aktifKaynakYedekMi && kanal.yedekYayinUrl) ? kanal.yedekYayinUrl : kanal.yayinUrl;
       yayinYukle(url, kanal.ad);
       kanallariCiz();
+    }
+
+    function mobilKanalListesineDon() {
+      document.body.classList.remove('mobil-izleme-modu');
+      setTimeout(() => {
+        document.getElementById('kanalPaneli').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 50);
     }
 
     function yayinYukle(yayinUrl, kanalAdi) {
