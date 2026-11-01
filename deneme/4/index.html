@@ -1,97 +1,612 @@
-<!doctype html>
-<html lang="tr">
+<!DOCTYPE html>
+<html lang="tr" class="dark">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101827">
-<title>PMR İnternet Telsizi</title>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<style>
-:root{color-scheme:dark;--bg:#0b1220;--panel:#141f30;--panel2:#0e1726;--line:#29384c;--muted:#9aabc0;--text:#f3f7fc;--green:#36d399;--amber:#f5b942;--red:#fb5e66;--blue:#5ea8ff}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#1b2b43 0,#0b1220 55%,#070c14 100%);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100dvh;padding:16px}.app{width:min(100%,980px);margin:0 auto}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 18px}.brand{display:flex;align-items:center;gap:12px}.logo{width:48px;height:48px;border-radius:16px;background:linear-gradient(145deg,#f5bd4e,#e66a28);display:grid;place-items:center;font-size:25px;box-shadow:0 8px 24px #0005}.brand h1{font-size:clamp(20px,4vw,28px);margin:0;letter-spacing:-.5px}.sub{color:var(--muted);font-size:12px}.pill{border:1px solid var(--line);border-radius:999px;padding:7px 11px;color:var(--muted);font-size:12px;display:flex;align-items:center;gap:7px}.dot{width:8px;height:8px;background:#64748b;border-radius:50%;display:inline-block}.dot.on{background:var(--green);box-shadow:0 0 10px #36d39988}.layout{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(260px,.75fr);gap:16px}.panel{background:linear-gradient(160deg,#172438f5,#101927f5);border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:0 16px 45px #0002}.panel h2{font-size:15px;margin:0 0 14px}.radio{display:flex;flex-direction:column;gap:15px}.channelrow{display:grid;grid-template-columns:1fr auto;gap:8px}.field{display:flex;flex-direction:column;gap:6px;min-width:0}.field label{font-size:12px;color:var(--muted)}input,select{width:100%;background:#0a1220;color:var(--text);border:1px solid #33445a;border-radius:11px;padding:12px;font:inherit;outline:none;min-width:0}input:focus,select:focus{border-color:var(--amber);box-shadow:0 0 0 3px #f5b94220}button{font:inherit;cursor:pointer;border:0;border-radius:11px;padding:11px 14px;font-weight:700;transition:transform .12s,filter .12s}button:active{transform:scale(.98)}button:disabled{opacity:.45;cursor:not-allowed}.primary{background:var(--amber);color:#241605}.secondary{background:#26364b;color:var(--text);border:1px solid #3a4c63}.danger{background:#5d222d;color:#ffdfe2;border:1px solid #8b3440}.lcd{border:1px solid #244a3d;background:linear-gradient(145deg,#071b18,#07110f);border-radius:15px;padding:16px;min-height:108px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}.lcd .channel{font:12px ui-monospace,monospace;color:#75c7a5}.lcd strong{font-size:clamp(22px,5vw,30px);letter-spacing:2px;color:#8ef2bc}.lcd small{color:#6b9f89;margin-top:4px}.leds{display:flex;gap:8px;align-items:center}.led{width:9px;height:9px;border-radius:50%;background:#455367}.led.tx{background:var(--red);box-shadow:0 0 12px #fb5e6680}.led.rx{background:var(--green);box-shadow:0 0 12px #36d39980}.pttwrap{display:flex;align-items:center;justify-content:center;padding:5px 0}.ptt{width:clamp(142px,36vw,190px);height:clamp(142px,36vw,190px);border-radius:50%;border:7px solid #722c35;background:radial-gradient(circle at 35% 25%,#ff767e,#d6283d 65%,#871d2b);color:white;box-shadow:0 12px 0 #451722,0 20px 35px #0005;display:flex;flex-direction:column;align-items:center;justify-content:center;user-select:none;touch-action:none}.ptt b{font-size:30px;letter-spacing:2px}.ptt span{font-size:10px;letter-spacing:1px}.ptt.transmitting{background:radial-gradient(circle at 35% 25%,#ffb2b6,#f43f5e 65%,#a20e2b);transform:translateY(5px);box-shadow:0 5px 0 #451722,0 12px 25px #0005}.help{text-align:center;color:var(--muted);font-size:12px}.stats{display:flex;gap:8px;flex-wrap:wrap}.stat{flex:1;min-width:95px;background:#0d1726;border:1px solid var(--line);padding:10px;border-radius:12px}.stat small{display:block;color:var(--muted);font-size:11px}.stat strong{font-size:16px}.side{display:flex;flex-direction:column;gap:16px}.users{display:flex;flex-direction:column;gap:8px;max-height:260px;overflow:auto}.user{display:flex;align-items:center;gap:10px;background:#0d1726;border:1px solid #26374c;border-radius:12px;padding:10px}.avatar{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:#253a52;color:#b9dcff;font-weight:800}.user-info{min-width:0;flex:1}.user-info strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}.user-info small{font-size:11px;color:var(--muted)}.userstate{font-size:10px;color:var(--green)}.empty{color:var(--muted);font-size:13px;text-align:center;padding:16px 8px}.settings{display:grid;grid-template-columns:1fr 1fr;gap:10px}.settings .wide{grid-column:1/-1}.toggleline{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px}.toggleline input{width:18px;height:18px;accent-color:var(--amber)}.hint{color:var(--muted);font-size:12px}.log{max-height:110px;overflow:auto;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px}.footer{text-align:center;color:#718198;font-size:11px;padding:18px 0 5px}.overlay{position:fixed;inset:0;background:#030712d9;display:flex;align-items:center;justify-content:center;padding:18px;z-index:5}.login{width:min(100%,390px);background:#152235;border:1px solid var(--line);border-radius:22px;padding:24px;box-shadow:0 24px 70px #0008}.login h2{margin:0 0 5px}.login p{margin:0 0 20px;color:var(--muted);font-size:13px}.login .field{margin-bottom:12px}.hidden{display:none!important}.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1c2a3d;border:1px solid #3a4c63;padding:10px 15px;border-radius:12px;box-shadow:0 8px 30px #0006;z-index:10;font-size:13px;max-width:90vw;text-align:center}.btnbar{display:flex;gap:8px}.btnbar button{flex:1}
-@media(max-width:720px){body{padding:12px}.layout{grid-template-columns:1fr}.panel{padding:15px;border-radius:18px}.top{align-items:flex-start}.pill{font-size:11px}.side{gap:12px}.users{max-height:180px}.pttwrap{padding:10px 0}.settings{grid-template-columns:1fr 1fr}}@media(max-width:360px){.settings{grid-template-columns:1fr}.settings .wide{grid-column:auto}.channelrow{grid-template-columns:1fr}.top{flex-direction:column}}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M3U Liste Kontrol ve Oynatıcı</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f172a',
+                        cardBg: '#1e293b',
+                        darkBorder: '#334155'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- HLS.js for HLS stream playback support -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    </style>
+</head>
+<body class="bg-darkBg text-slate-100 min-h-screen flex flex-col justify-between">
 
-/* El telsizi gövdesi görünümü */
-body{padding:22px 12px 30px;background:radial-gradient(ellipse at 50% 0%,#344252 0,#171e27 45%,#080b10 100%)}
-.app{width:min(100%,760px)}
-.top{justify-content:center;flex-direction:column;align-items:center;text-align:center;margin:8px 0 22px;gap:10px}
-.brand{justify-content:center}
-.logo{background:linear-gradient(145deg,#d8dde2,#68727d 52%,#303944);color:#10151c;border:2px solid #9099a2;border-radius:12px;box-shadow:inset 0 2px 3px #ffffff70,0 5px 12px #0008}
-.layout{display:flex;flex-direction:column;align-items:center;gap:18px}
-.radio{position:relative;width:min(100%,430px);padding:28px 20px 22px;margin:0 auto;border-radius:34px 34px 28px 28px;border:3px solid #68727c;background:linear-gradient(115deg,#555f69 0%,#313943 14%,#202730 48%,#3b444e 78%,#171d24 100%);box-shadow:inset 2px 2px 2px #ffffff40,inset -4px -5px 8px #0009,0 24px 45px #0009;gap:15px;overflow:visible}
-.radio:before{content:"";position:absolute;width:13px;height:94px;left:36px;top:-82px;border-radius:8px 8px 3px 3px;border:2px solid #343c45;background:linear-gradient(90deg,#111820,#5b6671 35%,#202730 75%,#080c11);box-shadow:2px 2px 5px #0009;transform:rotate(-5deg);z-index:-1}
-.radio:after{content:"PMR 446  •  DIGITAL RADIO";position:absolute;top:10px;left:0;right:0;text-align:center;font:800 9px/1 system-ui;letter-spacing:2px;color:#c3cbd2;text-shadow:0 1px 2px #000}
-.radio> .row:first-child{margin-top:3px}
-.radio h2{font-size:11px;letter-spacing:1.8px;color:#d6dde4}
-.lcd{border:4px solid #69737d;border-radius:9px;background:linear-gradient(145deg,#091c17,#06100e);box-shadow:inset 0 0 18px #000,0 2px 0 #121820;padding:15px;min-height:112px}
-.lcd .channel{font-size:11px;letter-spacing:1px}
-.lcd strong{font-family:ui-monospace,monospace;text-shadow:0 0 10px #56e6a0}
-.speaker-grille{height:60px;width:74%;align-self:center;border-radius:9px;background:repeating-linear-gradient(to bottom,#121820 0px,#121820 3px,#56606a 4px,#56606a 5px);border:2px solid #252d36;box-shadow:inset 0 2px 5px #000b,0 1px 0 #87909a55;margin:1px 0 3px;position:relative}
-.speaker-grille:after{content:"SPEAKER";position:absolute;bottom:-16px;left:0;right:0;text-align:center;font-size:8px;letter-spacing:2px;color:#aeb7c0}
-.channelrow{margin-top:8px;grid-template-columns:minmax(0,1fr) auto;gap:7px}.channelrow .field{min-width:0}.kickbtn{padding:6px 8px;font-size:11px;background:#5d222d;color:#ffdfe2;border:1px solid #8b3440}.queuebar{border:1px solid #66512b;background:#2a2417;color:#f5d38a;padding:9px 11px;border-radius:10px;font-size:12px;text-align:center}.queuebar strong{color:#fff0bf}
-.field label{color:#c1cad3}
-input,select{background:#10161e;border-color:#687480;border-radius:8px}
-.primary{background:linear-gradient(#f6c15b,#c98220);border:1px solid #f9d58b;color:#211708;box-shadow:0 2px 0 #714716}
-.pttwrap{padding:8px 0 5px}
-.ptt{width:clamp(145px,39vw,174px);height:clamp(145px,39vw,174px);border:8px solid #6f202a;background:radial-gradient(circle at 33% 23%,#ff7a82,#d52a3d 58%,#771522 100%);box-shadow:inset 0 3px 5px #ffffff55,0 7px 0 #171b20,0 12px 18px #0008;outline:2px solid #111820}
-.ptt b{font-size:31px;text-shadow:0 2px 3px #700}
-.help{color:#d2d8df}
-.stats{gap:7px}.stat{background:#171e26;border-color:#56616d;border-radius:9px}.stat small{color:#aeb8c2}.stat strong{font-size:14px}
-.btnbar button,.secondary{border-radius:8px}
-.side{width:min(100%,760px);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.side .panel{background:linear-gradient(145deg,#202a35,#131a22);border:1px solid #46515d;border-radius:16px;box-shadow:0 8px 20px #0004}
-.side .panel:last-child{grid-column:1/-1}
-.user{background:#121922;border-color:#34404d}
-@media(max-width:600px){body{padding:18px 10px 24px}.top{margin-top:12px}.radio{padding:28px 15px 20px;border-radius:29px 29px 24px 24px}.radio:before{left:27px}.side{grid-template-columns:1fr}.side .panel:last-child{grid-column:auto}.panel{padding:14px}.speaker-grille{height:52px;width:70%}}
-</style></head><body>
-<div class="overlay" id="loginOverlay"><form class="login" id="loginForm"><div class="brand" style="margin-bottom:18px"><div class="logo">📻</div><div><h1>PMR Telsiz</h1><div class="sub">İnternet üzerinden bas-konuş</div></div></div><h2>Kanal oluştur / katıl</h2><p>Yönetici yeni kanal açar; diğer kullanıcılar kanal şifresiyle katılır.</p><div class="field"><label for="roleInput">İşlem</label><select id="roleInput"><option value="join">Mevcut kanala katıl</option><option value="admin">Yeni kanal oluştur (Yönetici)</option></select></div><div class="field"><label for="usernameInput">Kullanıcı adı</label><input id="usernameInput" maxlength="24" autocomplete="nickname" placeholder="Örn. Ahmet" required></div><div class="field"><label for="loginRoomInput">Kanal / oda adı</label><input id="loginRoomInput" maxlength="32" value="telsiz-1" required></div><div class="field"><label for="roomPasswordInput">Kanal şifresi</label><input id="roomPasswordInput" type="password" minlength="4" maxlength="64" autocomplete="current-password" placeholder="Kanal şifresi" required></div><button class="primary" style="width:100%" type="submit">Telsize bağlan</button><p style="margin:14px 0 0;font-size:11px">Not: Bu tek dosyalı sürüm şifreyi bağlantı anahtarı oluşturmak için kullanır. Gerçek sunucu taraflı erişim denetimi ve yönetici kimliğini korumak için ayrıca güvenli bir sunucu gerekir.</p></form></div>
-<div class="app"><header class="top"><div class="brand"><div class="logo">📻</div><div><h1>PMR İnternet Telsizi</h1><div class="sub">Bas-konuş • Canlı ses • Kanal sistemi</div></div></div><div class="pill"><span class="dot" id="connectionDot"></span><span id="topStatus">Bağlantı bekleniyor</span></div></header>
-<div class="layout"><main class="panel radio"><div class="row" style="justify-content:space-between"><h2>RADYO KONTROLÜ</h2><div class="leds"><span class="led" id="ledTx" title="Gönderme"></span><span class="led" id="ledRx" title="Ses alınıyor"></span><span class="led rx" title="Güç"></span></div></div>
-<div class="lcd"><div class="channel">KANAL: <strong id="lcdChannel" style="font:inherit;color:#a5f3c8">telsiz-1</strong></div><strong id="lcdStatus">BEKLEMEDE</strong><small id="lcdDetail">Bağlantı kuruluyor</small></div>
-<div class="speaker-grille" aria-label="Telsiz hoparlör ızgarası"></div>
-<div class="channelrow"><div class="field"><label for="roomInput">Kanal / oda</label><input id="roomInput" value="telsiz-1" maxlength="32" autocomplete="off"></div><button class="primary" id="changeChannelBtn" style="align-self:end">Kanala geç</button><div class="field"><label for="channelPasswordInput">Yeni kanal şifresi</label><input id="channelPasswordInput" type="password" minlength="4" maxlength="64" placeholder="Kanal şifresi"></div><div class="field"><label for="channelRoleSelect">İşlem</label><select id="channelRoleSelect"><option value="join">Kanala katıl</option><option value="admin">Yeni kanal aç</option></select></div></div>
-<div class="queuebar" id="floorStatus">KONUŞMA SIRASI: BOŞ</div><div class="pttwrap"><button class="ptt" id="pttBtn" aria-label="Basılı tutarak konuş"><b>PTT</b><span>BASILI TUT • KONUŞ</span></button></div><div class="help" id="pttHelp">Konuşmak için düğmeye basılı tutun.</div>
-<div class="stats"><div class="stat"><small>Kanaldaki kullanıcı</small><strong id="userCount">0</strong></div><div class="stat"><small>Bağlantı durumu</small><strong id="connectionState">Bekliyor</strong></div><div class="stat"><small>Mikrofon</small><strong id="micState">Kapalı</strong></div></div>
-<div class="btnbar"><button class="secondary" id="muteBtn">🔇 Sesi aç</button><button class="secondary" id="reconnectBtn">↻ Yeniden bağlan</button></div></main>
-<aside class="side"><section class="panel"><h2>👥 KANALDAKİLER</h2><div class="hint" id="roomDescription" style="margin:-7px 0 12px">telsiz-1 kanalındaki kullanıcılar</div><div class="users" id="usersList"><div class="empty">Kullanıcı listesi bağlantıdan sonra görünür.</div></div></section>
-<section class="panel"><h2>⚙️ TELSİZ AYARLARI</h2><div class="settings"><div class="field"><label for="beepSelect">Bırakma sesi</label><select id="beepSelect"><option value="roger">Roger bip</option><option value="double">Çift bip</option><option value="none">Kapalı</option></select></div><div class="field"><label for="volumeSelect">Ses seviyesi</label><select id="volumeSelect"><option value="0.5">%50</option><option value="0.75">%75</option><option value="1" selected>%100</option></select></div><label class="toggleline wide"><span>Bağlantı sesi</span><input id="connectSound" type="checkbox" checked></label><label class="toggleline wide"><span>Gelen sesi sustur</span><input id="muteIncoming" type="checkbox"></label><button class="secondary wide" id="testBeepBtn">♪ Sesi dene</button></div><p class="hint" style="margin:12px 0 0">Mikrofon erişimi için HTTPS veya localhost ve tarayıcı izni gerekir.</p></section>
-<section class="panel"><h2>📡 BAĞLANTI GÜNLÜĞÜ</h2><div class="log" id="eventLog"><div>Program hazır.</div></div></section></aside></div><div class="footer">Ses aktarımı internet bağlantısına ve tarayıcı izinlerine bağlıdır. Kanal şifresi PeerJS bağlantı kimliğini türetir; sunucu taraflı kimlik doğrulama veya güçlü erişim denetimi değildir.</div></div><audio id="remoteAudio" autoplay playsinline></audio><div id="toast" class="toast hidden"></div>
-<script>
-(()=>{'use strict';
-const $=id=>document.getElementById(id);let username='',roomName='telsiz-1',roomPassword='',roomRole='join',channelKey='',peer=null,localStream=null,isHost=false,isTransmitting=false,retryTimer=null,retryCount=0,manualDisconnect=false,mutedIncoming=false,audioCtx=null;const calls=new Map(),remoteStreams=new Map(),mixers=new Map(),userMap=new Map(),dataPeers=new Map(),remotePlayers=new Map(),bannedNames=new Set();let talkQueue=[],currentSpeaker=null,currentSpeakerName='',floorGranted=false,requestingFloor=false,toastTimer=null;
-const cleanRoom=s=>(s||'telsiz-1').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'-').replace(/-+/g,'-').slice(0,32)||'telsiz-1';
-function log(msg){const el=$('eventLog'),line=document.createElement('div');line.textContent=new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' · '+msg;el.prepend(line);while(el.children.length>8)el.lastChild.remove()}
-function toast(msg){const t=$('toast');t.textContent=msg;t.classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.add('hidden'),3000)}
-function status(msg,good=false){$('topStatus').textContent=msg;$('connectionDot').classList.toggle('on',good);$('connectionState').textContent=good?'Bağlı':'Bekliyor';$('lcdDetail').textContent=msg}
-function ensureAudio(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx}catch(e){return null}}
-function beep(kind){if(kind==='none')return;const c=ensureAudio();if(!c)return;const freqs=kind==='double'?[880,1175]:[1200];freqs.forEach((f,i)=>{const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(.0001,c.currentTime+i*.16);g.gain.exponentialRampToValueAtTime(.12,c.currentTime+i*.16+.015);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+i*.16+.13);o.connect(g);g.connect(c.destination);o.start(c.currentTime+i*.16);o.stop(c.currentTime+i*.16+.14)})}
-function updateUserList(){const list=$('usersList');list.replaceChildren();const names=[{id:'self',name:username,host:isHost,online:true},...Array.from(userMap.values())];const seen=new Set();names.forEach(u=>{if(seen.has(u.id))return;seen.add(u.id);const row=document.createElement('div');row.className='user';const av=document.createElement('div');av.className='avatar';av.textContent=(u.name||'?').slice(0,1).toUpperCase();const info=document.createElement('div');info.className='user-info';const strong=document.createElement('strong');strong.textContent=u.name+(u.id==='self'?' (Sen)':'');const small=document.createElement('small');small.textContent=u.host?'Ana telsiz':(u.id==='self'?'Bu cihaz':'Bağlı kullanıcı');info.append(strong,small);const state=document.createElement('span');state.className='userstate';state.textContent=u.id==='self'?(isHost?'YÖNETİCİ':'ÇEVRİMİÇİ'):'ÇEVRİMİÇİ';row.append(av,info,state);if(isHost&&u.id!=='self'){const kick=document.createElement('button');kick.className='kickbtn';kick.textContent='Çıkar';kick.title='Kullanıcıyı bu kanal oturumundan çıkar';kick.addEventListener('click',()=>kickUser(u.id));row.append(kick)}list.append(row)});$('userCount').textContent=String(names.length);$('roomDescription').textContent=roomName+' kanalındaki kullanıcılar'}
-function updateFloorUI(){const who=currentSpeaker==='self'?username:(currentSpeakerName||userMap.get(currentSpeaker)?.name||currentSpeaker||'');$('floorStatus').innerHTML=currentSpeaker?('KONUŞMA SIRASI: <strong>'+escapeText(who)+'</strong>'):(talkQueue.length?'SIRADA: <strong>'+talkQueue.length+' kişi</strong>':'KONUŞMA SIRASI: BOŞ');$('pttHelp').textContent=requestingFloor?'Konuşma sırası bekleniyor…':(floorGranted?'Sıra sizde; konuşun':'Konuşmak için düğmeye basılı tutun.')}
-function escapeText(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function sendToHost(msg){const c=dataPeers.get(hostId());if(c&&c.open){try{c.send(msg)}catch(e){}}}
-function broadcast(msg){for(const c of dataPeers.values())if(c&&c.open){try{c.send(msg)}catch(e){}}}
-function pumpQueue(){if(!isHost||currentSpeaker)return;const next=talkQueue.shift();if(!next){updateFloorUI();return}currentSpeaker=next;if(next==='self'){floorGranted=true;localStream?.getAudioTracks().forEach(t=>t.enabled=true);$('lcdStatus').textContent='YAYINDA';$('ledTx').classList.add('tx')}else{const c=dataPeers.get(next);if(c&&c.open)c.send({type:'grant'})}broadcast({type:'floor',speaker:currentSpeaker,speakerName:currentSpeaker==='self'?username:(userMap.get(currentSpeaker)?.name||''),queue:talkQueue.slice()});updateFloorUI()}
-function requestFloor(){if(!localStream)return;if(isHost){if(currentSpeaker==='self')return;if(!talkQueue.includes('self'))talkQueue.push('self');pumpQueue()}else{if(!requestingFloor&&!floorGranted){requestingFloor=true;sendToHost({type:'request',name:username});updateFloorUI()}}}
-function releaseFloor(){if(isHost){if(currentSpeaker==='self'){localStream?.getAudioTracks().forEach(t=>t.enabled=false);floorGranted=false;currentSpeaker=null;$('ledTx').classList.remove('tx');if(isTransmitting)$('lcdStatus').textContent=remoteStreams.size?'SES ALINIYOR':'BEKLEMEDE';pumpQueue() }else{talkQueue=talkQueue.filter(id=>id!=='self')}}else if(requestingFloor||floorGranted){sendToHost({type:'release'});requestingFloor=false;floorGranted=false;localStream?.getAudioTracks().forEach(t=>t.enabled=false)}broadcast({type:'floor',speaker:currentSpeaker,speakerName:currentSpeaker==='self'?username:(userMap.get(currentSpeaker)?.name||''),queue:talkQueue.slice()});updateFloorUI()}
-function kickUser(id){if(!isHost)return;const name=userMap.get(id)?.name||'';if(name)bannedNames.add(name.toLowerCase());const c=dataPeers.get(id);if(c&&c.open){try{c.send({type:'kicked'})}catch(e){}try{c.close()}catch(e){}}dataPeers.delete(id);const call=calls.get(id);if(call){try{call.close()}catch(e){}}dropPeer(id);talkQueue=talkQueue.filter(x=>x!==id);if(currentSpeaker===id)currentSpeaker=null;broadcast({type:'floor',speaker:currentSpeaker,queue:talkQueue.slice()});log((name||'Kullanıcı')+' kanaldan çıkarıldı (bu yönetici oturumu için)');toast('Kullanıcı çıkarıldı. Bu engel sunucu taraflı kalıcı engel değildir.')}
+    <!-- Top Navigation Header -->
+    <header class="bg-cardBg border-b border-darkBorder sticky top-0 z-40 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 p-2.5 rounded-xl shadow-lg text-white">
+                    <i class="fa-solid fa-list-check text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight">M3U Liste Kontrol & Oynatıcı</h1>
+                    <p class="text-xs text-slate-400">Canlı yayın linklerini test edin ve tarayıcınızda oynatın</p>
+                </div>
+            </div>
 
-function createPeerId(){return 'pmr-'+channelKey+'-'+Math.random().toString(36).slice(2,10)}
-async function deriveChannelKey(room,password){const raw=room.toLowerCase().trim()+'|'+password;const bytes=new TextEncoder().encode(raw);const digest=await crypto.subtle.digest('SHA-256',bytes);return Array.from(new Uint8Array(digest)).slice(0,12).map(b=>b.toString(16).padStart(2,'0')).join('')}
+            <div class="flex items-center gap-3">
+                <button id="exportBtn" onclick="exportPlaylist()" class="hidden items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-md">
+                    <i class="fa-solid fa-download"></i> Listeyi İndir (.m3u)
+                </button>
+                <button onclick="openHelpModal()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 p-2.5 rounded-lg text-sm transition" title="Nasıl Kullanılır?">
+                    <i class="fa-solid fa-circle-question"></i>
+                </button>
+            </div>
+        </div>
+    </header>
 
-function teardown(){if(retryTimer){clearTimeout(retryTimer);retryTimer=null}for(const a of remotePlayers.values()){try{a.pause();a.srcObject=null}catch(e){}}remotePlayers.clear();for(const c of dataPeers.values()){try{c.close()}catch(e){}}dataPeers.clear();talkQueue=[];currentSpeaker=null;floorGranted=false;requestingFloor=false;for(const c of calls.values()){try{c.close()}catch(e){}}calls.clear();remoteStreams.clear();mixers.forEach(m=>{try{m.ctx.close()}catch(e){}});mixers.clear();userMap.clear();if(peer){try{peer.destroy()}catch(e){}peer=null} $('remoteAudio').srcObject=null;updateUserList()}
-function setHostOutputFor(id){const ctx=ensureAudio();if(!ctx||!localStream)return localStream;let mix=mixers.get(id);if(!mix){const dest=ctx.createMediaStreamDestination();mix={ctx,dest,inputs:new Map()};mixers.set(id,mix);const mic=ctx.createMediaStreamSource(localStream);mic.connect(dest);mix.inputs.set('mic',mic);for(const [otherId,stream] of remoteStreams){if(otherId!==id)addStreamToMix(mix,otherId,stream)}}return mix.dest.stream}
-function addStreamToMix(mix,id,stream){if(mix.inputs.has(id))return;try{const source=mix.ctx.createMediaStreamSource(stream);source.connect(mix.dest);mix.inputs.set(id,source)}catch(e){}}
-function updateMixersForIncoming(id,stream){for(const [target,mix] of mixers){if(target!==id)addStreamToMix(mix,id,stream)}}
-function attachCall(call,remoteId,remoteName){if(calls.has(remoteId)){try{calls.get(remoteId).close()}catch(e){}}calls.set(remoteId,call);if(remoteName)userMap.set(remoteId,{id:remoteId,name:remoteName,host:remoteId===hostId()});updateUserList();call.on('stream',stream=>{remoteStreams.set(remoteId,stream);updateMixersForIncoming(remoteId,stream);if(isHost){let player=remotePlayers.get(remoteId);if(!player){player=new Audio();player.autoplay=true;player.playsInline=true;remotePlayers.set(remoteId,player)}player.srcObject=stream;player.muted=mutedIncoming;player.volume=Number($('volumeSelect').value);player.play().catch(()=>{})}else{$('remoteAudio').srcObject=stream;$('remoteAudio').muted=mutedIncoming;$('remoteAudio').volume=Number($('volumeSelect').value);$('remoteAudio').play().catch(()=>{})}$('ledRx').classList.add('rx');$('lcdStatus').textContent=isTransmitting?'YAYINDA':'SES ALINIYOR';log((remoteName||'Bir kullanıcı')+' ses bağlantısı kuruldu');});call.on('close',()=>dropPeer(remoteId));call.on('error',()=>dropPeer(remoteId))}
-function dropPeer(id){calls.delete(id);remoteStreams.delete(id);userMap.delete(id);const player=remotePlayers.get(id);if(player){try{player.pause();player.srcObject=null}catch(e){}remotePlayers.delete(id)}const m=mixers.get(id);if(m){try{m.ctx.close()}catch(e){}mixers.delete(id)}for(const mix of mixers.values()){const source=mix.inputs.get(id);if(source){try{source.disconnect()}catch(e){}mix.inputs.delete(id)}}if(!$('remoteAudio').srcObject||!Array.from(remoteStreams.values()).includes($('remoteAudio').srcObject))$('remoteAudio').srcObject=remoteStreams.values().next().value||null;$('ledRx').classList.toggle('rx',remoteStreams.size>0);updateUserList();log('Bir kullanıcı bağlantıdan ayrıldı')}
-function hostId(){return 'pmr-'+channelKey+'-host'}
-function makeHost(){if(!peer||peer.destroyed)return;isHost=true;status('Kanal hazır · ana telsiz',true);$('lcdStatus').textContent='BEKLEMEDE';log('Kanal ana telsizi kuruldu');updateUserList();peer.on('connection',conn=>{conn.on('open',()=>{dataPeers.set(conn.peer,conn);const nm=(conn.metadata&&conn.metadata.name)||'Kullanıcı';userMap.set(conn.peer,{id:conn.peer,name:nm,host:false});updateUserList();conn.send({type:'hello',name:username});});conn.on('data',msg=>{if(!msg||typeof msg!=='object')return;const name=(userMap.get(conn.peer)?.name||'').toLowerCase();if(msg.type==='request'){if(bannedNames.has(name)){conn.send({type:'kicked'});return}if(currentSpeaker!==conn.peer&&!talkQueue.includes(conn.peer))talkQueue.push(conn.peer);pumpQueue();broadcast({type:'floor',speaker:currentSpeaker,speakerName:currentSpeaker==='self'?username:(userMap.get(currentSpeaker)?.name||''),queue:talkQueue.slice()});updateFloorUI()}else if(msg.type==='release'){talkQueue=talkQueue.filter(x=>x!==conn.peer);if(currentSpeaker===conn.peer){currentSpeaker=null;pumpQueue()}broadcast({type:'floor',speaker:currentSpeaker,speakerName:currentSpeaker==='self'?username:(userMap.get(currentSpeaker)?.name||''),queue:talkQueue.slice()});updateFloorUI()}});conn.on('close',()=>{dataPeers.delete(conn.peer);dropPeer(conn.peer);talkQueue=talkQueue.filter(x=>x!==conn.peer);if(currentSpeaker===conn.peer){currentSpeaker=null;pumpQueue()}broadcast({type:'floor',speaker:currentSpeaker,queue:talkQueue.slice()})})});peer.on('call',call=>{const remoteId=call.peer;const remoteName=(call.metadata&&call.metadata.name)||('Kullanıcı '+remoteId.slice(-4));if(bannedNames.has(remoteName.toLowerCase())){try{call.close()}catch(e){}return}if(calls.has(remoteId)){try{call.close()}catch(e){}return}const outgoing=setHostOutputFor(remoteId);try{call.answer(outgoing)}catch(e){call.answer(localStream)}attachCall(call,remoteId,remoteName);});}
-function joinHost(){if(!peer||peer.destroyed)return;isHost=false;status('Ana telsize bağlanılıyor…');const conn=peer.connect(hostId(),{metadata:{name:username,room:roomName}, reliable:true});dataPeers.set(hostId(),conn);conn.on('open',()=>{conn.send({type:'hello',name:username});status('Ana telsize bağlı · sıra bekleniyor',true)});conn.on('data',msg=>{if(!msg||typeof msg!=='object')return;if(msg.type==='grant'){requestingFloor=false;floorGranted=true;localStream?.getAudioTracks().forEach(t=>t.enabled=true);$('lcdStatus').textContent='YAYINDA';$('ledTx').classList.add('tx');updateFloorUI()}else if(msg.type==='floor'){currentSpeaker=msg.speaker;currentSpeakerName=msg.speakerName||'';talkQueue=Array.isArray(msg.queue)?msg.queue:[];updateFloorUI()}else if(msg.type==='kicked'){manualDisconnect=true;stopTransmission();status('Yönetici sizi kanaldan çıkardı');toast('Bu kanaldan çıkarıldınız.');teardown()}else if(msg.type==='hello'){status('Kanala bağlı',true)}});conn.on('close',()=>{if(!manualDisconnect){status('Kanal bağlantısı kesildi');scheduleReconnect()}});const call=peer.call(hostId(),localStream,{metadata:{name:username,room:roomName}});if(call)attachCall(call,hostId(),'Ana telsiz');}
+    <!-- Main Workspace -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-async function connectRoom(){manualDisconnect=false;teardown();if($('channelPasswordInput')&&$('channelPasswordInput').value.length>=4)roomPassword=$('channelPasswordInput').value;if($('channelRoleSelect'))roomRole=$('channelRoleSelect').value;roomName=cleanRoom($('roomInput').value||$('loginRoomInput').value);$('roomInput').value=roomName;$('loginRoomInput').value=roomName;$('lcdChannel').textContent=roomName;$('lcdStatus').textContent='BAĞLANIYOR';status('Kanala bağlanılıyor…');if(!localStream){status('Mikrofon izni gerekli');return}if(!window.Peer){status('PeerJS yüklenemedi');toast('İnternet bağlantınızı kontrol edin.');return}try{channelKey=await deriveChannelKey(roomName,roomPassword)}catch(e){status('Güvenli anahtar üretilemedi');toast('Bu tarayıcı şifreleme özelliğini desteklemiyor.');return}if(manualDisconnect)return;let opened=false;const cfg={debug:0,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}};if(roomRole==='admin'){peer=new Peer(hostId(),cfg);peer.on('open',()=>{opened=true;retryCount=0;makeHost();if($('connectSound').checked)beep('roger')});peer.on('error',err=>{log('Yönetici bağlantı hatası: '+err.type);status(err.type==='unavailable-id'?'Bu kanalda yönetici zaten var':'Bağlantı hatası');if(['network','server-error','socket-error','disconnected'].includes(err.type))scheduleReconnect()})}else{peer=new Peer(createPeerId(),cfg);peer.on('open',()=>{opened=true;retryCount=0;isHost=false;status('Kanala katılma deneniyor…');joinHost();if($('connectSound').checked)beep('roger');setTimeout(()=>{if(!isHost&&remoteStreams.size===0&&!manualDisconnect){status('Yönetici bekleniyor veya şifre/kanal yanlış');log('Henüz ana telsizden ses bağlantısı yok')}} ,5000)});peer.on('call',call=>{try{call.answer(localStream)}catch(e){}attachCall(call,call.peer,'Kanal yöneticisi')});peer.on('error',err=>{log('Katılma hatası: '+err.type);status('Bağlantı hatası');if(['network','server-error','socket-error','disconnected'].includes(err.type))scheduleReconnect()})}peer.on('disconnected',()=>{status('Sinyal sunucusu bağlantısı koptu');scheduleReconnect()});peer.on('close',()=>{if(!manualDisconnect)scheduleReconnect()})}
-function scheduleReconnect(){if(manualDisconnect||retryTimer)return;retryCount++;const wait=Math.min(15000,1000*Math.pow(2,Math.min(retryCount,4)));status('Yeniden bağlanılıyor…');log(Math.ceil(wait/1000)+' sn sonra yeniden bağlanma denenecek');retryTimer=setTimeout(()=>{retryTimer=null;connectRoom()},wait)}
-async function startMic(){try{localStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});localStream.getAudioTracks().forEach(t=>t.enabled=false);$('micState').textContent='Hazır';$('micState').style.color='var(--green)';log('Mikrofon hazır');connectRoom()}catch(e){status('Mikrofon izni verilmedi');$('micState').textContent='İzin gerekli';toast('Mikrofon için izin verin ve HTTPS üzerinden açın.');log('Mikrofon hatası: '+e.name)}}
-function startTransmission(){ensureAudio();if(!localStream){toast('Önce mikrofon izni gerekli');return}if(isTransmitting)return;isTransmitting=true;requestFloor();$('pttBtn').classList.add('transmitting');$('micState').textContent='Sıra bekleniyor';}
-function stopTransmission(){if(!isTransmitting)return;isTransmitting=false;releaseFloor();if(localStream&&!floorGranted)localStream.getAudioTracks().forEach(t=>t.enabled=false);$('pttBtn').classList.remove('transmitting');$('ledTx').classList.remove('tx');$('lcdStatus').textContent=remoteStreams.size?'SES ALINIYOR':'BEKLEMEDE';$('micState').textContent='Hazır';beep($('beepSelect').value);updateFloorUI()}
-$('loginForm').addEventListener('submit',async e=>{e.preventDefault();username=$('usernameInput').value.trim().slice(0,24);roomPassword=$('roomPasswordInput').value;roomRole=$('roleInput').value;if(!username){toast('Bir kullanıcı adı girin.');return}if(roomPassword.length<4){toast('Kanal şifresi en az 4 karakter olmalı.');return}roomName=cleanRoom($('loginRoomInput').value);$('roomInput').value=roomName;$('channelPasswordInput').value=roomPassword;$('channelRoleSelect').value=roomRole;$('loginOverlay').classList.add('hidden');updateUserList();startMic()});$('changeChannelBtn').addEventListener('click',()=>{const val=$('roomInput').value.trim();if(!val){toast('Kanal adı girin.');return}stopTransmission();roomName=cleanRoom(val);$('loginRoomInput').value=roomName;connectRoom()});$('reconnectBtn').addEventListener('click',()=>{retryCount=0;connectRoom()});$('pttBtn').addEventListener('pointerdown',e=>{e.preventDefault();try{$('pttBtn').setPointerCapture(e.pointerId)}catch(_){}startTransmission()});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>$('pttBtn').addEventListener(ev,stopTransmission));window.addEventListener('blur',stopTransmission);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopTransmission()});$('muteBtn').addEventListener('click',()=>{mutedIncoming=!mutedIncoming;$('remoteAudio').muted=mutedIncoming;for(const a of remotePlayers.values())a.muted=mutedIncoming;$('muteBtn').textContent=mutedIncoming?'🔊 Sesi aç':'🔇 Sesi sustur';$('muteIncoming').checked=mutedIncoming});$('muteIncoming').addEventListener('change',e=>{mutedIncoming=e.target.checked;$('remoteAudio').muted=mutedIncoming;for(const a of remotePlayers.values())a.muted=mutedIncoming;$('muteBtn').textContent=mutedIncoming?'🔊 Sesi aç':'🔇 Sesi sustur'});$('volumeSelect').addEventListener('change',e=>{$('remoteAudio').volume=Number(e.target.value);for(const a of remotePlayers.values())a.volume=Number(e.target.value)});$('testBeepBtn').addEventListener('click',()=>beep($('beepSelect').value==='none'?'roger':$('beepSelect').value));window.addEventListener('online',()=>{if(peer&&peer.disconnected){try{peer.reconnect()}catch(e){scheduleReconnect()}}});window.addEventListener('offline',()=>{status('İnternet bağlantısı yok');scheduleReconnect()});window.addEventListener('beforeunload',()=>{manualDisconnect=true;stopTransmission();teardown()});
-// Pre-fill from last non-sensitive preferences only; identity is not authentication.
-try{$('usernameInput').value=localStorage.getItem('pmr-display-name')||'';$('usernameInput').addEventListener('change',()=>localStorage.setItem('pmr-display-name',$('usernameInput').value.trim().slice(0,24)));$('beepSelect').value=localStorage.getItem('pmr-beep')||'roger';$('volumeSelect').value=localStorage.getItem('pmr-volume')||'1';$('connectSound').checked=localStorage.getItem('pmr-connect-sound')!=='false';$('beepSelect').addEventListener('change',()=>localStorage.setItem('pmr-beep',$('beepSelect').value));$('volumeSelect').addEventListener('change',()=>localStorage.setItem('pmr-volume',$('volumeSelect').value));$('connectSound').addEventListener('change',()=>localStorage.setItem('pmr-connect-sound',String($('connectSound').checked)))}catch(e){}
-})();
-</script></body></html>
+        <!-- Left 1 Column: Importer & Statistics & Player -->
+        <div class="lg:col-span-1 space-y-6">
+
+            <!-- Upload Card -->
+            <div class="bg-cardBg border border-darkBorder rounded-2xl p-5 shadow-xl">
+                <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-file-arrow-up text-indigo-400"></i> M3U Kaynağı Ekle
+                </h2>
+
+                <div class="space-y-4">
+                    <!-- File Drag & Drop Area -->
+                    <div id="dropZone" class="border-2 border-dashed border-darkBorder hover:border-indigo-500 rounded-xl p-6 text-center cursor-pointer transition bg-slate-900/40 relative">
+                        <input type="file" id="m3uFileInput" accept=".m3u,.m3u8" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+                        <i class="fa-solid fa-cloud-arrow-up text-3xl text-indigo-400 mb-2"></i>
+                        <p class="text-sm font-medium text-slate-200">M3U dosyasını sürükleyin veya seçin</p>
+                        <p class="text-xs text-slate-400 mt-1">.m3u veya .m3u8 uzantılı dosya</p>
+                    </div>
+
+                    <div class="relative flex py-1 items-center">
+                        <div class="flex-grow border-t border-darkBorder"></div>
+                        <span class="flex-shrink mx-4 text-xs text-slate-500 uppercase">Yada Metin Yapıştır</span>
+                        <div class="flex-grow border-t border-darkBorder"></div>
+                    </div>
+
+                    <!-- Text Area Input -->
+                    <div>
+                        <textarea id="m3uTextInput" rows="4" placeholder="#EXTM3U&#10;#EXTINF:-1 group-title=&quot;Spor&quot;,Kanal Adı&#10;http://ornek.com/stream.m3u8" class="w-full bg-slate-900 border border-darkBorder rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 custom-scrollbar"></textarea>
+                    </div>
+
+                    <button onclick="loadFromText()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl text-sm font-medium transition shadow-lg flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-play"></i> Listeyi İşle ve Yükle
+                    </button>
+                </div>
+            </div>
+
+            <!-- Statistics & Controls Card -->
+            <div id="statsCard" class="bg-cardBg border border-darkBorder rounded-2xl p-5 shadow-xl hidden">
+                <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-indigo-400"></i> Durum ve İstatistikler
+                </h2>
+
+                <div class="grid grid-cols-3 gap-3 mb-4 text-center">
+                    <div class="bg-slate-900/60 p-3 rounded-xl border border-darkBorder">
+                        <span class="block text-xs text-slate-400">Toplam</span>
+                        <span id="statTotal" class="text-lg font-bold text-slate-100">0</span>
+                    </div>
+                    <div class="bg-emerald-950/30 p-3 rounded-xl border border-emerald-900/50">
+                        <span class="block text-xs text-emerald-400">Çalışan</span>
+                        <span id="statWorking" class="text-lg font-bold text-emerald-400">0</span>
+                    </div>
+                    <div class="bg-rose-950/30 p-3 rounded-xl border border-rose-900/50">
+                        <span class="block text-xs text-rose-400">Çalışmayan</span>
+                        <span id="statDead" class="text-lg font-bold text-rose-400">0</span>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="mb-4">
+                    <div class="flex justify-between text-xs text-slate-400 mb-1">
+                        <span id="progressText">Tarama Durumu: Hazır</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-darkBorder">
+                        <div id="progressBar" class="bg-indigo-600 h-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Control Buttons -->
+                <div class="flex gap-2">
+                    <button id="startCheckBtn" onclick="startCheckingStreams()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-sm font-medium transition shadow-md flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-bolt"></i> Linkleri Test Et
+                    </button>
+                    <button id="stopCheckBtn" onclick="stopCheckingStreams()" class="hidden flex-1 bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-sm font-medium transition shadow-md flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-stop"></i> Testi Durdur
+                    </button>
+                </div>
+            </div>
+
+            <!-- Video Player Card -->
+            <div class="bg-cardBg border border-darkBorder rounded-2xl p-5 shadow-xl">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-tv text-indigo-400"></i> Oynatıcı
+                    </h2>
+                    <span id="currentPlayingName" class="text-xs text-indigo-300 font-medium truncate max-w-[180px]">Kanal seçilmedi</span>
+                </div>
+                <div class="relative bg-black rounded-xl overflow-hidden aspect-video border border-darkBorder flex items-center justify-center">
+                    <video id="videoPlayer" controls class="w-full h-full object-contain"></video>
+                    <div id="playerPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 bg-slate-950/80">
+                        <i class="fa-solid fa-circle-play text-4xl mb-2 text-indigo-500/60"></i>
+                        <p class="text-xs">İzlemek için listeden bir kanala tıklayın</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right 2 Columns: Channel List & Filtering -->
+        <div class="lg:col-span-2 flex flex-col bg-cardBg border border-darkBorder rounded-2xl shadow-xl overflow-hidden h-[750px]">
+            
+            <!-- Toolbar & Search -->
+            <div class="p-4 border-b border-darkBorder flex flex-wrap items-center justify-between gap-3 bg-slate-900/40">
+                <div class="flex items-center gap-2 flex-grow max-w-sm">
+                    <div class="relative w-full">
+                        <i class="fa-solid fa-search absolute left-3 top-3 text-slate-500 text-xs"></i>
+                        <input type="text" id="searchInput" oninput="filterChannels()" placeholder="Kanal veya kategori ara..." class="w-full bg-slate-900 border border-darkBorder rounded-xl pl-9 pr-4 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <!-- Filter Tabs -->
+                <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-darkBorder">
+                    <button onclick="setFilter('all')" id="filterBtnAll" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white transition">Tümü</button>
+                    <button onclick="setFilter('working')" id="filterBtnWorking" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition">Çalışanlar</button>
+                    <button onclick="setFilter('dead')" id="filterBtnDead" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition">Çalışmayanlar</button>
+                    <button onclick="setFilter('unchecked')" id="filterBtnUnchecked" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition">Test Edilmemiş</button>
+                </div>
+            </div>
+
+            <!-- Table Header -->
+            <div class="grid grid-cols-12 bg-slate-900/80 px-4 py-3 border-b border-darkBorder text-xs font-semibold text-slate-400">
+                <div class="col-span-1 text-center">#</div>
+                <div class="col-span-6">Kanal Adı & Kategori</div>
+                <div class="col-span-3 text-center">Durum</div>
+                <div class="col-span-2 text-right">İşlem</div>
+            </div>
+
+            <!-- Channels Container -->
+            <div id="channelsContainer" class="flex-grow overflow-y-auto custom-scrollbar divide-y divide-darkBorder">
+                <div class="flex flex-col items-center justify-center h-full text-slate-500 p-8 text-center">
+                    <i class="fa-solid fa-folder-open text-4xl mb-3 text-slate-600"></i>
+                    <p class="text-sm font-medium text-slate-400">Henüz M3U listesi yüklenmedi</p>
+                    <p class="text-xs text-slate-500 mt-1">Sol panelden bir dosya yükleyin veya metin yapıştırın.</p>
+                </div>
+            </div>
+
+            <!-- Footer Pagination / Info -->
+            <div class="p-3 border-t border-darkBorder bg-slate-900/40 text-xs text-slate-400 flex justify-between items-center">
+                <span id="listCountInfo">Gösterilen: 0 / 0 kanal</span>
+                <span id="activeGroupInfo">Tüm Kategoriler</span>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-cardBg border border-darkBorder rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+            <button onclick="closeHelpModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <h3 class="text-base font-bold text-slate-100 mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-circle-question text-indigo-400"></i> Nasıl Kullanılır?
+            </h3>
+            <div class="space-y-3 text-xs text-slate-300 leading-relaxed">
+                <p><strong>1. M3U Yükleme:</strong> Bilgisayarınızdan bir M3U dosyası seçin ya da IPTV sağlayıcınızdan aldığınız m3u metnini ilgili alana yapıştırıp "Listeyi İşle ve Yükle" butonuna basın.</p>
+                <p><strong>2. Test Etme:</strong> Listeye yüklendikten sonra sol alttaki <strong>"Linkleri Test Et"</strong> butonuna basarak tüm kanalların aktif olup olmadığını asenkron olarak kontrol edebilirsiniz.</p>
+                <p><strong>3. Filtreleme & Arama:</strong> Sağ üstteki arama çubuğunu kullanarak kanal ismine göre arama yapabilir veya sekmeler yardımıyla çalışan/çalışmayan kanalları filtreleyebilirsiniz.</p>
+                <p><strong>4. İzleme & İndirme:</strong> Çalışan bir kanala tıklayarak sol alttaki oynatıcıda canlı olarak izleyebilir, sağ üstteki <strong>"Listeyi İndir"</strong> butonuyla sadece çalışan (veya filtrelediğiniz) listeyi yeni bir M3U dosyası olarak kaydedebilirsiniz.</p>
+            </div>
+            <div class="mt-6 text-right">
+                <button onclick="closeHelpModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-medium transition">Anladım</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-800 border border-darkBorder text-slate-200 px-4 py-3 rounded-xl shadow-2xl z-50 flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300">
+        <i id="toastIcon" class="fa-solid fa-info-circle text-indigo-400 text-base"></i>
+        <span id="toastMessage" class="text-xs font-medium">Bilgi mesajı</span>
+    </div>
+
+    <!-- Application JavaScript Logic -->
+    <script>
+        let channels = [];
+        let currentFilter = 'all';
+        let isChecking = false;
+        let checkAbortController = null;
+        let hlsPlayer = null;
+
+        // File Drag & Drop Handlers
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('m3uFileInput');
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    parseM3UContent(evt.target.result);
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        function loadFromText() {
+            const text = document.getElementById('m3uTextInput').value.trim();
+            if (!text) {
+                showToast('Lütfen geçerli bir M3U metni girin veya dosya yükleyin.', 'error');
+                return;
+            }
+            parseM3UContent(text);
+        }
+
+        // M3U Parser Engine
+        function parseM3UContent(content) {
+            const lines = content.split(/\r?\n/);
+            let parsed = [];
+            let currentChannel = {
+                name: 'İsimsiz Kanal',
+                group: 'Genel',
+                logo: '',
+                url: '',
+                status: 'unchecked', // unchecked, working, dead
+                pingTime: null
+            };
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (line.startsWith('#EXTINF:')) {
+                    // Parse attributes
+                    let tvgLogoMatch = line.match(/tvg-logo="([^"]*)"/);
+                    let groupMatch = line.match(/group-title="([^"]*)"/);
+                    
+                    if (tvgLogoMatch) currentChannel.logo = tvgLogoMatch[1];
+                    if (groupMatch) currentChannel.group = groupMatch[1];
+
+                    // Channel Name is typically after the last comma
+                    let commaIdx = line.lastIndexOf(',');
+                    if (commaIdx !== -1) {
+                        currentChannel.name = line.substring(commaIdx + 1).trim();
+                    }
+                } else if (line && !line.startsWith('#')) {
+                    currentChannel.url = line;
+                    parsed.push({ ...currentChannel });
+                    // Reset
+                    currentChannel = {
+                        name: 'İsimsiz Kanal',
+                        group: 'Genel',
+                        logo: '',
+                        url: '',
+                        status: 'unchecked',
+                        pingTime: null
+                    };
+                }
+            }
+
+            if (parsed.length === 0) {
+                showToast('Geçerli M3U kanalı bulunamadı. Lütfen formatı kontrol edin.', 'error');
+                return;
+            }
+
+            channels = parsed;
+            document.getElementById('statsCard').classList.remove('hidden');
+            document.getElementById('exportBtn').classList.remove('hidden');
+            updateStats();
+            renderChannels();
+            showToast(`${channels.length} kanal başarıyla yüklendi!`, 'success');
+        }
+
+        // Render Channel Table
+        function renderChannels() {
+            const container = document.getElementById('channelsContainer');
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+
+            let filtered = channels.filter(ch => {
+                let matchesSearch = ch.name.toLowerCase().includes(searchQuery) || ch.group.toLowerCase().includes(searchQuery);
+                if (!matchesSearch) return false;
+
+                if (currentFilter === 'working') return ch.status === 'working';
+                if (currentFilter === 'dead') return ch.status === 'dead';
+                if (currentFilter === 'unchecked') return ch.status === 'unchecked';
+                return true;
+            });
+
+            document.getElementById('listCountInfo').innerText = `Gösterilen: ${filtered.length} / ${channels.length} kanal`;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-slate-500 p-8 text-center">
+                        <i class="fa-solid fa-filter-circle-xmark text-3xl mb-2 text-slate-600"></i>
+                        <p class="text-xs text-slate-400">Bu filtreye uygun kanal bulunamadı.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            filtered.forEach((ch, idx) => {
+                let originalIndex = channels.indexOf(ch);
+                let statusBadge = '';
+                if (ch.status === 'working') {
+                    statusBadge = `<span class="bg-emerald-950/60 text-emerald-400 border border-emerald-800/50 px-2.5 py-1 rounded-full text-[10px] font-medium flex items-center gap-1 w-fit mx-auto"><i class="fa-solid fa-circle-check"></i> Çalışıyor (${ch.pingTime}ms)</span>`;
+                } else if (ch.status === 'dead') {
+                    statusBadge = `<span class="bg-rose-950/60 text-rose-400 border border-rose-800/50 px-2.5 py-1 rounded-full text-[10px] font-medium flex items-center gap-1 w-fit mx-auto"><i class="fa-solid fa-circle-xmark"></i> Çalışmıyor</span>`;
+                } else if (ch.status === 'checking') {
+                    statusBadge = `<span class="bg-amber-950/60 text-amber-400 border border-amber-800/50 px-2.5 py-1 rounded-full text-[10px] font-medium flex items-center gap-1 w-fit mx-auto animate-pulse"><i class="fa-solid fa-spinner fa-spin"></i> Test ediliyor</span>`;
+                } else {
+                    statusBadge = `<span class="bg-slate-800 text-slate-400 border border-darkBorder px-2.5 py-1 rounded-full text-[10px] font-medium flex items-center gap-1 w-fit mx-auto">Test Edilmedi</span>`;
+                }
+
+                html += `
+                    <div class="grid grid-cols-12 px-4 py-3 items-center hover:bg-slate-900/60 transition text-xs">
+                        <div class="col-span-1 text-center text-slate-500 font-mono">${originalIndex + 1}</div>
+                        <div class="col-span-6 flex items-center gap-3 pr-2">
+                            <div class="w-8 h-8 rounded-lg bg-slate-800 border border-darkBorder flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                ${ch.logo ? `<img src="${ch.logo}" onerror="this.onerror=null; this.src='https://placehold.co/32x32/1e293b/64748b?text=TV'" class="w-full h-full object-cover">` : '<i class="fa-solid fa-tv text-slate-500 text-xs"></i>'}
+                            </div>
+                            <div class="truncate">
+                                <p class="font-medium text-slate-200 truncate" title="${escapeHtml(ch.name)}">${escapeHtml(ch.name)}</p>
+                                <p class="text-[10px] text-slate-400 truncate">${escapeHtml(ch.group)}</p>
+                            </div>
+                        </div>
+                        <div class="col-span-3 text-center">
+                            ${statusBadge}
+                        </div>
+                        <div class="col-span-2 flex items-center justify-end gap-1.5">
+                            <button onclick="playStream('${escapeQuotes(ch.url)}', '${escapeQuotes(ch.name)}')" class="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-lg transition shadow-sm" title="Oynat">
+                                <i class="fa-solid fa-play text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Asynchronous Stream Testing
+        async function startCheckingStreams() {
+            if (isChecking) return;
+            isChecking = true;
+            document.getElementById('startCheckBtn').classList.add('hidden');
+            document.getElementById('stopCheckBtn').classList.remove('hidden');
+
+            checkAbortController = new AbortController();
+            let checkedCount = 0;
+            let total = channels.length;
+
+            for (let i = 0; i < channels.length; i++) {
+                if (!isChecking) break;
+                
+                channels[i].status = 'checking';
+                renderChannels();
+
+                let startTime = performance.now();
+                let isWorking = false;
+
+                try {
+                    // Try fetch check with HEAD or GET timeout
+                    let response = await fetch(channels[i].url, {
+                        method: 'GET',
+                        mode: 'no-cors',
+                        signal: AbortSignal.timeout(4000) // 4 second timeout
+                    });
+                    let endTime = performance.now();
+                    isWorking = true;
+                    channels[i].status = 'working';
+                    channels[i].pingTime = Math.round(endTime - startTime);
+                } catch (err) {
+                    // Fallback test via HTML5 video element probe for streaming formats (.m3u8, .ts)
+                    isWorking = await testStreamWithVideo(channels[i].url);
+                    channels[i].status = isWorking ? 'working' : 'dead';
+                    channels[i].pingTime = isWorking ? 150 : null;
+                }
+
+                checkedCount++;
+                updateStats();
+                renderChannels();
+
+                // Update Progress
+                let percent = Math.round((checkedCount / total) * 100);
+                document.getElementById('progressBar').style.width = `${percent}%`;
+                document.getElementById('progressPercent').innerText = `${percent}%`;
+                document.getElementById('progressText').innerText = `Test Ediliyor: ${checkedCount}/${total}`;
+            }
+
+            stopCheckingStreams();
+            showToast('Kanal taraması tamamlandı!', 'success');
+        }
+
+        function stopCheckingStreams() {
+            isChecking = false;
+            document.getElementById('startCheckBtn').classList.remove('hidden');
+            document.getElementById('stopCheckBtn').classList.add('hidden');
+            document.getElementById('progressText').innerText = 'Tarama Durduruldu / Tamamlandı';
+        }
+
+        // Helper video test probe
+        function testStreamWithVideo(url) {
+            return new Promise((resolve) => {
+                const videoTest = document.createElement('video');
+                videoTest.preload = 'metadata';
+                let resolved = false;
+
+                const timer = setTimeout(() => {
+                    if (!resolved) {
+                        resolved = true;
+                        videoTest.src = '';
+                        resolve(false);
+                    }
+                }, 3500);
+
+                videoTest.onloadedmetadata = () => {
+                    if (!resolved) {
+                        resolved = true;
+                        clearTimeout(timer);
+                        videoTest.src = '';
+                        resolve(true);
+                    }
+                };
+
+                videoTest.onerror = () => {
+                    if (!resolved) {
+                        resolved = true;
+                        clearTimeout(timer);
+                        videoTest.src = '';
+                        resolve(false);
+                    }
+                };
+
+                videoTest.src = url;
+            });
+        }
+
+        // Play Stream Functionality
+        function playStream(url, name) {
+            const video = document.getElementById('videoPlayer');
+            const placeholder = document.getElementById('playerPlaceholder');
+            document.getElementById('currentPlayingName').innerText = name;
+            placeholder.classList.add('hidden');
+
+            if (hlsPlayer) {
+                hlsPlayer.destroy();
+                hlsPlayer = null;
+            }
+
+            if (url.includes('.m3u8') && Hls.isSupported()) {
+                hlsPlayer = new Hls();
+                hlsPlayer.loadSource(url);
+                hlsPlayer.attachMedia(video);
+                hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
+                    video.play().catch(e => console.log('Autoplay prevented:', e));
+                });
+                hlsPlayer.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        showToast('Yayın akışı yüklenirken hata oluştu.', 'error');
+                    }
+                });
+            } else {
+                video.src = url;
+                video.play().catch(e => {
+                    showToast('Tarayıcı bu yayın formatını doğrudan desteklemiyor olabilir.', 'error');
+                });
+            }
+            showToast(`Oynatılıyor: ${name}`, 'success');
+        }
+
+        // Statistics Updater
+        function updateStats() {
+            let total = channels.length;
+            let working = channels.filter(c => c.status === 'working').length;
+            let dead = channels.filter(c => c.status === 'dead').length;
+
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statWorking').innerText = working;
+            document.getElementById('statDead').innerText = dead;
+        }
+
+        // Filter Management
+        function setFilter(filter) {
+            currentFilter = filter;
+            ['all', 'working', 'dead', 'unchecked'].forEach(f => {
+                let btn = document.getElementById(`filterBtn${f.charAt(0).toUpperCase() + f.slice(1)}`);
+                if (f === filter) {
+                    btn.className = 'px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white transition';
+                } else {
+                    btn.className = 'px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition';
+                }
+            });
+            renderChannels();
+        }
+
+        // Export Playlist
+        function exportPlaylist() {
+            if (channels.length === 0) {
+                showToast('Dışa aktarılacak kanal bulunamadı.', 'error');
+                return;
+            }
+
+            // Export filtered list or working channels based on current view
+            let content = '#EXTM3U\n';
+            channels.forEach(ch => {
+                // Export working or all depending on user preference (here exporting current filtered view or all working)
+                if (currentFilter === 'working' && ch.status !== 'working') return;
+                content += `#EXTINF:-1 tvg-logo="${ch.logo || ''}" group-title="${ch.group || 'Genel'}`,${ch.name}\n`;
+                content += `${ch.url}\n`;
+            });
+
+            const blob = new Blob([content], { type: 'audio/x-mpegurl' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `playlist_filtered_${Date.now()}.m3u`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('M3U dosyası başarıyla indirildi!', 'success');
+        }
+
+        // Modal Helpers
+        function openHelpModal() {
+            document.getElementById('helpModal').classList.remove('hidden');
+        }
+        function closeHelpModal() {
+            document.getElementById('helpModal').classList.add('hidden');
+        }
+
+        // Toast Notification System
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMessage.innerText = message;
+            if (type === 'success') {
+                toastIcon.className = 'fa-solid fa-circle-check text-emerald-400 text-base';
+            } else {
+                toastIcon.className = 'fa-solid fa-triangle-exclamation text-rose-400 text-base';
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3500);
+        }
+
+        // Security Escape Helpers
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+        function escapeQuotes(str) {
+            return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+</html>
