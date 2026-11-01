@@ -1020,10 +1020,9 @@
       kategorileriCiz();
       kanallariCiz();
       
-      const gosterimListesi = izlemeKanallariniGetir();
-      if (!aktifKanal && gosterimListesi.length > 0) {
-        kanaliCal(gosterimListesi[0]);
-      } else if (yoneticiGirisYapildi) {
+      // Sayfa ilk açıldığında otomatik kanal seçme/oynatıcıya kaydırma yapma.
+      // Kullanıcı bir kanala dokunduğunda kanaliCal() çalışır.
+      if (yoneticiGirisYapildi) {
         yoneticiKanalListesiniCiz();
         yoneticiKategoriListesiniCiz();
         formKategoriSecenekleriniDoldur();
@@ -1235,9 +1234,9 @@
       lucide.createIcons();
     }
 
-    function kanaliCal(kanal) {
+    function kanaliCal(kanal, kullaniciTiklamasi = true) {
       aktifKanal = kanal;
-      if (window.matchMedia('(max-width: 1023px)').matches) {
+      if (kullaniciTiklamasi && window.matchMedia('(max-width: 1023px)').matches) {
         setTimeout(() => {
           document.getElementById('oynaticiKapsayici').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 80);
@@ -1414,7 +1413,7 @@
     }
 
     function yayiniYenidenYukle() {
-      if (aktifKanal) kanaliCal(aktifKanal);
+      if (aktifKanal) kanaliCal(aktifKanal, false);
     }
 
     function tamEkranYap() {
