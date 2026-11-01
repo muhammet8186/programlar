@@ -1661,34 +1661,68 @@
                 padding-bottom:calc(48px + env(safe-area-inset-bottom)) !important;
             }
         }
-        /* iPad Safari dahil: ayarlar penceresinin tamamını tek kaydırma alanı yap */
+        /* Ayarlar: sabit başlık + iPadOS uyumlu tek içerik kaydırma alanı */
         #settings-modal.show {
-            display:flex !important; align-items:flex-start !important; justify-content:center !important;
-            position:fixed !important; inset:0 !important; width:100% !important;
-            height:100vh !important; height:100dvh !important; box-sizing:border-box !important;
-            padding:16px !important; overflow-x:hidden !important; overflow-y:auto !important;
-            -webkit-overflow-scrolling:touch !important; overscroll-behavior-y:contain !important;
-            touch-action:pan-y !important;
+            position:fixed !important;
+            inset:0 !important;
+            display:flex !important;
+            align-items:center !important;
+            justify-content:center !important;
+            width:100% !important;
+            height:100vh !important;
+            height:100dvh !important;
+            padding:16px !important;
+            box-sizing:border-box !important;
+            overflow:hidden !important;
+            touch-action:none !important;
+            overscroll-behavior:none !important;
         }
         #settings-modal .settings-modal-card {
-            display:block !important; flex:0 0 auto !important; width:min(780px,100%) !important;
-            height:auto !important; min-height:0 !important; max-height:none !important;
-            margin:0 auto 16px !important; overflow:visible !important; touch-action:auto !important;
+            display:flex !important;
+            flex-direction:column !important;
+            flex:0 1 auto !important;
+            width:min(780px,100%) !important;
+            height:min(820px,calc(100vh - 32px)) !important;
+            height:min(820px,calc(100dvh - 32px)) !important;
+            max-height:calc(100vh - 32px) !important;
+            max-height:calc(100dvh - 32px) !important;
+            min-height:0 !important;
+            margin:0 auto !important;
+            padding:0 !important;
+            overflow:hidden !important;
+            touch-action:auto !important;
         }
-        #settings-modal .modal-title { position:relative !important; top:auto !important; }
+        #settings-modal .modal-title {
+            position:relative !important;
+            top:auto !important;
+            flex:0 0 auto !important;
+        }
         #settings-modal .settings-modal-content {
-            display:block !important; width:100% !important; height:auto !important;
-            min-height:0 !important; max-height:none !important; overflow:visible !important;
-            -webkit-overflow-scrolling:auto !important; overscroll-behavior:auto !important;
-            touch-action:auto !important; padding-bottom:calc(30px + env(safe-area-inset-bottom)) !important;
+            display:block !important;
+            flex:1 1 0% !important;
+            width:100% !important;
+            min-height:0 !important;
+            max-height:none !important;
+            height:auto !important;
+            overflow-x:hidden !important;
+            overflow-y:scroll !important;
+            -webkit-overflow-scrolling:touch !important;
+            overscroll-behavior-y:contain !important;
+            touch-action:pan-y !important;
+            padding-bottom:calc(36px + env(safe-area-inset-bottom)) !important;
+            scrollbar-width:thin;
         }
         @media (max-width:640px) {
-            #settings-modal.show { align-items:flex-start !important; justify-content:flex-start !important; padding:0 !important; }
+            #settings-modal.show { align-items:stretch !important; justify-content:flex-start !important; padding:0 !important; }
             #settings-modal .settings-modal-card {
-                width:100% !important; min-height:100vh !important; min-height:100dvh !important;
-                margin:0 !important; border:0 !important; border-radius:0 !important;
+                width:100% !important; max-width:none !important;
+                height:100vh !important; height:100dvh !important;
+                max-height:100vh !important; max-height:100dvh !important;
+                border:0 !important; border-radius:0 !important;
             }
-            #settings-modal .settings-modal-content { padding:15px 14px calc(40px + env(safe-area-inset-bottom)) !important; }
+            #settings-modal .settings-modal-content {
+                padding:15px 14px calc(48px + env(safe-area-inset-bottom)) !important;
+            }
         }
     </style>
 </head>
@@ -2086,6 +2120,7 @@
         let audioCtx = null;
         let analyser = null;
         let sourceNode = null;
+        let recordingDestination = null;
         let biquadFilter = null;
         let eqMidFilter = null;
         let eqTrebleFilter = null;
@@ -2526,6 +2561,12 @@
                     eqMidFilter.connect(eqTrebleFilter);
                     eqTrebleFilter.connect(analyser);
                     analyser.connect(audioCtx.destination);
+                    // Safari'de HTMLMediaElement.captureStream bulunmayabilir.
+                    // Web Audio çıkışını ayrıca MediaRecorder için kullanılabilir bir akışa bağla.
+                    if (audioCtx.createMediaStreamDestination) {
+                        recordingDestination = audioCtx.createMediaStreamDestination();
+                        analyser.connect(recordingDestination);
+                    }
                 }
                 // iPadOS Safari ses bağlamını kullanıcı dokunuşunda uyandırmayı gerektirir.
                 if (audioCtx.state === 'suspended') {
@@ -2897,7 +2938,7 @@
             }
         });
 
-        // --- Yayın kaydı ---
+        // --- Yayın kaydı (Safari/iPadOS uyumlu Web Audio yedeği) ---
         recordBtn.addEventListener('click', () => {
             if (!audioEngine.src || audioEngine.paused) {
                 showToast('Canlı ses kaydı yalnızca ses akışı oynatılırken yapılabilir.', 'error');
@@ -2906,34 +2947,65 @@
 
             if (!isRecording) {
                 try {
-                    const stream = audioEngine.captureStream ? audioEngine.captureStream() : audioEngine.mozCaptureStream();
-                    mediaRecorder = new MediaRecorder(stream);
+                    if (!window.MediaRecorder) {
+                        showToast('Bu tarayıcı ses kaydı API’sini desteklemiyor. iPadOS sürümünü güncelleyin.', 'error', 5000);
+                        return;
+                    }
+
+                    // iOS Safari'de captureStream yerine Web Audio MediaStreamDestination kullan.
+                    if (!recordingDestination) initAudioContext();
+                    let stream = recordingDestination && recordingDestination.stream;
+                    if (!stream) {
+                        const capture = audioEngine.captureStream || audioEngine.mozCaptureStream;
+                        if (capture) stream = capture.call(audioEngine);
+                    }
+                    if (!stream || !stream.getAudioTracks || !stream.getAudioTracks().length) {
+                        showToast('Bu yayın tarayıcı tarafından kayda aktarılamıyor. Farklı bir radyo yayını deneyin.', 'error', 5500);
+                        return;
+                    }
+
+                    const mimeCandidates = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
+                    const mimeType = mimeCandidates.find(type => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(type));
+                    mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
                     recordedChunks = [];
 
-                    mediaRecorder.ondataavailable = (e) => {
-                        if (e.data.size > 0) recordedChunks.push(e.data);
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data && event.data.size > 0) recordedChunks.push(event.data);
                     };
-
+                    mediaRecorder.onerror = (event) => {
+                        console.error('Ses kayıt hatası:', event.error || event);
+                        showToast('Ses kaydı sırasında tarayıcı hatası oluştu.', 'error', 4500);
+                    };
                     mediaRecorder.onstop = async () => {
-                        const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                        const type = mediaRecorder.mimeType || (recordedChunks[0] && recordedChunks[0].type) || 'audio/mp4';
+                        const extension = type.includes('mp4') ? 'm4a' : type.includes('ogg') ? 'ogg' : 'webm';
+                        const blob = new Blob(recordedChunks, { type });
+                        if (!blob.size) {
+                            showToast('Kayıt dosyası boş oluştu. Bu yayın kayda izin vermiyor olabilir.', 'error', 5000);
+                            return;
+                        }
                         try {
                             await saveRecording(blob, currentStation ? currentStation.name : 'Radyo Kaydı');
                             showToast('Radyo kaydı kaydedildi. Radyo Kayıtları bölümünden dinleyebilirsin.', 'success', 4500);
                         } catch (err) {
-                            downloadBlob(blob, `${currentStation ? currentStation.name : 'radyo'}_kayit.webm`);
+                            downloadBlob(blob, `${currentStation ? currentStation.name : 'radyo'}_kayit.${extension}`);
                             showToast('Kayıt listesine kaydedilemedi; dosya indirildi.', 'error', 4500);
                         }
                     };
 
-                    mediaRecorder.start();
+                    mediaRecorder.start(1000);
                     isRecording = true;
                     recordBtn.classList.add('recording');
                     document.getElementById('fullscreen-record').classList.add('recording');
                     showToast('Yayın kaydediliyor...', 'success');
                 } catch (err) {
-                    showToast('Tarayıcınız ses kaydını desteklemiyor.', 'error');
+                    console.error('Kayıt başlatılamadı:', err);
+                    const message = err && err.name === 'NotSupportedError'
+                        ? 'Bu cihazın kayıt biçimi desteklenmiyor. iPadOS sürümünü güncelleyin.'
+                        : 'Kayıt başlatılamadı. Yayın kaynağı kayıt erişimine izin vermiyor olabilir.';
+                    showToast(message, 'error', 5500);
                 }
-            } else {
+            } else if (mediaRecorder && mediaRecorder.state !== 'inactive') {
                 mediaRecorder.stop();
                 isRecording = false;
                 recordBtn.classList.remove('recording');
@@ -3014,7 +3086,7 @@
             document.body.style.overflow = 'hidden';
             requestAnimationFrame(() => {
                 const content = settingsModal.querySelector('.settings-modal-content');
-                if (content) content.scrollTop = 0;
+                if (content) { content.scrollTop = 0; content.scrollTo({ top: 0, behavior: 'auto' }); }
             });
         };
         const closeSettingsModal = () => {
