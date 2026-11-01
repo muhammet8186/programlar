@@ -878,12 +878,12 @@
 
       if (internetVar && firebaseBagliMi) {
         modal.classList.add("hidden");
+        canliIzleyiciSayaciBaslat();
         if (!uygulamaBaslatildi) {
           uygulamaBaslatildi = true;
           firebaseDinleyicileriniBaslat();
           favorileriCiz();
           sonIzlenenleriCiz();
-          canliIzleyiciSayaciBaslat();
         }
         return;
       }
@@ -1481,34 +1481,121 @@
       veritabani.ref(`${FIREBASE_ROOT_PATH}/bildirimler`).remove();
     }
 
+    // Firebase canlı izleyici (presence) sistemi
+    // Her başarılı Firebase bağlantısında yeni ve benzersiz bir oturum kaydı açılır.
     let aktifIzleyiciRef = null;
     let izleyiciDinleyiciRef = null;
-    function canliIzleyiciSayaciBaslat() {
-      const izleyiciRef = veritabani.ref(`${FIREBASE_ROOT_PATH}/aktifIzleyiciler`);
-      aktifIzleyiciRef = izleyiciRef.push();
-      aktifIzleyiciRef.onDisconnect().remove();
-      aktifIzleyiciRef.set({ aktif: true, baslangic: firebase.database.ServerValue.TIMESTAMP });
-      izleyiciDinleyiciRef = izleyiciRef;
-      izleyiciDinleyiciRef.on('value', snapshot => {
-        const sayi = snapshot.numChildren();
-        document.getElementById("canliIzleyiciSayaci").innerHTML = `<i data-lucide="users" class="w-3 h-3"></i> ${sayi} İzleyici`;
-        lucide.createIcons();
+    let izleyiciBaglantiDinleyiciRef = null;
+    let izleyiciOturumuKapandi = false;
+    let izleyiciKaydiHazirlaniyor = false;
+    let izleyiciBaglantiNesli = 0;
+
+    function canliIzleyiciSayaciniGuncelle(snapshot) {
+      const sayac = document.getElementById("canliIzleyiciSayaci");
+      if (!sayac) return;
+      // Yalnızca aktif oturum nesnelerini say; boş/test verilerini sayma.
+      let sayi = 0;
+      snapshot.forEach(child => {
+        const kayit = child.val();
+        if (kayit && kayit.aktif === true) sayi++;
       });
+      sayac.innerHTML = `<i data-lucide="users" class="w-3 h-3"></i> ${sayi} İzleyici`;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    async function yeniIzleyiciOturumuAc(nesil) {
+      if (izleyiciOturumuKapandi || izleyiciKaydiHazirlaniyor) return;
+      izleyiciKaydiHazirlaniyor = true;
+
+      // Her bağlantı döngüsünde yeni anahtar: kopan eski bağlantının kaydı
+      // Firebase onDisconnect tarafından silinir; yeni bağlantı yeni anahtar alır.
+      const yeniRef = veritabani.ref(`${FIREBASE_ROOT_PATH}/aktifIzleyiciler`).push();
+
+      try {
+        await yeniRef.onDisconnect().remove();
+
+        // İşlem sürerken bağlantı değiştiyse bu kaydı kullanma.
+        if (izleyiciOturumuKapandi || nesil !== izleyiciBaglantiNesli) {
+          await yeniRef.remove();
+          return;
+        }
+
+        await yeniRef.set({
+          aktif: true,
+          baslangic: firebase.database.ServerValue.TIMESTAMP,
+          oturum: "web"
+        });
+
+        if (izleyiciOturumuKapandi || nesil !== izleyiciBaglantiNesli) {
+          await yeniRef.remove();
+          return;
+        }
+
+        aktifIzleyiciRef = yeniRef;
+        console.info("Canlı izleyici oturumu Firebase'e kaydedildi:", yeniRef.key);
+      } catch (hata) {
+        console.error("İzleyici Firebase'e kaydedilemedi:", hata);
+        try { await yeniRef.remove(); } catch (_) {}
+      } finally {
+        izleyiciKaydiHazirlaniyor = false;
+      }
+    }
+
+    function canliIzleyiciSayaciBaslat() {
+      if (!izleyiciDinleyiciRef) {
+        izleyiciDinleyiciRef = veritabani.ref(`${FIREBASE_ROOT_PATH}/aktifIzleyiciler`);
+        izleyiciDinleyiciRef.on("value", canliIzleyiciSayaciniGuncelle, hata => {
+          console.error("Canlı izleyici sayacı okunamadı:", hata);
+        });
+      }
+
+      if (!izleyiciBaglantiDinleyiciRef) {
+        izleyiciBaglantiDinleyiciRef = veritabani.ref(".info/connected");
+        izleyiciBaglantiDinleyiciRef.on("value", snapshot => {
+          if (izleyiciOturumuKapandi) return;
+
+          if (snapshot.val() === true) {
+            const buNesil = ++izleyiciBaglantiNesli;
+            // Önceki oturum kaydı kaldıysa temizle; onDisconnect ayrıca güvence sağlar.
+            if (aktifIzleyiciRef) {
+              aktifIzleyiciRef.remove().catch(() => {});
+              aktifIzleyiciRef = null;
+            }
+            yeniIzleyiciOturumuAc(buNesil);
+          } else {
+            // Bağlantı koptu. Yeni bağlantıda yeni bir oturum kaydı açılacak.
+            izleyiciBaglantiNesli++;
+            aktifIzleyiciRef = null;
+          }
+        }, hata => {
+          console.error("İzleyici bağlantı durumu okunamadı:", hata);
+        });
+      }
     }
 
     function izleyiciOturumunuKapat() {
+      if (izleyiciOturumuKapandi) return;
+      izleyiciOturumuKapandi = true;
+      izleyiciBaglantiNesli++;
+
+      // onDisconnect().cancel() kullanılmaz; bağlantı aniden koparsa sunucu kaydı siler.
       if (aktifIzleyiciRef) {
-        aktifIzleyiciRef.onDisconnect().cancel();
-        aktifIzleyiciRef.remove();
+        aktifIzleyiciRef.remove().catch(hata => {
+          console.warn("İzleyici çıkış kaydı silinemedi; Firebase onDisconnect temizleyecek:", hata);
+        });
         aktifIzleyiciRef = null;
       }
       if (izleyiciDinleyiciRef) {
-        izleyiciDinleyiciRef.off('value');
+        izleyiciDinleyiciRef.off("value", canliIzleyiciSayaciniGuncelle);
         izleyiciDinleyiciRef = null;
       }
+      if (izleyiciBaglantiDinleyiciRef) {
+        izleyiciBaglantiDinleyiciRef.off();
+        izleyiciBaglantiDinleyiciRef = null;
+      }
     }
+
     window.addEventListener("pagehide", izleyiciOturumunuKapat);
-    window.addEventListener("beforeunload", izleyiciOturumunuKapat);
 
     function kanalAramaYap(deger) {
       aramaMetni = deger;
