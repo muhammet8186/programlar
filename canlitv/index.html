@@ -89,13 +89,198 @@
 
     @keyframes baglantiNabiz { 0%,100% { transform: scale(1); opacity: .75; } 50% { transform: scale(1.12); opacity: 1; } }
     .baglanti-nabiz { animation: baglantiNabiz 1.8s ease-in-out infinite; }
-  </style>
+  
+    /* Masaüstü: tam genişlik düzen, kategori şeritleri kanal listesinin üstünde */
+    @media (min-width: 1024px) {
+      #anaIcerikKapsayici { min-height: calc(100vh - 76px); }
+      #kanalPaneli { height: calc(100vh - 76px); overflow: hidden; }
+      #kanalPaneli > section { overflow: hidden; }
+      #kanalIzgarasi { grid-auto-rows: max-content; }
+      #kategoriFiltreLisesi { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: thin; }
+    }
+    @media (max-width: 1023px) {
+      #kanalPaneli { min-height: 320px; }
+      #kanalIzgarasi { max-height: 55vh; }
+    }
+
+
+    /* Masaüstü tam ekran yerleşimi: logo solda, arama ortada, işlemler sağda */
+    @media (min-width: 1024px) {
+      /* Kategori şeridi: önceki gibi yatay kaydırmalı */
+      #kategoriFiltreLisesi {
+        flex: 0 0 auto !important;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        align-items: center;
+        gap: 8px !important;
+        min-height: 44px;
+        max-height: none;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        white-space: nowrap;
+        padding: 6px 4px 10px !important;
+        margin-bottom: 10px !important;
+        scrollbar-width: thin;
+      }
+      #kategoriFiltreLisesi button {
+        flex: 0 0 auto !important;
+        min-height: 34px;
+        padding: 7px 12px !important;
+        font-size: 12px !important;
+        white-space: nowrap;
+      }
+      html, body { height: 100%; min-height: 0; overflow: hidden; }
+      body { height: 100vh; }
+      header { flex: 0 0 64px; height: 64px; }
+      header > div {
+        display: grid !important;
+        grid-template-columns: minmax(190px, 1fr) auto !important;
+        width: 100% !important;
+        max-width: none !important;
+      }
+      header > div > :first-child { justify-self: start; }
+      header > div > :nth-child(2) { justify-self: end; }
+      #anaIcerikKapsayici {
+        height: calc(100vh - 64px) !important;
+        min-height: 0 !important;
+        max-height: calc(100vh - 64px) !important;
+        grid-template-rows: minmax(0, 1fr);
+        overflow: hidden;
+      }
+      #anaIcerikKapsayici > div:first-child {
+        height: 100%; min-height: 0; overflow: hidden;
+        padding: 10px 12px 10px 16px !important;
+      }
+      #oynaticiKapsayici {
+        flex: 1 1 auto; min-height: 0; height: 100%;
+        display: flex; flex-direction: column;
+      }
+      #videoKutusu {
+        flex: 1 1 auto; min-height: 0; height: auto !important;
+        aspect-ratio: auto !important;
+      }
+      #oynaticiKapsayici > div:last-child { flex: 0 0 auto; }
+      #kanalPaneli {
+        height: 100% !important; min-height: 0 !important; max-height: none !important;
+        position: relative !important; top: auto !important;
+        overflow: hidden; display: flex; flex-direction: column;
+      }
+      #kanalPaneli > section { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+      #kanalIzgarasi { flex: 1 1 auto; min-height: 0; max-height: none !important; overflow-y: auto; }
+    }
+    @media (max-width: 1023px) {
+      html, body { height: auto !important; min-height: 100%; overflow-x: hidden !important; overflow-y: auto !important; }
+      body { min-height: 100vh; }
+      #anaIcerikKapsayici {
+        display: flex !important;
+        flex-direction: column !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+        gap: 12px !important;
+        padding: 12px !important;
+      }
+      #anaIcerikKapsayici > div:first-child {
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+        padding: 0 !important;
+      }
+      #oynaticiKapsayici { height: auto !important; min-height: 0 !important; flex: none !important; }
+      #videoKutusu { height: auto !important; min-height: 0 !important; aspect-ratio: 16 / 9 !important; flex: none !important; }
+      #kanalPaneli {
+        display: flex !important;
+        flex-direction: column !important;
+        position: static !important;
+        top: auto !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+        padding: 12px !important;
+        border-left: 0 !important;
+        border-radius: 12px !important;
+      }
+      #kanalPaneli > section { flex: none !important; min-height: 0 !important; overflow: visible !important; }
+      #kategoriFiltreLisesi {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        width: 100% !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        white-space: nowrap !important;
+        padding-bottom: 10px !important;
+        margin-bottom: 12px !important;
+        -webkit-overflow-scrolling: touch;
+      }
+      #kategoriFiltreLisesi button { flex: 0 0 auto !important; white-space: nowrap !important; }
+      #kanalIzgarasi {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        flex: none !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        height: auto !important;
+        overflow: visible !important;
+        padding-right: 0 !important;
+      }
+    }
+    @media (max-width: 639px) {
+      #kanalIzgarasi { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+    }
+
+
+    /* Mobilde kanal seçildiğinde liste korunur; yalnızca oynatıcıya kaydırılır. */
+
+
+    /* Mobil başlık: işlemler sağ kenara hizalı ve tek satırda */
+    @media (max-width: 640px) {
+      header > div {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) auto !important;
+        align-items: center !important;
+        gap: 6px !important;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+      }
+      header > div > :first-child { justify-self: start !important; min-width: 0; }
+      header > div > :nth-child(2) {
+        justify-self: end !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        flex-wrap: nowrap !important;
+        gap: 5px !important;
+        min-width: 0;
+      }
+      header > div > :nth-child(2) > button {
+        flex: 0 0 auto !important;
+        padding: 7px !important;
+        gap: 0 !important;
+      }
+      header > div > :nth-child(2) > div {
+        flex: 0 0 auto !important;
+        padding: 5px !important;
+        gap: 5px !important;
+      }
+      header > div > :nth-child(2) > div button {
+        width: 13px !important;
+        height: 13px !important;
+        flex: 0 0 13px !important;
+      }
+    }
+
+</style>
 </head>
 <body data-theme="red" class="h-full flex flex-col font-sans antialiased selection:bg-brand-600 selection:text-white transition-colors duration-300">
 
   <!-- Header -->
   <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-30">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+    <div class="w-full max-w-none mx-0 px-3 sm:px-4 lg:px-5 h-16 grid grid-cols-[auto_minmax(180px,1fr)_auto] items-center gap-4">
       
       <!-- Logotype -->
       <div class="flex items-center gap-3 cursor-pointer" onclick="varsayilanaDon()">
@@ -106,18 +291,6 @@
           <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">CANLI TV</h1>
           <p class="text-[10px] text-slate-400 -mt-1 font-medium">Televizyon</p>
         </div>
-      </div>
-
-      <!-- Arama Kutusu -->
-      <div class="flex-1 max-w-md relative hidden sm:block">
-        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-        <input 
-          type="text" 
-          id="aramaGirdisi" 
-          placeholder="Kanal veya kategori ara..." 
-          oninput="kanalAramaYap(this.value)"
-          class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 transition-colors"
-        >
       </div>
 
       <!-- Sağ Araç Barı -->
@@ -154,22 +327,9 @@
     </div>
   </header>
 
-  <!-- Mobil Arama Alanı -->
-  <div class="p-3 bg-slate-900 border-b border-slate-800 sm:hidden">
-    <div class="relative">
-      <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-      <input 
-        type="text" 
-        id="mobilAramaGirdisi" 
-        placeholder="Kanal veya kategori ara..." 
-        oninput="kanalAramaYap(this.value)"
-        class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500"
-      />
-    </div>
-  </div>
-
   <!-- Ana İçerik -->
-  <main id="anaIcerikKapsayici" class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6 transition-all duration-300">
+  <main id="anaIcerikKapsayici" class="flex-1 w-full max-w-none mx-0 p-0 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(380px,30vw)] gap-0 items-stretch transition-all duration-300">
+    <div class="min-w-0 flex flex-col gap-3 p-2 sm:p-3 lg:p-4">
     
     <!-- Son İzlenenler -->
     <section id="sonIzlenenlerBolumu" class="hidden">
@@ -209,6 +369,7 @@
       </div>
 
       <div class="p-4 bg-slate-900 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <button id="mobilKanallaraDonBtn" type="button" onclick="mobilKanalListesineDon()" class="hidden lg:hidden px-3 py-2 bg-brand-600 text-white rounded-lg text-xs font-semibold">← Kanallara Dön</button>
         <div class="flex items-center gap-3">
           <div id="aktifKanalLogoKutusu" class="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden p-1 text-brand-500">
             <i data-lucide="tv" class="w-6 h-6"></i>
@@ -271,22 +432,26 @@
         </div>
       </div>
 
-      <!-- KÜÇÜLTÜLMÜŞ KOMPAKT YAYIN AKIŞI (EPG) -->
-      <div class="px-4 py-2.5 bg-slate-950 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div class="flex items-center gap-2 text-slate-300 truncate">
-          <span class="text-[10px] font-bold text-brand-500 uppercase tracking-wider bg-brand-500/10 border border-brand-500/20 px-2 py-0.5 rounded">CANLI AKIŞ</span>
-          <span id="epgSuAnProgram" class="font-bold text-slate-200 truncate">Genel Yayın Akışı</span>
-          <span id="epgSuAnSaat" class="text-slate-500 text-[11px]">(12:00 - 14:00)</span>
-        </div>
-        <div id="epgGelecekProgramlar" class="text-slate-400 text-[11px] truncate hidden md:block"></div>
-      </div>
     </section>
 
-    <!-- Kategoriler -->
-    <div id="kategoriFiltreLisesi" class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800/80"></div>
 
-    <!-- Kanal Izgarası -->
-    <section>
+    </div>
+
+    <!-- Kanal Listesi: kategoriler üstte, liste sağa ve aşağıya uzanır -->
+    <aside id="kanalPaneli" class="min-w-0 bg-slate-900/70 border-y border-l-0 lg:border-l border-r-0 border-slate-800 rounded-none p-3 flex flex-col lg:h-[calc(100vh-76px)] lg:sticky lg:top-[76px]">
+    <div id="kategoriFiltreLisesi" class="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 mb-3 border-b border-slate-800/80"></div>
+    <div id="kanalAramaAlani" class="relative flex-shrink-0 mb-3">
+      <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+      <input
+        type="text"
+        id="aramaGirdisi"
+        placeholder="Kanal ara..."
+        oninput="kanalAramaYap(this.value)"
+        class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 transition-colors"
+        aria-label="Kanal ara"
+      >
+    </div>
+    <section class="min-h-0 flex-1 flex flex-col">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
           <i data-lucide="layout-grid" class="w-4 h-4"></i> TV Kanalları
@@ -294,13 +459,14 @@
         <span id="kanalSayisiMetni" class="text-xs text-slate-500">0 kanal bulundu</span>
       </div>
 
-      <div id="kanalIzgarasi" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2"></div>
+      <div id="kanalIzgarasi" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-3 gap-2 flex-1 min-h-0 lg:content-start overflow-y-auto pr-1"></div>
       
       <div id="bosKanalGostergesi" class="hidden text-center py-12 border-2 border-dashed border-slate-800 rounded-2xl bg-slate-900/40">
         <i data-lucide="tv-2" class="w-12 h-12 text-slate-600 mx-auto mb-3"></i>
         <p class="text-slate-400 font-medium">Kanal bulunamadı</p>
       </div>
     </section>
+    </aside>
 
   </main>
 
@@ -565,9 +731,19 @@
 
           <div class="bg-slate-950 p-4 border border-slate-800 rounded-xl space-y-3">
             <h5 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Veritabanı Yedekle</h5>
-            <button onclick="verileriDisaAktar()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5">
-              <i data-lucide="download" class="w-4 h-4"></i> JSON Yedek İndir
-            </button>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button type="button" onclick="verileriDisaAktar()" class="py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5">
+                <i data-lucide="download" class="w-4 h-4"></i> JSON Yedek İndir
+              </button>
+              <button type="button" onclick="firebaseKanallariniM3uIndir()" class="py-2 bg-indigo-700 hover:bg-indigo-600 text-white border border-indigo-600 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5">
+                <i data-lucide="list-video" class="w-4 h-4"></i> Kanalları M3U İndir
+              </button>
+              <button type="button" onclick="yedektenGeriYukle()" class="py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5">
+                <i data-lucide="upload" class="w-4 h-4"></i> Yedekten Geri Yükle
+              </button>
+              <input id="yedekDosyaInput" type="file" accept=".json,application/json" class="hidden" onchange="yedekDosyasiniOku(event)">
+            </div>
+            <p class="text-[11px] text-slate-500">JSON yedeği mevcut kanal ve kategori verilerinin üzerine yüklenir.</p>
           </div>
         </div>
 
@@ -642,11 +818,6 @@
       { id: "trtcocuk", ad: "TRT Çocuk", kategori: "Çocuk", yayinUrl: "https://tv-trtcocuk.medya.trt.com.tr/master.m3u8", logoUrl: "" }
     ];
 
-    const OORNEK_EPG = {
-      "TRT 1": { suAn: "Gönül Dağı (Tekrar)", saat: "13:30 - 16:00", sonraki: "Sırada: Ana Haber (19:00)" },
-      "TRT Haber": { suAn: "Gündem Özel", saat: "14:00 - 15:00", sonraki: "Sırada: Ekonomi Notları (15:00)" },
-      "TRT Spor": { suAn: "Spor Stüdyosu Canlı", saat: "13:00 - 15:30", sonraki: "Sırada: Futbol Akolik (16:00)" }
-    };
 
     let tumKanallar = [];
     let tumKategoriler = [...VARSAYILAN_KATEGORILER];
@@ -664,7 +835,8 @@
     let onayCallback = null;
     let sadeceTamamModu = false;
     let aktifKaynakYedekMi = false;
-    let kanalBaglantiDurumlari = {};
+    let kanalBaglantiDurumlari = JSON.parse(localStorage.getItem("canli_tv_tarama_sonuclari") || "{}");
+    let taramaDevamEdiyor = false;
     let suruklenenKanalId = null;
 
     let firebaseBagliMi = false;
@@ -778,7 +950,9 @@
           tumKanallar = [...VARSAYILAN_KANALLAR];
         }
         ekranGuncelle();
-        tumBaglantilariTara(false);
+        const imza = kanallarImzasi();
+        const kayitliImza = localStorage.getItem("canli_tv_tarama_imzasi");
+        if (imza !== kayitliImza) tumBaglantilariTara(false);
       });
 
       veritabani.ref(`${FIREBASE_ROOT_PATH}/kategoriler`).on('value', (snapshot) => {
@@ -846,10 +1020,9 @@
       kategorileriCiz();
       kanallariCiz();
       
-      const gosterimListesi = izlemeKanallariniGetir();
-      if (!aktifKanal && gosterimListesi.length > 0) {
-        kanaliCal(gosterimListesi[0]);
-      } else if (yoneticiGirisYapildi) {
+      // Sayfa ilk açıldığında otomatik kanal seçme/oynatıcıya kaydırma yapma.
+      // Kullanıcı bir kanala dokunduğunda kanaliCal() çalışır.
+      if (yoneticiGirisYapildi) {
         yoneticiKanalListesiniCiz();
         yoneticiKategoriListesiniCiz();
         formKategoriSecenekleriniDoldur();
@@ -1061,10 +1234,25 @@
       lucide.createIcons();
     }
 
-    function kanaliCal(kanal) {
+    function kanaliCal(kanal, kullaniciTiklamasi = true) {
       aktifKanal = kanal;
       aktifKaynakYedekMi = false;
       sonIzlenenEkle(kanal);
+      if (kullaniciTiklamasi && window.matchMedia('(max-width: 1023px)').matches) {
+        setTimeout(() => {
+          // İzleme alanının tamamının başlangıcına kaydır: sabit başlık üstte kalır,
+          // Son İzlenenler görünürse onunla birlikte oynatıcı da aşağıda görünür.
+          const sonIzlenenBolumu = document.getElementById('sonIzlenenlerBolumu');
+          const oynatici = document.getElementById('oynaticiKapsayici');
+          const hedef = sonIzlenenBolumu && !sonIzlenenBolumu.classList.contains('hidden')
+            ? sonIzlenenBolumu
+            : oynatici;
+          const baslik = document.querySelector('header');
+          const ustBosluk = (baslik ? baslik.getBoundingClientRect().height : 0) + 8;
+          const hedefY = hedef.getBoundingClientRect().top + window.scrollY - ustBosluk;
+          window.scrollTo({ top: Math.max(0, hedefY), behavior: 'smooth' });
+        }, 120);
+      }
 
       videoOynaticiModunaDon();
 
@@ -1087,11 +1275,16 @@
       }
 
       aktifKanalFavoriButonunuGuncelle();
-      yayinAkisiniGuncelle(kanal.ad);
 
       const url = (aktifKaynakYedekMi && kanal.yedekYayinUrl) ? kanal.yedekYayinUrl : kanal.yayinUrl;
       yayinYukle(url, kanal.ad);
       kanallariCiz();
+    }
+
+    function mobilKanalListesineDon() {
+      setTimeout(() => {
+        document.getElementById('kanalPaneli').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 50);
     }
 
     function yayinYukle(yayinUrl, kanalAdi) {
@@ -1230,7 +1423,7 @@
     }
 
     function yayiniYenidenYukle() {
-      if (aktifKanal) kanaliCal(aktifKanal);
+      if (aktifKanal) kanaliCal(aktifKanal, false);
     }
 
     function tamEkranYap() {
@@ -1239,17 +1432,6 @@
       else if (oynaticiKapsayici.webkitRequestFullscreen) oynaticiKapsayici.webkitRequestFullscreen();
     }
 
-    function yayinAkisiniGuncelle(kanalAdi) {
-      const epg = OORNEK_EPG[kanalAdi] || {
-        suAn: `${kanalAdi} Canlı Yayın Akışı`,
-        saat: "12:00 - 00:00",
-        sonraki: "Sırada: Günün Gelişmeleri"
-      };
-
-      document.getElementById("epgSuAnProgram").textContent = epg.suAn;
-      document.getElementById("epgSuAnSaat").textContent = `(${epg.saat})`;
-      document.getElementById("epgGelecekProgramlar").textContent = epg.sonraki;
-    }
 
     function yayinHataBildir() {
       if (!aktifKanal) return;
@@ -1305,18 +1487,34 @@
       veritabani.ref(`${FIREBASE_ROOT_PATH}/bildirimler`).remove();
     }
 
+    let aktifIzleyiciRef = null;
+    let izleyiciDinleyiciRef = null;
     function canliIzleyiciSayaciBaslat() {
       const izleyiciRef = veritabani.ref(`${FIREBASE_ROOT_PATH}/aktifIzleyiciler`);
-      const myRef = izleyiciRef.push();
-      myRef.onDisconnect().remove();
-      myRef.set(true);
-
-      izleyiciRef.on('value', snapshot => {
-        const sayi = snapshot.numChildren() || 1;
+      aktifIzleyiciRef = izleyiciRef.push();
+      aktifIzleyiciRef.onDisconnect().remove();
+      aktifIzleyiciRef.set({ aktif: true, baslangic: firebase.database.ServerValue.TIMESTAMP });
+      izleyiciDinleyiciRef = izleyiciRef;
+      izleyiciDinleyiciRef.on('value', snapshot => {
+        const sayi = snapshot.numChildren();
         document.getElementById("canliIzleyiciSayaci").innerHTML = `<i data-lucide="users" class="w-3 h-3"></i> ${sayi} İzleyici`;
         lucide.createIcons();
       });
     }
+
+    function izleyiciOturumunuKapat() {
+      if (aktifIzleyiciRef) {
+        aktifIzleyiciRef.onDisconnect().cancel();
+        aktifIzleyiciRef.remove();
+        aktifIzleyiciRef = null;
+      }
+      if (izleyiciDinleyiciRef) {
+        izleyiciDinleyiciRef.off('value');
+        izleyiciDinleyiciRef = null;
+      }
+    }
+    window.addEventListener("pagehide", izleyiciOturumunuKapat);
+    window.addEventListener("beforeunload", izleyiciOturumunuKapat);
 
     function kanalAramaYap(deger) {
       aramaMetni = deger;
@@ -1403,7 +1601,8 @@
     function varsayilanaDon() {
       aktifKategori = "Tümü";
       aramaMetni = "";
-      document.getElementById("aramaGirdisi").value = "";
+      const aramaAlani = document.getElementById("aramaGirdisi");
+      if (aramaAlani) aramaAlani.value = "";
       ekranGuncelle();
     }
 
@@ -1762,20 +1961,30 @@
       lucide.createIcons();
     }
 
+    function kanallarImzasi() {
+      return tumKanallar.map(k => `${k.id}|${k.yayinUrl}|${k.yedekYayinUrl || ""}`).join("||");
+    }
+
     async function tumBaglantilariTara(bildirimGoster = false) {
-      if (bildirimGoster) {
-        ozelOnayGoster("Tarama Başlatıldı", "Bağlantılar taranıyor...", () => {}, true);
-      }
-      for (const k of tumKanallar) {
-        try {
-          await fetch(k.yayinUrl, { method: 'HEAD', mode: 'no-cors' });
-          kanalBaglantiDurumlari[k.id] = 'ok';
-        } catch (e) {
-          kanalBaglantiDurumlari[k.id] = 'error';
+      if (taramaDevamEdiyor) return;
+      taramaDevamEdiyor = true;
+      if (bildirimGoster) ozelOnayGoster("Tarama Başlatıldı", "Kanal bağlantıları yeniden kontrol ediliyor.", () => {}, true);
+      try {
+        for (const k of tumKanallar) {
+          try {
+            await fetch(k.yayinUrl, { method: 'HEAD', mode: 'no-cors', cache: 'no-store' });
+            kanalBaglantiDurumlari[k.id] = 'ok';
+          } catch (e) {
+            kanalBaglantiDurumlari[k.id] = 'error';
+          }
+          localStorage.setItem("canli_tv_tarama_sonuclari", JSON.stringify(kanalBaglantiDurumlari));
         }
+        localStorage.setItem("canli_tv_tarama_imzasi", kanallarImzasi());
+      } finally {
+        taramaDevamEdiyor = false;
+        kanallariCiz();
+        if (yoneticiGirisYapildi) yoneticiKanalListesiniCiz();
       }
-      kanallariCiz();
-      yoneticiKanalListesiniCiz();
     }
 
     function m3uIceAktar() {
@@ -1815,14 +2024,92 @@
       ozelOnayGoster("Başarılı", `${eklenenSayisi} adet kanal eklendi!`, () => {}, true);
     }
 
+    async function firebaseKanallariniM3uIndir() {
+      try {
+        // İndirme öncesi Firebase'den güncel kanal listesini al.
+        const snapshot = await veritabani.ref(`${FIREBASE_ROOT_PATH}/kanallar`).once("value");
+        const kayit = snapshot.val();
+        const kanallar = Array.isArray(kayit) ? kayit : (kayit ? Object.values(kayit) : tumKanallar);
+        const gecerliKanallar = kanallar.filter(k => k && k.ad && k.yayinUrl);
+        if (!gecerliKanallar.length) {
+          ozelOnayGoster("Kanal bulunamadı", "Firebase üzerinde dışa aktarılabilecek kayıtlı kanal bulunamadı.", () => {}, true);
+          return;
+        }
+        const temizle = deger => String(deger || "").replace(/[\r\n]/g, " ").replace(/"/g, "&quot;");
+        const satirlar = ["#EXTM3U"];
+        gecerliKanallar.forEach(kanal => {
+          const logo = kanal.logoUrl ? ` tvg-logo="${temizle(kanal.logoUrl)}"` : "";
+          const grup = temizle(kanal.kategori || "Diğer");
+          satirlar.push(`#EXTINF:-1${logo} group-title="${grup}",${temizle(kanal.ad)}`);
+          satirlar.push(String(kanal.yayinUrl).trim());
+        });
+        const dosya = new Blob(["\uFEFF" + satirlar.join("\r\n") + "\r\n"], { type: "audio/x-mpegurl;charset=utf-8" });
+        const url = URL.createObjectURL(dosya);
+        const baglanti = document.createElement("a");
+        baglanti.href = url;
+        baglanti.download = `canli_tv_kanallar_${new Date().toISOString().slice(0,10)}.m3u`;
+        document.body.appendChild(baglanti);
+        baglanti.click();
+        baglanti.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+        ozelOnayGoster("M3U hazır", `${gecerliKanallar.length} kayıtlı kanal M3U dosyası olarak indirildi.`, () => {}, true);
+      } catch (hata) {
+        console.error("M3U dışa aktarma hatası:", hata);
+        ozelOnayGoster("İndirme başarısız", "Firebase kanal listesi okunamadı. Bağlantıyı ve veritabanı izinlerini kontrol edin.", () => {}, true);
+      }
+    }
+
     function verileriDisaAktar() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ kanallar: tumKanallar, kategoriler: tumKategoriler }, null, 2));
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ surum: 1, yedekTarihi: new Date().toISOString(), kanallar: tumKanallar, kategoriler: tumKategoriler, kategoriSifreleri, yoneticiSifresi }, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
       downloadAnchor.setAttribute("download", `canli_tv_yedek_${Date.now()}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
+    }
+
+    function yedektenGeriYukle() {
+      const input = document.getElementById("yedekDosyaInput");
+      input.value = "";
+      input.click();
+    }
+
+    async function yedekDosyasiniOku(event) {
+      const dosya = event.target.files && event.target.files[0];
+      if (!dosya) return;
+      try {
+        const yedek = JSON.parse(await dosya.text());
+        if (!yedek || !Array.isArray(yedek.kanallar) || !Array.isArray(yedek.kategoriler)) {
+          throw new Error("Yedek dosyasında kanallar veya kategoriler bulunamadı.");
+        }
+        if (!yedek.kanallar.every(k => k && k.id && k.ad && k.yayinUrl)) {
+          throw new Error("Yedek dosyasındaki kanal kayıtları geçersiz.");
+        }
+        ozelOnayGoster("Yedeği Geri Yükle", `${yedek.kanallar.length} kanal ve ${yedek.kategoriler.length} kategori mevcut verilerin üzerine yüklenecek. Devam edilsin mi?`, async onay => {
+          if (!onay) return;
+          try {
+            await veritabani.ref(FIREBASE_ROOT_PATH).update({
+              kanallar: yedek.kanallar,
+              kategoriler: yedek.kategoriler,
+              ...(yedek.kategoriSifreleri ? { kategoriSifreleri: yedek.kategoriSifreleri } : {}),
+              ...(yedek.yoneticiSifresi ? { yoneticiSifresi: yedek.yoneticiSifresi } : {})
+            });
+            tumKanallar = yedek.kanallar;
+            tumKategoriler = yedek.kategoriler;
+            if (yedek.kategoriSifreleri) kategoriSifreleri = yedek.kategoriSifreleri;
+            if (yedek.yoneticiSifresi) yoneticiSifresi = yedek.yoneticiSifresi;
+            localStorage.removeItem("canli_tv_tarama_imzasi");
+            ekranGuncelle();
+            ozelOnayGoster("Başarılı", "Veritabanı yedekten geri yüklendi.", () => {}, true);
+          } catch (hata) {
+            ozelOnayGoster("Geri yükleme hatası", hata.message || "Firebase kaydı yapılamadı.", () => {}, true);
+          }
+        });
+      } catch (hata) {
+        ozelOnayGoster("Geçersiz yedek", hata.message || "JSON dosyası okunamadı.", () => {}, true);
+      }
+      event.target.value = "";
     }
 
     function sifreGuncelle(e) {
