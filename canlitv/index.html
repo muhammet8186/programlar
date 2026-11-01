@@ -1239,19 +1239,12 @@
       aktifKaynakYedekMi = false;
       sonIzlenenEkle(kanal);
       if (kullaniciTiklamasi && window.matchMedia('(max-width: 1023px)').matches) {
+        // Kanal seçilince sayfanın en üstüne dön: başlık, Son İzlenenler
+        // ve hemen altındaki TV oynatıcı aynı akış içinde yeniden görünür.
+        // Kanal listesi gizlenmez; sayfanın aşağısında kalmaya devam eder.
         setTimeout(() => {
-          // İzleme alanının tamamının başlangıcına kaydır: sabit başlık üstte kalır,
-          // Son İzlenenler görünürse onunla birlikte oynatıcı da aşağıda görünür.
-          const sonIzlenenBolumu = document.getElementById('sonIzlenenlerBolumu');
-          const oynatici = document.getElementById('oynaticiKapsayici');
-          const hedef = sonIzlenenBolumu && !sonIzlenenBolumu.classList.contains('hidden')
-            ? sonIzlenenBolumu
-            : oynatici;
-          const baslik = document.querySelector('header');
-          const ustBosluk = (baslik ? baslik.getBoundingClientRect().height : 0) + 8;
-          const hedefY = hedef.getBoundingClientRect().top + window.scrollY - ustBosluk;
-          window.scrollTo({ top: Math.max(0, hedefY), behavior: 'smooth' });
-        }, 120);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 180);
       }
 
       videoOynaticiModunaDon();
