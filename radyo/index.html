@@ -18,10 +18,10 @@
             --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
             --text-muted: #64748b;
-            --accent-primary: #6366f1;
-            --accent-secondary: #06b6d4;
-            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
-            --accent-gradient-hover: linear-gradient(135deg, #4f46e5 0%, #0891b2 100%);
+            --accent-primary: #8b5cf6;
+            --accent-secondary: #c084fc;
+            --accent-gradient: linear-gradient(135deg, #7c3aed 0%, #c084fc 100%);
+            --accent-gradient-hover: linear-gradient(135deg, #6d28d9 0%, #a855f7 100%);
             --card-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.5);
             --player-bg: rgba(15, 23, 42, 0.95);
             --danger-color: #ef4444;
@@ -45,6 +45,19 @@
             --player-bg: rgba(255, 255, 255, 0.95);
         }
 
+        body[data-theme="dark"] { color-scheme: dark; }
+        body[data-theme="light"] { color-scheme: light; }
+        .now-playing-art { width: 54px; height: 54px; border-radius: 12px; object-fit: cover; background: var(--bg-surface-hover); border: 1px solid var(--border-color); flex: 0 0 54px; }
+        .player-bar { transition: var(--transition); }
+        .fullscreen-player { position: fixed; inset: 0; z-index: 4000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 28px; text-align: center; background: var(--bg-base); background-image: radial-gradient(circle at 50% 15%, rgba(139,92,246,.24), transparent 48%); opacity: 0; pointer-events: none; transition: var(--transition); }
+        .fullscreen-player.show { opacity: 1; pointer-events: auto; }
+        .fullscreen-visualizer { width:min(88vw, 1040px); height: min(48vh, 360px); display:block; border-radius:28px; background: radial-gradient(ellipse at center, rgba(139,92,246,.16), rgba(15,23,42,.08) 68%, transparent 100%); filter: drop-shadow(0 12px 34px rgba(139,92,246,.22)); }
+        .fullscreen-player h2 { font-size: clamp(22px, 4vw, 34px); }
+        .fullscreen-player p { color: var(--text-secondary); }
+        .fullscreen-actions { display:flex; gap:12px; align-items:center; }
+        .admin-pill { font-size:11px; color:var(--accent-secondary); margin-top:4px; }
+        @media (max-width:640px) { .now-playing-art { width:42px;height:42px;flex-basis:42px; } .fullscreen-visualizer { width:94vw; height:34vh; } }
+
         * {
             margin: 0;
             padding: 0;
@@ -61,7 +74,7 @@
             flex-direction: column;
             overflow-x: hidden;
             transition: background-color 0.4s ease, color 0.4s ease;
-            padding-bottom: 180px;
+            padding-bottom: 300px;
         }
 
         .ambient-glow {
@@ -103,12 +116,20 @@
         }
 
         header {
+            position: sticky;
+            top: 0;
+            z-index: 110;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 16px;
+            margin: -20px -20px 16px;
+            padding: 12px 20px;
             flex-wrap: wrap;
             gap: 16px;
+            background: var(--bg-glass);
+            border-bottom: 1px solid var(--border-color);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
         }
 
         .brand {
@@ -127,7 +148,7 @@
             justify-content: center;
             font-size: 20px;
             color: white;
-            box-shadow: 0 6px 15px rgba(99, 102, 241, 0.3);
+            box-shadow: 0 6px 15px rgba(139, 92, 246, 0.3);
         }
 
         .brand-title h1 {
@@ -176,12 +197,12 @@
             background: var(--accent-gradient);
             color: white;
             border: none;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
         }
 
         .btn-primary:hover {
             background: var(--accent-gradient-hover);
-            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+            box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
         }
 
         .btn-icon-only {
@@ -339,7 +360,7 @@
 
         .station-card:hover {
             transform: translateY(-3px);
-            border-color: rgba(99, 102, 241, 0.4);
+            border-color: rgba(139, 92, 246, 0.4);
             background: var(--bg-surface-hover);
         }
 
@@ -464,16 +485,34 @@
             border-top: 1px solid var(--border-color);
         }
 
-        /* Web Audio API Visualizer */
+        /* Modern Search Overlay */
+        .search-modal-overlay { position:fixed; inset:0; z-index:2500; display:none; align-items:flex-start; justify-content:center; padding: min(10vh,70px) 16px 24px; background:rgba(2,6,23,.76); backdrop-filter:blur(14px); overflow-y:auto; }
+        .search-modal-overlay.show { display:flex; animation:searchFadeIn .22s ease; }
+        @keyframes searchFadeIn { from { opacity:0; } to { opacity:1; } }
+        .search-modal-card { width:min(960px,100%); background:var(--bg-base); border:1px solid var(--border-color); border-radius:22px; padding:22px; box-shadow:0 28px 90px rgba(0,0,0,.5); }
+        .search-modal-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+        .search-modal-heading h2 { font-size:19px; font-weight:800; display:flex; align-items:center; gap:10px; }
+        .search-modal-heading h2 i { color:var(--accent-secondary); }
+        .search-modal-card .search-panel { margin:0; padding:0; border:0; box-shadow:none; background:transparent; }
+        .search-modal-card .search-row { grid-template-columns:1.5fr 1fr 1fr 1fr auto; }
+
+        /* Web Audio API Visualizer - player bar'dan ayrı, hemen üstünde */
         .visualizer-wrapper {
             position: fixed;
-            bottom: 86px;
             left: 0;
-            width: 100vw;
-            height: 75px;
+            right: 0;
+            bottom: var(--player-bar-top, 150px);
+            transform: none;
+            width: 100%;
+            height: 176px;
             z-index: 99;
             pointer-events: none;
-            background: linear-gradient(180deg, rgba(15, 23, 42, 0) 0%, var(--bg-base) 100%);
+            overflow: hidden;
+            border-radius: 0;
+            background: linear-gradient(180deg, rgba(139,92,246,.17), rgba(15,23,42,.055));
+            border: 0;
+            border-top: 1px solid rgba(139,92,246,.24);
+            box-shadow: 0 0 30px rgba(139,92,246,.12);
         }
 
         #visualizer-canvas {
@@ -488,6 +527,7 @@
             bottom: 0;
             left: 0;
             right: 0;
+            padding-bottom: calc(14px + env(safe-area-inset-bottom));
             background: var(--player-bg);
             backdrop-filter: blur(20px);
             border-top: 1px solid var(--border-color);
@@ -507,15 +547,7 @@
             min-width: 0;
         }
 
-        .now-playing-img {
-            width: 52px;
-            height: 52px;
-            border-radius: var(--radius-md);
-            background: var(--bg-base);
-            object-fit: cover;
-            border: 1px solid var(--border-color);
-            flex-shrink: 0;
-        }
+        /* Kapak görseli kaldırıldı; oynatıcı metin alanı sadeleştirildi. */
 
         .now-playing-meta {
             min-width: 0;
@@ -550,18 +582,18 @@
         }
 
         .play-btn {
-            width: 50px;
-            height: 50px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
             background: var(--accent-gradient);
             border: none;
             color: white;
-            font-size: 18px;
+            font-size: 24px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+            box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
             transition: var(--transition);
         }
 
@@ -739,6 +771,14 @@
         .modal-section-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
         .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 
+        .eq-field-label { display:block; font-size:12px; color:var(--text-secondary); margin:0 0 6px; }
+        .eq-slider-row { margin:12px 0; }
+        .eq-slider-row label { display:flex; justify-content:space-between; font-size:13px; font-weight:600; margin-bottom:7px; }
+        .eq-slider-row label span { color:var(--accent-secondary); font-variant-numeric:tabular-nums; }
+        .eq-slider-row input { width:100%; accent-color:var(--accent-primary); cursor:pointer; }
+        .eq-help { display:block; color:var(--text-muted); font-size:11px; margin-top:8px; line-height:1.5; }
+        .modal-card { max-height: min(88vh, 780px); overflow-y:auto; overscroll-behavior:contain; }
+
         /* Toast Notifications */
         .toast {
             position: fixed;
@@ -781,17 +821,136 @@
 
         @media (max-width: 992px) {
             .search-row { grid-template-columns: 1fr 1fr; }
-            .player-bar { grid-template-columns: 1fr auto; padding: 12px 16px; }
-            .extra-controls { display: none; }
+            .search-modal-card .search-row { grid-template-columns:1fr 1fr; }
+            .search-modal-card .input-group { grid-column:1 / -1; }
+            .search-modal-card #search-btn { grid-column:1 / -1; justify-content:center; }
+            .player-bar { grid-template-columns: minmax(0,1fr) auto; padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); gap:10px; }
+            .extra-controls { display: flex; justify-content:flex-end; gap:8px; }
+            .extra-controls .volume-box { display:none; }
         }
 
         @media (max-width: 640px) {
             .search-row { grid-template-columns: 1fr; }
             .now-playing-sub { display: none; }
             .app-container { padding: 10px; }
-            .btn-icon-only { width: 42px; height: 42px; font-size: 15px; }
-            .play-btn { width: 46px; height: 46px; font-size: 16px; }
-            .visualizer-wrapper { height: 60px; bottom: 80px; }
+            header { top: 0; margin: -10px -10px 14px; padding: 10px 12px; gap: 10px; }
+            .brand-icon { width: 40px; height: 40px; font-size: 17px; }
+            .brand-title h1 { font-size: 18px; }
+            .brand-title p { font-size: 11px; }
+            .header-controls { gap: 6px; }
+            .header-controls .btn { padding: 9px 11px; }
+            .btn-icon-only { width: 38px; height: 38px; font-size: 14px; }
+            .player-bar {
+                grid-template-columns: minmax(0,1fr) auto;
+                grid-template-areas: "track extras" "controls controls";
+                gap: 8px 10px;
+                padding: 9px 10px calc(9px + env(safe-area-inset-bottom));
+            }
+            .now-playing { grid-area:track; justify-content:flex-start; text-align:left; gap:9px; min-width:0; }
+            .now-playing-art { width:38px; height:38px; flex-basis:38px; }
+            .now-playing-title { font-size:12px; max-width:48vw; }
+            .player-controls { grid-area:controls; width:100%; }
+            .control-btns { justify-content:space-between; gap:5px; flex-wrap:nowrap; width:100%; }
+            .control-btns .btn-icon-only { width:34px; height:34px; min-width:34px; font-size:12px; }
+            .play-btn { width:46px; height:46px; min-width:46px; font-size:19px; }
+            .extra-controls { grid-area:extras; display:flex; justify-content:flex-end; align-items:center; gap:6px; }
+            .extra-controls .volume-box { display:none; }
+            .visualizer-wrapper {
+                width: 100%;
+                height: 158px;
+                left: 0;
+                right: 0;
+                border-radius: 0;
+            }
+            .play-btn { width:62px; height:62px; min-width:62px; font-size:24px; }
+            body { padding-bottom:300px; }
+            .search-modal-overlay { padding:16px 10px 24px; align-items:flex-start; }
+            .search-modal-card { padding:16px; border-radius:18px; }
+            .search-modal-card .search-row { grid-template-columns:1fr 1fr; gap:9px; }
+            .search-modal-card .input-group { grid-column:1 / -1; }
+            .search-modal-card #search-btn { grid-column:1 / -1; width:100%; justify-content:center; }
+            .modal-card { width:calc(100% - 24px); padding:18px; max-height:86dvh; }
+            .modal-buttons { position:sticky; bottom:-18px; background:var(--bg-surface); padding:10px 0 0; }
+        }
+
+        /* Symphony Radio: compact station tiles, sticky library tabs and unified player controls */
+        .tabs-container {
+            position: sticky;
+            top: 74px;
+            z-index: 105;
+            padding: 10px 12px;
+            margin: 0 -2px 12px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            box-shadow: 0 8px 22px rgba(0,0,0,.12);
+        }
+        .stations-grid {
+            grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+            gap: 9px;
+        }
+        .station-card {
+            min-height: 88px;
+            padding: 10px;
+            border-radius: 11px;
+        }
+        .card-header { gap: 8px; margin-bottom: 6px; }
+        .station-logo-wrap { width: 36px; height: 36px; border-radius: 8px; }
+        .station-logo-fallback { font-size: 15px; }
+        .station-title { font-size: 12px; margin-bottom: 2px; }
+        .station-country { font-size: 10px; }
+        .fav-btn { top: 7px; right: 7px; font-size: 13px; padding: 4px; }
+        .card-tags { gap: 4px; margin-bottom: 4px; height: 17px; }
+        .tag-badge { font-size: 9px; padding: 2px 6px; }
+        .card-footer { padding-top: 5px; font-size: 10px; }
+        .control-btns { gap: 9px; }
+        .player-action-btn.active, #player-fav-btn.active { color: var(--danger-color); }
+        .player-action-btn { flex: 0 0 auto; }
+        @media (max-width: 992px) {
+            .tabs-container { top: 66px; }
+            .control-btns { gap: 6px; }
+        }
+        @media (max-width: 640px) {
+            .tabs-container {
+                top: 58px;
+                margin: 0 -2px 10px;
+                padding: 7px;
+                gap: 6px;
+                border-radius: 12px;
+            }
+            .tabs-container .source-switch { gap: 5px; }
+            .source-btn { padding: 7px 9px; font-size: 10px; }
+            .tabs { gap: 4px; width: 100%; justify-content: space-between; }
+            .tab-btn { padding: 7px 9px; font-size: 11px; gap: 5px; white-space: nowrap; }
+            .stations-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+            .station-card { min-height: 76px; padding: 8px; }
+            .station-logo-wrap { width: 32px; height: 32px; }
+            .station-title { font-size: 11px; max-width: 100%; }
+            .station-country { font-size: 9px; }
+            .card-tags { height: 15px; }
+            .tag-badge { font-size: 8px; }
+            .control-btns { justify-content: space-between; gap: 3px; }
+            .control-btns .btn-icon-only {
+                width: clamp(28px, 8.2vw, 34px);
+                min-width: clamp(28px, 8.2vw, 34px);
+                height: clamp(28px, 8.2vw, 34px);
+                font-size: 11px;
+                padding: 0;
+            }
+            .control-btns .play-btn {
+                width: clamp(48px, 14vw, 56px);
+                min-width: clamp(48px, 14vw, 56px);
+                height: clamp(48px, 14vw, 56px);
+                font-size: 21px;
+            }
+            .player-action-btn { display: inline-flex; }
+        }
+        @media (max-width: 360px) {
+            .tab-btn { padding: 6px 6px; font-size: 10px; }
+            .source-btn { padding: 6px 7px; font-size: 9px; }
+            .control-btns { gap: 2px; }
         }
     </style>
 </head>
@@ -836,7 +995,26 @@
                 <input type="text" id="custom-name" class="modal-input" placeholder="Radyo Adı">
                 <input type="text" id="custom-url" class="modal-input" placeholder="Yayın Akış URL veya Web Sitesi">
                 <input type="text" id="custom-country" class="modal-input" placeholder="Ülke / Şehir (Opsiyonel)">
+                <input type="url" id="custom-logo" class="modal-input" placeholder="Logo / Kapak görseli URL (Opsiyonel)">
                 <button class="btn btn-primary" id="custom-save" style="width:100%; justify-content:center;"><i class="fa-solid fa-plus"></i> Radyoyu Kaydet</button>
+            </div>
+
+            <div class="modal-section eq-settings-section">
+                <div class="modal-section-title"><i class="fa-solid fa-sliders"></i> Ses Ekolayzırı</div>
+                <label class="eq-field-label" for="eq-preset">Hazır ses profili</label>
+                <select id="eq-preset" class="modal-input eq-preset-settings">
+                    <option value="flat">Düz (Varsayılan)</option>
+                    <option value="bass">Bass Boost</option>
+                    <option value="pop">Pop</option>
+                    <option value="rock">Rock</option>
+                    <option value="vocal">Net Ses</option>
+                    <option value="custom">Özel Ayar</option>
+                </select>
+                <div class="eq-slider-row"><label for="eq-bass">Bas <span id="eq-bass-value">0 dB</span></label><input id="eq-bass" type="range" min="-12" max="12" step="1" value="0"></div>
+                <div class="eq-slider-row"><label for="eq-mid">Orta frekans <span id="eq-mid-value">0 dB</span></label><input id="eq-mid" type="range" min="-12" max="12" step="1" value="0"></div>
+                <div class="eq-slider-row"><label for="eq-treble">Tiz <span id="eq-treble-value">0 dB</span></label><input id="eq-treble" type="range" min="-12" max="12" step="1" value="0"></div>
+                <button class="btn" id="eq-reset" style="width:100%;justify-content:center;margin-top:8px"><i class="fa-solid fa-rotate-left"></i> Ekolayzırı Sıfırla</button>
+                <small class="eq-help">Ayarlar cihazınızda saklanır ve radyo çalarken uygulanır.</small>
             </div>
 
             <div class="modal-section">
@@ -863,21 +1041,30 @@
                 </div>
                 <div class="brand-title">
                     <h1>Symphony Radio</h1>
-                    <p>Dünya Radyoları & Canlı Oynatıcı</p>
+                    <p>Dünya Radyoları • Canlı Dinle</p>
                 </div>
             </div>
             <div class="header-controls">
+                <button class="btn btn-icon-only" id="search-open-btn" title="Radyo Ara" aria-label="Radyo Ara">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </button>
                 <button class="btn btn-icon-only" id="theme-toggle" title="Karanlık/Aydınlık Mod">
                     <i class="fa-solid fa-moon"></i>
                 </button>
-                <button class="btn btn-icon-only" id="settings-btn" title="Modern Ayarlar Paneli">
-                    <i class="fa-solid fa-gear"></i>
+                <button class="btn btn-icon-only" id="settings-btn" title="Yönetici Paneli">
+                    <i class="fa-solid fa-sliders"></i>
                 </button>
             </div>
         </header>
 
-        <!-- Search Panel -->
-        <div class="search-panel">
+        <!-- Search Panel: ayrı modern açılır ekran -->
+        <div id="search-modal" class="search-modal-overlay" aria-hidden="true">
+          <div class="search-modal-card">
+            <div class="search-modal-heading">
+              <h2><i class="fa-solid fa-magnifying-glass"></i> Radyo Ara & Filtrele</h2>
+              <button class="btn btn-icon-only" id="search-close-btn" type="button" title="Kapat"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="search-panel">
             <div class="search-row">
                 <div class="input-group">
                     <i class="fa-solid fa-magnifying-glass"></i>
@@ -911,6 +1098,8 @@
                     <i class="fa-solid fa-sliders"></i> Ara
                 </button>
             </div>
+            </div>
+          </div>
         </div>
 
         <!-- Navigation Tabs -->
@@ -941,15 +1130,15 @@
         </div>
     </div>
 
-    <!-- Web Audio API Visualizer -->
-    <div class="visualizer-wrapper">
+    <!-- Player bar'dan ayrı ekolayzır görseli -->
+    <div class="visualizer-wrapper" aria-label="Canlı ses ekolayzır görselleştirmesi">
         <canvas id="visualizer-canvas"></canvas>
     </div>
 
     <!-- Floating Audio Player Bar -->
     <div class="player-bar">
         <div class="now-playing">
-            <img id="player-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100&q=80" class="now-playing-img" alt="Logo">
+            <img id="player-art" class="now-playing-art" src="" alt="Radyo kapak görseli" onerror="this.style.display='none'">
             <div class="now-playing-meta">
                 <div id="player-title" class="now-playing-title">Bir Radyo Seçin</div>
                 <div id="player-sub" class="now-playing-sub">Canlı Yayın Bekleniyor...</div>
@@ -976,22 +1165,16 @@
                 <button class="btn btn-icon-only" id="sleep-btn" title="Uyku Zamanlayıcısı">
                     <i class="fa-solid fa-moon"></i>
                 </button>
+                <button class="btn btn-icon-only player-action-btn" id="player-fav-btn" title="Favorilere Ekle / Çıkar" aria-label="Favorilere Ekle / Çıkar">
+                    <i class="fa-regular fa-heart"></i>
+                </button>
+                <button class="btn btn-icon-only player-action-btn" id="fullscreen-player-btn" title="Tam ekran oynatıcı" aria-label="Tam ekran oynatıcı">
+                    <i class="fa-solid fa-expand"></i>
+                </button>
             </div>
         </div>
 
         <div class="extra-controls">
-            <select id="eq-preset" class="eq-select" title="Ekolayzır Modu">
-                <option value="flat">Ekolayzır: Düz</option>
-                <option value="bass">Bass Boost</option>
-                <option value="pop">Pop</option>
-                <option value="rock">Rock</option>
-                <option value="vocal">Net Ses</option>
-            </select>
-
-            <button class="btn btn-icon-only" id="player-fav-btn">
-                <i class="fa-regular fa-heart"></i>
-            </button>
-            
             <div class="volume-box">
                 <i id="volume-icon" class="fa-solid fa-volume-high" title="Sesi Kapat / Aç (M)"></i>
                 <input type="range" id="volume-slider" class="volume-slider" min="0" max="1" step="0.01" value="0.8">
@@ -999,8 +1182,20 @@
         </div>
     </div>
 
+    <section id="fullscreen-player" class="fullscreen-player" aria-hidden="true">
+        <button class="btn btn-icon-only" id="fullscreen-close" style="position:absolute;top:22px;right:22px" title="Kapat"><i class="fa-solid fa-xmark"></i></button>
+        <canvas id="fullscreen-visualizer-canvas" class="fullscreen-visualizer" aria-label="Tam ekran canlı ses görselleştirmesi"></canvas>
+        <div><h2 id="fullscreen-title">Symphony Radio</h2><p id="fullscreen-sub">Canlı yayın</p></div>
+        <div class="fullscreen-actions">
+            <button class="btn btn-icon-only" id="fullscreen-prev"><i class="fa-solid fa-backward-step"></i></button>
+            <button class="play-btn" id="fullscreen-play"><i class="fa-solid fa-play"></i></button>
+            <button class="btn btn-icon-only" id="fullscreen-next"><i class="fa-solid fa-forward-step"></i></button>
+        </div>
+        <div class="admin-pill">SYMPHONY RADIO • CANLI DİNLEME</div>
+    </section>
+
     <!-- HTML5 Audio Element -->
-    <audio id="audio-engine" crossorigin="anonymous" preload="none"></audio>
+    <audio id="audio-engine" crossorigin="anonymous" preload="none" playsinline></audio>
 
     <script>
         const API_SERVERS = [
@@ -1032,6 +1227,9 @@
         let analyser = null;
         let sourceNode = null;
         let biquadFilter = null;
+        let eqMidFilter = null;
+        let eqTrebleFilter = null;
+        let eqValues = JSON.parse(localStorage.getItem('symphony_eq') || '{"bass":0,"mid":0,"treble":0}');
 
         const audioEngine = document.getElementById('audio-engine');
         const grid = document.getElementById('stations-grid');
@@ -1042,11 +1240,19 @@
         const searchBtn = document.getElementById('search-btn');
         const themeToggle = document.getElementById('theme-toggle');
         const settingsBtn = document.getElementById('settings-btn');
+        const searchModal = document.getElementById('search-modal');
+        const searchOpenBtn = document.getElementById('search-open-btn');
+        const searchCloseBtn = document.getElementById('search-close-btn');
         const favCountSpan = document.getElementById('fav-count');
 
         const playerTitle = document.getElementById('player-title');
         const playerSub = document.getElementById('player-sub');
-        const playerImg = document.getElementById('player-img');
+        const playerArt = document.getElementById('player-art');
+        const fullscreenPlayer = document.getElementById('fullscreen-player');
+        const fullscreenVisualizerCanvas = document.getElementById('fullscreen-visualizer-canvas');
+        const fullscreenVisualizerCtx = fullscreenVisualizerCanvas.getContext('2d');
+        const fullscreenTitle = document.getElementById('fullscreen-title');
+        const fullscreenSub = document.getElementById('fullscreen-sub');
         const mainPlayBtn = document.getElementById('main-play-btn');
         const prevBtn = document.getElementById('prev-btn');
         const nextBtn = document.getElementById('next-btn');
@@ -1065,6 +1271,15 @@
 
         const canvas = document.getElementById('visualizer-canvas');
         const canvasCtx = canvas.getContext('2d');
+        const playerBar = document.querySelector('.player-bar');
+        const visualizerWrapper = document.querySelector('.visualizer-wrapper');
+
+        function syncVisualizerToPlayerBar() {
+            if (!playerBar || !visualizerWrapper) return;
+            const playerTop = playerBar.getBoundingClientRect().top;
+            const bottomOffset = Math.max(0, window.innerHeight - playerTop);
+            visualizerWrapper.style.setProperty('--player-bar-top', `${bottomOffset}px`);
+        }
 
         document.addEventListener('DOMContentLoaded', async () => {
             initTheme();
@@ -1073,13 +1288,30 @@
             await fetchStations();
             setupEventListeners();
             setupKeyboardShortcuts();
+            syncVisualizerToPlayerBar();
             resizeCanvas();
-            window.addEventListener('resize', resizeCanvas);
+            window.addEventListener('resize', () => {
+                syncVisualizerToPlayerBar();
+                resizeCanvas();
+            });
+            if (window.ResizeObserver && playerBar) {
+                new ResizeObserver(() => {
+                    syncVisualizerToPlayerBar();
+                    resizeCanvas();
+                }).observe(playerBar);
+            }
         });
 
         function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = 75;
+            const playerRect = canvas.getBoundingClientRect();
+            const fullRect = fullscreenVisualizerCanvas.getBoundingClientRect();
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            canvas.width = Math.max(1, Math.floor(playerRect.width * dpr));
+            canvas.height = Math.max(1, Math.floor(playerRect.height * dpr));
+            fullscreenVisualizerCanvas.width = Math.max(1, Math.floor(fullRect.width * dpr));
+            fullscreenVisualizerCanvas.height = Math.max(1, Math.floor(fullRect.height * dpr));
+            canvasCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            fullscreenVisualizerCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
         }
 
         async function apiFetch(endpoint) {
@@ -1273,10 +1505,20 @@
 
                 biquadFilter = audioCtx.createBiquadFilter();
                 biquadFilter.type = 'lowshelf';
+                biquadFilter.frequency.value = 250;
+                eqMidFilter = audioCtx.createBiquadFilter();
+                eqMidFilter.type = 'peaking';
+                eqMidFilter.frequency.value = 1000;
+                eqMidFilter.Q.value = 0.8;
+                eqTrebleFilter = audioCtx.createBiquadFilter();
+                eqTrebleFilter.type = 'highshelf';
+                eqTrebleFilter.frequency.value = 4000;
 
                 sourceNode = audioCtx.createMediaElementSource(audioEngine);
                 sourceNode.connect(biquadFilter);
-                biquadFilter.connect(analyser);
+                biquadFilter.connect(eqMidFilter);
+                eqMidFilter.connect(eqTrebleFilter);
+                eqTrebleFilter.connect(analyser);
                 analyser.connect(audioCtx.destination);
 
                 drawVisualizer();
@@ -1286,53 +1528,79 @@
             }
         }
 
+        function paintSpectrum(ctx, targetCanvas, dataArray) {
+            const width = targetCanvas.clientWidth || targetCanvas.width;
+            const height = targetCanvas.clientHeight || targetCanvas.height;
+            ctx.clearRect(0, 0, width, height);
+            const count = Math.min(dataArray.length, Math.max(28, Math.floor(width / 5)));
+            const step = Math.max(1, Math.floor(dataArray.length / count));
+            const gap = width > 600 ? 3 : 2;
+            const barWidth = width / count;
+            for (let i = 0; i < count; i++) {
+                const value = dataArray[i * step] || 0;
+                const barHeight = Math.max(3, (value / 255) * height * .92);
+                const x = i * barWidth;
+                const gradient = ctx.createLinearGradient(0, height, 0, 0);
+                gradient.addColorStop(0, '#7c3aed');
+                gradient.addColorStop(.52, '#a78bfa');
+                gradient.addColorStop(1, '#e879f9');
+                ctx.fillStyle = gradient;
+                ctx.shadowColor = 'rgba(168,85,247,.35)';
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                const radius = Math.min((barWidth-gap)/2, 5);
+                ctx.roundRect(x + gap/2, height - barHeight, Math.max(1, barWidth-gap), barHeight, radius);
+                ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+        }
+
         function drawVisualizer() {
             requestAnimationFrame(drawVisualizer);
             if (!analyser) return;
-            const bufferLength = analyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
             analyser.getByteFrequencyData(dataArray);
-
-            canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-
-            const barWidth = (canvas.width / bufferLength) * 2;
-            let x = 0;
-
-            for (let i = 0; i < bufferLength; i++) {
-                const barHeight = (dataArray[i] / 255) * canvas.height * 1.2;
-
-                const gradient = canvasCtx.createLinearGradient(0, canvas.height, 0, 0);
-                gradient.addColorStop(0, '#6366f1');
-                gradient.addColorStop(0.5, '#06b6d4');
-                gradient.addColorStop(1, '#ec4899');
-
-                canvasCtx.fillStyle = gradient;
-                canvasCtx.fillRect(x, canvas.height - barHeight, barWidth - 2, barHeight);
-
-                x += barWidth;
-            }
+            paintSpectrum(canvasCtx, canvas, dataArray);
+            paintSpectrum(fullscreenVisualizerCtx, fullscreenVisualizerCanvas, dataArray);
         }
 
-        eqPresetSelect.addEventListener('change', (e) => {
-            if (!biquadFilter) return;
-            const val = e.target.value;
-            if (val === 'bass') {
-                biquadFilter.type = 'lowshelf';
-                biquadFilter.frequency.value = 200;
-                biquadFilter.gain.value = 8;
-            } else if (val === 'pop') {
-                biquadFilter.type = 'peaking';
-                biquadFilter.frequency.value = 1000;
-                biquadFilter.gain.value = 4;
-            } else if (val === 'rock') {
-                biquadFilter.type = 'highshelf';
-                biquadFilter.frequency.value = 3000;
-                biquadFilter.gain.value = 6;
-            } else {
-                biquadFilter.gain.value = 0;
+        const eqBass = document.getElementById('eq-bass');
+        const eqMid = document.getElementById('eq-mid');
+        const eqTreble = document.getElementById('eq-treble');
+
+        function applyEqualizer() {
+            const values = { bass: Number(eqBass.value), mid: Number(eqMid.value), treble: Number(eqTreble.value) };
+            eqValues = values;
+            document.getElementById('eq-bass-value').textContent = `${values.bass > 0 ? '+' : ''}${values.bass} dB`;
+            document.getElementById('eq-mid-value').textContent = `${values.mid > 0 ? '+' : ''}${values.mid} dB`;
+            document.getElementById('eq-treble-value').textContent = `${values.treble > 0 ? '+' : ''}${values.treble} dB`;
+            if (biquadFilter && eqMidFilter && eqTrebleFilter) {
+                biquadFilter.gain.setTargetAtTime(values.bass, audioCtx.currentTime, 0.04);
+                eqMidFilter.gain.setTargetAtTime(values.mid, audioCtx.currentTime, 0.04);
+                eqTrebleFilter.gain.setTargetAtTime(values.treble, audioCtx.currentTime, 0.04);
             }
-            showToast(`Ekolayzır: ${e.target.options[e.target.selectedIndex].text}`, 'success');
-        });
+            localStorage.setItem('symphony_eq', JSON.stringify(values));
+        }
+
+        function setEqValues(values, presetName) {
+            eqBass.value = values.bass; eqMid.value = values.mid; eqTreble.value = values.treble;
+            if (presetName) eqPresetSelect.value = presetName;
+            else eqPresetSelect.value = 'custom';
+            applyEqualizer();
+        }
+
+        const eqPresets = {
+            flat: { bass: 0, mid: 0, treble: 0 },
+            bass: { bass: 8, mid: 1, treble: 2 },
+            pop: { bass: 3, mid: 2, treble: 4 },
+            rock: { bass: 5, mid: -1, treble: 5 },
+            vocal: { bass: -2, mid: 5, treble: 3 }
+        };
+        [eqBass, eqMid, eqTreble].forEach(input => input.addEventListener('input', () => setEqValues({ bass:eqBass.value, mid:eqMid.value, treble:eqTreble.value })));
+        eqPresetSelect.addEventListener('change', () => setEqValues(eqPresets[eqPresetSelect.value] || eqPresets.flat, eqPresetSelect.value));
+        document.getElementById('eq-reset').addEventListener('click', () => { setEqValues(eqPresets.flat, 'flat'); showToast('Ekolayzır varsayılan ayarlara döndürüldü.', 'success'); });
+        setEqValues(eqValues);
+
 
         // --- Audio Playback & Web Viewer Integration ---
         function playStation(uuid) {
@@ -1440,13 +1708,19 @@
 
             playerTitle.textContent = currentStation.name;
             playerSub.textContent = webviewStations[currentStation.changeuuid] ? 'Web Viewer Modunda' : `${currentStation.country || 'Özel Kanal'}`;
-            
-            if (currentStation.favicon && currentStation.favicon.startsWith('http')) {
-                playerImg.src = currentStation.favicon;
-            } else {
-                playerImg.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100&q=80';
+            const art = currentStation.favicon && /^https?:\/\//i.test(currentStation.favicon) ? currentStation.favicon : '';
+            playerArt.src = art || '';
+            playerArt.style.display = art ? 'block' : 'none';
+            fullscreenTitle.textContent = currentStation.name;
+            fullscreenSub.textContent = playerSub.textContent;
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({ title: currentStation.name, artist: currentStation.country || 'Symphony Radio', album: 'Canlı Radyo', artwork: art ? [{ src: art, sizes: '512x512', type: 'image/png' }] : [] });
+                navigator.mediaSession.setActionHandler('play', () => audioEngine.play());
+                navigator.mediaSession.setActionHandler('pause', () => audioEngine.pause());
+                navigator.mediaSession.setActionHandler('previoustrack', () => changeChannel(-1));
+                navigator.mediaSession.setActionHandler('nexttrack', () => changeChannel(1));
             }
-
+            
             mainPlayBtn.innerHTML = isPlaying ? '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play"></i>';
 
             const isFav = favorites.some(f => f.changeuuid === currentStation.changeuuid);
@@ -1605,6 +1879,7 @@
             const name = document.getElementById('custom-name').value.trim();
             const url = document.getElementById('custom-url').value.trim();
             const country = document.getElementById('custom-country').value.trim() || 'Özel Kanal';
+            const favicon = document.getElementById('custom-logo').value.trim();
 
             if (!name || !url) {
                 showToast('Lütfen radyo adı ve yayın adresini girin.', 'error');
@@ -1617,6 +1892,7 @@
                 url: url,
                 url_resolved: url,
                 country: country,
+                favicon: favicon,
                 tags: 'özel, kullanıcı',
                 clickcount: 1
             };
@@ -1626,6 +1902,7 @@
             document.getElementById('custom-name').value = '';
             document.getElementById('custom-url').value = '';
             document.getElementById('custom-country').value = '';
+            document.getElementById('custom-logo').value = '';
             settingsModal.classList.remove('show');
             fetchStations();
             showToast('Özel radyo başarıyla eklendi!', 'success');
@@ -1749,7 +2026,11 @@
         function setupEventListeners() {
             document.getElementById('github-list-btn').addEventListener('click', () => switchSource('github'));
             document.getElementById('existing-list-btn').addEventListener('click', () => switchSource('existing'));
-            searchBtn.addEventListener('click', () => fetchStations());
+            searchOpenBtn.addEventListener('click', () => { searchModal.classList.add('show'); searchModal.setAttribute('aria-hidden','false'); setTimeout(() => searchInput.focus(), 120); });
+            searchCloseBtn.addEventListener('click', () => { searchModal.classList.remove('show'); searchModal.setAttribute('aria-hidden','true'); });
+            searchModal.addEventListener('click', (e) => { if (e.target === searchModal) { searchModal.classList.remove('show'); searchModal.setAttribute('aria-hidden','true'); } });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && searchModal.classList.contains('show')) { searchModal.classList.remove('show'); searchModal.setAttribute('aria-hidden','true'); } });
+            searchBtn.addEventListener('click', () => { fetchStations(); searchModal.classList.remove('show'); searchModal.setAttribute('aria-hidden','true'); });
 
             let timeout = null;
             searchInput.addEventListener('input', () => {
@@ -1771,11 +2052,11 @@
             });
 
             themeToggle.addEventListener('click', () => {
-                const currentTheme = document.body.getAttribute('data-theme');
-                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-                document.body.setAttribute('data-theme', newTheme);
-                themeToggle.innerHTML = newTheme === 'light' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
-                localStorage.setItem('symphony_theme', newTheme);
+                const currentTheme = localStorage.getItem('symphony_theme') || 'auto';
+                const nextTheme = currentTheme === 'auto' ? 'dark' : currentTheme === 'dark' ? 'light' : 'auto';
+                applyTheme(nextTheme);
+                localStorage.setItem('symphony_theme', nextTheme);
+                showToast(`Tema: ${nextTheme === 'auto' ? 'Otomatik' : nextTheme === 'dark' ? 'Koyu' : 'Açık'}`, 'success');
             });
 
             audioEngine.onerror = () => {
@@ -1785,10 +2066,38 @@
             };
         }
 
+        // Tam ekran oynatıcı kontrolleri
+        const openFullscreenPlayer = () => {
+            fullscreenPlayer.classList.add('show');
+            fullscreenPlayer.setAttribute('aria-hidden', 'false');
+            requestAnimationFrame(resizeCanvas);
+            if (currentStation) updatePlayerUI(!audioEngine.paused);
+        };
+        const closeFullscreenPlayer = () => {
+            fullscreenPlayer.classList.remove('show');
+            fullscreenPlayer.setAttribute('aria-hidden', 'true');
+        };
+        document.getElementById('fullscreen-player-btn').addEventListener('click', openFullscreenPlayer);
+        document.getElementById('fullscreen-close').addEventListener('click', closeFullscreenPlayer);
+        document.getElementById('fullscreen-prev').addEventListener('click', () => changeChannel(-1));
+        document.getElementById('fullscreen-next').addEventListener('click', () => changeChannel(1));
+        document.getElementById('fullscreen-play').addEventListener('click', () => mainPlayBtn.click());
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFullscreenPlayer(); });
+        audioEngine.addEventListener('play', () => { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing'; document.getElementById('fullscreen-play').innerHTML = '<i class="fa-solid fa-pause"></i>'; });
+        audioEngine.addEventListener('pause', () => { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'; document.getElementById('fullscreen-play').innerHTML = '<i class="fa-solid fa-play"></i>'; });
+
+        function applyTheme(theme) {
+            const effective = theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : theme;
+            document.body.setAttribute('data-theme', effective);
+            themeToggle.innerHTML = theme === 'auto' ? '<i class="fa-solid fa-circle-half-stroke"></i>' : theme === 'light' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+            themeToggle.title = `Tema: ${theme === 'auto' ? 'Otomatik' : theme === 'light' ? 'Açık' : 'Koyu'} (değiştirmek için tıkla)`;
+        }
         function initTheme() {
-            const savedTheme = localStorage.getItem('symphony_theme') || 'dark';
-            document.body.setAttribute('data-theme', savedTheme);
-            themeToggle.innerHTML = savedTheme === 'light' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+            const savedTheme = localStorage.getItem('symphony_theme') || 'auto';
+            applyTheme(savedTheme);
+            if (window.matchMedia) window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+                if ((localStorage.getItem('symphony_theme') || 'auto') === 'auto') applyTheme('auto');
+            });
         }
 
         let toastTimer = null;
