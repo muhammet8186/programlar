@@ -290,6 +290,29 @@
             color: white;
         }
 
+        .source-switch {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .source-btn {
+            padding: 10px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .source-btn.active {
+            background: var(--accent-gradient);
+            color: #fff;
+            border-color: transparent;
+        }
+
         /* Stations Grid */
         .stations-grid {
             display: grid;
@@ -892,12 +915,16 @@
 
         <!-- Navigation Tabs -->
         <div class="tabs-container">
+            <div class="source-switch" aria-label="Radyo listesi kaynağı">
+                <button class="source-btn active" id="github-list-btn" type="button"><i class="fa-brands fa-github"></i> GitHub Listesi</button>
+                <button class="source-btn" id="existing-list-btn" type="button"><i class="fa-solid fa-globe"></i> Mevcut Liste</button>
+            </div>
             <div class="tabs">
                 <button class="tab-btn active" data-tab="all">
                     <i class="fa-solid fa-globe"></i> Tüm Radyolar
                 </button>
                 <button class="tab-btn" data-tab="favorites">
-                    <i class="fa-solid fa-heart"></i> Favorilerim (<span id="fav-count">0</span>)
+                    <i class="fa-solid fa-heart"></i> Favorilerim <span id="fav-count">0</span>
                 </button>
                 <button class="tab-btn" data-tab="history">
                     <i class="fa-solid fa-clock-rotate-left"></i> Son Dinlenenler
@@ -992,6 +1019,9 @@
         
         let currentStation = null;
         let activeTab = 'all';
+        let activeSource = 'github';
+        let githubStations = [];
+        const GITHUB_M3U_URL = 'https://raw.githubusercontent.com/muhammet8186/programlar/refs/heads/main/radyo/radyo.m3u';
 
         let mediaRecorder = null;
         let recordedChunks = [];
@@ -1085,10 +1115,14 @@
         }
 
         async function fetchStations() {
+            if (activeSource === 'github') {
+                await fetchGitHubStations();
+                return;
+            }
             grid.innerHTML = `
                 <div class="loading-state">
                     <i class="fa-solid fa-circle-notch spinner"></i>
-                    <p>Radyo istasyonları yükleniyor...</p>
+                    <p>Mevcut radyo listesi yükleniyor...</p>
                 </div>
             `;
 
@@ -1096,16 +1130,10 @@
             const genre = genreSelect.value;
             const country = countrySelect.value || 'Turkey';
             const limit = limitSelect.value;
-
             let params = [`limit=${limit}`, 'order=clickcount', 'reverse=true', 'hidebroken=true'];
-
-            if (query) {
-                params.push(`name=${encodeURIComponent(query)}`);
-            } else if (genre) {
-                params.push(`tag=${encodeURIComponent(genre)}`);
-            } else if (country) {
-                params.push(`country=${encodeURIComponent(country)}`);
-            }
+            if (query) params.push(`name=${encodeURIComponent(query)}`);
+            else if (genre) params.push(`tag=${encodeURIComponent(genre)}`);
+            else if (country) params.push(`country=${encodeURIComponent(country)}`);
 
             try {
                 const data = await apiFetch(`stations/search?${params.join('&')}`);
@@ -1114,8 +1142,56 @@
             } catch (err) {
                 currentStations = [...customStations];
                 renderStations();
-                showToast('İnternet bağlantısı sınırlı.', 'error');
+                showToast('Mevcut radyo listesine erişilemedi.', 'error');
             }
+        }
+
+        async function fetchGitHubStations() {
+            grid.innerHTML = `<div class="loading-state"><i class="fa-solid fa-circle-notch spinner"></i><p>GitHub radyo listesi yükleniyor...</p></div>`;
+            try {
+                const response = await fetch(GITHUB_M3U_URL, { cache: 'no-store' });
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                const text = await response.text();
+                const parsed = parseM3U(text);
+                if (!parsed.length) throw new Error('M3U içinde radyo bulunamadı');
+                githubStations = parsed;
+                const query = searchInput.value.trim().toLocaleLowerCase('tr');
+                currentStations = query ? githubStations.filter(st => (st.name || '').toLocaleLowerCase('tr').includes(query)) : [...githubStations];
+                renderStations();
+            } catch (err) {
+                console.error('GitHub M3U yükleme hatası:', err);
+                currentStations = [];
+                renderStations();
+                showToast('GitHub listesi yüklenemedi. İnternet bağlantısını kontrol edip tekrar deneyin.', 'error', 5000);
+            }
+        }
+
+        function parseM3U(content) {
+            const lines = content.replace(/^\uFEFF/, '').split(/\r?\n/);
+            const stations = [];
+            let info = '';
+            for (const rawLine of lines) {
+                const line = rawLine.trim();
+                if (!line) continue;
+                if (line.startsWith('#EXTINF')) { info = line; continue; }
+                if (line.startsWith('#')) continue;
+                const nameMatch = info.match(/,(.*)$/);
+                const logoMatch = info.match(/tvg-logo=["']([^"']*)["']/i);
+                const groupMatch = info.match(/group-title=["']([^"']*)["']/i);
+                const name = nameMatch ? nameMatch[1].trim() : line.split('/').pop() || 'İsimsiz Radyo';
+                const id = 'github_' + stations.length + '_' + name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+                stations.push({ changeuuid: id, stationuuid: id, name, url: line, url_resolved: line, favicon: logoMatch ? logoMatch[1] : '', homepage: '', country: '', tags: groupMatch ? groupMatch[1] : '', bitrate: 0, codec: '' });
+                info = '';
+            }
+            return stations;
+        }
+
+        function switchSource(source) {
+            activeSource = source;
+            document.getElementById('github-list-btn').classList.toggle('active', source === 'github');
+            document.getElementById('existing-list-btn').classList.toggle('active', source === 'existing');
+            if (source === 'github') fetchGitHubStations();
+            else fetchStations();
         }
 
         function getActiveList() {
@@ -1671,6 +1747,8 @@
         }
 
         function setupEventListeners() {
+            document.getElementById('github-list-btn').addEventListener('click', () => switchSource('github'));
+            document.getElementById('existing-list-btn').addEventListener('click', () => switchSource('existing'));
             searchBtn.addEventListener('click', () => fetchStations());
 
             let timeout = null;
