@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gelişmiş M3U IPTV Oynatıcı</title>
+    <title>Gelişmiş M3U IPTV Kontrol ve Oynatıcı</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -29,10 +29,10 @@
     <header class="bg-cardBg border-b border-slate-800 p-4 shadow-md">
         <div class="container mx-auto flex justify-between items-center">
             <h1 class="text-xl font-bold flex items-center gap-2 text-indigo-400">
-                <i class="fa-solid fa-tv"></i> M3U IPTV Oynatıcı & Yönetici
+                <i class="fa-solid fa-tv"></i> M3U Kanal Kontrol & Oynatıcı
             </h1>
             <span class="text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-1 rounded-full">
-                HLS Destekli
+                Otomatik Tarama Destekli
             </span>
         </div>
     </header>
@@ -40,7 +40,7 @@
     <!-- Main Content -->
     <main class="container mx-auto p-4 flex-grow grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        <!-- Sol Panel: Yükleme ve Kanal Listesi -->
+        <!-- Sol Panel: Yükleme, Kontrol ve Liste -->
         <div class="lg:col-span-1 flex flex-col gap-4">
             
             <!-- Dosya / Metin Yükleme Kutusu -->
@@ -54,21 +54,44 @@
                     
                     <textarea id="m3uText" rows="3" placeholder="Veya M3U içeriğini buraya yapıştırın..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 resize-none"></textarea>
                     
-                    <button id="loadBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-rotate"></i> Listeyi Yükle / İşle
-                    </button>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="loadBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-3 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-rotate"></i> Yükle
+                        </button>
+                        <button id="checkAllBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-3 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50" disabled>
+                            <i class="fa-solid fa-circle-check"></i> Tümünü Kontrol Et
+                        </button>
+                    </div>
+                </div>
+
+                <!-- İlerleme Çubuğu -->
+                <div id="progressContainer" class="mt-3 hidden">
+                    <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+                        <span id="progressText">Taranıyor...</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                        <div id="progressBar" class="bg-emerald-500 h-full w-0 transition-all duration-200"></div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Arama ve Kanal Listesi -->
-            <div class="bg-cardBg p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col h-[500px]">
+            <!-- Arama, Filtreler ve Kanal Listesi -->
+            <div class="bg-cardBg p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col h-[460px]">
                 <div class="flex justify-between items-center mb-3">
                     <h2 class="text-sm font-semibold text-slate-300 flex items-center gap-2">
                         <i class="fa-solid fa-list text-indigo-400"></i> Kanallar (<span id="channelCount">0</span>)
                     </h2>
-                    <button id="exportBtn" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 transition-colors flex items-center gap-1">
-                        <i class="fa-solid fa-download"></i> İndir
+                    <button id="exportWorkingBtn" class="text-xs bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/30 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-40" disabled>
+                        <i class="fa-solid fa-download"></i> Çalışanları İndir
                     </button>
+                </div>
+
+                <!-- Durum Filtre Butonları -->
+                <div class="grid grid-cols-3 gap-1.5 mb-3 text-xs">
+                    <button data-filter="all" class="filter-btn bg-indigo-600 text-white py-1.5 px-2 rounded-lg font-medium transition-colors">Tümü</button>
+                    <button data-filter="working" class="filter-btn bg-slate-900 text-slate-400 hover:bg-slate-800 py-1.5 px-2 rounded-lg font-medium transition-colors">Çalışanlar</button>
+                    <button data-filter="dead" class="filter-btn bg-slate-900 text-slate-400 hover:bg-slate-800 py-1.5 px-2 rounded-lg font-medium transition-colors">Çalışmayan</button>
                 </div>
 
                 <!-- Arama Kutusu -->
@@ -115,11 +138,14 @@
     <!-- JavaScript Mantığı -->
     <script>
         let channels = [];
+        let currentFilter = 'all';
         let hls = null;
 
         const m3uFileInput = document.getElementById('m3uFile');
         const m3uTextInput = document.getElementById('m3uText');
         const loadBtn = document.getElementById('loadBtn');
+        const checkAllBtn = document.getElementById('checkAllBtn');
+        const exportWorkingBtn = document.getElementById('exportWorkingBtn');
         const channelListEl = document.getElementById('channelList');
         const channelCountEl = document.getElementById('channelCount');
         const searchBox = document.getElementById('searchBox');
@@ -127,9 +153,13 @@
         const playerPlaceholder = document.getElementById('playerPlaceholder');
         const currentChannelTitle = document.getElementById('currentChannelTitle');
         const currentUrlEl = document.getElementById('currentUrl');
-        const exportBtn = document.getElementById('exportBtn');
+        
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const progressPercent = document.getElementById('progressPercent');
+        const progressText = document.getElementById('progressText');
 
-        // Dosya seçildiğinde otomatik okuma
+        // Dosya seçildiğinde okuma
         m3uFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -141,7 +171,6 @@
             reader.readAsText(file);
         });
 
-        // Yükle butonuna basıldığında
         loadBtn.addEventListener('click', () => {
             const content = m3uTextInput.value.trim();
             if (!content) {
@@ -151,7 +180,7 @@
             parseM3U(content);
         });
 
-        // M3U Ayrıştırıcı (Parser)
+        // M3U Ayrıştırıcı
         function parseM3U(data) {
             channels = [];
             const lines = data.split('\n');
@@ -160,17 +189,14 @@
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i].trim();
                 if (line.startsWith('#EXTINF:')) {
-                    currentChannel = {};
+                    currentChannel = { status: 'untested' };
                     
-                    // Logo bulma
                     let logoMatch = line.match(/tvg-logo="([^"]*)"/);
                     currentChannel.logo = logoMatch ? logoMatch[1] : '';
 
-                    // Grup bulma
                     let groupMatch = line.match(/group-title="([^"]*)"/);
                     currentChannel.group = groupMatch ? groupMatch[1] : 'Genel';
 
-                    // Kanal adı (virgülden sonraki kısım)
                     let nameParts = line.split(',');
                     currentChannel.name = nameParts.length > 1 ? nameParts[nameParts.length - 1].trim() : 'İsimsiz Kanal';
                 } else if (line && !line.startsWith('#')) {
@@ -182,34 +208,54 @@
                 }
             }
 
-            renderChannels(channels);
+            renderChannels();
+            checkAllBtn.disabled = channels.length === 0;
+            exportWorkingBtn.disabled = true;
         }
 
         // Listeyi Ekrana Çizme
-        function renderChannels(list) {
-            channelCountEl.textContent = list.length;
+        function renderChannels() {
+            const query = searchBox.value.toLowerCase();
+            const filtered = channels.filter(ch => {
+                const matchesQuery = ch.name.toLowerCase().includes(query) || ch.group.toLowerCase().includes(query);
+                if (currentFilter === 'working') return matchesQuery && ch.status === 'working';
+                if (currentFilter === 'dead') return matchesQuery && ch.status === 'dead';
+                return matchesQuery;
+            });
+
+            channelCountEl.textContent = filtered.length;
             channelListEl.innerHTML = '';
 
-            if (list.length === 0) {
+            if (filtered.length === 0) {
                 channelListEl.innerHTML = '<div class="text-center text-slate-500 text-xs py-8">Kanal bulunamadı.</div>';
                 return;
             }
 
-            list.forEach((ch, index) => {
+            filtered.forEach((ch) => {
                 const item = document.createElement('div');
                 item.className = 'flex items-center justify-between p-2.5 bg-slate-900/60 hover:bg-slate-800 rounded-lg border border-slate-800/60 cursor-pointer transition-colors group';
                 
+                let statusBadge = '';
+                if (ch.status === 'working') {
+                    statusBadge = '<span class="w-2 h-2 rounded-full bg-emerald-500" title="Çalışıyor"></span>';
+                } else if (ch.status === 'dead') {
+                    statusBadge = '<span class="w-2 h-2 rounded-full bg-rose-500" title="Çalışmıyor"></span>';
+                } else {
+                    statusBadge = '<span class="w-2 h-2 rounded-full bg-slate-600" title="Test Edilmedi"></span>';
+                }
+
                 item.innerHTML = `
-                    <div class="flex items-center gap-3 overflow-hidden">
-                        <div class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center shrink-0 overflow-hidden border border-slate-700">
-                            ${ch.logo ? `<img src="${ch.logo}" class="w-full h-full object-contain" onerror="this.remove()">` : '<i class="fa-solid fa-tv text-slate-500 text-xs"></i>'}
+                    <div class="flex items-center gap-2.5 overflow-hidden">
+                        ${statusBadge}
+                        <div class="w-7 h-7 rounded bg-slate-800 flex items-center justify-center shrink-0 overflow-hidden border border-slate-700">
+                            ${ch.logo ? `<img src="${ch.logo}" class="w-full h-full object-contain" onerror="this.remove()">` : '<i class="fa-solid fa-tv text-slate-500 text-[10px]"></i>'}
                         </div>
                         <div class="overflow-hidden">
                             <h3 class="text-xs font-medium text-slate-200 truncate group-hover:text-indigo-400 transition-colors">${ch.name}</h3>
                             <span class="text-[10px] text-slate-500 truncate block">${ch.group}</span>
                         </div>
                     </div>
-                    <button class="text-slate-400 hover:text-indigo-400 p-1 text-xs shrink-only">
+                    <button class="text-slate-400 hover:text-indigo-400 p-1 text-xs shrink-0">
                         <i class="fa-solid fa-play"></i>
                     </button>
                 `;
@@ -219,54 +265,107 @@
             });
         }
 
-        // Kanal Arama Filtresi
-        searchBox.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
-            const filtered = channels.filter(ch => ch.name.toLowerCase().includes(query) || ch.group.toLowerCase().includes(query));
-            renderChannels(filtered);
+        // Filtre Butonları İşlevi
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.filter-btn').forEach(b => {
+                    b.classList.remove('bg-indigo-600', 'text-white');
+                    b.classList.add('bg-slate-900', 'text-slate-400');
+                });
+                e.target.classList.remove('bg-slate-900', 'text-slate-400');
+                e.target.classList.add('bg-indigo-600', 'text-white');
+                
+                currentFilter = e.target.getAttribute('data-filter');
+                renderChannels();
+            });
         });
 
-        // Yayın Oynatma Fonksiyonu
+        searchBox.addEventListener('input', () => renderChannels());
+
+        // Tüm Kanalları Asenkron Test Etme Fonksiyonu
+        checkAllBtn.addEventListener('click', async () => {
+            if (channels.length === 0) return;
+
+            checkAllBtn.disabled = true;
+            loadBtn.disabled = true;
+            progressContainer.classList.remove('hidden');
+            
+            let checkedCount = 0;
+            const total = channels.length;
+
+            for (let i = 0; i < channels.length; i++) {
+                const ch = channels[i];
+                progressText.textContent = `Test ediliyor: ${ch.name}`;
+                
+                try {
+                    // Tarayıcı CORS engeline takılmamak için timeout süreli fetch veya image/video kontrolü
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 4000); // 4 saniye zaman aşımı
+
+                    const response = await fetch(ch.url, { 
+                        method: 'GET', 
+                        mode: 'no-cors', 
+                        signal: controller.signal 
+                    });
+                    clearTimeout(timeoutId);
+                    
+                    // no-cors modunda yanıt tipi 'opaque' döner, bağlantı kuruldu demektir
+                    ch.status = 'working';
+                } catch (err) {
+                    // Fetch engellendiyse veya zaman aşımına uğradıysa alternatif olarak HLS / Video test denemesi yapılabilir
+                    // Basitlik ve hız için ağ hatası alanlar ölü olarak işaretlenir
+                    ch.status = 'dead';
+                }
+
+                checkedCount++;
+                let percent = Math.round((checkedCount / total) * 100);
+                progressBar.style.width = percent + '%';
+                progressPercent.textContent = percent + '%';
+
+                renderChannels();
+            }
+
+            progressText.textContent = 'Test Tamamlandı!';
+            checkAllBtn.disabled = false;
+            loadBtn.disabled = false;
+            
+            // Çalışan varsa indirme butonunu aktif et
+            const workingCount = channels.filter(c => c.status === 'working').length;
+            if (workingCount > 0) {
+                exportWorkingBtn.disabled = false;
+            }
+        });
+
+        // Yayın Oynatma
         function playStream(ch) {
             currentChannelTitle.innerHTML = `<i class="fa-solid fa-circle-play text-indigo-400"></i> Oynatılıyor: ${ch.name}`;
             currentUrlEl.textContent = ch.url;
             playerPlaceholder.style.display = 'none';
 
             if (Hls.isSupported() && ch.url.includes('.m3u8')) {
-                if (hls) {
-                    hls.destroy();
-                }
+                if (hls) hls.destroy();
                 hls = new Hls();
                 hls.loadSource(ch.url);
                 hls.attachMedia(videoPlayer);
-                hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                    videoPlayer.play();
-                });
-            } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
-                // Safari yerel HLS desteği
-                videoPlayer.src = ch.url;
-                videoPlayer.addEventListener('loadedmetadata', () => {
-                    videoPlayer.play();
-                });
+                hls.on(Hls.Events.MANIFEST_PARSED, () => videoPlayer.play());
             } else {
-                // Standart video oynatma (mp4, direct stream vb.)
                 videoPlayer.src = ch.url;
                 videoPlayer.play().catch(err => {
                     console.error("Oynatma hatası:", err);
-                    alert("Bu yayın tarayıcı tarafından doğrudan oynatılamıyor veya CORS engeline takılıyor olabilir.");
                 });
             }
         }
 
-        // Listeyi Dışarı Aktarma (İndirme)
-        exportBtn.addEventListener('click', () => {
-            if (channels.length === 0) {
-                alert('İndirilecek aktif kanal listesi yok.');
+        // Sadece Çalışan Kanalları Dışarı Aktarma (M3U İndir)
+        exportWorkingBtn.addEventListener('click', () => {
+            const workingChannels = channels.filter(ch => ch.status === 'working');
+            if (workingChannels.length === 0) {
+                alert('İndirilecek çalışan kanal bulunamadı.');
                 return;
             }
 
             let m3uContent = '#EXTM3U\n';
-            channels.forEach(ch => {
+            workingChannels.forEach(ch => {
                 m3uContent += `#EXTINF:-1 tvg-logo="${ch.logo || ''}" group-title="${ch.group || 'Genel'},${ch.name}\n`;
                 m3uContent += `${ch.url}\n`;
             });
@@ -275,7 +374,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'filtreli_liste.m3u';
+            a.download = 'calisan_kanallar.m3u';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
