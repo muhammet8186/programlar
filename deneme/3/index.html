@@ -106,26 +106,28 @@
 
     /* Masaüstü tam ekran yerleşimi: logo solda, arama ortada, işlemler sağda */
     @media (min-width: 1024px) {
-      /* Kategori alanı: butonlar sıkışmasın, gerektiğinde birkaç satıra yayılsın */
+      /* Kategori şeridi: önceki gibi yatay kaydırmalı */
       #kategoriFiltreLisesi {
         flex: 0 0 auto !important;
         display: flex !important;
-        flex-wrap: wrap !important;
-        align-content: flex-start;
+        flex-wrap: nowrap !important;
         align-items: center;
-        gap: 10px !important;
-        min-height: 58px;
-        max-height: 26vh;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-        padding: 8px 4px 12px !important;
-        margin-bottom: 12px !important;
+        gap: 8px !important;
+        min-height: 44px;
+        max-height: none;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        white-space: nowrap;
+        padding: 6px 4px 10px !important;
+        margin-bottom: 10px !important;
+        scrollbar-width: thin;
       }
       #kategoriFiltreLisesi button {
         flex: 0 0 auto !important;
-        min-height: 36px;
-        padding: 8px 14px !important;
-        font-size: 13px !important;
+        min-height: 34px;
+        padding: 7px 12px !important;
+        font-size: 12px !important;
+        white-space: nowrap;
       }
       html, body { height: 100%; min-height: 0; overflow: hidden; }
       body { height: 100vh; }
@@ -168,8 +170,68 @@
       #kanalIzgarasi { flex: 1 1 auto; min-height: 0; max-height: none !important; overflow-y: auto; }
     }
     @media (max-width: 1023px) {
-      html, body { height: auto; overflow: auto; }
-      #anaIcerikKapsayici { height: auto; max-height: none; }
+      html, body { height: auto !important; min-height: 100%; overflow-x: hidden !important; overflow-y: auto !important; }
+      body { min-height: 100vh; }
+      #anaIcerikKapsayici {
+        display: flex !important;
+        flex-direction: column !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+        gap: 12px !important;
+        padding: 12px !important;
+      }
+      #anaIcerikKapsayici > div:first-child {
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+        padding: 0 !important;
+      }
+      #oynaticiKapsayici { height: auto !important; min-height: 0 !important; flex: none !important; }
+      #videoKutusu { height: auto !important; min-height: 0 !important; aspect-ratio: 16 / 9 !important; flex: none !important; }
+      #kanalPaneli {
+        display: flex !important;
+        flex-direction: column !important;
+        position: static !important;
+        top: auto !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+        padding: 12px !important;
+        border-left: 0 !important;
+        border-radius: 12px !important;
+      }
+      #kanalPaneli > section { flex: none !important; min-height: 0 !important; overflow: visible !important; }
+      #kategoriFiltreLisesi {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        width: 100% !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        white-space: nowrap !important;
+        padding-bottom: 10px !important;
+        margin-bottom: 12px !important;
+        -webkit-overflow-scrolling: touch;
+      }
+      #kategoriFiltreLisesi button { flex: 0 0 auto !important; white-space: nowrap !important; }
+      #kanalIzgarasi {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        flex: none !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        height: auto !important;
+        overflow: visible !important;
+        padding-right: 0 !important;
+      }
+    }
+    @media (max-width: 639px) {
+      #kanalIzgarasi { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
     }
 
 </style>
@@ -362,7 +424,7 @@
 
     <!-- Kanal Listesi: kategoriler üstte, liste sağa ve aşağıya uzanır -->
     <aside id="kanalPaneli" class="min-w-0 bg-slate-900/70 border-y border-l-0 lg:border-l border-r-0 border-slate-800 rounded-none p-3 flex flex-col lg:h-[calc(100vh-76px)] lg:sticky lg:top-[76px]">
-    <div id="kategoriFiltreLisesi" class="flex flex-wrap items-center gap-2 pb-3 mb-3 border-b border-slate-800/80"></div>
+    <div id="kategoriFiltreLisesi" class="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 mb-3 border-b border-slate-800/80"></div>
     <section class="min-h-0 flex-1 flex flex-col">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
