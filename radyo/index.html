@@ -1869,6 +1869,16 @@
                 <div id="playlist-url-status" class="eq-help" style="margin-top:8px" aria-live="polite"></div>
             </div>
 
+            <div class="modal-section playlist-url-section" id="record-server-settings-section">
+                <div class="modal-section-title"><i class="fa-solid fa-cloud-arrow-up"></i> Sunucu Üzerinden Kayıt</div>
+                <label class="eq-field-label" for="record-server-url">Render servis adresi</label>
+                <input type="url" id="record-server-url" class="modal-input" placeholder="https://online-radyo-kayit.onrender.com" autocomplete="url">
+                <label class="eq-field-label" for="record-server-key" style="margin-top:9px">Kayıt sunucusu API anahtarı</label>
+                <input type="password" id="record-server-key" class="modal-input" placeholder="Render ortam değişkenine eklediğiniz anahtar" autocomplete="new-password">
+                <button class="btn btn-primary" id="record-server-save" type="button" style="width:100%;justify-content:center;margin-top:9px"><i class="fa-solid fa-floppy-disk"></i> Kayıt Sunucusu Ayarlarını Kaydet</button>
+                <small class="eq-help" id="record-server-status" style="display:block;margin-top:8px">iPad ve Safari dahil, radyo yayını sunucuda MP3 olarak kaydedilir. Durdurduğunuzda dosya cihazınıza aktarılır.</small>
+            </div>
+
             <div class="modal-section">
                 <div class="modal-section-title">Özel Radyo Ekle</div>
                 <input type="text" id="custom-name" class="modal-input" placeholder="Radyo Adı">
@@ -2115,6 +2125,9 @@
         let mediaRecorder = null;
         let recordedChunks = [];
         let isRecording = false;
+        let recordHeartbeatTimer = null;
+        let recordServerBase = localStorage.getItem('online_radyo_record_server_url') || '';
+        let recordServerKey = localStorage.getItem('online_radyo_record_server_key') || '';
         let sleepTimerId = null;
 
         let audioCtx = null;
@@ -2987,85 +3000,86 @@
             }
         });
 
-        // --- Yayın kaydı (Safari/iPadOS uyumlu Web Audio yedeği) ---
-        recordBtn.addEventListener('click', () => {
-            if (!audioEngine.src || audioEngine.paused) {
-                showToast('Canlı ses kaydı yalnızca ses akışı oynatılırken yapılabilir.', 'error');
-                return;
+        // --- Sunucu üzerinden yayın kaydı (Safari/iPadOS uyumlu) ---
+        async function recordServerRequest(path, options = {}) {
+            if (!recordServerBase || !recordServerKey) throw new Error('Önce Ayarlar bölümünden Render kayıt sunucusunu tanımlayın.');
+            const response = await fetch(recordServerBase + path, {
+                ...options,
+                headers: { ...(options.headers || {}), 'Authorization': 'Bearer ' + recordServerKey }
+            });
+            if (!response.ok) {
+                let message = 'Kayıt sunucusu isteği başarısız oldu (' + response.status + ').';
+                try { const data = await response.json(); if (data.error) message = data.error; } catch {}
+                throw new Error(message);
             }
-
+            return response;
+        }
+        function setRecordingButtonState(recording) {
+            isRecording = recording;
+            recordBtn.classList.toggle('recording', recording);
+            const fullRecord = document.getElementById('fullscreen-record');
+            if (fullRecord) fullRecord.classList.toggle('recording', recording);
+        }
+        async function stopServerRecording(showMessage = true) {
+            if (!isRecording) return;
+            if (recordHeartbeatTimer) { clearInterval(recordHeartbeatTimer); recordHeartbeatTimer = null; }
+            try {
+                const response = await recordServerRequest('/api/record/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+                const blob = await response.blob();
+                if (!blob || blob.size < 1024) throw new Error('Kayıt dosyası boş geldi. Radyo yayını sunucuya ulaşmamış olabilir.');
+                await saveRecording(new Blob([blob], { type: 'audio/mpeg' }), currentStation ? currentStation.name : 'Radyo Kaydı');
+                if (showMessage) showToast('Kayıt tamamlandı ve cihazına kaydedildi. Radyo Kayıtları bölümünden dinleyebilirsin.', 'success', 5500);
+            } catch (err) {
+                console.error('Sunucu kaydı durdurma hatası:', err);
+                showToast(err.message || 'Kayıt dosyası alınamadı.', 'error', 6000);
+            } finally {
+                setRecordingButtonState(false);
+            }
+        }
+        recordBtn.addEventListener('click', async () => {
             if (!isRecording) {
-                try {
-                    if (!window.MediaRecorder) {
-                        showToast('Bu tarayıcı ses kaydı API’sini desteklemiyor. iPadOS sürümünü güncelleyin.', 'error', 5000);
-                        return;
-                    }
-
-                    // Önce oynatıcının gerçek ses çıkışını yakala. Bu yol, CORS izinleri
-                    // nedeniyle Web Audio grafiği sessiz kalan bazı yayınlarda daha uygundur.
-                    let stream = null;
-                    const capture = audioEngine.captureStream || audioEngine.mozCaptureStream;
-                    if (capture) {
-                        try { stream = capture.call(audioEngine); } catch (captureError) {
-                            console.warn('Doğrudan ses akışı yakalanamadı; Web Audio yedeği denenecek:', captureError);
-                        }
-                    }
-                    // captureStream bulunmuyorsa Safari/iPadOS için Web Audio yedeği.
-                    if (!stream || !stream.getAudioTracks || !stream.getAudioTracks().length) {
-                        if (!recordingDestination) initAudioContext();
-                        stream = recordingDestination && recordingDestination.stream;
-                    }
-                    if (!stream || !stream.getAudioTracks || !stream.getAudioTracks().length) {
-                        showToast('Bu yayın tarayıcı tarafından kayda aktarılamıyor. Farklı bir radyo yayını deneyin.', 'error', 5500);
-                        return;
-                    }
-
-                    const mimeCandidates = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
-                    const mimeType = mimeCandidates.find(type => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(type));
-                    mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
-                    recordedChunks = [];
-
-                    mediaRecorder.ondataavailable = (event) => {
-                        if (event.data && event.data.size > 0) recordedChunks.push(event.data);
-                    };
-                    mediaRecorder.onerror = (event) => {
-                        console.error('Ses kayıt hatası:', event.error || event);
-                        showToast('Ses kaydı sırasında tarayıcı hatası oluştu.', 'error', 4500);
-                    };
-                    mediaRecorder.onstop = async () => {
-                        const type = mediaRecorder.mimeType || (recordedChunks[0] && recordedChunks[0].type) || 'audio/mp4';
-                        const extension = type.includes('mp4') ? 'm4a' : type.includes('ogg') ? 'ogg' : 'webm';
-                        const blob = new Blob(recordedChunks, { type });
-                        if (!blob.size) {
-                            showToast('Kayıt dosyası boş oluştu. Bu yayın kayda izin vermiyor olabilir.', 'error', 5000);
-                            return;
-                        }
-                        try {
-                            await saveRecording(blob, currentStation ? currentStation.name : 'Radyo Kaydı');
-                            showToast('Radyo kaydı kaydedildi. Radyo Kayıtları bölümünden dinleyebilirsin.', 'success', 4500);
-                        } catch (err) {
-                            downloadBlob(blob, `${currentStation ? currentStation.name : 'radyo'}_kayit.${extension}`);
-                            showToast('Kayıt listesine kaydedilemedi; dosya indirildi.', 'error', 4500);
-                        }
-                    };
-
-                    mediaRecorder.start(1000);
-                    isRecording = true;
-                    recordBtn.classList.add('recording');
-                    document.getElementById('fullscreen-record').classList.add('recording');
-                    showToast('Yayın kaydediliyor...', 'success');
-                } catch (err) {
-                    console.error('Kayıt başlatılamadı:', err);
-                    const message = err && err.name === 'NotSupportedError'
-                        ? 'Bu cihazın kayıt biçimi desteklenmiyor. iPadOS sürümünü güncelleyin.'
-                        : 'Kayıt başlatılamadı. Yayın kaynağı kayıt erişimine izin vermiyor olabilir.';
-                    showToast(message, 'error', 5500);
+                if (!currentStation || (!currentStation.url && !currentStation.url_resolved)) {
+                    showToast('Önce kaydetmek istediğiniz radyoyu açın.', 'error'); return;
                 }
-            } else if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                mediaRecorder.stop();
-                isRecording = false;
-                recordBtn.classList.remove('recording');
-                document.getElementById('fullscreen-record').classList.remove('recording');
+                if (!recordServerBase || !recordServerKey) {
+                    showToast('Önce Ayarlar > Sunucu Üzerinden Kayıt bölümüne Render adresini ve API anahtarını girin.', 'error', 6500); return;
+                }
+                if (recordBtn.dataset.busy === '1') return;
+                recordBtn.dataset.busy = '1';
+                try {
+                    const streamUrl = currentStation.url_resolved || currentStation.url;
+                    await recordServerRequest('/api/record/start', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ streamUrl, stationName: currentStation.name || 'Radyo Kaydı' })
+                    });
+                    setRecordingButtonState(true);
+                    showToast('Radyo yayını sunucuda kaydediliyor. Durdururken uygulamayı açık tutun.', 'success', 5000);
+                    // Render Free servisi uykuya geçmesin diye kayıt sırasında düzenli istek gönder.
+                    recordHeartbeatTimer = setInterval(async () => {
+                        try {
+                            const response = await recordServerRequest('/api/record/status');
+                            const status = await response.json();
+                            if (!status.recording) {
+                                clearInterval(recordHeartbeatTimer); recordHeartbeatTimer = null;
+                                setRecordingButtonState(false);
+                                showToast('Sunucu kaydı beklenmedik şekilde sona erdi.', 'error', 5500);
+                            }
+                        } catch (err) {
+                            console.warn('Kayıt sunucusu kontrol edilemedi:', err);
+                            // Geçici ağ kopmasında kayıt düğmesini açık bırak; kullanıcı durdurmayı deneyebilir.
+                        }
+                    }, 25000);
+                } catch (err) {
+                    console.error('Sunucu kaydı başlatılamadı:', err);
+                    showToast(err.message || 'Sunucu kaydı başlatılamadı.', 'error', 6500);
+                } finally { recordBtn.dataset.busy = '0'; }
+            } else {
+                recordBtn.dataset.busy = '1';
+                recordBtn.disabled = true;
+                showToast('Kayıt tamamlanıyor, dosya cihaza aktarılıyor...', 'loading', 0);
+                await stopServerRecording(true);
+                recordBtn.disabled = false;
+                recordBtn.dataset.busy = '0';
             }
         });
 
@@ -3159,6 +3173,25 @@
         document.getElementById('settings-close-x').addEventListener('click', closeSettingsModal);
         settingsModal.addEventListener('click', (event) => { if (event.target === settingsModal) closeSettingsModal(); });
         document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && settingsModal.classList.contains('show')) closeSettingsModal(); });
+        // Sunucu üzerinden kayıt ayarları
+        const recordServerUrlInput = document.getElementById('record-server-url');
+        const recordServerKeyInput = document.getElementById('record-server-key');
+        const recordServerStatus = document.getElementById('record-server-status');
+        if (recordServerUrlInput) recordServerUrlInput.value = recordServerBase;
+        if (recordServerKeyInput) recordServerKeyInput.value = recordServerKey;
+        document.getElementById('record-server-save').addEventListener('click', async () => {
+            const url = (recordServerUrlInput.value || '').trim().replace(/\/+$/, '');
+            const key = (recordServerKeyInput.value || '').trim();
+            if (!/^https?:\/\//i.test(url)) { showToast('Geçerli bir Render servis adresi girin.', 'error'); return; }
+            if (key.length < 24) { showToast('API anahtarı en az 24 karakter olmalıdır.', 'error'); return; }
+            recordServerBase = url;
+            recordServerKey = key;
+            localStorage.setItem('online_radyo_record_server_url', url);
+            localStorage.setItem('online_radyo_record_server_key', key);
+            recordServerStatus.textContent = 'Ayarlar kaydedildi. Sunucu bağlantısını kontrol etmek için kayıt düğmesine basabilirsiniz.';
+            showToast('Kayıt sunucusu ayarları kaydedildi.', 'success');
+        });
+
         document.getElementById('playlist-url-add').addEventListener('click', async () => {
             const input = document.getElementById('playlist-url-input');
             const status = document.getElementById('playlist-url-status');
