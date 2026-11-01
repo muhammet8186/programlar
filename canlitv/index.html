@@ -184,13 +184,27 @@
       <div id="videoKutusu" class="aspect-16-9 w-full bg-black relative group flex items-center justify-center overflow-hidden">
         <video id="canliVideoOynatici" controls autoplay class="w-full h-full object-contain"></video>
 
+        <!-- Web Viewer (İframe) Oynatıcı Alanı -->
+        <div id="webViewKapsayici" class="absolute inset-0 bg-black hidden z-20 flex flex-col">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center justify-between">
+            <span class="text-xs text-amber-400 font-medium flex items-center gap-1.5"><i data-lucide="globe" class="w-3.5 h-3.5"></i> Web Viewer Modu Aktif (Otomatik Açıldı)</span>
+            <button onclick="videoOynaticiModunaDon()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs">Video Oynatıcıya Dön</button>
+          </div>
+          <iframe id="canliFrame" src="" class="w-full h-full border-0" allowfullscreen allow="autoplay; fullscreen; encrypted-media"></iframe>
+        </div>
+
         <!-- Yayın Hata / Otomatik Düzeltme Alanı -->
         <div id="videoYukleniyorEkrani" class="absolute inset-0 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-10 hidden">
           <div id="yuklemeAnımasyonu" class="w-12 h-12 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mb-4"></div>
           <p id="videoDurumMetni" class="text-sm font-medium text-slate-300 mb-3">Yayın yükleniyor...</p>
-          <button id="otomatikKaynakDüzeltBtn" onclick="otomatikKaynaktanCek()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-lg transition hidden">
-            Resmi Kaynaktan Yeniden Bağlan
-          </button>
+          <div class="flex flex-wrap items-center justify-center gap-2">
+            <button id="otomatikKaynakDüzeltBtn" onclick="otomatikKaynaktanCek()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-lg transition hidden">
+              Resmi Kaynaktan Yeniden Bağlan
+            </button>
+            <button onclick="webViewerIleAc()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold shadow-lg transition flex items-center gap-1.5">
+              <i data-lucide="globe" class="w-4 h-4"></i> Web Viewer ile Aç
+            </button>
+          </div>
         </div>
       </div>
 
@@ -220,6 +234,11 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
+          <!-- Web Viewer Doğrudan Açma Butonu -->
+          <button onclick="webViewerIleAc()" class="px-3 py-1.5 bg-cyan-950 hover:bg-cyan-900 text-cyan-400 rounded-lg text-xs font-medium border border-cyan-800 flex items-center gap-1.5 transition" title="Videoda açılmayan kanalları iframe içinde çalıştır">
+            <i data-lucide="globe" class="w-3.5 h-3.5"></i> Web Viewer
+          </button>
+
           <button id="yedekKaynakBtn" onclick="yedekKaynagaGec()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 flex items-center gap-1.5 transition hidden">
             <i data-lucide="layers" class="w-3.5 h-3.5 text-amber-400"></i> <span id="kaynakMetni">Yedek Kaynak</span>
           </button>
@@ -354,26 +373,44 @@
     </div>
   </div>
 
-  <!-- YAYIN TESTİ MODERN İZLEME PENCERESİ -->
+  <!-- YAYIN TESTİ MODERN İZLEME PENCERESİ (YÖNETİCİ TEST EKRANI - İFRAME DESTEKLİ) -->
   <div id="yayinTestModali" class="fixed inset-0 bg-slate-950/90 backdrop-blur-lg z-[90] flex items-center justify-center p-3 sm:p-6 hidden" onclick="if(event.target===this)yayinTestKapat()">
-    <div class="w-full max-w-4xl bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
+    <div class="w-full max-w-4xl bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col">
       <div class="flex items-center justify-between gap-3 p-4 sm:p-5 border-b border-slate-800 bg-slate-900/90">
         <div class="min-w-0">
-          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span><h3 class="font-bold text-white">Yayın Önizleme</h3></div>
+          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span><h3 class="font-bold text-white">Yayın Önizleme & Test Ekranı</h3></div>
           <p id="yayinTestBaslik" class="text-xs text-slate-400 mt-1 truncate">Yayın bağlantısı test ediliyor</p>
         </div>
         <button type="button" onclick="yayinTestKapat()" class="shrink-0 p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300" aria-label="Kapat"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
+      
+      <!-- Oynatıcı / İframe Alanı -->
       <div class="bg-black aspect-video relative flex items-center justify-center">
         <video id="yayinTestVideo" controls autoplay muted playsinline class="w-full h-full object-contain"></video>
+        
+        <!-- Test Ekranı Web Viewer (İframe) Katmanı -->
+        <div id="yayinTestWebViewKapsayici" class="absolute inset-0 bg-black hidden z-20 flex flex-col">
+          <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center justify-between">
+            <span class="text-xs text-cyan-400 font-medium flex items-center gap-1.5"><i data-lucide="globe" class="w-3.5 h-3.5"></i> Test Ekranı: Web Viewer (İframe) Modu</span>
+            <button onclick="testVideoModunaDon()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs">Video Testine Dön</button>
+          </div>
+          <iframe id="yayinTestFrame" src="" class="w-full h-full border-0" allowfullscreen allow="autoplay; fullscreen; encrypted-media"></iframe>
+        </div>
+
         <div id="yayinTestYukleme" class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-950/75 text-center p-5 pointer-events-none">
           <div class="w-10 h-10 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
           <p class="text-sm text-slate-200">Yayın bağlantısı kuruluyor...</p>
         </div>
       </div>
-      <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+
+      <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900">
         <div class="flex items-center gap-2 min-w-0"><span id="yayinTestDurumIkon" class="text-amber-400"><i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i></span><p id="yayinTestDurum" class="text-xs text-slate-300">Yayın bekleniyor...</p></div>
-        <button type="button" onclick="yayinTestKapat()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition">Pencereyi Kapat</button>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="testWebViewerIleAc()" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold transition flex items-center gap-1.5">
+            <i data-lucide="globe" class="w-4 h-4"></i> Web Viewer ile Aç
+          </button>
+          <button type="button" onclick="yayinTestKapat()" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition">Pencereyi Kapat</button>
+        </div>
       </div>
     </div>
   </div>
@@ -442,7 +479,7 @@
             <div id="yoneticiKategoriListesi" class="flex flex-col gap-2 pt-2 max-h-36 overflow-y-auto pr-1"></div>
           </div>
 
-          <!-- YENİ KANAL EKLEME/DÜZENLEME FORMU -->
+          <!-- KANAL EKLEME/DÜZENLEME FORMU -->
           <form id="kanalFormu" onsubmit="kanalKaydet(event)" class="bg-slate-950 p-4 border border-slate-800 rounded-xl space-y-3">
             <h5 id="formBasligi" class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Yeni Kanal Ekle</h5>
             <input type="hidden" id="düzenlenecekKanalId" value="">
@@ -639,7 +676,6 @@
       baglantiKontrolunuBaslat();
     });
 
-    // Tarayıcının ağ durumunu ve Firebase sunucusuna gerçek bağlantıyı birlikte izler.
     function baglantiKontrolunuBaslat() {
       window.addEventListener("online", baglantiDurumunuGuncelle);
       window.addEventListener("offline", baglantiDurumunuGuncelle);
@@ -855,7 +891,6 @@
 
         const aramaUyum = k.ad.toLowerCase().includes(aramaMetni.toLowerCase()) || 
                            (k.kategori && k.kategori.toLowerCase().includes(aramaMetni.toLowerCase()));
-        // Şifreli kategoriler, kilit açılana kadar Tümü/Favoriler/arama dahil hiçbir listede görünmez.
         const kategoriKilitli = !!(k.kategori && kategoriSifreleri[kategoriAnahtari(k.kategori)]);
         const kategoriErisimiVar = !kategoriKilitli || acikKategoriler.has(k.kategori);
         return katUyum && aramaUyum && kategoriErisimiVar;
@@ -1031,6 +1066,8 @@
       aktifKaynakYedekMi = false;
       sonIzlenenEkle(kanal);
 
+      videoOynaticiModunaDon();
+
       document.getElementById("aktifKanalAdi").textContent = kanal.ad;
       document.getElementById("aktifKanalKategorisi").textContent = kanal.kategori || "Genel";
 
@@ -1093,8 +1130,9 @@
 
         hlsOynatici.on(Hls.Events.ERROR, (event, data) => {
           if (data.fatal) {
-            durumMetni.textContent = "Yayın bağlantısı kurulamadı!";
-            düzeltBtn.classList.remove("hidden");
+            durumMetni.textContent = "Video oynatılamadı, Web Viewer ile açılıyor...";
+            // OTOMATİK OLARAK WEB VIEWER İLE AÇ
+            setTimeout(() => { webViewerIleAc(); }, 1200);
           }
         });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -1103,8 +1141,41 @@
           video.play();
           yukleniyor.classList.add("hidden");
         });
+        video.addEventListener('error', () => {
+          durumMetni.textContent = "Video açılamadı, Web Viewer ile açılıyor...";
+          setTimeout(() => { webViewerIleAc(); }, 1200);
+        });
       }
     }
+
+    // --- WEB VIEWER (İFRAME) İLE AÇMA FONKSİYONLARI ---
+    function webViewerIleAc() {
+      if (!aktifKanal) return;
+      const webViewKapsayici = document.getElementById("webViewKapsayici");
+      const canliFrame = document.getElementById("canliFrame");
+      const yukleniyor = document.getElementById("videoYukleniyorEkrani");
+      
+      const url = (aktifKaynakYedekMi && aktifKanal.yedekYayinUrl) ? aktifKanal.yedekYayinUrl : aktifKanal.yayinUrl;
+      
+      const video = document.getElementById("canliVideoOynatici");
+      video.pause();
+      if (hlsOynatici) {
+        hlsOynatici.destroy();
+        hlsOynatici = null;
+      }
+
+      canliFrame.src = url;
+      webViewKapsayici.classList.remove("hidden");
+      yukleniyor.classList.add("hidden");
+    }
+
+    function videoOynaticiModunaDon() {
+      const webViewKapsayici = document.getElementById("webViewKapsayici");
+      const canliFrame = document.getElementById("canliFrame");
+      webViewKapsayici.classList.add("hidden");
+      canliFrame.src = "";
+    }
+    // --------------------------------------------------
 
     function otomatikKaynaktanCek() {
       if (!aktifKanal) return;
@@ -1163,9 +1234,9 @@
     }
 
     function tamEkranYap() {
-      const video = document.getElementById("canliVideoOynatici");
-      if (video.requestFullscreen) video.requestFullscreen();
-      else if (video.webkitRequestFullscreen) video.webkitRequestFullscreen();
+      const oynaticiKapsayici = document.getElementById("oynaticiKapsayici");
+      if (oynaticiKapsayici.requestFullscreen) oynaticiKapsayici.requestFullscreen();
+      else if (oynaticiKapsayici.webkitRequestFullscreen) oynaticiKapsayici.webkitRequestFullscreen();
     }
 
     function yayinAkisiniGuncelle(kanalAdi) {
@@ -1467,6 +1538,7 @@
 
     let yayinTestHls = null;
     let yayinTestZamanlayici = null;
+    let aktifTestUrl = "";
 
     async function formYayinTestEt(tip) {
       const inputId = tip === 'ana' ? 'formKanalYayinUrl' : 'formKanalYedekYayinUrl';
@@ -1506,10 +1578,12 @@
 
     function yayinTestBaslat(url, baslik, sonucEl) {
       yayinTestKapat(false);
+      aktifTestUrl = url;
       const modal = document.getElementById('yayinTestModali');
       const video = document.getElementById('yayinTestVideo');
       document.getElementById('yayinTestBaslik').textContent = baslik + ' • ' + url;
       modal.classList.remove('hidden');
+      testVideoModunaDon();
       video.pause();
       video.removeAttribute('src');
       video.load();
@@ -1526,33 +1600,62 @@
       const hatali = (mesaj) => {
         if (tamamlandi) return;
         tamamlandi = true;
-        yayinTestDurumGuncelle(mesaj || 'Yayın açılamadı. Adresi veya yayın kaynağını kontrol edin.', false, true);
-        sonucEl.textContent = '✕ Yayın açılamadı. Linki ve yayın kaynağını kontrol edin.';
-        sonucEl.className = 'text-[11px] mt-1 text-red-400 font-semibold block';
+        yayinTestDurumGuncelle('Video oynatılamadı, Web Viewer ile açılıyor...', false, true);
+        sonucEl.textContent = '⚠ Video oynatılamadı, Web Viewer üzerinden açıldı.';
+        sonucEl.className = 'text-[11px] mt-1 text-cyan-400 font-semibold block';
+        // Test ekranında da otomatik Web Viewer ile aç
+        setTimeout(() => { testWebViewerIleAc(); }, 1200);
       };
 
       video.addEventListener('playing', basarili, { once: true });
-      video.addEventListener('error', () => hatali('Video oynatılamadı. Bağlantı geçersiz, erişim engelli veya yayın biçimi desteklenmiyor.'), { once: true });
+      video.addEventListener('error', () => hatali(), { once: true });
       yayinTestZamanlayici = setTimeout(() => {
-        if (!tamamlandi) hatali('Yayın zamanında başlamadı. Link yanıt vermiyor veya yayın erişime kapalı olabilir.');
-      }, 20000);
+        if (!tamamlandi) hatali();
+      }, 15000);
 
       if (Hls.isSupported()) {
         yayinTestHls = new Hls({ enableWorker: true, lowLatencyMode: true });
         yayinTestHls.loadSource(url);
         yayinTestHls.attachMedia(video);
         yayinTestHls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video.play().catch(() => yayinTestDurumGuncelle('Yayın hazır. İzlemek için oynat düğmesine dokunun.'));
+          video.play().catch(() => {});
         });
         yayinTestHls.on(Hls.Events.ERROR, (event, data) => {
-          if (data.fatal) hatali('Yayın yüklenemedi: HLS bağlantı hatası veya erişim engeli.');
+          if (data.fatal) hatali();
         });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = url;
-        video.play().catch(() => yayinTestDurumGuncelle('Yayın hazır. İzlemek için oynat düğmesine dokunun.'));
+        video.play().catch(() => hatali());
       } else {
-        hatali('Bu tarayıcı HLS yayınlarını desteklemiyor.');
+        hatali();
       }
+    }
+
+    // Test ekranı için Web Viewer fonksiyonları
+    function testWebViewerIleAc() {
+      if (!aktifTestUrl) return;
+      const webViewKapsayici = document.getElementById('yayinTestWebViewKapsayici');
+      const testFrame = document.getElementById('yayinTestFrame');
+      const yukleme = document.getElementById('yayinTestYukleme');
+      const video = document.getElementById('yayinTestVideo');
+
+      video.pause();
+      if (yayinTestHls) {
+        yayinTestHls.destroy();
+        yayinTestHls = null;
+      }
+
+      testFrame.src = aktifTestUrl;
+      webViewKapsayici.classList.remove('hidden');
+      yukleme.classList.add('hidden');
+      yayinTestDurumGuncelle('Web Viewer (İframe) üzerinden açıldı.', true);
+    }
+
+    function testVideoModunaDon() {
+      const webViewKapsayici = document.getElementById('yayinTestWebViewKapsayici');
+      const testFrame = document.getElementById('yayinTestFrame');
+      webViewKapsayici.classList.add('hidden');
+      testFrame.src = '';
     }
 
     function yayinTestKapat(kapatSonuc = true) {
@@ -1560,6 +1663,7 @@
       if (yayinTestHls) { yayinTestHls.destroy(); yayinTestHls = null; }
       const video = document.getElementById('yayinTestVideo');
       if (video) { video.pause(); video.removeAttribute('src'); video.load(); }
+      testVideoModunaDon();
       const modal = document.getElementById('yayinTestModali');
       if (modal) modal.classList.add('hidden');
     }
