@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gelişmiş M3U IPTV Oynatıcı</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f172a',
+                        cardBg: '#1e293b',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- HLS.js for streaming m3u8 in browsers -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-darkBg text-slate-100 min-h-screen flex flex-col font-sans">
+
+    <!-- Header -->
+    <header class="bg-cardBg border-b border-slate-800 p-4 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold flex items-center gap-2 text-indigo-400">
+                <i class="fa-solid fa-tv"></i> M3U IPTV Oynatıcı & Yönetici
+            </h1>
+            <span class="text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-1 rounded-full">
+                HLS Destekli
+            </span>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto p-4 flex-grow grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Sol Panel: Yükleme ve Kanal Listesi -->
+        <div class="lg:col-span-1 flex flex-col gap-4">
+            
+            <!-- Dosya / Metin Yükleme Kutusu -->
+            <div class="bg-cardBg p-4 rounded-xl border border-slate-800 shadow-sm">
+                <h2 class="text-sm font-semibold mb-2 text-slate-300 flex items-center gap-2">
+                    <i class="fa-solid fa-file-arrow-up text-indigo-400"></i> M3U Listesi Yükle
+                </h2>
+                
+                <div class="flex flex-col gap-3">
+                    <input type="file" id="m3uFile" accept=".m3u,.m3u8,.txt" class="text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
+                    
+                    <textarea id="m3uText" rows="3" placeholder="Veya M3U içeriğini buraya yapıştırın..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 resize-none"></textarea>
+                    
+                    <button id="loadBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate"></i> Listeyi Yükle / İşle
+                    </button>
+                </div>
+            </div>
+
+            <!-- Arama ve Kanal Listesi -->
+            <div class="bg-cardBg p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col h-[500px]">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                        <i class="fa-solid fa-list text-indigo-400"></i> Kanallar (<span id="channelCount">0</span>)
+                    </h2>
+                    <button id="exportBtn" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 transition-colors flex items-center gap-1">
+                        <i class="fa-solid fa-download"></i> İndir
+                    </button>
+                </div>
+
+                <!-- Arama Kutusu -->
+                <div class="relative mb-3">
+                    <i class="fa-solid fa-search absolute left-3 top-3 text-slate-500 text-xs"></i>
+                    <input type="text" id="searchBox" placeholder="Kanal ara..." class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <!-- Liste Alanı -->
+                <div id="channelList" class="flex-grow overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+                    <div class="text-center text-slate-500 text-xs py-12">
+                        Henüz liste yüklenmedi.<br>Lütfen dosya seçin veya yapıştırın.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Sağ Panel: Video Oynatıcı -->
+        <div class="lg:col-span-2 flex flex-col gap-4">
+            <div class="bg-cardBg p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col h-full">
+                <h2 id="currentChannelTitle" class="text-base font-bold text-slate-200 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-play text-indigo-400"></i> Oynatıcı (Kanal Seçilmedi)
+                </h2>
+                
+                <!-- Video Konteyner -->
+                <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+                    <video id="videoPlayer" controls autoplay class="w-full h-full object-contain"></video>
+                    <div id="playerPlaceholder" class="absolute inset-flex flex-col items-center justify-center text-slate-500 text-sm gap-2">
+                        <i class="fa-solid fa-tv text-4xl opacity-40"></i>
+                        İzlemek için soldan bir kanal seçin
+                    </div>
+                </div>
+
+                <!-- Bilgi Alanı -->
+                <div class="mt-4 p-3 bg-slate-900/50 rounded-lg border border-slate-800/80 text-xs text-slate-400 flex flex-col gap-1">
+                    <div><strong class="text-slate-300">Yayın Adresi:</strong> <span id="currentUrl" class="break-all font-mono text-slate-500">-</span></div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- JavaScript Mantığı -->
+    <script>
+        let channels = [];
+        let hls = null;
+
+        const m3uFileInput = document.getElementById('m3uFile');
+        const m3uTextInput = document.getElementById('m3uText');
+        const loadBtn = document.getElementById('loadBtn');
+        const channelListEl = document.getElementById('channelList');
+        const channelCountEl = document.getElementById('channelCount');
+        const searchBox = document.getElementById('searchBox');
+        const videoPlayer = document.getElementById('videoPlayer');
+        const playerPlaceholder = document.getElementById('playerPlaceholder');
+        const currentChannelTitle = document.getElementById('currentChannelTitle');
+        const currentUrlEl = document.getElementById('currentUrl');
+        const exportBtn = document.getElementById('exportBtn');
+
+        // Dosya seçildiğinde otomatik okuma
+        m3uFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                m3uTextInput.value = event.target.result;
+                parseM3U(event.target.result);
+            };
+            reader.readAsText(file);
+        });
+
+        // Yükle butonuna basıldığında
+        loadBtn.addEventListener('click', () => {
+            const content = m3uTextInput.value.trim();
+            if (!content) {
+                alert('Lütfen geçerli bir M3U içeriği girin veya dosya seçin.');
+                return;
+            }
+            parseM3U(content);
+        });
+
+        // M3U Ayrıştırıcı (Parser)
+        function parseM3U(data) {
+            channels = [];
+            const lines = data.split('\n');
+            let currentChannel = {};
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (line.startsWith('#EXTINF:')) {
+                    currentChannel = {};
+                    
+                    // Logo bulma
+                    let logoMatch = line.match(/tvg-logo="([^"]*)"/);
+                    currentChannel.logo = logoMatch ? logoMatch[1] : '';
+
+                    // Grup bulma
+                    let groupMatch = line.match(/group-title="([^"]*)"/);
+                    currentChannel.group = groupMatch ? groupMatch[1] : 'Genel';
+
+                    // Kanal adı (virgülden sonraki kısım)
+                    let nameParts = line.split(',');
+                    currentChannel.name = nameParts.length > 1 ? nameParts[nameParts.length - 1].trim() : 'İsimsiz Kanal';
+                } else if (line && !line.startsWith('#')) {
+                    currentChannel.url = line;
+                    if (currentChannel.name && currentChannel.url) {
+                        channels.push(currentChannel);
+                        currentChannel = {};
+                    }
+                }
+            }
+
+            renderChannels(channels);
+        }
+
+        // Listeyi Ekrana Çizme
+        function renderChannels(list) {
+            channelCountEl.textContent = list.length;
+            channelListEl.innerHTML = '';
+
+            if (list.length === 0) {
+                channelListEl.innerHTML = '<div class="text-center text-slate-500 text-xs py-8">Kanal bulunamadı.</div>';
+                return;
+            }
+
+            list.forEach((ch, index) => {
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between p-2.5 bg-slate-900/60 hover:bg-slate-800 rounded-lg border border-slate-800/60 cursor-pointer transition-colors group';
+                
+                item.innerHTML = `
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center shrink-0 overflow-hidden border border-slate-700">
+                            ${ch.logo ? `<img src="${ch.logo}" class="w-full h-full object-contain" onerror="this.remove()">` : '<i class="fa-solid fa-tv text-slate-500 text-xs"></i>'}
+                        </div>
+                        <div class="overflow-hidden">
+                            <h3 class="text-xs font-medium text-slate-200 truncate group-hover:text-indigo-400 transition-colors">${ch.name}</h3>
+                            <span class="text-[10px] text-slate-500 truncate block">${ch.group}</span>
+                        </div>
+                    </div>
+                    <button class="text-slate-400 hover:text-indigo-400 p-1 text-xs shrink-only">
+                        <i class="fa-solid fa-play"></i>
+                    </button>
+                `;
+
+                item.addEventListener('click', () => playStream(ch));
+                channelListEl.appendChild(item);
+            });
+        }
+
+        // Kanal Arama Filtresi
+        searchBox.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const filtered = channels.filter(ch => ch.name.toLowerCase().includes(query) || ch.group.toLowerCase().includes(query));
+            renderChannels(filtered);
+        });
+
+        // Yayın Oynatma Fonksiyonu
+        function playStream(ch) {
+            currentChannelTitle.innerHTML = `<i class="fa-solid fa-circle-play text-indigo-400"></i> Oynatılıyor: ${ch.name}`;
+            currentUrlEl.textContent = ch.url;
+            playerPlaceholder.style.display = 'none';
+
+            if (Hls.isSupported() && ch.url.includes('.m3u8')) {
+                if (hls) {
+                    hls.destroy();
+                }
+                hls = new Hls();
+                hls.loadSource(ch.url);
+                hls.attachMedia(videoPlayer);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    videoPlayer.play();
+                });
+            } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+                // Safari yerel HLS desteği
+                videoPlayer.src = ch.url;
+                videoPlayer.addEventListener('loadedmetadata', () => {
+                    videoPlayer.play();
+                });
+            } else {
+                // Standart video oynatma (mp4, direct stream vb.)
+                videoPlayer.src = ch.url;
+                videoPlayer.play().catch(err => {
+                    console.error("Oynatma hatası:", err);
+                    alert("Bu yayın tarayıcı tarafından doğrudan oynatılamıyor veya CORS engeline takılıyor olabilir.");
+                });
+            }
+        }
+
+        // Listeyi Dışarı Aktarma (İndirme)
+        exportBtn.addEventListener('click', () => {
+            if (channels.length === 0) {
+                alert('İndirilecek aktif kanal listesi yok.');
+                return;
+            }
+
+            let m3uContent = '#EXTM3U\n';
+            channels.forEach(ch => {
+                m3uContent += `#EXTINF:-1 tvg-logo="${ch.logo || ''}" group-title="${ch.group || 'Genel'},${ch.name}\n`;
+                m3uContent += `${ch.url}\n`;
+            });
+
+            const blob = new Blob([m3uContent], { type: 'audio/x-mpegurl' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'filtreli_liste.m3u';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+</html>
