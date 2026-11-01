@@ -1661,6 +1661,35 @@
                 padding-bottom:calc(48px + env(safe-area-inset-bottom)) !important;
             }
         }
+        /* iPad Safari dahil: ayarlar penceresinin tamamını tek kaydırma alanı yap */
+        #settings-modal.show {
+            display:flex !important; align-items:flex-start !important; justify-content:center !important;
+            position:fixed !important; inset:0 !important; width:100% !important;
+            height:100vh !important; height:100dvh !important; box-sizing:border-box !important;
+            padding:16px !important; overflow-x:hidden !important; overflow-y:auto !important;
+            -webkit-overflow-scrolling:touch !important; overscroll-behavior-y:contain !important;
+            touch-action:pan-y !important;
+        }
+        #settings-modal .settings-modal-card {
+            display:block !important; flex:0 0 auto !important; width:min(780px,100%) !important;
+            height:auto !important; min-height:0 !important; max-height:none !important;
+            margin:0 auto 16px !important; overflow:visible !important; touch-action:auto !important;
+        }
+        #settings-modal .modal-title { position:relative !important; top:auto !important; }
+        #settings-modal .settings-modal-content {
+            display:block !important; width:100% !important; height:auto !important;
+            min-height:0 !important; max-height:none !important; overflow:visible !important;
+            -webkit-overflow-scrolling:auto !important; overscroll-behavior:auto !important;
+            touch-action:auto !important; padding-bottom:calc(30px + env(safe-area-inset-bottom)) !important;
+        }
+        @media (max-width:640px) {
+            #settings-modal.show { align-items:flex-start !important; justify-content:flex-start !important; padding:0 !important; }
+            #settings-modal .settings-modal-card {
+                width:100% !important; min-height:100vh !important; min-height:100dvh !important;
+                margin:0 !important; border:0 !important; border-radius:0 !important;
+            }
+            #settings-modal .settings-modal-content { padding:15px 14px calc(40px + env(safe-area-inset-bottom)) !important; }
+        }
     </style>
 </head>
 <body>
@@ -2997,10 +3026,7 @@
             document.body.style.overflow = '';
             window.scrollTo(0, settingsSavedScrollY);
         };
-        // Kaydırma hareketi içerik alanı dışındaysa arka sayfaya aktarılmasını engelle.
-        settingsModal.addEventListener('touchmove', (event) => {
-            if (!event.target.closest('.settings-modal-content')) event.preventDefault();
-        }, { passive:false });
+        // Kaydırma, iPad Safari'de daha güvenilir olan dış modal katmanında gerçekleşir.
         document.getElementById('settings-btn').addEventListener('click', openSettingsModal);
         document.getElementById('settings-close-x').addEventListener('click', closeSettingsModal);
         settingsModal.addEventListener('click', (event) => { if (event.target === settingsModal) closeSettingsModal(); });
