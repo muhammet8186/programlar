@@ -12,7 +12,7 @@ catch (err) { console.error('ffmpeg-static yüklenemedi; yayın köprüsü çal�
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
-const VERSION = '3.5.4';
+const VERSION = '3.5.5';
 const MAX_REDIRECTS = 5;
 const MAX_RECORD_MS = 30 * 60 * 1000;
 const allowedHosts = (process.env.STREAM_PROXY_ALLOWED_HOSTS || 'sslyayin.netyayin.net').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
