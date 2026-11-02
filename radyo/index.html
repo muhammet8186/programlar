@@ -2404,6 +2404,7 @@
             document.getElementById('existing-list-btn')?.classList.toggle('active', activeSource === 'existing');
             updateFavCount();
             await populateFilters();
+            restoreSearchFilters();
             await fetchStations();
             const initialAllCount = document.getElementById('all-count');
             if (initialAllCount) initialAllCount.textContent = String(currentStations.length);
@@ -2480,6 +2481,32 @@
             } catch (err) {
                 showToast('Ülke listesi yüklenemedi.', 'error');
             }
+        }
+
+        const SEARCH_FILTERS_KEY = 'symphony_search_filters_v1';
+        function saveSearchFilters() {
+            try {
+                localStorage.setItem(SEARCH_FILTERS_KEY, JSON.stringify({
+                    query: searchInput.value || '',
+                    genre: genreSelect.value || '',
+                    country: countrySelect.value || '',
+                    limit: limitSelect.value || '1000'
+                }));
+            } catch (err) { console.warn('Arama filtreleri kaydedilemedi:', err); }
+        }
+        function restoreSearchFilters() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(SEARCH_FILTERS_KEY) || 'null');
+                if (!saved || typeof saved !== 'object') return;
+                searchInput.value = typeof saved.query === 'string' ? saved.query : '';
+                genreSelect.value = typeof saved.genre === 'string' ? saved.genre : '';
+                if (typeof saved.country === 'string' && [...countrySelect.options].some(o => o.value === saved.country)) {
+                    countrySelect.value = saved.country;
+                }
+                if (typeof saved.limit === 'string' && [...limitSelect.options].some(o => o.value === saved.limit)) {
+                    limitSelect.value = saved.limit;
+                }
+            } catch (err) { console.warn('Kayıtlı arama filtreleri okunamadı:', err); }
         }
 
         function readListCache(key) {
@@ -4058,17 +4085,18 @@
             searchCloseBtn.addEventListener('click', () => { searchModal.classList.remove('show'); searchModal.setAttribute('aria-hidden','true'); });
             searchModal.addEventListener('click', (e) => { if (e.target === searchModal) { searchModal.classList.remove('show'); searchModal.setAttribute('aria-hidden','true'); } });
             document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && searchModal.classList.contains('show')) { searchModal.classList.remove('show'); searchModal.setAttribute('aria-hidden','true'); } });
-            searchBtn.addEventListener('click', () => { fetchStations(); searchModal.classList.remove('show'); searchModal.setAttribute('aria-hidden','true'); });
+            searchBtn.addEventListener('click', () => { saveSearchFilters(); fetchStations(); searchModal.classList.remove('show'); searchModal.setAttribute('aria-hidden','true'); });
 
             let timeout = null;
             searchInput.addEventListener('input', () => {
                 clearTimeout(timeout);
-                timeout = setTimeout(() => fetchStations(), 500);
+                timeout = setTimeout(() => { saveSearchFilters(); fetchStations(); }, 500);
             });
 
-            genreSelect.addEventListener('change', () => fetchStations());
-            countrySelect.addEventListener('change', () => fetchStations());
-            limitSelect.addEventListener('change', () => fetchStations());
+            genreSelect.addEventListener('change', () => { saveSearchFilters(); fetchStations(); });
+            countrySelect.addEventListener('change', () => { saveSearchFilters(); fetchStations(); });
+            limitSelect.addEventListener('change', () => { saveSearchFilters(); fetchStations(); });
+            searchInput.addEventListener('change', saveSearchFilters);
 
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.addEventListener('click', async (event) => {
