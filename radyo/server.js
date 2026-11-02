@@ -173,4 +173,41 @@ app.post('/api/record/stop',async(req,res) => {
     res.setHeader('Content-Type','audio/mpeg');
     res.setHeader('Content-Disposition',`attachment; filename="${rec.fileName}"`);
     res.setHeader('Cache-Control','no-store');
-    const input = fs.createReadStream(rec.filePath);
+        const input = fs.createReadStream(rec.filePath);
+
+    input.on('error', err => {
+      console.error('Kayıt dosyası okuma hatası:', err.message);
+
+      if (!res.headersSent) {
+        res.status(500).json({
+          error: 'Kayıt dosyası okunamadı.',
+          detail: err.message
+        });
+      } else {
+        res.destroy(err);
+      }
+    });
+
+    res.on('close', () => {
+      if (!input.destroyed) input.destroy();
+    });
+
+    input.pipe(res);
+
+  } catch (err) {
+    console.error('Kayıt indirme hatası:', err.message);
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        error: 'Kayıt indirilemedi.',
+        detail: err.message
+      });
+    }
+
+    res.destroy(err);
+  }
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Online Radyo Sunucusu ${VERSION} çalışıyor. Port: ${PORT}`);
+});
