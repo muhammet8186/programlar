@@ -17,12 +17,13 @@ const recordAllowedHosts = (process.env.RECORD_ALLOWED_HOSTS || process.env.STRE
 const dataDir = process.env.RECORDINGS_DIR || (process.env.RENDER_DISK_PATH ? path.join(process.env.RENDER_DISK_PATH, 'recordings') : path.join(__dirname, 'recordings'));
 fs.mkdirSync(dataDir, { recursive: true });
 let activeRecording = null;
+let lastRecording = null;
 
 app.use(cors({ origin: '*', methods: ['GET','HEAD','POST','OPTIONS'], allowedHeaders: ['Range','Icy-MetaData','Content-Type'], exposedHeaders: ['Content-Length','Content-Range','Accept-Ranges','Content-Type','Icy-MetaInt','Icy-Name','Icy-Br'] }));
 app.use(express.json({ limit: '32kb' }));
 
-app.get('/', (req,res) => res.json({ ok:true, service:'Online Radyo Sunucusu', version:'3.3', streamProxy:true, serverRecording:true, ffmpeg:!!ffmpegPath }));
-app.get('/health', (req,res) => res.json({ ok:true, status:'running', version:'3.3', serverRecording:true, recording:!!activeRecording }));
+app.get('/', (req,res) => res.json({ ok:true, service:'Online Radyo Sunucusu', version:'3.4', streamProxy:true, serverRecording:true, ffmpeg:!!ffmpegPath }));
+app.get('/health', (req,res) => res.json({ ok:true, status:'running', version:'3.4', serverRecording:true, recording:!!activeRecording, finishedRecording:!!lastRecording }));
 
 function hostAllowed(url, list) {
   if (!['http:','https:'].includes(url.protocol)) return false;
@@ -96,24 +97,31 @@ app.post('/api/record/start',(req,res) => {
   const filePath = path.join(dataDir,fileName);
   const args = ['-hide_banner','-loglevel','error','-y','-user_agent','Mozilla/5.0 OnlineRadioRecorder/3.3','-i',target.href,'-vn','-codec:a','libmp3lame','-b:a','128k','-f','mp3',filePath];
   const proc = spawn(ffmpegPath,args,{ stdio:['ignore','ignore','pipe'] });
-  const rec = { proc,filePath,fileName,stationName:String(stationName || 'Radyo Kaydı').slice(0,120),startedAt:Date.now(),stderr:'' };
+  const rec = { proc,filePath,fileName,stationName:String(stationName || 'Radyo Kaydı').slice(0,120),startedAt:Date.now(),stderr:'',finished:false,stopRequested:false };
+  lastRecording = null;
   activeRecording = rec;
   proc.stderr.on('data',d => { rec.stderr = (rec.stderr + d.toString()).slice(-4000); });
-  proc.once('error',err => { console.error('FFmpeg başlatılamadı:',err); if (activeRecording === rec) activeRecording = null; });
-  proc.once('close',(code,signal) => { rec.exitCode = code; rec.signal = signal; if (activeRecording === rec) activeRecording = null; if (code !== 0) console.error('FFmpeg kayıt hatası:',rec.stderr); });
+  proc.once('error',err => { console.error('FFmpeg başlatılamadı:',err); rec.error = err.message; rec.finished = true; lastRecording = rec; if (activeRecording === rec) activeRecording = null; });
+  proc.once('close',(code,signal) => { rec.exitCode = code; rec.signal = signal; rec.finished = true; rec.closedAt = Date.now(); lastRecording = rec; if (activeRecording === rec) activeRecording = null; if (code !== 0 && !rec.stopRequested) console.error('FFmpeg kayıt hatası:',rec.stderr); });
   rec.maxTimer = setTimeout(() => { if (activeRecording === rec) finishRecording('maximum-duration').catch(console.error); },MAX_RECORD_MS);
   res.json({ ok:true,recording:true,stationName:rec.stationName,maxDurationMinutes:30 });
 });
-app.get('/api/record/status',(req,res) => res.json({ ok:true,recording:!!activeRecording,stationName:activeRecording?.stationName || null,startedAt:activeRecording?.startedAt || null,elapsedSeconds:activeRecording ? Math.floor((Date.now()-activeRecording.startedAt)/1000) : 0 }));
+app.get('/api/record/status',(req,res) => { const rec = activeRecording || lastRecording; res.json({ ok:true,recording:!!activeRecording,finished:!!rec?.finished,hasFile:!!(rec && fs.existsSync(rec.filePath)),stationName:rec?.stationName || null,startedAt:rec?.startedAt || null,elapsedSeconds:rec ? Math.floor(((rec.closedAt || Date.now())-rec.startedAt)/1000) : 0,error:rec?.error || (rec?.exitCode && rec.exitCode !== 0 ? rec.stderr : null) }); });
 app.post('/api/record/stop',async(req,res) => {
-  if (!activeRecording) return res.status(409).json({ error:'Durdurulacak aktif bir sunucu kaydı yok.' });
-  const rec = activeRecording;
+  // FFmpeg yayın hatasıyla kendiliğinden kapansa bile son kaydı teslim etmeyi dene.
+  const rec = activeRecording || lastRecording;
+  if (!rec) return res.status(409).json({ error:'Sunucuda alınabilecek aktif veya tamamlanmış kayıt bulunamadı. Kayıt başlatma isteği aynı sunucu örneğine ulaşmamış olabilir.' });
   if (rec.maxTimer) clearTimeout(rec.maxTimer);
   try {
-    await finishRecording('user-stop');
+    if (activeRecording === rec) {
+      rec.stopRequested = true;
+      await finishRecording('user-stop');
+    }
     if (!fs.existsSync(rec.filePath) || fs.statSync(rec.filePath).size < 1024) {
-      try { fs.unlinkSync(rec.filePath); } catch (_) {}
-      return res.status(502).json({ error:'Kayıt dosyası oluşmadı. Yayın sunucusu FFmpeg tarafından okunamamış olabilir.', detail:rec.stderr || 'Boş kayıt' });
+      const detail = rec.stderr || rec.error || (rec.exitCode !== undefined ? `FFmpeg çıkış kodu: ${rec.exitCode}` : 'Kayıt dosyası boş veya henüz oluşmamış');
+      try { if (fs.existsSync(rec.filePath)) fs.unlinkSync(rec.filePath); } catch (_) {}
+      if (lastRecording === rec) lastRecording = null;
+      return res.status(502).json({ error:'Kayıt dosyası oluşmadı. Yayın adresi sunucuda okunamamış olabilir.', detail });
     }
     res.setHeader('Content-Type','audio/mpeg');
     res.setHeader('Content-Disposition',`attachment; filename="${rec.fileName}"`);
@@ -121,13 +129,13 @@ app.post('/api/record/stop',async(req,res) => {
     const input = fs.createReadStream(rec.filePath);
     input.on('error',err => { console.error(err); if (!res.headersSent) res.status(500).end('Kayıt okunamadı'); });
     input.pipe(res);
-    input.on('close',() => { try { fs.unlinkSync(rec.filePath); } catch (_) {} });
+    input.on('close',() => { try { fs.unlinkSync(rec.filePath); } catch (_) {} if (lastRecording === rec) lastRecording = null; });
   } catch(err) { console.error('Kayıt durdurma hatası:',err); res.status(500).json({ error:'Kayıt tamamlanamadı.',detail:err.message }); }
 });
 
 app.use((req,res) => res.status(404).json({ error:'Adres bulunamadı',path:req.path }));
 app.listen(PORT,() => {
-  console.log('Online Radyo sunucusu başlatıldı. Sürüm: 3.3 Port:',PORT);
+  console.log('Online Radyo sunucusu başlatıldı. Sürüm: 3.4 Port:',PORT);
   console.log('Yayın izinli sunucular:',allowedHosts);
   console.log('Kayıt izinli sunucular:',recordAllowedHosts);
   console.log('Kayıt klasörü:',dataDir);
