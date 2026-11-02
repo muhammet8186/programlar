@@ -2295,6 +2295,9 @@
         let recordedChunks = [];
         let isRecording = false;
         let recordHeartbeatTimer = null;
+        let serverRecordingId = null;
+        let recordDeviceId = localStorage.getItem('online_radyo_device_id');
+        if (!recordDeviceId) { recordDeviceId = (crypto.randomUUID ? crypto.randomUUID() : 'device-' + Date.now() + '-' + Math.random().toString(16).slice(2)); localStorage.setItem('online_radyo_device_id', recordDeviceId); }
         // Kayıt sunucusu herkese açık kullanım için yapılandırılmıştır; gizli API anahtarı tarayıcıya gönderilmez.
         const recordServerBase = 'https://radyo-g3d2.onrender.com';
         try { localStorage.removeItem('online_radyo_record_server_key'); } catch (_) {}
@@ -3693,7 +3696,7 @@
 
         // --- Kayıt modu seçimi ve cihaz/sunucu kayıtları ---
         async function recordServerRequest(path, options = {}) {
-            const response = await fetch(recordServerBase + path, { ...options, headers: { ...(options.headers || {}) } });
+            const response = await fetch(recordServerBase + path, { ...options, headers: { ...(options.headers || {}), 'X-Device-ID': recordDeviceId } });
             if (!response.ok) {
                 let message = 'Kayıt sunucusu isteği başarısız oldu (' + response.status + ').';
                 try { const data = await response.json(); if (data.error) message = data.error; } catch {}
@@ -3714,6 +3717,7 @@
         recordModeModal.addEventListener('click', e => { if (e.target === recordModeModal) closeRecordModeModal(); });
 
         async function startLocalRecording() {
+            if (!currentStation || (!currentStation.url && !currentStation.url_resolved)) throw new Error('Önce kaydetmek istediğiniz radyoyu açın.');
             if (!window.MediaRecorder) throw new Error('Bu tarayıcı normal cihaz kaydını desteklemiyor. Sunucu üzerinden kayıt seçeneğini deneyin.');
             if (!recordingDestination) {
                 const ready = initAudioContext();
@@ -3743,41 +3747,34 @@
         }
 
         async function startServerRecording() {
+            if (!currentStation) throw new Error('Önce bir radyo kanalı seçin.');
             const streamUrl = currentStation.url_resolved || currentStation.url;
             const startResponse = await recordServerRequest('/api/record/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({streamUrl,stationName:currentStation.name || 'Radyo Kaydı'})});
-            const startInfo = await startResponse.json();
-            if (!startInfo.audioConfirmed || !startInfo.bytes) throw new Error('Sunucu kayıt dosyasına ses verisi yazdığını doğrulayamadı.');
+            const startData = await startResponse.json();
+            if (!startData.id) throw new Error(startData.error || 'Sunucu kayıt oturumu oluşturamadı.');
+            serverRecordingId = startData.id;
             setRecordingButtonState(true);
-            showToast('Kayıt doğrulandı: sunucu ses verisi alıyor. Durdururken uygulamayı açık tutun.','success',5000);
+            showToast('Radyo yayını sunucuda kaydediliyor. Durdururken uygulamayı açık tutun.','success',5000);
             recordHeartbeatTimer = setInterval(async () => {
                 try {
-                    const response = await recordServerRequest('/api/record/status');
+                    const response = await recordServerRequest('/api/record/status?id=' + encodeURIComponent(serverRecordingId));
                     const status = await response.json();
-                    if (!status.recording) {
-                        clearInterval(recordHeartbeatTimer); recordHeartbeatTimer=null;
-                        if (status.finished && status.hasFile) {
-                            // Kayıt sunucuda tamamlandı; düğmeyi açık tut ki kullanıcı dosyayı alabilsin.
-                            setRecordingButtonState(true);
-                            showToast('Sunucu kaydı sona erdi. Kayıt dosyasını almak için kayıt düğmesine bas.','warning',6500);
-                        } else {
-                            setRecordingButtonState(false);
-                            showToast('Sunucu kaydı durmuş görünüyor; kayıt dosyası oluşmamış olabilir.','error',6500);
-                        }
-                    }
+                    if (!status.recording) { clearInterval(recordHeartbeatTimer); recordHeartbeatTimer=null; setRecordingButtonState(false); serverRecordingId=null; showToast(status.error || 'Sunucu kaydı sona erdi.','error',5500); }
                 } catch(err) { console.warn('Kayıt sunucusu kontrol edilemedi:',err); }
             },25000);
         }
         async function stopServerRecording(showMessage=true) {
-            if (!isRecording) return;
+            if (!isRecording || !serverRecordingId) { setRecordingButtonState(false); return; }
             if (recordHeartbeatTimer) { clearInterval(recordHeartbeatTimer); recordHeartbeatTimer=null; }
+            const recordingId = serverRecordingId;
             try {
-                const response = await recordServerRequest('/api/record/stop',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+                const response = await recordServerRequest('/api/record/stop',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:recordingId})});
                 const blob = await response.blob();
                 if (!blob || blob.size < 1024) throw new Error('Kayıt dosyası boş geldi. Radyo yayını sunucuya ulaşmamış olabilir.');
                 await saveRecording(new Blob([blob],{type:'audio/mpeg'}),currentStation ? currentStation.name : 'Radyo Kaydı');
                 if (showMessage) showToast('Sunucu kaydı tamamlandı ve cihazına kaydedildi.','success',5500);
             } catch(err) { console.error('Sunucu kaydı durdurma hatası:',err); showToast(err.message || 'Kayıt dosyası alınamadı.','error',6000); }
-            finally { setRecordingButtonState(false); }
+            finally { serverRecordingId=null; setRecordingButtonState(false); }
         }
         async function stopLocalRecording() {
             if (!mediaRecorder || mediaRecorder.state === 'inactive') { setRecordingButtonState(false); return; }
@@ -3796,7 +3793,6 @@
         });
         recordBtn.addEventListener('click',async()=>{
             if (!isRecording) {
-                if (!currentStation || (!currentStation.url && !currentStation.url_resolved)) { showToast('Önce kaydetmek istediğiniz radyoyu açın.','error'); return; }
                 if (recordBtn.dataset.busy==='1') return;
                 openRecordModeModal();
             } else {
