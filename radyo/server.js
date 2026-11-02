@@ -22,8 +22,8 @@ let lastRecording = null;
 app.use(cors({ origin: '*', methods: ['GET','HEAD','POST','OPTIONS'], allowedHeaders: ['Range','Icy-MetaData','Content-Type'], exposedHeaders: ['Content-Length','Content-Range','Accept-Ranges','Content-Type','Icy-MetaInt','Icy-Name','Icy-Br'] }));
 app.use(express.json({ limit: '32kb' }));
 
-app.get('/', (req,res) => res.json({ ok:true, service:'Online Radyo Sunucusu', version:'3.4', streamProxy:true, serverRecording:true, ffmpeg:!!ffmpegPath }));
-app.get('/health', (req,res) => res.json({ ok:true, status:'running', version:'3.4', serverRecording:true, recording:!!activeRecording, finishedRecording:!!lastRecording }));
+app.get('/', (req,res) => res.json({ ok:true, service:'Online Radyo Sunucusu', version:'3.5', streamProxy:true, serverRecording:true, ffmpeg:!!ffmpegPath }));
+app.get('/health', (req,res) => res.json({ ok:true, status:'running', version:'3.5', serverRecording:true, recording:!!activeRecording, finishedRecording:!!lastRecording }));
 
 function hostAllowed(url, list) {
   if (!['http:','https:'].includes(url.protocol)) return false;
@@ -86,27 +86,54 @@ function finishRecording(reason='stopped') {
   });
   return rec.finishPromise;
 }
-app.post('/api/record/start',(req,res) => {
+function waitForAudioFile(rec, timeoutMs=15000) {
+  return new Promise((resolve, reject) => {
+    const started = Date.now();
+    const check = () => {
+      let size = 0;
+      try { if (fs.existsSync(rec.filePath)) size = fs.statSync(rec.filePath).size; } catch (_) {}
+      if (size >= 4096 && !rec.finished) return resolve(size);
+      if (rec.finished) return reject(new Error(rec.stderr || rec.error || `FFmpeg yayın bağlantısını kuramadı (çıkış kodu: ${rec.exitCode ?? 'bilinmiyor'}).`));
+      if (Date.now() - started >= timeoutMs) return reject(new Error(rec.stderr || '15 saniye içinde yayın ses verisi alınamadı. Kanal adresi, yönlendirme veya yayın sunucusu bağlantısını kontrol edin.'));
+      setTimeout(check, 300);
+    };
+    check();
+  });
+}
+app.post('/api/record/start',async(req,res) => {
   if (!ffmpegPath) return res.status(503).json({ error:'FFmpeg bu sunucuda bulunamadı.' });
   if (activeRecording) return res.status(409).json({ error:'Sunucuda zaten devam eden bir kayıt var.' });
   const { streamUrl, stationName } = req.body || {};
   let target; try { target = new URL(streamUrl); } catch { return res.status(400).json({ error:'Geçerli yayın adresi gönderilmedi.' }); }
-  if (!hostAllowed(target,recordAllowedHosts)) return res.status(403).json({ error:`Bu kanalın sunucuda kaydına izin verilmiyor: ${target.hostname}. Render RECORD_ALLOWED_HOSTS ayarına bu alan adını ekleyin.` });
+  if (!hostAllowed(target,recordAllowedHosts)) return res.status(403).json({ error:`Bu kanalın sunucuda kaydına izin verilmiyor: ${target.hostname}. Render RECORD_ALLOWED_HOSTS ayarını kontrol edin.` });
   const stamp = new Date().toISOString().replace(/[:.]/g,'-');
   const fileName = `${stamp}_${safeName(stationName)}.mp3`;
   const filePath = path.join(dataDir,fileName);
-  const args = ['-hide_banner','-loglevel','error','-y','-user_agent','Mozilla/5.0 OnlineRadioRecorder/3.3','-i',target.href,'-vn','-codec:a','libmp3lame','-b:a','128k','-f','mp3',filePath];
+  const args = ['-hide_banner','-loglevel','warning','-nostats','-y','-user_agent','Mozilla/5.0 OnlineRadioRecorder/3.5','-reconnect','1','-reconnect_streamed','1','-reconnect_delay_max','5','-i',target.href,'-vn','-codec:a','libmp3lame','-b:a','128k','-f','mp3',filePath];
   const proc = spawn(ffmpegPath,args,{ stdio:['ignore','ignore','pipe'] });
   const rec = { proc,filePath,fileName,stationName:String(stationName || 'Radyo Kaydı').slice(0,120),startedAt:Date.now(),stderr:'',finished:false,stopRequested:false };
   lastRecording = null;
   activeRecording = rec;
-  proc.stderr.on('data',d => { rec.stderr = (rec.stderr + d.toString()).slice(-4000); });
-  proc.once('error',err => { console.error('FFmpeg başlatılamadı:',err); rec.error = err.message; rec.finished = true; lastRecording = rec; if (activeRecording === rec) activeRecording = null; });
+  proc.stderr.on('data',d => { rec.stderr = (rec.stderr + d.toString()).slice(-5000); });
+  proc.once('error',err => { console.error('FFmpeg başlatılamadı:',err); rec.error = err.message; rec.finished = true; rec.closedAt = Date.now(); lastRecording = rec; if (activeRecording === rec) activeRecording = null; });
   proc.once('close',(code,signal) => { rec.exitCode = code; rec.signal = signal; rec.finished = true; rec.closedAt = Date.now(); lastRecording = rec; if (activeRecording === rec) activeRecording = null; if (code !== 0 && !rec.stopRequested) console.error('FFmpeg kayıt hatası:',rec.stderr); });
   rec.maxTimer = setTimeout(() => { if (activeRecording === rec) finishRecording('maximum-duration').catch(console.error); },MAX_RECORD_MS);
-  res.json({ ok:true,recording:true,stationName:rec.stationName,maxDurationMinutes:30 });
+  try {
+    const bytes = await waitForAudioFile(rec,15000);
+    if (rec.finished || activeRecording !== rec) throw new Error(rec.stderr || 'Yayın bağlantısı kayıt doğrulanmadan kapandı.');
+    return res.json({ ok:true,recording:true,audioConfirmed:true,bytes,stationName:rec.stationName,maxDurationMinutes:30 });
+  } catch(err) {
+    if (rec.maxTimer) clearTimeout(rec.maxTimer);
+    if (activeRecording === rec) {
+      rec.stopRequested = true;
+      try { await finishRecording('start-failed'); } catch (_) {}
+    }
+    if (lastRecording === rec) lastRecording = null;
+    try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch (_) {}
+    return res.status(502).json({ error:'Kayıt başlatılamadı: sunucudan yayın sesi alınamadı.', detail:err.message });
+  }
 });
-app.get('/api/record/status',(req,res) => { const rec = activeRecording || lastRecording; res.json({ ok:true,recording:!!activeRecording,finished:!!rec?.finished,hasFile:!!(rec && fs.existsSync(rec.filePath)),stationName:rec?.stationName || null,startedAt:rec?.startedAt || null,elapsedSeconds:rec ? Math.floor(((rec.closedAt || Date.now())-rec.startedAt)/1000) : 0,error:rec?.error || (rec?.exitCode && rec.exitCode !== 0 ? rec.stderr : null) }); });
+app.get('/api/record/status',(req,res) => { const rec = activeRecording || lastRecording; res.json({ ok:true,recording:!!activeRecording,finished:!!rec?.finished,hasFile:!!(rec && fs.existsSync(rec.filePath)),fileBytes:(rec && fs.existsSync(rec.filePath) ? fs.statSync(rec.filePath).size : 0),stationName:rec?.stationName || null,startedAt:rec?.startedAt || null,elapsedSeconds:rec ? Math.floor(((rec.closedAt || Date.now())-rec.startedAt)/1000) : 0,error:rec?.error || (rec?.exitCode && rec.exitCode !== 0 ? rec.stderr : null) }); });
 app.post('/api/record/stop',async(req,res) => {
   // FFmpeg yayın hatasıyla kendiliğinden kapansa bile son kaydı teslim etmeyi dene.
   const rec = activeRecording || lastRecording;
