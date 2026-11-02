@@ -3278,11 +3278,19 @@
                 }, waitMs);
                 return;
             }
+            // Üç başarısız bağlantı denemesinden sonra Web Viewer'a otomatik geç.
             autoReconnectEnabled = false;
             audioEngine.pause();
+            audioEngine.removeAttribute('src');
+            audioEngine.load();
             updatePlayerUI(false);
-            showToast(`${st.name} yayınına 3 kez yeniden bağlanılamadı. Adresi veya sunucu izin listesini kontrol edin.`, 'error', 6000);
+            showToast(`${st.name}: 3 bağlantı denemesi başarısız. Web Viewer açılıyor...`, 'warning', 3500);
             renderStations();
+            setTimeout(() => {
+                if (currentStation && currentStation.changeuuid === st.changeuuid) {
+                    openInWebView(st);
+                }
+            }, 700);
         }
 
         function openInWebView(st) {
@@ -3292,7 +3300,8 @@
             if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
             webviewStations[st.changeuuid] = true;
             localStorage.setItem('symphony_webview', JSON.stringify(webviewStations));
-            const targetUrl = st.homepage || (detectStationSource(st) === 'webpage' ? (st.url_resolved || st.url) : '');
+            // Öncelik kanalın ana sayfası; yoksa kayıtlı yayın adresini Web Viewer'da dene.
+            const targetUrl = st.homepage || st.url_resolved || st.url || '';
             
             webviewStationName.textContent = `${st.name} (Web Viewer Oynatıcı)`;
             
