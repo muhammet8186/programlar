@@ -2829,6 +2829,21 @@
         setEqValues(eqValues);
 
 
+        // GitHub Pages HTTPS sayfasında HTTP yayınlarını Render HTTPS köprüsünden aktar.
+        const streamProxyBase = 'https://radyo-g3d2.onrender.com';
+        function getPlayableStreamUrl(url) {
+            if (!url) return url;
+            try {
+                const parsed = new URL(url);
+                if (parsed.protocol === 'http:') {
+                    return `${streamProxyBase}/api/stream?url=${encodeURIComponent(parsed.href)}`;
+                }
+            } catch (e) {
+                console.warn('Yayın adresi çözümlenemedi:', e);
+            }
+            return url;
+        }
+
         // --- Ses oynatma ve web görüntüleyici bağlantısı ---
         function playStation(uuid) {
             let list = getActiveList();
@@ -2846,18 +2861,15 @@
             closeWebViewModal();
 
             currentStation = st;
-
-            // Bağlanıyor bildirimi göster
-            showToast(`${st.name} kanalına bağlanılıyor...`, 'loading', 0);
-
-            // Web Viewer'a daha önce düşmüş kanalı kalıcı olarak kilitleme.
-            // file:// ve GitHub Pages farklı localStorage alanları kullanır;
-            // GitHub'da eski bir başarısız deneme varsa gerçek ses akışını yeniden dene.
+            // Önceki sürümden kalan Web Viewer zorlamasını temizle; normal ses oynatıcıyı dene.
             if (webviewStations[st.changeuuid]) {
                 delete webviewStations[st.changeuuid];
                 localStorage.setItem('symphony_webview', JSON.stringify(webviewStations));
             }
 
+            // Bağlanıyor bildirimi göster
+            showToast(`${st.name} kanalına bağlanılıyor...`, 'loading', 0);
+            
             initAudioContext();
 
             if (offlineStations[st.changeuuid]) {
@@ -2865,8 +2877,8 @@
                 localStorage.setItem('symphony_offline', JSON.stringify(offlineStations));
             }
 
-            const primaryUrl = st.url_resolved || st.url;
-            const fallbackUrl = st.url || st.url_resolved;
+            const primaryUrl = getPlayableStreamUrl(st.url_resolved || st.url);
+            const fallbackUrl = getPlayableStreamUrl(st.url || st.url_resolved);
 
             audioEngine.src = primaryUrl;
             audioEngine.play().then(() => {
@@ -2892,15 +2904,10 @@
         }
 
         function handlePlayError(st) {
-            console.warn('Ses akışı başarısız oldu, Web Viewer (Iframe) moduna geçiliyor...');
-            webviewStations[st.changeuuid] = true;
-            localStorage.setItem('symphony_webview', JSON.stringify(webviewStations));
-            
-            offlineStations[st.changeuuid] = true;
-            localStorage.setItem('symphony_offline', JSON.stringify(offlineStations));
-            
+            console.warn('Ses akışı başlatılamadı. Web Viewer otomatik açılmayacak.');
             audioEngine.pause();
-            openInWebView(st);
+            updatePlayerUI(false);
+            showToast(`${st.name} yayını açılamadı. Yayın adresini veya sunucu izin listesini kontrol edin.`, 'error', 5000);
             renderStations();
         }
 
@@ -3488,9 +3495,7 @@
             });
 
             audioEngine.onerror = () => {
-                if (currentStation && !webviewStations[currentStation.changeuuid]) {
-                    handlePlayError(currentStation);
-                }
+                if (currentStation) handlePlayError(currentStation);
             };
         }
 
