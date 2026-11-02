@@ -2611,7 +2611,7 @@
 
                         <div class="card-header">
                             <div class="station-logo-wrap">
-                                ${logo ? `<img src="${logo}" class="station-logo" loading="lazy" decoding="async" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
+                                ${logo ? `<img src="${logo}" class="station-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
                                 <i class="fa-solid fa-radio station-logo-fallback" style="${logo ? 'display:none;' : ''}"></i>
                                 <div class="status-dot ${statusClass}" title="${statusTitle}"></div>
                             </div>
@@ -2760,72 +2760,36 @@
             ctx.globalAlpha = 1; ctx.shadowBlur = 0;
         }
 
-        // Performanslı görselleştirici: en fazla 30 FPS, duraklatma/arka planda çizim yok.
-        let visualizerFrameId = null;
-        let visualizerLastFrame = 0;
-        let visualizerDataArray = null;
-        const VISUALIZER_FRAME_INTERVAL = 1000 / 30;
-
-        function stopVisualizer() {
-            if (visualizerFrameId !== null) {
-                cancelAnimationFrame(visualizerFrameId);
-                visualizerFrameId = null;
-            }
-        }
-
+        let visualizerFrameStarted = false;
         function drawVisualizer() {
-            if (visualizerFrameId !== null || document.hidden || audioEngine.paused || audioEngine.ended) return;
-            if (analyser && (!visualizerDataArray || visualizerDataArray.length !== analyser.frequencyBinCount)) {
-                visualizerDataArray = new Uint8Array(analyser.frequencyBinCount);
-            }
-            if (!visualizerDataArray) visualizerDataArray = new Uint8Array(128);
-
-            const renderFrame = (timestamp) => {
-                visualizerFrameId = null;
-                if (document.hidden || audioEngine.paused || audioEngine.ended) return;
-
-                if (timestamp - visualizerLastFrame >= VISUALIZER_FRAME_INTERVAL) {
-                    visualizerLastFrame = timestamp;
-                    let hasAnalyserSignal = false;
-
-                    if (analyser) {
-                        try {
-                            analyser.getByteFrequencyData(visualizerDataArray);
-                            for (let i = 0; i < visualizerDataArray.length; i++) {
-                                if (visualizerDataArray[i] > 0) { hasAnalyserSignal = true; break; }
-                            }
-                        } catch (_) {}
-                    }
-
-                    if (!hasAnalyserSignal) {
-                        // CORS/Safari nedeniyle analiz verisi alınamazsa hafif animasyon kullan.
-                        const t = timestamp / 310;
-                        for (let i = 0; i < visualizerDataArray.length; i++) {
-                            const wave = (Math.sin(t + i * 0.19) + 1) * 0.5;
-                            const detail = (Math.sin(t * 1.7 + i * 0.071) + 1) * 0.5;
-                            visualizerDataArray[i] = 12 + Math.round(wave * 48 + detail * 26);
-                        }
-                    }
-
-                    paintSpectrum(canvasCtx, canvas, visualizerDataArray);
-                    if (document.getElementById('fullscreen-player')?.classList.contains('show')) {
-                        paintSpectrum(fullscreenVisualizerCtx, fullscreenVisualizerCanvas, visualizerDataArray);
+            if (visualizerFrameStarted) return;
+            visualizerFrameStarted = true;
+            const renderFrame = () => {
+                requestAnimationFrame(renderFrame);
+                let dataArray;
+                let hasAnalyserSignal = false;
+                if (analyser) {
+                    dataArray = new Uint8Array(analyser.frequencyBinCount);
+                    try {
+                        analyser.getByteFrequencyData(dataArray);
+                        hasAnalyserSignal = dataArray.some(value => value > 0);
+                    } catch (_) { hasAnalyserSignal = false; }
+                }
+                if (!hasAnalyserSignal) {
+                    // iPad Safari / CORS kısıtlarında spektrum verisi sıfır gelebilir; görseli canlı tut.
+                    dataArray = new Uint8Array(128);
+                    const t = performance.now() / (audioEngine.paused ? 900 : 310);
+                    for (let i = 0; i < dataArray.length; i++) {
+                        const wave = (Math.sin(t + i * 0.19) + 1) * 0.5;
+                        const detail = (Math.sin(t * 1.7 + i * 0.071) + 1) * 0.5;
+                        dataArray[i] = audioEngine.paused ? 5 + Math.round(wave * 8) : 12 + Math.round(wave * 48 + detail * 26);
                     }
                 }
-                visualizerFrameId = requestAnimationFrame(renderFrame);
+                paintSpectrum(canvasCtx, canvas, dataArray);
+                paintSpectrum(fullscreenVisualizerCtx, fullscreenVisualizerCanvas, dataArray);
             };
-
-            visualizerFrameId = requestAnimationFrame(renderFrame);
+            renderFrame();
         }
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) stopVisualizer();
-            else if (!audioEngine.paused && !audioEngine.ended) drawVisualizer();
-        });
-        audioEngine.addEventListener('play', drawVisualizer);
-        audioEngine.addEventListener('playing', drawVisualizer);
-        audioEngine.addEventListener('pause', stopVisualizer);
-        audioEngine.addEventListener('ended', stopVisualizer);
 
         const eqBass = document.getElementById('eq-bass');
         const eqMid = document.getElementById('eq-mid');
@@ -2885,10 +2849,13 @@
 
             // Bağlanıyor bildirimi göster
             showToast(`${st.name} kanalına bağlanılıyor...`, 'loading', 0);
-            
+
+            // Web Viewer'a daha önce düşmüş kanalı kalıcı olarak kilitleme.
+            // file:// ve GitHub Pages farklı localStorage alanları kullanır;
+            // GitHub'da eski bir başarısız deneme varsa gerçek ses akışını yeniden dene.
             if (webviewStations[st.changeuuid]) {
-                openInWebView(st);
-                return;
+                delete webviewStations[st.changeuuid];
+                localStorage.setItem('symphony_webview', JSON.stringify(webviewStations));
             }
 
             initAudioContext();
