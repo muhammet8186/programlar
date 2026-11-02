@@ -776,11 +776,48 @@
         .webview-frame-container {
             flex-grow: 1;
             width: 100%;
+            min-height: 0;
             background: #000;
             position: relative;
         }
+        .webview-status {
+            position:absolute;
+            inset:0;
+            z-index:2;
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:center;
+            gap:12px;
+            padding:24px;
+            text-align:center;
+            color:#e5e7eb;
+            background:#111827;
+            font-size:13px;
+            line-height:1.55;
+        }
+        .webview-status[hidden] { display:none; }
+        .webview-status i { font-size:28px; color:var(--accent-secondary); }
+        .webview-status strong { font-size:15px; }
+        .webview-status small { max-width:560px; color:#9ca3af; }
+        .webview-address {
+            max-width:min(48vw,520px);
+            overflow:hidden;
+            text-overflow:ellipsis;
+            white-space:nowrap;
+            color:var(--text-secondary);
+            font-size:11px;
+            font-weight:500;
+        }
+        @media(max-width:640px){
+            .webview-card{width:100%;height:100dvh;max-width:none;border-radius:0;}
+            .webview-header{padding:calc(10px + env(safe-area-inset-top)) 12px 10px;gap:8px;}
+            .webview-address{max-width:38vw;}
+        }
 
         #active-webview-frame {
+            position:relative;
+            z-index:1;
             width: 100%;
             height: 100%;
             border: none;
@@ -1827,16 +1864,22 @@
     <div id="webview-modal" class="webview-modal">
         <div class="webview-card">
             <div class="webview-header">
-                <div class="webview-title">
+                <div class="webview-title" style="min-width:0;flex:1;">
                     <i class="fa-solid fa-globe" style="color:var(--accent-secondary);"></i>
                     <span id="webview-station-name">Web Viewer Oynatıcı</span>
+                    <span id="webview-address" class="webview-address"></span>
                 </div>
                 <button class="btn btn-icon-only" id="close-webview" title="Kapat">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
             <div class="webview-frame-container">
-                <iframe id="active-webview-frame" src="" allow="autoplay"></iframe>
+                <div id="webview-status" class="webview-status" role="status" aria-live="polite">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i>
+                    <strong>Sayfa yükleniyor…</strong>
+                    <small>Bağlantı kurulması bekleniyor.</small>
+                </div>
+                <iframe id="active-webview-frame" src="" allow="autoplay; fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>
             </div>
         </div>
     </div>
@@ -2276,13 +2319,36 @@
         const webviewModal = document.getElementById('webview-modal');
         const activeWebviewFrame = document.getElementById('active-webview-frame');
         const webviewStationName = document.getElementById('webview-station-name');
+        const webviewAddress = document.getElementById('webview-address');
+        const webviewStatus = document.getElementById('webview-status');
         const closeWebviewBtn = document.getElementById('close-webview');
+        let webviewLoadTimer = null;
+        let webviewLoadToken = 0;
+
+        function setWebViewStatus(kind, title, detail) {
+            if (!webviewStatus) return;
+            const icons = { loading:'fa-circle-notch fa-spin', success:'fa-circle-check', error:'fa-triangle-exclamation' };
+            webviewStatus.innerHTML = `<i class="fa-solid ${icons[kind] || icons.loading}"></i><strong>${escapeHtml(title)}</strong><small>${escapeHtml(detail || '')}</small>`;
+            webviewStatus.hidden = false;
+        }
+
+        activeWebviewFrame.addEventListener('load', () => {
+            if (webviewLoadTimer) { clearTimeout(webviewLoadTimer); webviewLoadTimer = null; }
+            // Cross-origin iframe içeriğinin gerçekten çizilip çizilmediği güvenlik nedeniyle okunamaz.
+            // Bu nedenle yükleme olayı geldiğinde kesin oynatma/erişim garantisi verilmez.
+            setWebViewStatus('success', 'Sayfa yanıt verdi', 'İçerik görünmüyorsa yayın sitesi iframe içinde açılmayı engelliyor olabilir.');
+            setTimeout(() => { if (webviewStatus && webviewModal.classList.contains('show')) webviewStatus.hidden = true; }, 2600);
+        });
+        activeWebviewFrame.addEventListener('error', () => {
+            if (webviewLoadTimer) { clearTimeout(webviewLoadTimer); webviewLoadTimer = null; }
+            setWebViewStatus('error', 'Sayfa açılamadı', 'Adres geçersiz olabilir veya site bu pencerede açılmaya izin vermiyor.');
+        });
         document.getElementById('radio-server-test')?.addEventListener('click', testRadioServer);
         document.getElementById('radio-current-test')?.addEventListener('click', testCurrentStation);
         document.getElementById('radio-list-test')?.addEventListener('click', testStationList);
         document.getElementById('radio-open-webview')?.addEventListener('click', () => {
             if (!currentStation) { showToast('Önce bir kanal seçin.', 'warning'); return; }
-            if (!currentStation.homepage && detectStationSource(currentStation) !== 'webpage') {
+            if (!getStationWebPageUrl(currentStation) && detectStationSource(currentStation) !== 'webpage') {
                 showToast('Bu kanalda Web Viewer için bir web sayfası adresi bulunmuyor.', 'warning', 4000);
                 return;
             }
@@ -3278,49 +3344,107 @@
                 }, waitMs);
                 return;
             }
-            // Üç başarısız bağlantı denemesinden sonra Web Viewer'a otomatik geç.
+            // Üç gerçek oynatma/yeniden bağlanma denemesi başarısız oldu.
             autoReconnectEnabled = false;
             audioEngine.pause();
             audioEngine.removeAttribute('src');
             audioEngine.load();
             updatePlayerUI(false);
-            showToast(`${st.name}: 3 bağlantı denemesi başarısız. Web Viewer açılıyor...`, 'warning', 3500);
             renderStations();
-            setTimeout(() => {
-                if (currentStation && currentStation.changeuuid === st.changeuuid) {
-                    openInWebView(st);
-                }
-            }, 700);
+
+            // Web Viewer yalnızca gerçek bir web sayfası adresi varsa açılır.
+            const pageUrl = getStationWebPageUrl(st);
+            if (pageUrl) {
+                showToast(`${st.name}: 3 deneme başarısız. Web sayfası açılıyor...`, 'warning', 3500);
+                setTimeout(() => {
+                    if (currentStation && currentStation.changeuuid === st.changeuuid) openInWebView(st, pageUrl);
+                }, 500);
+            } else {
+                // Ana sayfa bulunmuyorsa ses akışını iframe'e koyup beyaz ekran üretme.
+                // Yayın adresini normal ses oynatıcıda bir kez daha dene.
+                showToast(`${st.name}: Web sayfası adresi yok. Yayın normal oynatıcıda son kez deneniyor...`, 'warning', 4000);
+                setTimeout(() => retryStreamWithoutWebView(st), 500);
+            }
         }
 
-        function openInWebView(st) {
+        function getStationWebPageUrl(st) {
+            if (!st) return '';
+            const candidates = [st.homepage, st.url_resolved, st.url].filter(Boolean);
+            for (const candidate of candidates) {
+                try {
+                    const u = new URL(candidate);
+                    if (u.protocol !== 'http:' && u.protocol !== 'https:') continue;
+                    const path = u.pathname.toLowerCase();
+                    if (/\.(mp3|aac|m4a|ogg|opus|oga|wav|flac|m3u8?|pls|asx|xspf)(?:$)/i.test(path)) continue;
+                    if (candidate === st.homepage || /\.(html?|php|asp|aspx|jsp)$/i.test(path)) return u.href;
+                } catch (_) {}
+            }
+            return '';
+        }
+
+        function retryStreamWithoutWebView(st) {
+            if (!st || !currentStation || currentStation.changeuuid !== st.changeuuid) return;
+            const retryUrl = getPlayableStreamUrl(st.url_resolved || st.url);
+            if (!retryUrl) {
+                showToast(`${st.name}: kullanılabilir yayın adresi bulunamadı.`, 'error', 5000);
+                return;
+            }
+            audioEngine.crossOrigin = 'anonymous';
+            audioEngine.src = retryUrl;
+            audioEngine.load();
+            audioEngine.play().then(() => {
+                reconnectAttempts = 0;
+                updatePlayerUI(true);
+                addToHistory(st);
+                showToast(`${st.name} yayını normal oynatıcıda açıldı.`, 'success', 3000);
+            }).catch(() => {
+                audioEngine.pause();
+                updatePlayerUI(false);
+                showToast(`${st.name}: Yayın açılamadı. Web sayfası adresi de bulunamadığı için Web Viewer açılmadı.`, 'error', 6000);
+            });
+        }
+
+        function openInWebView(st, suppliedUrl = '') {
             if (!st) return;
+            const targetUrl = suppliedUrl || getStationWebPageUrl(st);
+            if (!targetUrl) {
+                showToast(`${st.name}: Web Viewer için gerçek bir web sayfası adresi bulunamadı.`, 'error', 5000);
+                return;
+            }
             currentStation = st;
             autoReconnectEnabled = false;
             if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+            if (webviewLoadTimer) { clearTimeout(webviewLoadTimer); webviewLoadTimer = null; }
+            const token = ++webviewLoadToken;
             webviewStations[st.changeuuid] = true;
             localStorage.setItem('symphony_webview', JSON.stringify(webviewStations));
-            // Öncelik kanalın ana sayfası; yoksa kayıtlı yayın adresini Web Viewer'da dene.
-            const targetUrl = st.homepage || st.url_resolved || st.url || '';
-            
-            webviewStationName.textContent = `${st.name} (Web Viewer Oynatıcı)`;
-            
-            if (targetUrl && targetUrl.startsWith('http')) {
-                activeWebviewFrame.src = targetUrl;
-            } else {
-                activeWebviewFrame.src = 'about:blank';
-            }
-
+            webviewStationName.textContent = `${st.name} (Web Viewer)`;
+            webviewAddress.textContent = targetUrl;
+            webviewAddress.title = targetUrl;
+            webviewStatus.hidden = false;
+            setWebViewStatus('loading', 'Sayfa yükleniyor…', 'Lütfen bekleyin. Sayfa 12 saniye içinde yanıt vermezse hata bilgisi gösterilecek.');
             webviewModal.classList.add('show');
+            activeWebviewFrame.src = 'about:blank';
+            // about:blank yüklenmesinin ardından gerçek sayfayı yükle.
+            setTimeout(() => {
+                if (token !== webviewLoadToken || !webviewModal.classList.contains('show')) return;
+                activeWebviewFrame.src = targetUrl;
+                webviewLoadTimer = setTimeout(() => {
+                    if (token !== webviewLoadToken || !webviewModal.classList.contains('show')) return;
+                    setWebViewStatus('error', 'Sayfa 12 saniyede yüklenemedi', 'Site yanıt vermiyor olabilir veya başka uygulama içinde açılmayı (iframe) engelliyor olabilir. Bu durumda sayfayı harici tarayıcıda açmak gerekir.');
+                }, 12000);
+            }, 80);
             updatePlayerUI(false);
             addToHistory(st);
-            showToast(`${st.name} Web Viewer ile açıldı.`, 'success', 2500);
             renderStations();
         }
 
         function closeWebViewModal() {
             webviewModal.classList.remove('show');
+            webviewLoadToken++;
+            if (webviewLoadTimer) { clearTimeout(webviewLoadTimer); webviewLoadTimer = null; }
             activeWebviewFrame.src = 'about:blank';
+            if (webviewStatus) webviewStatus.hidden = false;
         }
 
         closeWebviewBtn.addEventListener('click', () => {
