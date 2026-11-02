@@ -3696,7 +3696,7 @@
             const response = await fetch(recordServerBase + path, { ...options, headers: { ...(options.headers || {}) } });
             if (!response.ok) {
                 let message = 'Kayıt sunucusu isteği başarısız oldu (' + response.status + ').';
-                try { const data = await response.json(); if (data.error) message = data.error; } catch {}
+                try { const data = await response.json(); if (data.error) message = data.error; if (data.detail) message += ' Ayrıntı: ' + data.detail; } catch {}
                 throw new Error(message);
             }
             return response;
