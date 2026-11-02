@@ -1,3 +1,4 @@
+
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
@@ -13,14 +14,14 @@ const { spawn } = require('child_process');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
-const VERSION = '3.5.7';
+const VERSION = '3.5.8';
 
-// Docker ortamında sistem FFmpeg kullanılır.
 const ffmpegPath = process.env.FFMPEG_PATH || 'ffmpeg';
 
 const MAX_REDIRECTS = 5;
 const MAX_RECORD_MS = 30 * 60 * 1000;
 const RECORD_START_TIMEOUT = 30000;
+const STOP_TIMEOUT = 8000;
 
 const allowedHosts = (
     process.env.STREAM_PROXY_ALLOWED_HOSTS ||
@@ -41,20 +42,26 @@ const recordAllowedHosts = (
 const dataDir =
     process.env.RECORDINGS_DIR ||
     (process.env.RENDER_DISK_PATH
-        ? path.join(process.env.RENDER_DISK_PATH, 'recordings')
+        ? path.join(
+            process.env.RENDER_DISK_PATH,
+            'recordings'
+        )
         : path.join(__dirname, 'recordings'));
 
 try {
     fs.mkdirSync(dataDir, { recursive: true });
 } catch (err) {
-    console.error('Kayıt klasörü oluşturulamadı:', err.message);
+    console.error(
+        'Kayıt klasörü oluşturulamadı:',
+        err.message
+    );
 }
 
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
 // --------------------------------------------------
-// ANA SAYFA VE PWA DOSYALARI
+// ANA SAYFA VE PWA
 // --------------------------------------------------
 
 app.get('/', (req, res) => {
@@ -69,7 +76,8 @@ app.get('/', (req, res) => {
         <html lang="tr">
         <head>
             <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <meta name="viewport"
+                  content="width=device-width, initial-scale=1">
             <title>Online Radyo</title>
         </head>
         <body>
@@ -81,13 +89,43 @@ app.get('/', (req, res) => {
 });
 
 app.get('/manifest.json', (req, res) => {
-    res.sendFile(path.join(__dirname, 'manifest.json'));
+    const manifestPath = path.join(
+        __dirname,
+        'manifest.json'
+    );
+
+    if (!fs.existsSync(manifestPath)) {
+        return res.status(404).json({
+            error: 'manifest.json bulunamadı.'
+        });
+    }
+
+    res.sendFile(manifestPath);
 });
 
 app.get('/service-worker.js', (req, res) => {
-    res.setHeader('Content-Type', 'application/javascript');
-    res.setHeader('Service-Worker-Allowed', '/');
-    res.sendFile(path.join(__dirname, 'service-worker.js'));
+    const swPath = path.join(
+        __dirname,
+        'service-worker.js'
+    );
+
+    if (!fs.existsSync(swPath)) {
+        return res.status(404).send(
+            'service-worker.js bulunamadı.'
+        );
+    }
+
+    res.setHeader(
+        'Content-Type',
+        'application/javascript'
+    );
+
+    res.setHeader(
+        'Service-Worker-Allowed',
+        '/'
+    );
+
+    res.sendFile(swPath);
 });
 
 // --------------------------------------------------
@@ -99,7 +137,7 @@ app.get('/health', (req, res) => {
         status: 'ok',
         version: VERSION,
         ffmpeg: ffmpegPath,
-        recording: !!activeRecording,
+        recording: Boolean(activeRecording),
         time: new Date().toISOString()
     });
 });
@@ -113,7 +151,7 @@ app.get('/api/info', (req, res) => {
         name: 'Online Radyo',
         version: VERSION,
         status: 'active',
-        recording: !!activeRecording
+        recording: Boolean(activeRecording)
     });
 });
 
@@ -124,17 +162,23 @@ app.get('/api/info', (req, res) => {
 function isValidUrl(value) {
     try {
         const parsed = new URL(value);
-        return parsed.protocol === 'http:' ||
-               parsed.protocol === 'https:';
+
+        return (
+            parsed.protocol === 'http:' ||
+            parsed.protocol === 'https:'
+        );
     } catch (_) {
         return false;
     }
 }
 
 function isHostAllowed(hostname, list) {
-    const host = String(hostname || '').toLowerCase();
+    const host = String(hostname || '')
+        .toLowerCase();
 
-    if (list.includes('*')) return true;
+    if (list.includes('*')) {
+        return true;
+    }
 
     return list.some(item =>
         host === item ||
@@ -143,17 +187,26 @@ function isHostAllowed(hostname, list) {
 }
 
 function getRequestModule(protocol) {
-    return protocol === 'https:' ? https : http;
+    return protocol === 'https:'
+        ? https
+        : http;
 }
 
 function getSafeStreamUrl(value, list) {
     if (!isValidUrl(value)) {
-        throw new Error('Geçersiz yayın adresi.');
+        throw new Error(
+            'Geçersiz yayın adresi.'
+        );
     }
 
     const parsed = new URL(value);
 
-    if (!isHostAllowed(parsed.hostname, list)) {
+    if (
+        !isHostAllowed(
+            parsed.hostname,
+            list
+        )
+    ) {
         throw new Error(
             'Bu yayın sunucusuna erişim izni verilmemiş: ' +
             parsed.hostname
@@ -167,11 +220,18 @@ function getSafeStreamUrl(value, list) {
 // RADYO YAYINI PROXY
 // --------------------------------------------------
 
-function proxyStream(targetUrl, res, redirectCount = 0) {
+function proxyStream(
+    targetUrl,
+    res,
+    redirectCount = 0
+) {
     let parsed;
 
     try {
-        parsed = getSafeStreamUrl(targetUrl, allowedHosts);
+        parsed = getSafeStreamUrl(
+            targetUrl,
+            allowedHosts
+        );
     } catch (err) {
         return res.status(403).json({
             error: err.message
@@ -184,22 +244,24 @@ function proxyStream(targetUrl, res, redirectCount = 0) {
         );
     }
 
-    const requestModule = getRequestModule(parsed.protocol);
-
-    const options = {
-        headers: {
-            'User-Agent': 'Mozilla/5.0',
-            'Icy-MetaData': '0'
-        },
-        timeout: 20000
-    };
+    const requestModule = getRequestModule(
+        parsed.protocol
+    );
 
     const proxyReq = requestModule.get(
         parsed,
-        options,
+        {
+            headers: {
+                'User-Agent': 'Mozilla/5.0',
+                'Icy-MetaData': '0'
+            },
+            timeout: 20000
+        },
         proxyRes => {
-            const statusCode = proxyRes.statusCode || 200;
+            const statusCode =
+                proxyRes.statusCode || 200;
 
+            // Yönlendirme
             if (
                 statusCode >= 300 &&
                 statusCode < 400 &&
@@ -207,10 +269,18 @@ function proxyStream(targetUrl, res, redirectCount = 0) {
             ) {
                 proxyRes.resume();
 
-                const redirectUrl = new URL(
-                    proxyRes.headers.location,
-                    parsed
-                ).toString();
+                let redirectUrl;
+
+                try {
+                    redirectUrl = new URL(
+                        proxyRes.headers.location,
+                        parsed
+                    ).toString();
+                } catch (_) {
+                    return res.status(502).send(
+                        'Geçersiz yayın yönlendirmesi.'
+                    );
+                }
 
                 return proxyStream(
                     redirectUrl,
@@ -219,6 +289,7 @@ function proxyStream(targetUrl, res, redirectCount = 0) {
                 );
             }
 
+            // Yayın sunucusu hatası
             if (statusCode >= 400) {
                 proxyRes.resume();
 
@@ -244,7 +315,10 @@ function proxyStream(targetUrl, res, redirectCount = 0) {
                 'no-cache, no-store, must-revalidate'
             );
 
-            res.setHeader('Connection', 'keep-alive');
+            res.setHeader(
+                'Connection',
+                'keep-alive'
+            );
 
             proxyRes.pipe(res);
 
@@ -276,7 +350,9 @@ function proxyStream(targetUrl, res, redirectCount = 0) {
 
     proxyReq.on('timeout', () => {
         proxyReq.destroy(
-            new Error('Radyo bağlantısı zaman aşımına uğradı.')
+            new Error(
+                'Radyo bağlantısı zaman aşımına uğradı.'
+            )
         );
     });
 
@@ -285,6 +361,7 @@ function proxyStream(targetUrl, res, redirectCount = 0) {
     });
 }
 
+// GET yayın
 app.get('/stream', (req, res) => {
     const streamUrl = req.query.url;
 
@@ -297,6 +374,7 @@ app.get('/stream', (req, res) => {
     proxyStream(streamUrl, res);
 });
 
+// HEAD yayın
 app.head('/stream', (req, res) => {
     const streamUrl = req.query.url;
 
@@ -307,12 +385,17 @@ app.head('/stream', (req, res) => {
     let parsed;
 
     try {
-        parsed = getSafeStreamUrl(streamUrl, allowedHosts);
-    } catch (err) {
+        parsed = getSafeStreamUrl(
+            streamUrl,
+            allowedHosts
+        );
+    } catch (_) {
         return res.status(403).end();
     }
 
-    const requestModule = getRequestModule(parsed.protocol);
+    const requestModule = getRequestModule(
+        parsed.protocol
+    );
 
     const proxyReq = requestModule.request(
         parsed,
@@ -320,15 +403,20 @@ app.head('/stream', (req, res) => {
             method: 'HEAD',
             headers: {
                 'User-Agent': 'Mozilla/5.0'
-            }
+            },
+            timeout: 15000
         },
         proxyRes => {
-            res.status(proxyRes.statusCode || 200);
+            res.status(
+                proxyRes.statusCode || 200
+            );
+
             res.setHeader(
                 'Content-Type',
                 proxyRes.headers['content-type'] ||
                 'audio/mpeg'
             );
+
             proxyRes.resume();
             res.end();
         }
@@ -338,6 +426,10 @@ app.head('/stream', (req, res) => {
         if (!res.headersSent) {
             res.status(502).end();
         }
+    });
+
+    proxyReq.on('timeout', () => {
+        proxyReq.destroy();
     });
 
     proxyReq.end();
@@ -350,9 +442,15 @@ app.head('/stream', (req, res) => {
 let activeRecording = null;
 let lastRecording = null;
 
+// Güvenli dosya adı oluştur
 function createFileName(stationName) {
-    const safeName = String(stationName || 'Radyo')
-        .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_')
+    const safeName = String(
+        stationName || 'Radyo'
+    )
+        .replace(
+            /[<>:"/\\|?*\x00-\x1F]/g,
+            '_'
+        )
         .replace(/\s+/g, ' ')
         .trim()
         .substring(0, 100) || 'Radyo';
@@ -361,100 +459,108 @@ function createFileName(stationName) {
 
     const date = [
         now.getFullYear(),
-        String(now.getMonth() + 1).padStart(2, '0'),
-        String(now.getDate()).padStart(2, '0')
+        String(
+            now.getMonth() + 1
+        ).padStart(2, '0'),
+        String(
+            now.getDate()
+        ).padStart(2, '0')
     ].join('-');
 
     const time = [
-        String(now.getHours()).padStart(2, '0'),
-        String(now.getMinutes()).padStart(2, '0'),
-        String(now.getSeconds()).padStart(2, '0')
+        String(
+            now.getHours()
+        ).padStart(2, '0'),
+        String(
+            now.getMinutes()
+        ).padStart(2, '0'),
+        String(
+            now.getSeconds()
+        ).padStart(2, '0')
     ].join('-');
 
     return `${safeName}_${date}_${time}.mp3`;
 }
 
-function finishRecording(reason) {
-    return new Promise(resolve => {
-        const rec = activeRecording;
+// --------------------------------------------------
+// KAYIT TAMAMLAMA
+// --------------------------------------------------
 
-        if (!rec) {
-            return resolve(null);
-        }
+function finishRecording(reason = 'user-stop') {
+    const rec = activeRecording;
 
-        if (rec.finishing) {
-            return rec.finishPromise
-                ? rec.finishPromise.then(resolve)
-                : resolve(rec);
-        }
+    if (!rec) {
+        return Promise.resolve(
+            lastRecording || null
+        );
+    }
 
-        rec.finishing = true;
+    // Daha önce durdurma başladıysa aynı işlemi bekle.
+    if (rec.finishPromise) {
+        return rec.finishPromise;
+    }
 
-        rec.finishPromise = new Promise(done => {
-            rec.resolveFinish = done;
-        });
+    rec.finishing = true;
+    rec.finishReason = reason;
 
-        if (rec.maxTimer) {
-            clearTimeout(rec.maxTimer);
-            rec.maxTimer = null;
-        }
-
-        if (rec.startTimer) {
-            clearTimeout(rec.startTimer);
-            rec.startTimer = null;
-        }
-
-        try {
-            if (rec.ffmpeg && !rec.ffmpeg.killed) {
-                rec.ffmpeg.kill('SIGINT');
-            }
-        } catch (err) {
-            console.error('FFmpeg durdurma hatası:', err.message);
-        }
-
-        const finalize = () => {
-            if (activeRecording === rec) {
-                activeRecording = null;
-            }
-
-            rec.finished = true;
-            rec.finishReason = reason;
-
-            lastRecording = rec;
-
-            if (rec.resolveFinish) {
-                rec.resolveFinish(rec);
-            }
-
-            resolve(rec);
-        };
-
-        if (!rec.ffmpeg) {
-            return finalize();
-        }
-
-        let completed = false;
-
-        const complete = () => {
-            if (completed) return;
-            completed = true;
-            finalize();
-        };
-
-        rec.ffmpeg.once('close', () => {
-            complete();
-        });
-
-        setTimeout(() => {
-            if (!completed) {
-                try {
-                    rec.ffmpeg.kill('SIGKILL');
-                } catch (_) {}
-
-                complete();
-            }
-        }, 5000);
+    rec.finishPromise = new Promise(resolve => {
+        rec.resolveFinish = resolve;
     });
+
+    if (rec.maxTimer) {
+        clearTimeout(rec.maxTimer);
+        rec.maxTimer = null;
+    }
+
+    if (rec.startTimer) {
+        clearTimeout(rec.startTimer);
+        rec.startTimer = null;
+    }
+
+    const finalize = () => {
+        if (rec.finished) {
+            return;
+        }
+
+        rec.finished = true;
+
+        if (activeRecording === rec) {
+            activeRecording = null;
+        }
+
+        lastRecording = rec;
+
+        if (rec.resolveFinish) {
+            rec.resolveFinish(rec);
+            rec.resolveFinish = null;
+        }
+    };
+
+    if (!rec.ffmpeg || rec.ffmpegClosed) {
+        finalize();
+        return rec.finishPromise;
+    }
+
+    // FFmpeg zaten kapanıyorsa close olayını bekle.
+    try {
+        rec.ffmpeg.kill('SIGINT');
+    } catch (err) {
+        console.error(
+            'FFmpeg durdurma hatası:',
+            err.message
+        );
+    }
+
+    // SIGINT yanıt vermezse zorla kapat.
+    rec.stopTimer = setTimeout(() => {
+        if (!rec.ffmpegClosed) {
+            try {
+                rec.ffmpeg.kill('SIGKILL');
+            } catch (_) {}
+        }
+    }, STOP_TIMEOUT);
+
+    return rec.finishPromise;
 }
 
 // --------------------------------------------------
@@ -474,8 +580,10 @@ app.post('/api/record/start', (req, res) => {
     if (activeRecording) {
         return res.status(409).json({
             error: 'Zaten devam eden bir kayıt var.',
-            stationName: activeRecording.stationName,
-            fileName: activeRecording.fileName
+            stationName:
+                activeRecording.stationName,
+            fileName:
+                activeRecording.fileName
         });
     }
 
@@ -492,38 +600,56 @@ app.post('/api/record/start', (req, res) => {
         });
     }
 
-    const fileName = createFileName(stationName);
-    const filePath = path.join(dataDir, fileName);
+    const fileName = createFileName(
+        stationName
+    );
 
+    const filePath = path.join(
+        dataDir,
+        fileName
+    );
+
+    // FFmpeg komut satırı
     const ffmpegArgs = [
         '-hide_banner',
         '-loglevel', 'error',
         '-y',
+
         '-reconnect', '1',
         '-reconnect_streamed', '1',
         '-reconnect_delay_max', '5',
         '-rw_timeout', '15000000',
+
         '-i', parsed.toString(),
+
         '-vn',
         '-codec:a', 'libmp3lame',
         '-b:a', '128k',
-        '-ar', '44100,
+        '-ar', '44100',
         '-f', 'mp3',
+
         filePath
     ];
-
-    // FFmpeg argümanında örnekleme oranı
-    // eksik veya yanlış yazılırsa kayıt başlamaz.
-    ffmpegArgs[ffmpegArgs.indexOf('-ar') + 1] = '44100';
 
     let ffmpeg;
 
     try {
-        ffmpeg = spawn(ffmpegPath, ffmpegArgs, {
-            stdio: ['ignore', 'ignore', 'pipe']
-        });
+        ffmpeg = spawn(
+            ffmpegPath,
+            ffmpegArgs,
+            {
+                stdio: [
+                    'ignore',
+                    'ignore',
+                    'pipe'
+                ]
+            }
+        );
     } catch (err) {
-        console.error('FFmpeg başlatılamadı:', err.message);
+        console.error(
+            'FFmpeg başlatılamadı:',
+            err.message
+        );
 
         return res.status(500).json({
             error: 'FFmpeg başlatılamadı.',
@@ -533,26 +659,37 @@ app.post('/api/record/start', (req, res) => {
 
     const rec = {
         ffmpeg,
+
         stationName,
         streamUrl: parsed.toString(),
+
         fileName,
         filePath,
+
         startTime: Date.now(),
+
         stderr: '',
         exitCode: null,
         signal: null,
         error: null,
+
         finishing: false,
         finished: false,
+        ffmpegClosed: false,
+
         stopRequested: false,
+
         maxTimer: null,
         startTimer: null,
+        stopTimer: null,
+
         finishPromise: null,
         resolveFinish: null
     };
 
     activeRecording = rec;
 
+    // FFmpeg hata çıktısı
     ffmpeg.stderr.on('data', chunk => {
         rec.stderr += chunk.toString();
 
@@ -561,6 +698,7 @@ app.post('/api/record/start', (req, res) => {
         }
     });
 
+    // FFmpeg hata olayı
     ffmpeg.on('error', err => {
         rec.error = err.message;
 
@@ -569,12 +707,34 @@ app.post('/api/record/start', (req, res) => {
             err.message
         );
 
+        if (rec.startTimer) {
+            clearTimeout(rec.startTimer);
+            rec.startTimer = null;
+        }
+
+        if (rec.maxTimer) {
+            clearTimeout(rec.maxTimer);
+            rec.maxTimer = null;
+        }
+
+        rec.ffmpegClosed = true;
+
         if (activeRecording === rec) {
             activeRecording = null;
         }
+
+        rec.finished = true;
+        rec.finishReason = 'ffmpeg-error';
+
+        if (rec.resolveFinish) {
+            rec.resolveFinish(rec);
+            rec.resolveFinish = null;
+        }
     });
 
+    // FFmpeg kapandığında tek noktadan işle
     ffmpeg.on('close', (code, signal) => {
+        rec.ffmpegClosed = true;
         rec.exitCode = code;
         rec.signal = signal;
 
@@ -584,28 +744,61 @@ app.post('/api/record/start', (req, res) => {
             signal || ''
         );
 
+        if (rec.startTimer) {
+            clearTimeout(rec.startTimer);
+            rec.startTimer = null;
+        }
+
+        if (rec.maxTimer) {
+            clearTimeout(rec.maxTimer);
+            rec.maxTimer = null;
+        }
+
+        if (rec.stopTimer) {
+            clearTimeout(rec.stopTimer);
+            rec.stopTimer = null;
+        }
+
+        rec.finished = true;
+
         if (activeRecording === rec) {
             activeRecording = null;
         }
 
-        rec.finished = true;
+        rec.finishReason =
+            rec.finishReason || 'ffmpeg-closed';
+
+        lastRecording = rec;
+
+        if (rec.resolveFinish) {
+            rec.resolveFinish(rec);
+            rec.resolveFinish = null;
+        }
     });
 
+    // Maksimum 30 dakika
     rec.maxTimer = setTimeout(() => {
         if (activeRecording === rec) {
-            console.log('Maksimum kayıt süresi doldu.');
+            console.log(
+                'Maksimum kayıt süresi doldu.'
+            );
+
             finishRecording('max-duration');
         }
     }, MAX_RECORD_MS);
 
+    // Kayıt dosyası oluşmazsa başlatmayı iptal et
     rec.startTimer = setTimeout(() => {
         if (
             activeRecording === rec &&
             !fs.existsSync(filePath)
         ) {
-            console.error('Kayıt başlangıç zaman aşımı.');
+            console.error(
+                'Kayıt başlangıç zaman aşımı.'
+            );
 
-            rec.error = 'Kayıt belirtilen sürede başlamadı.';
+            rec.error =
+                'Kayıt belirtilen sürede başlamadı.';
 
             finishRecording('start-timeout');
         }
@@ -630,9 +823,12 @@ app.get('/api/record/status', (req, res) => {
 
         return res.json({
             recording: true,
+
             stationName: rec.stationName,
             fileName: rec.fileName,
+
             startTime: rec.startTime,
+
             duration: Math.floor(
                 (Date.now() - rec.startTime) / 1000
             )
@@ -642,20 +838,34 @@ app.get('/api/record/status', (req, res) => {
     if (lastRecording) {
         return res.json({
             recording: false,
+
             lastRecording: {
-                stationName: lastRecording.stationName,
-                fileName: lastRecording.fileName,
-                startTime: lastRecording.startTime,
+                stationName:
+                    lastRecording.stationName,
+
+                fileName:
+                    lastRecording.fileName,
+
+                startTime:
+                    lastRecording.startTime,
+
                 duration: Math.floor(
-                    (Date.now() - lastRecording.startTime) / 1000
+                    (
+                        Date.now() -
+                        lastRecording.startTime
+                    ) / 1000
                 ),
-                finished: lastRecording.finished,
-                finishReason: lastRecording.finishReason
+
+                finished:
+                    lastRecording.finished,
+
+                finishReason:
+                    lastRecording.finishReason
             }
         });
     }
 
-    res.json({
+    return res.json({
         recording: false,
         lastRecording: null
     });
@@ -665,108 +875,133 @@ app.get('/api/record/status', (req, res) => {
 // KAYDI DURDUR VE MP3 İNDİR
 // --------------------------------------------------
 
-app.post('/api/record/stop', async (req, res) => {
-    let rec = activeRecording || lastRecording;
+app.post(
+    '/api/record/stop',
+    async (req, res) => {
+        const rec =
+            activeRecording || lastRecording;
 
-    if (!rec) {
-        return res.status(404).json({
-            error: 'Durdurulacak veya indirilecek kayıt bulunamadı. ' +
-                'Kayıt başlatma isteği aynı sunucu örneğine ulaşmamış olabilir.'
-        });
-    }
-
-    if (rec.maxTimer) {
-        clearTimeout(rec.maxTimer);
-    }
-
-    try {
-        if (activeRecording === rec) {
-            rec.stopRequested = true;
-            await finishRecording('user-stop');
-        }
-
-        if (
-            !fs.existsSync(rec.filePath) ||
-            fs.statSync(rec.filePath).size < 1024
-        ) {
-            const detail =
-                rec.stderr ||
-                rec.error ||
-                (
-                    rec.exitCode !== null &&
-                    rec.exitCode !== undefined
-                        ? `FFmpeg çıkış kodu: ${rec.exitCode}`
-                        : 'Kayıt dosyası boş veya henüz oluşmamış'
-                );
-
-            try {
-                if (fs.existsSync(rec.filePath)) {
-                    fs.unlinkSync(rec.filePath);
-                }
-            } catch (_) {}
-
-            if (lastRecording === rec) {
-                lastRecording = null;
-            }
-
-            return res.status(502).json({
+        if (!rec) {
+            return res.status(404).json({
                 error:
-                    'Kayıt dosyası oluşmadı. Yayın adresi sunucuda okunamamış olabilir.',
-                detail
+                    'Durdurulacak veya indirilecek kayıt bulunamadı. ' +
+                    'Kayıt başlatma isteği aynı sunucu örneğine ulaşmamış olabilir.'
             });
         }
 
-        res.setHeader('Content-Type', 'audio/mpeg');
+        try {
+            if (activeRecording === rec) {
+                rec.stopRequested = true;
 
-        res.setHeader(
-            'Content-Disposition',
-            `attachment; filename="${rec.fileName}"`
-        );
+                await finishRecording(
+                    'user-stop'
+                );
+            }
 
-        res.setHeader('Cache-Control', 'no-store');
+            // Dosya oluşmuş mu?
+            if (!fs.existsSync(rec.filePath)) {
+                const detail =
+                    rec.stderr ||
+                    rec.error ||
+                    (
+                        rec.exitCode !== null
+                            ? `FFmpeg çıkış kodu: ${rec.exitCode}`
+                            : 'Kayıt dosyası oluşmamış.'
+                    );
 
-        const input = fs.createReadStream(rec.filePath);
+                return res.status(502).json({
+                    error:
+                        'Kayıt dosyası oluşmadı. Yayın adresi sunucuda okunamamış olabilir.',
+                    detail
+                });
+            }
 
-        input.on('error', err => {
+            const fileStats = fs.statSync(
+                rec.filePath
+            );
+
+            if (fileStats.size < 1024) {
+                const detail =
+                    rec.stderr ||
+                    rec.error ||
+                    'Kayıt dosyası boş veya çok küçük.';
+
+                try {
+                    fs.unlinkSync(rec.filePath);
+                } catch (_) {}
+
+                if (lastRecording === rec) {
+                    lastRecording = null;
+                }
+
+                return res.status(502).json({
+                    error:
+                        'Kayıt dosyası geçerli değil.',
+                    detail
+                });
+            }
+
+            res.setHeader(
+                'Content-Type',
+                'audio/mpeg'
+            );
+
+            res.setHeader(
+                'Content-Disposition',
+                `attachment; filename="${rec.fileName}"`
+            );
+
+            res.setHeader(
+                'Cache-Control',
+                'no-store'
+            );
+
+            const input = fs.createReadStream(
+                rec.filePath
+            );
+
+            input.on('error', err => {
+                console.error(
+                    'Kayıt dosyası okuma hatası:',
+                    err.message
+                );
+
+                if (!res.headersSent) {
+                    res.status(500).json({
+                        error:
+                            'Kayıt dosyası okunamadı.',
+                        detail: err.message
+                    });
+                } else {
+                    res.destroy(err);
+                }
+            });
+
+            res.on('close', () => {
+                if (!input.destroyed) {
+                    input.destroy();
+                }
+            });
+
+            input.pipe(res);
+
+        } catch (err) {
             console.error(
-                'Kayıt dosyası okuma hatası:',
-                err.message
+                'Kayıt indirme hatası:',
+                err.stack || err.message
             );
 
             if (!res.headersSent) {
-                res.status(500).json({
-                    error: 'Kayıt dosyası okunamadı.',
+                return res.status(500).json({
+                    error: 'Kayıt indirilemedi.',
                     detail: err.message
                 });
-            } else {
-                res.destroy(err);
             }
-        });
 
-        res.on('close', () => {
-            if (!input.destroyed) {
-                input.destroy();
-            }
-        });
-
-        input.pipe(res);
-
-    } catch (err) {
-        console.error(
-            'Kayıt indirme hatası:',
-            err.stack || err.message
-        );
-
-        if (!res.headersSent) {
-            return res.status(500).json({
-                error: 'Kayıt indirilemedi.',
-                detail: err.message
-            });
+            res.destroy(err);
         }
-
-        res.destroy(err);
     }
-});
+);
 
 // --------------------------------------------------
 // SUNUCUYU BAŞLAT
