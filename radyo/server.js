@@ -12,7 +12,7 @@ catch (err) { console.error('ffmpeg-static yüklenemedi; yayın köprüsü çal�
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
-const VERSION = '3.5.2';
+const VERSION = '3.5.4';
 const MAX_REDIRECTS = 5;
 const MAX_RECORD_MS = 30 * 60 * 1000;
 const allowedHosts = (process.env.STREAM_PROXY_ALLOWED_HOSTS || 'sslyayin.netyayin.net').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
@@ -71,6 +71,16 @@ app.all('/stream',(req,res) => {
   requestStream(target,headers,req.method,res,0);
 });
 
+function normalizeRecordStreamUrl(input) {
+  const target = new URL(input);
+  // Bu SHOUTcast sunucusunda ana dizin sayfası yerine gerçek ses mount noktası /; kullanılır.
+  if (target.hostname.toLowerCase() === 'sslyayin.netyayin.net' &&
+      (target.pathname === '/' || target.pathname === '') && !target.search) {
+    target.pathname = '/;';
+  }
+  return target;
+}
+
 function safeName(value) {
   return String(value || 'Radyo Kaydı').normalize('NFKD').replace(/[^a-zA-Z0-9-_ ]/g,'').trim().replace(/\s+/g,'_').slice(0,60) || 'Radyo_Kaydi';
 }
@@ -97,7 +107,7 @@ function waitForAudioFile(rec, timeoutMs=15000) {
       try { if (fs.existsSync(rec.filePath)) size = fs.statSync(rec.filePath).size; } catch (_) {}
       if (size >= 4096) return resolve(size);
       if (rec.finished) return reject(new Error(rec.stderr || rec.error || `FFmpeg yayın bağlantısını kuramadı (çıkış kodu: ${rec.exitCode ?? 'bilinmiyor'}).`));
-      if (Date.now() - started >= timeoutMs) return reject(new Error(rec.stderr || '15 saniye içinde yayın ses verisi alınamadı. Kanal adresi, yönlendirme veya yayın sunucusu bağlantısını kontrol edin.'));
+      if (Date.now() - started >= timeoutMs) return reject(new Error(rec.stderr || '25 saniye içinde yayın ses verisi alınamadı. FFmpeg çıktısını Render Logs bölümünden kontrol edin.'));
       setTimeout(check, 300);
     };
     check();
@@ -107,12 +117,13 @@ app.post('/api/record/start',async(req,res) => {
   if (!ffmpegPath) return res.status(503).json({ error:'FFmpeg bu sunucuda bulunamadı.' });
   if (activeRecording) return res.status(409).json({ error:'Sunucuda zaten devam eden bir kayıt var.' });
   const { streamUrl, stationName } = req.body || {};
-  let target; try { target = new URL(streamUrl); } catch { return res.status(400).json({ error:'Geçerli yayın adresi gönderilmedi.' }); }
+  let target; try { target = normalizeRecordStreamUrl(streamUrl); } catch { return res.status(400).json({ error:'Geçerli yayın adresi gönderilmedi.' }); }
   if (!hostAllowed(target,recordAllowedHosts)) return res.status(403).json({ error:`Bu kanalın sunucuda kaydına izin verilmiyor: ${target.hostname}. Render RECORD_ALLOWED_HOSTS ayarını kontrol edin.` });
   const stamp = new Date().toISOString().replace(/[:.]/g,'-');
   const fileName = `${stamp}_${safeName(stationName)}.mp3`;
   const filePath = path.join(dataDir,fileName);
-  const args = ['-hide_banner','-loglevel','warning','-nostats','-y','-user_agent','Mozilla/5.0 OnlineRadioRecorder/3.5','-reconnect','1','-reconnect_streamed','1','-reconnect_delay_max','5','-i',target.href,'-vn','-codec:a','libmp3lame','-b:a','128k','-f','mp3',filePath];
+  console.log('Sunucu kaydı başlatılıyor:', target.hostname + target.pathname, 'İstasyon:', String(stationName || 'Radyo Kaydı').slice(0,120));
+  const args = ['-hide_banner','-loglevel','warning','-nostats','-y','-user_agent','Mozilla/5.0 OnlineRadioRecorder/3.5.4','-rw_timeout','25000000','-reconnect','1','-reconnect_streamed','1','-reconnect_delay_max','5','-i',target.href,'-vn','-codec:a','libmp3lame','-b:a','128k','-f','mp3',filePath];
   const proc = spawn(ffmpegPath,args,{ stdio:['ignore','ignore','pipe'] });
   const rec = { proc,filePath,fileName,stationName:String(stationName || 'Radyo Kaydı').slice(0,120),startedAt:Date.now(),stderr:'',finished:false,stopRequested:false };
   lastRecording = null;
@@ -127,7 +138,7 @@ app.post('/api/record/start',async(req,res) => {
   });
   rec.maxTimer = setTimeout(() => { if (activeRecording === rec) finishRecording('maximum-duration').catch(console.error); },MAX_RECORD_MS);
   try {
-    const bytes = await waitForAudioFile(rec,15000);
+    const bytes = await waitForAudioFile(rec,25000);
     // FFmpeg bağlantıdan sonra kapanmış olsa bile yeterli MP3 verisi varsa
     // kaydı kullanıcıya teslim edebiliriz.
     return res.json({ ok:true,recording:true,audioConfirmed:true,bytes,stationName:rec.stationName,maxDurationMinutes:30 });
@@ -162,30 +173,4 @@ app.post('/api/record/stop',async(req,res) => {
     res.setHeader('Content-Type','audio/mpeg');
     res.setHeader('Content-Disposition',`attachment; filename="${rec.fileName}"`);
     res.setHeader('Cache-Control','no-store');
-    const input = fs.createReadStream(rec.filePath);
-    input.on('error',err => { console.error(err); if (!res.headersSent) res.status(500).end('Kayıt okunamadı'); });
-    input.pipe(res);
-    input.on('close',() => { try { fs.unlinkSync(rec.filePath); } catch (_) {} if (lastRecording === rec) lastRecording = null; });
-  } catch(err) { console.error('Kayıt durdurma hatası:',err); res.status(500).json({ error:'Kayıt tamamlanamadı.',detail:err.message }); }
-});
-
-app.use((req,res) => res.status(404).json({ error:'Adres bulunamadı',path:req.path }));
-const server = app.listen(PORT,() => {
-  console.log(`Online Radyo sunucusu başlatıldı. Sürüm: ${VERSION} Port: ${PORT}`);
-  console.log('Yayın izinli sunucular:',allowedHosts);
-  console.log('Kayıt izinli sunucular:',recordAllowedHosts);
-  console.log('Kayıt klasörü:',dataDir);
-});
-
-// Container yeniden başlatılırken FFmpeg işlemini ve MP3 dosyasını düzgün kapat.
-async function shutdown(signal) {
-  console.log(`${signal} alındı; kayıt servisi kapatılıyor...`);
-  if (activeRecording) {
-    if (activeRecording.maxTimer) clearTimeout(activeRecording.maxTimer);
-    try { await finishRecording('server-shutdown'); } catch (err) { console.error('Kayıt kapatma hatası:', err); }
-  }
-  server.close(() => process.exit(0));
-  setTimeout(() => process.exit(1), 10000).unref();
-}
-process.once('SIGTERM', () => shutdown('SIGTERM'));
-process.once('SIGINT', () => shutdown('SIGINT'));
+    const input = fs.createReadStream(rec.fil
