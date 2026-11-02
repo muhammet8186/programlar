@@ -22,54 +22,71 @@ app.use(cors({
   ]
 }));
 
+// Sunucu kontrolü
 app.get("/", (req, res) => {
   res.json({
     ok: true,
     service: "Online Radyo Sunucusu",
-    version: "3.0",
+    version: "3.1",
     streamProxy: true
   });
 });
 
+app.get("/health", (req, res) => {
+  res.json({ ok: true, status: "running" });
+});
+
+// HTTPS yayın köprüsü
 app.all("/stream", (req, res) => {
   if (!["GET", "HEAD"].includes(req.method)) {
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({
+      error: "Method not allowed"
+    });
   }
 
   const rawUrl = req.query.url;
 
   if (!rawUrl) {
-    return res.status(400).json({ error: "Yayın adresi eksik" });
+    return res.status(400).json({
+      error: "Yayın adresi eksik"
+    });
   }
 
   let target;
 
   try {
     target = new URL(rawUrl);
-  } catch {
-    return res.status(400).json({ error: "Geçersiz yayın adresi" });
+  } catch (e) {
+    return res.status(400).json({
+      error: "Geçersiz yayın adresi"
+    });
+  }
+
+  if (!["http:", "https:"].includes(target.protocol)) {
+    return res.status(400).json({
+      error: "Desteklenmeyen protokol"
+    });
   }
 
   const allowedHosts = (
     process.env.STREAM_PROXY_ALLOWED_HOSTS ||
     "sslyayin.netyayin.net"
-  ).split(",").map(x => x.trim().toLowerCase());
-
-  if (
-    target.protocol !== "http:" &&
-    target.protocol !== "https:"
-  ) {
-    return res.status(400).json({ error: "Desteklenmeyen protokol" });
-  }
+  )
+    .split(",")
+    .map(x => x.trim().toLowerCase())
+    .filter(Boolean);
 
   if (!allowedHosts.includes(target.hostname.toLowerCase())) {
-    return res.status(403).json({ error: "Bu yayın adresine izin verilmiyor" });
+    return res.status(403).json({
+      error: "Yayın adresine izin verilmiyor",
+      host: target.hostname
+    });
   }
 
   const client = target.protocol === "https:" ? https : http;
 
   const headers = {
-    "User-Agent": "Mozilla/5.0 OnlineRadio/3.0",
+    "User-Agent": "Mozilla/5.0 OnlineRadio/3.1",
     "Accept": "*/*",
     "Icy-MetaData": req.headers["icy-metadata"] || "0"
   };
@@ -78,11 +95,24 @@ app.all("/stream", (req, res) => {
     headers.Range = req.headers.range;
   }
 
+  console.log("Yayın isteği:", target.href);
+
   const proxyRequest = client.request(target, {
     method: req.method,
     headers,
     timeout: 30000
   }, upstream => {
+
+    // Kaynak sunucunun yönlendirmesini kontrol et
+    if ([301, 302, 303, 307, 308].includes(upstream.statusCode)) {
+      upstream.resume();
+
+      return res.status(502).json({
+        error: "Yayın kaynağı başka bir adrese yönlendiriyor",
+        status: upstream.statusCode
+      });
+    }
+
     res.status(upstream.statusCode || 200);
 
     const passHeaders = [
@@ -102,6 +132,12 @@ app.all("/stream", (req, res) => {
     });
 
     res.setHeader("Cache-Control", "no-cache, no-store");
+
+    upstream.on("error", err => {
+      console.error("Kaynak yayın hatası:", err.message);
+      res.destroy(err);
+    });
+
     upstream.pipe(res);
   });
 
@@ -110,24 +146,34 @@ app.all("/stream", (req, res) => {
   });
 
   proxyRequest.on("error", err => {
-    console.error("Yayın köprüsü:", err.message);
+    console.error("Yayın köprüsü hatası:", err.message);
 
     if (!res.headersSent) {
       res.status(502).json({
-        error: "Yayın kaynağına bağlanılamadı"
+        error: "Yayın kaynağına bağlanılamadı",
+        detail: err.message
       });
     } else {
       res.destroy(err);
     }
   });
 
-  req.on("close", () => {
+  // İstemci bağlantısı gerçekten kapanırsa kaynak bağlantısını kes
+  res.on("close", () => {
     if (!res.writableEnded) {
       proxyRequest.destroy();
     }
   });
 
   proxyRequest.end();
+});
+
+// Bilinmeyen adresler
+app.use((req, res) => {
+  res.status(404).json({
+    error: "Adres bulunamadı",
+    path: req.path
+  });
 });
 
 const PORT = process.env.PORT || 3000;
