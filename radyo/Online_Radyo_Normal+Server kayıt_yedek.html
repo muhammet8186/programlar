@@ -967,6 +967,27 @@
         .fullscreen-utility-actions #fullscreen-shuffle { width:72px; height:72px; font-size:25px; box-shadow:0 8px 24px rgba(139,92,246,.28); }
         @media (max-width:640px) { .fullscreen-volume-actions { bottom:max(14px, env(safe-area-inset-bottom)); gap:18px; } .fullscreen-volume-actions .btn { width:60px; height:60px; } .fullscreen-utility-actions #fullscreen-shuffle { width:64px; height:64px; } .sleep-modal-card { padding:20px; } }
 
+
+        /* Kayıt modu seçim bildirimi */
+        .record-mode-overlay{position:fixed;inset:0;z-index:7000;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(2,6,23,.76);backdrop-filter:blur(14px);opacity:0;pointer-events:none;transition:var(--transition)}
+        .record-mode-overlay.show{opacity:1;pointer-events:auto}
+        .record-mode-card{width:min(430px,100%);padding:24px;border:1px solid var(--border-color);border-radius:24px;background:var(--bg-base);box-shadow:0 26px 90px rgba(0,0,0,.5);transform:translateY(12px) scale(.98);transition:var(--transition)}
+        .record-mode-overlay.show .record-mode-card{transform:translateY(0) scale(1)}
+        .record-mode-head{display:flex;align-items:center;gap:13px;margin-bottom:8px}
+        .record-mode-icon{width:48px;height:48px;display:grid;place-items:center;flex:0 0 48px;border-radius:15px;background:var(--accent-gradient);color:#fff;font-size:20px}
+        .record-mode-head h3{font-size:18px;font-weight:800}
+        .record-mode-head p{margin-top:3px;color:var(--text-secondary);font-size:12px}
+        .record-mode-options{display:grid;gap:10px;margin:18px 0}
+        .record-mode-option{display:flex;align-items:center;gap:13px;width:100%;padding:15px;border:1px solid var(--border-color);border-radius:15px;background:var(--bg-surface);color:var(--text-primary);text-align:left;cursor:pointer;transition:var(--transition)}
+        .record-mode-option:hover{border-color:var(--accent-primary);background:var(--bg-surface-hover);transform:translateY(-1px)}
+        .record-mode-option>i{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:color-mix(in srgb,var(--accent-primary) 16%,transparent);color:var(--accent-secondary);font-size:17px}
+        .record-mode-option span{display:block;flex:1;font-weight:800;font-size:14px}
+        .record-mode-option small{display:block;margin-top:4px;color:var(--text-secondary);font-size:11px;font-weight:500;line-height:1.45}
+        .record-mode-option .fa-chevron-right{width:auto;background:none;color:var(--text-muted);font-size:13px}
+        .record-mode-note{color:var(--text-muted);font-size:11px;line-height:1.5;margin:0 2px 16px}
+        .record-mode-cancel{width:100%;justify-content:center}
+        @media(max-width:640px){.record-mode-card{padding:20px;border-radius:20px}.record-mode-option{padding:13px}}
+
         /* Toast Notifications */
         .toast {
             position: fixed;
@@ -1740,6 +1761,25 @@
     </div>
 
     <!-- Modern Uyku Zamanlayıcısı -->
+    <div class="record-mode-overlay" id="record-mode-modal" aria-hidden="true">
+        <div class="record-mode-card" role="dialog" aria-modal="true" aria-labelledby="record-mode-title">
+            <div class="record-mode-head">
+                <div class="record-mode-icon"><i class="fa-solid fa-microphone-lines"></i></div>
+                <div><h3 id="record-mode-title">Kayıt yöntemini seç</h3><p>Radyo kaydını nasıl yapmak istersin?</p></div>
+            </div>
+            <div class="record-mode-options">
+                <button type="button" class="record-mode-option" id="record-mode-local">
+                    <i class="fa-solid fa-mobile-screen-button"></i><span>Normal Kayıt<small>Kayıt bu cihazda yapılır. Sunucu kullanılmaz.</small></span><i class="fa-solid fa-chevron-right"></i>
+                </button>
+                <button type="button" class="record-mode-option" id="record-mode-server">
+                    <i class="fa-solid fa-cloud"></i><span>Sunucu Üzerinden Kayıt<small>Kayıt Render sunucusunda yapılır.</small></span><i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+            <p class="record-mode-note">Normal kayıt tarayıcının MediaRecorder desteğine bağlıdır. Desteklenmiyorsa sunucu üzerinden kayıt seçeneğini kullanabilirsin.</p>
+            <button type="button" class="btn record-mode-cancel" id="record-mode-cancel">Vazgeç</button>
+        </div>
+    </div>
+
     <div id="sleep-modal" class="sleep-modal-overlay" aria-hidden="true">
         <div class="sleep-modal-card" role="dialog" aria-modal="true" aria-labelledby="sleep-modal-title">
             <div class="sleep-modal-head">
@@ -2122,12 +2162,6 @@
         let recordedChunks = [];
         let isRecording = false;
         let recordHeartbeatTimer = null;
-        let serverRecordingId = null;
-        let recordDeviceId = localStorage.getItem('online_radyo_device_id');
-        if (!recordDeviceId) {
-            recordDeviceId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('device-' + Date.now() + '-' + Math.random().toString(36).slice(2));
-            localStorage.setItem('online_radyo_device_id', recordDeviceId);
-        }
         // Kayıt sunucusu herkese açık kullanım için yapılandırılmıştır; gizli API anahtarı tarayıcıya gönderilmez.
         const recordServerBase = 'https://radyo-g3d2.onrender.com';
         try { localStorage.removeItem('online_radyo_record_server_key'); } catch (_) {}
@@ -2577,7 +2611,7 @@
 
                         <div class="card-header">
                             <div class="station-logo-wrap">
-                                ${logo ? `<img src="${logo}" class="station-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
+                                ${logo ? `<img src="${logo}" class="station-logo" loading="lazy" decoding="async" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
                                 <i class="fa-solid fa-radio station-logo-fallback" style="${logo ? 'display:none;' : ''}"></i>
                                 <div class="status-dot ${statusClass}" title="${statusTitle}"></div>
                             </div>
@@ -2726,36 +2760,72 @@
             ctx.globalAlpha = 1; ctx.shadowBlur = 0;
         }
 
-        let visualizerFrameStarted = false;
+        // Performanslı görselleştirici: en fazla 30 FPS, duraklatma/arka planda çizim yok.
+        let visualizerFrameId = null;
+        let visualizerLastFrame = 0;
+        let visualizerDataArray = null;
+        const VISUALIZER_FRAME_INTERVAL = 1000 / 30;
+
+        function stopVisualizer() {
+            if (visualizerFrameId !== null) {
+                cancelAnimationFrame(visualizerFrameId);
+                visualizerFrameId = null;
+            }
+        }
+
         function drawVisualizer() {
-            if (visualizerFrameStarted) return;
-            visualizerFrameStarted = true;
-            const renderFrame = () => {
-                requestAnimationFrame(renderFrame);
-                let dataArray;
-                let hasAnalyserSignal = false;
-                if (analyser) {
-                    dataArray = new Uint8Array(analyser.frequencyBinCount);
-                    try {
-                        analyser.getByteFrequencyData(dataArray);
-                        hasAnalyserSignal = dataArray.some(value => value > 0);
-                    } catch (_) { hasAnalyserSignal = false; }
-                }
-                if (!hasAnalyserSignal) {
-                    // iPad Safari / CORS kısıtlarında spektrum verisi sıfır gelebilir; görseli canlı tut.
-                    dataArray = new Uint8Array(128);
-                    const t = performance.now() / (audioEngine.paused ? 900 : 310);
-                    for (let i = 0; i < dataArray.length; i++) {
-                        const wave = (Math.sin(t + i * 0.19) + 1) * 0.5;
-                        const detail = (Math.sin(t * 1.7 + i * 0.071) + 1) * 0.5;
-                        dataArray[i] = audioEngine.paused ? 5 + Math.round(wave * 8) : 12 + Math.round(wave * 48 + detail * 26);
+            if (visualizerFrameId !== null || document.hidden || audioEngine.paused || audioEngine.ended) return;
+            if (analyser && (!visualizerDataArray || visualizerDataArray.length !== analyser.frequencyBinCount)) {
+                visualizerDataArray = new Uint8Array(analyser.frequencyBinCount);
+            }
+            if (!visualizerDataArray) visualizerDataArray = new Uint8Array(128);
+
+            const renderFrame = (timestamp) => {
+                visualizerFrameId = null;
+                if (document.hidden || audioEngine.paused || audioEngine.ended) return;
+
+                if (timestamp - visualizerLastFrame >= VISUALIZER_FRAME_INTERVAL) {
+                    visualizerLastFrame = timestamp;
+                    let hasAnalyserSignal = false;
+
+                    if (analyser) {
+                        try {
+                            analyser.getByteFrequencyData(visualizerDataArray);
+                            for (let i = 0; i < visualizerDataArray.length; i++) {
+                                if (visualizerDataArray[i] > 0) { hasAnalyserSignal = true; break; }
+                            }
+                        } catch (_) {}
+                    }
+
+                    if (!hasAnalyserSignal) {
+                        // CORS/Safari nedeniyle analiz verisi alınamazsa hafif animasyon kullan.
+                        const t = timestamp / 310;
+                        for (let i = 0; i < visualizerDataArray.length; i++) {
+                            const wave = (Math.sin(t + i * 0.19) + 1) * 0.5;
+                            const detail = (Math.sin(t * 1.7 + i * 0.071) + 1) * 0.5;
+                            visualizerDataArray[i] = 12 + Math.round(wave * 48 + detail * 26);
+                        }
+                    }
+
+                    paintSpectrum(canvasCtx, canvas, visualizerDataArray);
+                    if (document.getElementById('fullscreen-player')?.classList.contains('show')) {
+                        paintSpectrum(fullscreenVisualizerCtx, fullscreenVisualizerCanvas, visualizerDataArray);
                     }
                 }
-                paintSpectrum(canvasCtx, canvas, dataArray);
-                paintSpectrum(fullscreenVisualizerCtx, fullscreenVisualizerCanvas, dataArray);
+                visualizerFrameId = requestAnimationFrame(renderFrame);
             };
-            renderFrame();
+
+            visualizerFrameId = requestAnimationFrame(renderFrame);
         }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) stopVisualizer();
+            else if (!audioEngine.paused && !audioEngine.ended) drawVisualizer();
+        });
+        audioEngine.addEventListener('play', drawVisualizer);
+        audioEngine.addEventListener('playing', drawVisualizer);
+        audioEngine.addEventListener('pause', stopVisualizer);
+        audioEngine.addEventListener('ended', stopVisualizer);
 
         const eqBass = document.getElementById('eq-bass');
         const eqMid = document.getElementById('eq-mid');
@@ -3003,12 +3073,9 @@
             }
         });
 
-        // --- Sunucu üzerinden yayın kaydı (Safari/iPadOS uyumlu) ---
+        // --- Kayıt modu seçimi ve cihaz/sunucu kayıtları ---
         async function recordServerRequest(path, options = {}) {
-            const response = await fetch(recordServerBase + path, {
-                ...options,
-                headers: { ...(options.headers || {}), 'X-Device-ID': recordDeviceId }
-            });
+            const response = await fetch(recordServerBase + path, { ...options, headers: { ...(options.headers || {}) } });
             if (!response.ok) {
                 let message = 'Kayıt sunucusu isteği başarısız oldu (' + response.status + ').';
                 try { const data = await response.json(); if (data.error) message = data.error; } catch {}
@@ -3022,71 +3089,93 @@
             const fullRecord = document.getElementById('fullscreen-record');
             if (fullRecord) fullRecord.classList.toggle('recording', recording);
         }
-        async function stopServerRecording(showMessage = true) {
+        const recordModeModal = document.getElementById('record-mode-modal');
+        function openRecordModeModal() { recordModeModal.classList.add('show'); recordModeModal.setAttribute('aria-hidden','false'); }
+        function closeRecordModeModal() { recordModeModal.classList.remove('show'); recordModeModal.setAttribute('aria-hidden','true'); }
+        document.getElementById('record-mode-cancel').addEventListener('click', closeRecordModeModal);
+        recordModeModal.addEventListener('click', e => { if (e.target === recordModeModal) closeRecordModeModal(); });
+
+        async function startLocalRecording() {
+            if (!window.MediaRecorder) throw new Error('Bu tarayıcı normal cihaz kaydını desteklemiyor. Sunucu üzerinden kayıt seçeneğini deneyin.');
+            if (!recordingDestination) {
+                const ready = initAudioContext();
+                if (!ready || !recordingDestination) throw new Error('Cihaz kaydı için ses bağlantısı hazırlanamadı. Sayfayı HTTPS üzerinden açıp yeniden deneyin.');
+            }
+            if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume();
+            const stream = recordingDestination.stream;
+            if (!stream || !stream.getAudioTracks().length) throw new Error('Kayıt için ses akışı alınamadı.');
+            const mimeType = ['audio/webm;codecs=opus','audio/webm','audio/mp4'].find(type => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(type));
+            mediaRecorder = mimeType ? new MediaRecorder(stream,{mimeType}) : new MediaRecorder(stream);
+            recordedChunks = [];
+            mediaRecorder.ondataavailable = e => { if (e.data && e.data.size) recordedChunks.push(e.data); };
+            mediaRecorder.onerror = e => { console.error('Cihaz kaydı hatası:',e.error); showToast('Cihaz kaydı sırasında hata oluştu.','error',5000); };
+            mediaRecorder.onstop = async () => {
+                try {
+                    const type = mediaRecorder && mediaRecorder.mimeType ? mediaRecorder.mimeType : 'audio/webm';
+                    const blob = new Blob(recordedChunks,{type});
+                    if (blob.size < 1024) throw new Error('Kayıt boş oluştu. Yayının çaldığından emin olun.');
+                    await saveRecording(blob,currentStation ? currentStation.name : 'Radyo Kaydı');
+                    showToast('Normal kayıt tamamlandı ve cihazına kaydedildi.','success',5500);
+                } catch(err) { showToast(err.message || 'Kayıt kaydedilemedi.','error',5500); }
+                finally { recordedChunks=[]; mediaRecorder=null; setRecordingButtonState(false); }
+            };
+            mediaRecorder.start(1000);
+            setRecordingButtonState(true);
+            showToast('Normal kayıt başladı. Durdurmak için kayıt düğmesine tekrar bas.','success',4500);
+        }
+
+        async function startServerRecording() {
+            const streamUrl = currentStation.url_resolved || currentStation.url;
+            await recordServerRequest('/api/record/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({streamUrl,stationName:currentStation.name || 'Radyo Kaydı'})});
+            setRecordingButtonState(true);
+            showToast('Radyo yayını sunucuda kaydediliyor. Durdururken uygulamayı açık tutun.','success',5000);
+            recordHeartbeatTimer = setInterval(async () => {
+                try {
+                    const response = await recordServerRequest('/api/record/status');
+                    const status = await response.json();
+                    if (!status.recording) { clearInterval(recordHeartbeatTimer); recordHeartbeatTimer=null; setRecordingButtonState(false); showToast('Sunucu kaydı beklenmedik şekilde sona erdi.','error',5500); }
+                } catch(err) { console.warn('Kayıt sunucusu kontrol edilemedi:',err); }
+            },25000);
+        }
+        async function stopServerRecording(showMessage=true) {
             if (!isRecording) return;
-            if (recordHeartbeatTimer) { clearInterval(recordHeartbeatTimer); recordHeartbeatTimer = null; }
+            if (recordHeartbeatTimer) { clearInterval(recordHeartbeatTimer); recordHeartbeatTimer=null; }
             try {
-                const response = await recordServerRequest('/api/record/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: serverRecordingId }) });
+                const response = await recordServerRequest('/api/record/stop',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
                 const blob = await response.blob();
                 if (!blob || blob.size < 1024) throw new Error('Kayıt dosyası boş geldi. Radyo yayını sunucuya ulaşmamış olabilir.');
-                await saveRecording(new Blob([blob], { type: 'audio/mpeg' }), currentStation ? currentStation.name : 'Radyo Kaydı');
-                if (showMessage) showToast('Kayıt tamamlandı ve cihazına kaydedildi. Radyo Kayıtları bölümünden dinleyebilirsin.', 'success', 5500);
-            } catch (err) {
-                console.error('Sunucu kaydı durdurma hatası:', err);
-                showToast(err.message || 'Kayıt dosyası alınamadı.', 'error', 6000);
-            } finally {
-                setRecordingButtonState(false);
-                serverRecordingId = null;
-            }
+                await saveRecording(new Blob([blob],{type:'audio/mpeg'}),currentStation ? currentStation.name : 'Radyo Kaydı');
+                if (showMessage) showToast('Sunucu kaydı tamamlandı ve cihazına kaydedildi.','success',5500);
+            } catch(err) { console.error('Sunucu kaydı durdurma hatası:',err); showToast(err.message || 'Kayıt dosyası alınamadı.','error',6000); }
+            finally { setRecordingButtonState(false); }
         }
-        recordBtn.addEventListener('click', async () => {
+        async function stopLocalRecording() {
+            if (!mediaRecorder || mediaRecorder.state === 'inactive') { setRecordingButtonState(false); return; }
+            try { mediaRecorder.stop(); showToast('Kayıt tamamlanıyor, dosya kaydediliyor...','loading',0); }
+            catch(err) { setRecordingButtonState(false); showToast('Kayıt durdurulamadı.','error',5000); }
+        }
+        document.getElementById('record-mode-local').addEventListener('click',async()=>{
+            closeRecordModeModal(); if(recordBtn.dataset.busy==='1') return; recordBtn.dataset.busy='1';
+            try { await startLocalRecording(); } catch(err) { console.error(err); showToast(err.message || 'Normal kayıt başlatılamadı.','error',6500); }
+            finally { recordBtn.dataset.busy='0'; }
+        });
+        document.getElementById('record-mode-server').addEventListener('click',async()=>{
+            closeRecordModeModal(); if(recordBtn.dataset.busy==='1') return; recordBtn.dataset.busy='1';
+            try { await startServerRecording(); } catch(err) { console.error('Sunucu kaydı başlatılamadı:',err); showToast(err.message || 'Sunucu kaydı başlatılamadı.','error',6500); }
+            finally { recordBtn.dataset.busy='0'; }
+        });
+        recordBtn.addEventListener('click',async()=>{
             if (!isRecording) {
-                if (!currentStation || (!currentStation.url && !currentStation.url_resolved)) {
-                    showToast('Önce kaydetmek istediğiniz radyoyu açın.', 'error'); return;
-                }
-                if (recordBtn.dataset.busy === '1') return;
-                recordBtn.dataset.busy = '1';
-                try {
-                    const streamUrl = currentStation.url_resolved || currentStation.url;
-                    const startResponse = await recordServerRequest('/api/record/start', {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ streamUrl, stationName: currentStation.name || 'Radyo Kaydı' })
-                    });
-                    const startData = await startResponse.json();
-                    serverRecordingId = startData.id;
-                    setRecordingButtonState(true);
-                    showToast('Radyo yayını sunucuda kaydediliyor. Durdururken uygulamayı açık tutun.', 'success', 5000);
-                    // Render Free servisi uykuya geçmesin diye kayıt sırasında düzenli istek gönder.
-                    recordHeartbeatTimer = setInterval(async () => {
-                        try {
-                            const response = await recordServerRequest('/api/record/status?id=' + encodeURIComponent(serverRecordingId));
-                            const status = await response.json();
-                            if (!status.recording) {
-                                clearInterval(recordHeartbeatTimer); recordHeartbeatTimer = null;
-                                if (status.completed) {
-                                    showToast(status.reason || '30 dakikalık kayıt süresi tamamlandı. Kaydı durdurup cihazınıza indirebilirsiniz.', 'info', 6500);
-                                } else {
-                                    setRecordingButtonState(false);
-                                    serverRecordingId = null;
-                                    showToast('Sunucu kaydı beklenmedik şekilde sona erdi.', 'error', 5500);
-                                }
-                            }
-                        } catch (err) {
-                            console.warn('Kayıt sunucusu kontrol edilemedi:', err);
-                            // Geçici ağ kopmasında kayıt düğmesini açık bırak; kullanıcı durdurmayı deneyebilir.
-                        }
-                    }, 25000);
-                } catch (err) {
-                    console.error('Sunucu kaydı başlatılamadı:', err);
-                    showToast(err.message || 'Sunucu kaydı başlatılamadı.', 'error', 6500);
-                } finally { recordBtn.dataset.busy = '0'; }
+                if (!currentStation || (!currentStation.url && !currentStation.url_resolved)) { showToast('Önce kaydetmek istediğiniz radyoyu açın.','error'); return; }
+                if (recordBtn.dataset.busy==='1') return;
+                openRecordModeModal();
             } else {
-                recordBtn.dataset.busy = '1';
-                recordBtn.disabled = true;
-                showToast('Kayıt tamamlanıyor, dosya cihaza aktarılıyor...', 'loading', 0);
-                await stopServerRecording(true);
-                recordBtn.disabled = false;
-                recordBtn.dataset.busy = '0';
+                if (recordBtn.dataset.busy==='1') return;
+                recordBtn.dataset.busy='1'; recordBtn.disabled=true;
+                try {
+                    if (mediaRecorder && mediaRecorder.state !== 'inactive') await stopLocalRecording();
+                    else await stopServerRecording(true);
+                } finally { recordBtn.disabled=false; recordBtn.dataset.busy='0'; }
             }
         });
 
