@@ -3751,7 +3751,17 @@
                 try {
                     const response = await recordServerRequest('/api/record/status');
                     const status = await response.json();
-                    if (!status.recording) { clearInterval(recordHeartbeatTimer); recordHeartbeatTimer=null; setRecordingButtonState(false); showToast('Sunucu kaydı beklenmedik şekilde sona erdi.','error',5500); }
+                    if (!status.recording) {
+                        clearInterval(recordHeartbeatTimer); recordHeartbeatTimer=null;
+                        if (status.finished && status.hasFile) {
+                            // Kayıt sunucuda tamamlandı; düğmeyi açık tut ki kullanıcı dosyayı alabilsin.
+                            setRecordingButtonState(true);
+                            showToast('Sunucu kaydı sona erdi. Kayıt dosyasını almak için kayıt düğmesine bas.','warning',6500);
+                        } else {
+                            setRecordingButtonState(false);
+                            showToast('Sunucu kaydı durmuş görünüyor; kayıt dosyası oluşmamış olabilir.','error',6500);
+                        }
+                    }
                 } catch(err) { console.warn('Kayıt sunucusu kontrol edilemedi:',err); }
             },25000);
         }
