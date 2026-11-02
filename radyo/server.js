@@ -8,20 +8,17 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 
-let ffmpegPath = null;
-
-try {
-    ffmpegPath = require('ffmpeg-static');
-} catch (err) {
-    console.error(
-        'ffmpeg-static yüklenemedi:',
-        err.message
-    );
-}
+// --------------------------------------------------
+// AYARLAR
+// --------------------------------------------------
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
-const VERSION = '3.5.6';
+const VERSION = '3.5.7';
+
+// Docker ortamında sistem FFmpeg kullanılır.
+// İstenirse Render Environment üzerinden FFMPEG_PATH tanımlanabilir.
+const ffmpegPath = process.env.FFMPEG_PATH || 'ffmpeg';
 
 const MAX_REDIRECTS = 5;
 const MAX_RECORD_MS = 30 * 60 * 1000;
@@ -92,8 +89,8 @@ app.get('/', (req, res) => {
         service: 'Online Radyo Sunucusu',
         version: VERSION,
         streamProxy: true,
-        serverRecording: !!ffmpegPath,
-        ffmpeg: !!ffmpegPath
+        serverRecording: true,
+        ffmpeg: ffmpegPath
     });
 });
 
@@ -106,7 +103,7 @@ app.get('/health', (req, res) => {
         ok: true,
         status: 'running',
         version: VERSION,
-        serverRecording: !!ffmpegPath,
+        serverRecording: true,
         recording: !!activeRecording,
         finishedRecording: !!lastRecording
     });
@@ -186,7 +183,7 @@ function requestStream(
         upstream => {
             const status = upstream.statusCode || 200;
 
-            // Yönlendirme
+            // YÖNLENDİRME
             if ([301, 302, 303, 307, 308].includes(status)) {
                 const location = upstream.headers.location;
 
@@ -351,7 +348,7 @@ app.all('/stream', (req, res) => {
     }
 
     const headers = {
-        'User-Agent': 'Mozilla/5.0 OnlineRadio/3.5.6',
+        'User-Agent': 'Mozilla/5.0 OnlineRadio/3.5.7',
         'Accept': '*/*',
         'Icy-MetaData':
             req.headers['icy-metadata'] || '0'
@@ -500,9 +497,7 @@ function waitForAudioFile(
                         rec.signal ?? 'yok'
                     }`;
 
-                return reject(
-                    new Error(details)
-                );
+                return reject(new Error(details));
             }
 
             if (Date.now() - started >= timeoutMs) {
@@ -582,13 +577,13 @@ app.post('/api/record/start', async (req, res) => {
 
     console.log('----------------------------------');
     console.log('SUNUCU KAYDI BAŞLATILIYOR');
+    console.log('Sürüm:', VERSION);
     console.log('İstasyon:', stationName || 'Radyo Kaydı');
     console.log('Kaynak:', target.href);
     console.log('FFmpeg:', ffmpegPath);
     console.log('Dosya:', filePath);
     console.log('----------------------------------');
 
-    // FFmpeg hata teşhisi için loglevel info olarak ayarlandı.
     const args = [
         '-hide_banner',
         '-loglevel', 'info',
@@ -597,7 +592,7 @@ app.post('/api/record/start', async (req, res) => {
         '-y',
 
         '-user_agent',
-        'Mozilla/5.0 OnlineRadioRecorder/3.5.6',
+        'Mozilla/5.0 OnlineRadioRecorder/3.5.7',
 
         '-rw_timeout',
         '25000000',
@@ -679,10 +674,7 @@ app.post('/api/record/start', async (req, res) => {
     lastRecording = null;
     activeRecording = rec;
 
-    // ----------------------------------------------
-    // FFmpeg STDERR: ayrıntılı Render logları
-    // ----------------------------------------------
-
+    // FFmpeg STDERR
     proc.stderr.on('data', data => {
         const output = data.toString();
 
@@ -690,16 +682,10 @@ app.post('/api/record/start', async (req, res) => {
             rec.stderr + output
         ).slice(-15000);
 
-        console.log(
-            '[FFmpeg]',
-            output.trim()
-        );
+        console.log('[FFmpeg]', output.trim());
     });
 
-    // ----------------------------------------------
     // FFmpeg başlatma hatası
-    // ----------------------------------------------
-
     proc.once('error', err => {
         console.error(
             'FFmpeg BAŞLATMA HATASI:',
@@ -717,10 +703,7 @@ app.post('/api/record/start', async (req, res) => {
         }
     });
 
-    // ----------------------------------------------
     // FFmpeg kapanma bilgileri
-    // ----------------------------------------------
-
     proc.once('close', (code, signal) => {
         rec.exitCode = code;
         rec.signal = signal;
@@ -746,13 +729,9 @@ app.post('/api/record/start', async (req, res) => {
         console.log('Dosya:', rec.filePath);
 
         try {
-            const fileExists =
-                fs.existsSync(rec.filePath);
+            const fileExists = fs.existsSync(rec.filePath);
 
-            console.log(
-                'Dosya mevcut:',
-                fileExists
-            );
+            console.log('Dosya mevcut:', fileExists);
 
             if (fileExists) {
                 console.log(
@@ -775,10 +754,7 @@ app.post('/api/record/start', async (req, res) => {
 
         console.log('----------------------------------');
 
-        if (
-            code !== 0 &&
-            !rec.stopRequested
-        ) {
+        if (code !== 0 && !rec.stopRequested) {
             console.error(
                 'FFmpeg KAYIT HATASI!',
                 'Kod:', code,
@@ -787,25 +763,19 @@ app.post('/api/record/start', async (req, res) => {
 
             console.error(
                 'FFmpeg ayrıntılı çıktı:',
-                rec.stderr ||
-                '(FFmpeg hata mesajı üretmedi)'
+                rec.stderr || '(FFmpeg hata mesajı üretmedi)'
             );
         }
     });
 
-    // ----------------------------------------------
     // Maksimum kayıt süresi: 30 dakika
-    // ----------------------------------------------
-
     rec.maxTimer = setTimeout(() => {
         if (activeRecording === rec) {
             console.log(
                 '30 dakikalık maksimum kayıt süresi doldu.'
             );
 
-            finishRecording(
-                'maximum-duration'
-            ).catch(err => {
+            finishRecording('maximum-duration').catch(err => {
                 console.error(
                     'Maksimum süre durdurma hatası:',
                     err.message
@@ -814,10 +784,7 @@ app.post('/api/record/start', async (req, res) => {
         }
     }, MAX_RECORD_MS);
 
-    // ----------------------------------------------
     // Yayından ses verisi bekleme
-    // ----------------------------------------------
-
     try {
         const bytes = await waitForAudioFile(
             rec,
@@ -847,9 +814,7 @@ app.post('/api/record/start', async (req, res) => {
             rec.stopRequested = true;
 
             try {
-                await finishRecording(
-                    'start-failed'
-                );
+                await finishRecording('start-failed');
             } catch (_) {}
         }
 
@@ -884,22 +849,15 @@ app.post('/api/record/start', async (req, res) => {
 // --------------------------------------------------
 
 app.get('/api/record/status', (req, res) => {
-    const rec =
-        activeRecording || lastRecording;
+    const rec = activeRecording || lastRecording;
 
     let hasFile = false;
     let fileBytes = 0;
 
     try {
-        if (
-            rec &&
-            fs.existsSync(rec.filePath)
-        ) {
+        if (rec && fs.existsSync(rec.filePath)) {
             hasFile = true;
-
-            fileBytes = fs.statSync(
-                rec.filePath
-            ).size;
+            fileBytes = fs.statSync(rec.filePath).size;
         }
     } catch (err) {
         console.error(
@@ -917,11 +875,8 @@ app.get('/api/record/status', (req, res) => {
         hasFile,
         fileBytes,
 
-        stationName:
-            rec?.stationName || null,
-
-        startedAt:
-            rec?.startedAt || null,
+        stationName: rec?.stationName || null,
+        startedAt: rec?.startedAt || null,
 
         elapsedSeconds: rec
             ? Math.floor(
@@ -942,14 +897,9 @@ app.get('/api/record/status', (req, res) => {
                     : null
             ),
 
-        exitCode:
-            rec?.exitCode ?? null,
-
-        signal:
-            rec?.signal ?? null,
-
-        ffmpegOutput:
-            rec?.stderr || null
+        exitCode: rec?.exitCode ?? null,
+        signal: rec?.signal ?? null,
+        ffmpegOutput: rec?.stderr || null
     });
 });
 
@@ -958,8 +908,7 @@ app.get('/api/record/status', (req, res) => {
 // --------------------------------------------------
 
 app.post('/api/record/stop', async (req, res) => {
-    const rec =
-        activeRecording || lastRecording;
+    const rec = activeRecording || lastRecording;
 
     if (!rec) {
         return res.status(409).json({
@@ -977,9 +926,7 @@ app.post('/api/record/stop', async (req, res) => {
         if (activeRecording === rec) {
             rec.stopRequested = true;
 
-            await finishRecording(
-                'user-stop'
-            );
+            await finishRecording('user-stop');
         }
 
         if (
@@ -1013,24 +960,16 @@ app.post('/api/record/stop', async (req, res) => {
             });
         }
 
-        res.setHeader(
-            'Content-Type',
-            'audio/mpeg'
-        );
+        res.setHeader('Content-Type', 'audio/mpeg');
 
         res.setHeader(
             'Content-Disposition',
             `attachment; filename="${rec.fileName}"`
         );
 
-        res.setHeader(
-            'Cache-Control',
-            'no-store'
-        );
+        res.setHeader('Cache-Control', 'no-store');
 
-        const input = fs.createReadStream(
-            rec.filePath
-        );
+        const input = fs.createReadStream(rec.filePath);
 
         input.on('error', err => {
             console.error(
@@ -1084,7 +1023,7 @@ app.listen(PORT, '0.0.0.0', () => {
 
     console.log(
         'FFmpeg kullanılabilir:',
-        !!ffmpegPath
+        ffmpegPath
     );
 
     console.log(
