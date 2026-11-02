@@ -773,6 +773,18 @@
             gap: 10px;
         }
 
+        .webview-toolbar {
+            display:flex; align-items:center; gap:7px; padding:9px 12px;
+            border-bottom:1px solid var(--border-color); background:var(--bg-surface);
+        }
+        .webview-toolbar .btn { flex:0 0 auto; min-width:36px; }
+        .webview-url-form { display:flex; align-items:center; gap:7px; flex:1; min-width:0; }
+        .webview-url-input {
+            width:100%; min-width:0; height:38px; padding:0 12px; border-radius:10px;
+            border:1px solid var(--border-color); background:var(--bg-base); color:var(--text-primary);
+            outline:none; font-size:13px;
+        }
+        .webview-url-input:focus { border-color:var(--accent-primary); }
         .webview-frame-container {
             flex-grow: 1;
             width: 100%;
@@ -812,7 +824,10 @@
         @media(max-width:640px){
             .webview-card{width:100%;height:100dvh;max-width:none;border-radius:0;}
             .webview-header{padding:calc(10px + env(safe-area-inset-top)) 12px 10px;gap:8px;}
-            .webview-address{max-width:38vw;}
+            .webview-address{display:none;}
+            .webview-toolbar{padding:7px;gap:5px;}
+            .webview-toolbar .btn{min-width:34px;padding:8px;}
+            .webview-url-input{height:36px;font-size:12px;padding:0 9px;}
         }
 
         #active-webview-frame {
@@ -1873,6 +1888,17 @@
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
+            <div class="webview-toolbar">
+                <button type="button" class="btn btn-icon-only" id="webview-back" title="Geri"><i class="fa-solid fa-arrow-left"></i></button>
+                <button type="button" class="btn btn-icon-only" id="webview-forward" title="İleri"><i class="fa-solid fa-arrow-right"></i></button>
+                <button type="button" class="btn btn-icon-only" id="webview-reload" title="Yenile"><i class="fa-solid fa-rotate-right"></i></button>
+                <button type="button" class="btn btn-icon-only" id="webview-home" title="Radyo sitesine dön"><i class="fa-solid fa-house"></i></button>
+                <form class="webview-url-form" id="webview-url-form">
+                    <input class="webview-url-input" id="webview-url-input" type="url" inputmode="url" placeholder="https://site-adresi.com" autocomplete="url" aria-label="Web adresi">
+                    <button type="submit" class="btn" title="Adrese git"><i class="fa-solid fa-arrow-right"></i></button>
+                </form>
+                <button type="button" class="btn btn-icon-only" id="webview-external" title="Harici tarayıcıda aç"><i class="fa-solid fa-up-right-from-square"></i></button>
+            </div>
             <div class="webview-frame-container">
                 <div id="webview-status" class="webview-status" role="status" aria-live="polite">
                     <i class="fa-solid fa-circle-notch fa-spin"></i>
@@ -2322,6 +2348,9 @@
         const webviewAddress = document.getElementById('webview-address');
         const webviewStatus = document.getElementById('webview-status');
         const closeWebviewBtn = document.getElementById('close-webview');
+        const webviewUrlInput = document.getElementById('webview-url-input');
+        let webviewHomeUrl = '';
+        let webviewCurrentUrl = '';
         let webviewLoadTimer = null;
         let webviewLoadToken = 0;
 
@@ -3412,6 +3441,9 @@
                 return;
             }
             currentStation = st;
+            webviewHomeUrl = getStationWebPageUrl(st) || targetUrl;
+            webviewCurrentUrl = targetUrl;
+            if (webviewUrlInput) webviewUrlInput.value = targetUrl;
             autoReconnectEnabled = false;
             if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
             if (webviewLoadTimer) { clearTimeout(webviewLoadTimer); webviewLoadTimer = null; }
@@ -3446,6 +3478,45 @@
             activeWebviewFrame.src = 'about:blank';
             if (webviewStatus) webviewStatus.hidden = false;
         }
+
+        function navigateWebView(rawUrl) {
+            let url;
+            try { url = new URL(String(rawUrl || '').trim()); } catch (_) {
+                showToast('Geçerli bir web adresi girin.', 'warning'); return;
+            }
+            if (!['http:', 'https:'].includes(url.protocol)) {
+                showToast('Yalnızca HTTP ve HTTPS adresleri açılabilir.', 'warning'); return;
+            }
+            webviewCurrentUrl = url.href;
+            if (webviewUrlInput) webviewUrlInput.value = url.href;
+            webviewAddress.textContent = url.href;
+            webviewAddress.title = url.href;
+            setWebViewStatus('loading', 'Sayfa yükleniyor…', 'Yeni adres açılıyor.');
+            if (webviewLoadTimer) clearTimeout(webviewLoadTimer);
+            const token = ++webviewLoadToken;
+            activeWebviewFrame.src = url.href;
+            webviewLoadTimer = setTimeout(() => {
+                if (token !== webviewLoadToken) return;
+                setWebViewStatus('error', 'Sayfa yanıt vermedi', 'Site iframe içinde açılmayı engelliyor olabilir. Harici tarayıcıda açmayı deneyin.');
+            }, 12000);
+        }
+        document.getElementById('webview-url-form')?.addEventListener('submit', e => {
+            e.preventDefault(); navigateWebView(webviewUrlInput.value);
+        });
+        document.getElementById('webview-back')?.addEventListener('click', () => {
+            try { activeWebviewFrame.contentWindow.history.back(); } catch (_) {}
+        });
+        document.getElementById('webview-forward')?.addEventListener('click', () => {
+            try { activeWebviewFrame.contentWindow.history.forward(); } catch (_) {}
+        });
+        document.getElementById('webview-reload')?.addEventListener('click', () => {
+            try { activeWebviewFrame.contentWindow.location.reload(); } catch (_) { navigateWebView(webviewCurrentUrl); }
+        });
+        document.getElementById('webview-home')?.addEventListener('click', () => navigateWebView(webviewHomeUrl));
+        document.getElementById('webview-external')?.addEventListener('click', () => {
+            const url = webviewCurrentUrl || webviewHomeUrl;
+            if (url) window.open(url, '_blank', 'noopener,noreferrer');
+        });
 
         closeWebviewBtn.addEventListener('click', () => {
             closeWebViewModal();
