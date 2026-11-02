@@ -1746,6 +1746,25 @@
             }
         }
     </style>
+
+    <style id="mobile-performance-optimizations">
+      /* Mobil cihazlarda gereksiz GPU yükünü azaltır; tasarımı ve yerleşimi değiştirmez. */
+      @media (max-width: 700px) {
+        *, *::before, *::after { scroll-behavior: auto !important; }
+        .fullscreen-actions, .recording-delete-modal, .search-modal-overlay,
+        .sleep-modal-overlay, .record-mode-overlay, .player-bar,
+        .mobile-nav, .bottom-nav, .modal-overlay {
+          -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+        }
+        .station-card, .player-bar, .fullscreen-actions, .recording-card {
+          box-shadow: none !important;
+      }
+      .station-card, button, .btn, .tab-btn { transition-duration: .12s !important; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+      }
+    </style>
 </head>
 <body>
 
@@ -1935,6 +1954,18 @@
                 <input type="text" id="custom-country" class="modal-input" placeholder="Ülke / Şehir (Opsiyonel)">
                 <input type="url" id="custom-logo" class="modal-input" placeholder="Logo / Kapak görseli URL (Opsiyonel)">
                 <button class="btn btn-primary" id="custom-save" style="width:100%; justify-content:center;"><i class="fa-solid fa-plus"></i> Radyoyu Kaydet</button>
+            </div>
+
+            <div class="modal-section" id="cache-management-section">
+                <div class="modal-section-title"><i class="fa-solid fa-database"></i> Önbellek ve Hızlı Açılış</div>
+                <div class="eq-help" id="cache-summary" style="margin:8px 0">Önbellek bilgisi hesaplanıyor...</div>
+                <label class="eq-field-label" style="display:flex;align-items:center;gap:10px;margin:10px 0">
+                    <input type="checkbox" id="cache-auto-update" style="width:18px;height:18px;accent-color:var(--accent-primary)">
+                    İnternet varsa listeleri arka planda güncelle
+                </label>
+                <small class="eq-help" style="display:block;margin-bottom:10px">Kanal listeleri ve uygulama ayarları bu cihazda saklanır. Program önce kayıtlı verileri gösterir. Favoriler, geçmiş ve ayarlar önbellek temizlendiğinde silinmez.</small>
+                <button class="btn" id="cache-refresh-info" type="button" style="width:100%;justify-content:center;margin-bottom:8px"><i class="fa-solid fa-arrows-rotate"></i> Önbellek Bilgisini Yenile</button>
+                <button class="btn" id="cache-clear-lists" type="button" style="width:100%;justify-content:center"><i class="fa-solid fa-trash-can"></i> Yalnızca Kanal Önbelleğini Temizle</button>
             </div>
 
             <div class="modal-section">
@@ -2175,7 +2206,8 @@
         let reconnectGeneration = 0;
         let autoReconnectEnabled = false;
         let activeTab = 'all';
-        let activeSource = 'github';
+        let activeSource = localStorage.getItem('symphony_active_source') || 'all';
+        if (!['all','github','existing'].includes(activeSource)) activeSource = 'all';
         let githubStations = [];
         let existingStations = [];
         const LIST_CACHE_PREFIX = 'symphony_list_cache_v1_';
@@ -2272,6 +2304,9 @@
         document.addEventListener('DOMContentLoaded', async () => {
             initTheme();
             initPalette();
+            document.getElementById('all-list-btn')?.classList.toggle('active', activeSource === 'all');
+            document.getElementById('github-list-btn')?.classList.toggle('active', activeSource === 'github');
+            document.getElementById('existing-list-btn')?.classList.toggle('active', activeSource === 'existing');
             updateFavCount();
             await populateFilters();
             await fetchStations();
@@ -2280,6 +2315,17 @@
             setupEventListeners();
             setupKeyboardShortcuts();
             await loadRecordings();
+            updateCacheSummary();
+            // Önce önbellek gösterilir; açık ise ağ güncellemesi arka planda başlar.
+            if (localStorage.getItem(CACHE_AUTO_UPDATE_KEY) !== 'false') {
+                setTimeout(async () => {
+                    try {
+                        if (activeSource === 'all') await loadAllLists(true);
+                        else if (activeSource === 'github') await fetchGitHubStations(true);
+                        updateCacheSummary();
+                    } catch (err) { console.warn('Arka plan liste güncellemesi başarısız:', err); }
+                }, 1800);
+            }
             syncVisualizerToPlayerBar();
             resizeCanvas();
             drawVisualizer();
@@ -2354,6 +2400,46 @@
         }
         function isCacheFresh(cache) {
             return !!(cache && cache.savedAt && (Date.now() - cache.savedAt) < LIST_CACHE_MAX_AGE);
+        }
+        const CACHE_AUTO_UPDATE_KEY = 'symphony_cache_auto_update';
+        function getCacheStats() {
+            let bytes = 0, count = 0, newest = 0;
+            try {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (!key || !key.startsWith(LIST_CACHE_PREFIX)) continue;
+                    const value = localStorage.getItem(key) || '';
+                    bytes += (key.length + value.length) * 2;
+                    count++;
+                    try { const item = JSON.parse(value); newest = Math.max(newest, Number(item.savedAt) || 0); } catch (_) {}
+                }
+            } catch (_) {}
+            return { bytes, count, newest };
+        }
+        function formatCacheBytes(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+        function updateCacheSummary() {
+            const el = document.getElementById('cache-summary');
+            if (!el) return;
+            const stats = getCacheStats();
+            const last = stats.newest ? new Date(stats.newest).toLocaleString('tr-TR') : 'Henüz kayıt yok';
+            el.textContent = `Kayıtlı liste önbelleği: ${stats.count} kayıt • ${formatCacheBytes(stats.bytes)} • Son kayıt: ${last}`;
+            const toggle = document.getElementById('cache-auto-update');
+            if (toggle) toggle.checked = localStorage.getItem(CACHE_AUTO_UPDATE_KEY) !== 'false';
+        }
+        function clearOnlyListCache() {
+            const keys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith(LIST_CACHE_PREFIX)) keys.push(key);
+            }
+            keys.forEach(key => localStorage.removeItem(key));
+            githubStations = []; existingStations = [];
+            updateCacheSummary();
+            showToast('Kanal listesi önbelleği temizlendi. Favorileriniz ve ayarlarınız korundu.', 'success', 4500);
         }
         function stationIdentity(st) {
             const name = String(st.name || '').trim().toLocaleLowerCase('tr').replace(/\s+/g, ' ');
@@ -2502,7 +2588,9 @@
         }
 
         function switchSource(source) {
+            if (!['all','github','existing'].includes(source)) source = 'all';
             activeSource = source;
+            try { localStorage.setItem('symphony_active_source', source); } catch (_) {}
             document.getElementById('all-list-btn').classList.toggle('active', source === 'all');
             document.getElementById('github-list-btn').classList.toggle('active', source === 'github');
             document.getElementById('existing-list-btn').classList.toggle('active', source === 'existing');
@@ -2882,36 +2970,50 @@
             ctx.globalAlpha = 1; ctx.shadowBlur = 0;
         }
 
-        let visualizerFrameStarted = false;
-        function drawVisualizer() {
-            if (visualizerFrameStarted) return;
-            visualizerFrameStarted = true;
-            const renderFrame = () => {
-                requestAnimationFrame(renderFrame);
-                let dataArray;
-                let hasAnalyserSignal = false;
-                if (analyser) {
-                    dataArray = new Uint8Array(analyser.frequencyBinCount);
-                    try {
-                        analyser.getByteFrequencyData(dataArray);
-                        hasAnalyserSignal = dataArray.some(value => value > 0);
-                    } catch (_) { hasAnalyserSignal = false; }
-                }
-                if (!hasAnalyserSignal) {
-                    // iPad Safari / CORS kısıtlarında spektrum verisi sıfır gelebilir; görseli canlı tut.
-                    dataArray = new Uint8Array(128);
-                    const t = performance.now() / (audioEngine.paused ? 900 : 310);
-                    for (let i = 0; i < dataArray.length; i++) {
-                        const wave = (Math.sin(t + i * 0.19) + 1) * 0.5;
-                        const detail = (Math.sin(t * 1.7 + i * 0.071) + 1) * 0.5;
-                        dataArray[i] = audioEngine.paused ? 5 + Math.round(wave * 8) : 12 + Math.round(wave * 48 + detail * 26);
-                    }
-                }
-                paintSpectrum(canvasCtx, canvas, dataArray);
-                paintSpectrum(fullscreenVisualizerCtx, fullscreenVisualizerCanvas, dataArray);
-            };
-            renderFrame();
+        // Performans: spektrum verisini her karede yeniden oluşturmuyoruz.
+        // Görselleştirici yalnızca yayın çalarken ve sekme görünürken çalışır (yaklaşık 30 FPS).
+        let visualizerFrameId = 0;
+        let visualizerLastPaint = 0;
+        let visualizerDataArray = new Uint8Array(128);
+        function stopVisualizer() {
+            if (visualizerFrameId) cancelAnimationFrame(visualizerFrameId);
+            visualizerFrameId = 0;
         }
+        function drawVisualizer() {
+            stopVisualizer();
+            if (document.hidden || audioEngine.paused) return;
+            const renderFrame = (timestamp) => {
+                visualizerFrameId = 0;
+                if (document.hidden || audioEngine.paused) return;
+                if (timestamp - visualizerLastPaint >= 33) {
+                    visualizerLastPaint = timestamp;
+                    let dataArray = visualizerDataArray;
+                    let hasAnalyserSignal = false;
+                    if (analyser) {
+                        try {
+                            if (dataArray.length !== analyser.frequencyBinCount) visualizerDataArray = dataArray = new Uint8Array(analyser.frequencyBinCount);
+                            analyser.getByteFrequencyData(dataArray);
+                            for (let i = 0; i < dataArray.length; i++) { if (dataArray[i] > 0) { hasAnalyserSignal = true; break; } }
+                        } catch (_) { hasAnalyserSignal = false; }
+                    }
+                    if (!hasAnalyserSignal) {
+                        const t = timestamp / 310;
+                        for (let i = 0; i < dataArray.length; i++) {
+                            const wave = (Math.sin(t + i * 0.19) + 1) * 0.5;
+                            const detail = (Math.sin(t * 1.7 + i * 0.071) + 1) * 0.5;
+                            dataArray[i] = 12 + Math.round(wave * 48 + detail * 26);
+                        }
+                    }
+                    paintSpectrum(canvasCtx, canvas, dataArray);
+                    if (fullscreenPlayer && fullscreenPlayer.classList.contains('show')) paintSpectrum(fullscreenVisualizerCtx, fullscreenVisualizerCanvas, dataArray);
+                }
+                visualizerFrameId = requestAnimationFrame(renderFrame);
+            };
+            visualizerFrameId = requestAnimationFrame(renderFrame);
+        }
+        audioEngine.addEventListener('play', drawVisualizer);
+        audioEngine.addEventListener('pause', stopVisualizer);
+        document.addEventListener('visibilitychange', () => document.hidden ? stopVisualizer() : drawVisualizer());
 
         const eqBass = document.getElementById('eq-bass');
         const eqMid = document.getElementById('eq-mid');
@@ -3736,6 +3838,18 @@
                     showToast('Liste güncelleme işlemi tamamlandı.', 'success');
                 } finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Listeyi Güncelle'; }
             });
+            const autoCacheToggle = document.getElementById('cache-auto-update');
+            if (autoCacheToggle) autoCacheToggle.addEventListener('change', () => {
+                localStorage.setItem(CACHE_AUTO_UPDATE_KEY, autoCacheToggle.checked ? 'true' : 'false');
+                showToast(autoCacheToggle.checked ? 'Arka plan liste güncellemesi açıldı.' : 'Arka plan liste güncellemesi kapatıldı.');
+            });
+            const cacheInfoBtn = document.getElementById('cache-refresh-info');
+            if (cacheInfoBtn) cacheInfoBtn.addEventListener('click', updateCacheSummary);
+            const clearCacheBtn = document.getElementById('cache-clear-lists');
+            if (clearCacheBtn) clearCacheBtn.addEventListener('click', () => {
+                if (confirm('Yalnızca kayıtlı kanal listesi önbelleği silinsin mi? Favoriler, geçmiş ve ayarlar korunacaktır.')) clearOnlyListCache();
+            });
+            updateCacheSummary();
             searchOpenBtn.addEventListener('click', () => { searchModal.classList.add('show'); searchModal.setAttribute('aria-hidden','false'); setTimeout(() => searchInput.focus(), 120); });
             searchCloseBtn.addEventListener('click', () => { searchModal.classList.remove('show'); searchModal.setAttribute('aria-hidden','true'); });
             searchModal.addEventListener('click', (e) => { if (e.target === searchModal) { searchModal.classList.remove('show'); searchModal.setAttribute('aria-hidden','true'); } });
@@ -3835,13 +3949,13 @@
         }
         function applyPalette(palette) {
             const validPalettes = ['violet','sapphire','emerald','ruby','amber','teal','royal-blue','burgundy','jade','copper','midnight','gold','ocean','forest','plum','coral','bronze','cyan','olive','charcoal'];
-            const selected = validPalettes.includes(palette) ? palette : 'violet';
+            const selected = validPalettes.includes(palette) ? palette : 'amber';
             document.body.setAttribute('data-palette', selected);
             const picker = document.getElementById('theme-palette');
             if (picker) picker.value = selected;
         }
         function initPalette() {
-            applyPalette(localStorage.getItem('symphony_palette') || 'violet');
+            applyPalette(localStorage.getItem('symphony_palette') || 'amber');
         }
 
         function initTheme() {
