@@ -1948,6 +1948,14 @@
 
             <div class="modal-section eq-settings-section">
                 <div class="modal-section-title"><i class="fa-solid fa-sliders"></i> Ses Ekolayzırı</div>
+                <div class="eq-slider-row" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px">
+                    <label for="visualizer-enabled" style="margin:0">Ses görselleştiricisi</label>
+                    <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+                        <input type="checkbox" id="visualizer-enabled" checked style="width:18px;height:18px;accent-color:var(--accent-color)">
+                        <span id="visualizer-enabled-label">Açık</span>
+                    </label>
+                </div>
+                <small class="eq-help" style="display:block;margin-bottom:12px">Kapatıldığında ses görselleştirme animasyonu durur; radyo yayını ve ses ayarları çalışmaya devam eder.</small>
                 <label class="eq-field-label" for="visualizer-style">Ekolayzır görseli</label>
                 <select id="visualizer-style" class="modal-input">
                     <option value="bars">1. Neon Çubuklar</option>
@@ -2301,6 +2309,7 @@
         let eqTrebleFilter = null;
         let eqValues = JSON.parse(localStorage.getItem('symphony_eq') || '{"bass":0,"mid":0,"treble":0}');
         let visualizerStyle = localStorage.getItem('symphony_visualizer_style') || 'bars';
+        let visualizerEnabled = localStorage.getItem('symphony_visualizer_enabled') !== 'false';
 
         const audioEngine = document.getElementById('audio-engine');
         const grid = document.getElementById('stations-grid');
@@ -2335,7 +2344,28 @@
         const sleepBtn = document.getElementById('sleep-btn');
         const eqPresetSelect = document.getElementById('eq-preset');
         const visualizerStyleSelect = document.getElementById('visualizer-style');
+        const visualizerEnabledToggle = document.getElementById('visualizer-enabled');
+        const visualizerEnabledLabel = document.getElementById('visualizer-enabled-label');
         visualizerStyleSelect.value = visualizerStyle;
+        function applyVisualizerEnabled() {
+            if (visualizerEnabledToggle) visualizerEnabledToggle.checked = visualizerEnabled;
+            if (visualizerEnabledLabel) visualizerEnabledLabel.textContent = visualizerEnabled ? 'Açık' : 'Kapalı';
+            if (visualizerWrapper) visualizerWrapper.style.display = visualizerEnabled ? '' : 'none';
+            if (fullscreenVisualizerCanvas) fullscreenVisualizerCanvas.style.display = visualizerEnabled ? '' : 'none';
+            if (visualizerEnabled) {
+                if (!document.hidden && !audioEngine.paused) drawVisualizer();
+            } else {
+                stopVisualizer();
+                try { canvasCtx.clearRect(0, 0, canvas.width, canvas.height); } catch (_) {}
+                try { fullscreenVisualizerCtx.clearRect(0, 0, fullscreenVisualizerCanvas.width, fullscreenVisualizerCanvas.height); } catch (_) {}
+            }
+        }
+        visualizerEnabledToggle?.addEventListener('change', () => {
+            visualizerEnabled = visualizerEnabledToggle.checked;
+            localStorage.setItem('symphony_visualizer_enabled', String(visualizerEnabled));
+            applyVisualizerEnabled();
+            showToast(visualizerEnabled ? 'Ses görselleştiricisi açıldı.' : 'Ses görselleştiricisi kapatıldı. Pil ve işlemci kullanımı azalabilir.', 'success');
+        });
         visualizerStyleSelect.addEventListener('change', () => {
             visualizerStyle = visualizerStyleSelect.value;
             localStorage.setItem('symphony_visualizer_style', visualizerStyle);
@@ -2424,7 +2454,7 @@
             }
             syncVisualizerToPlayerBar();
             resizeCanvas();
-            drawVisualizer();
+            applyVisualizerEnabled();
             const refreshVisualizerSize = () => {
                 syncVisualizerToPlayerBar();
                 resizeCanvas();
@@ -3103,10 +3133,10 @@
         }
         function drawVisualizer() {
             stopVisualizer();
-            if (document.hidden || audioEngine.paused) return;
+            if (!visualizerEnabled || document.hidden || audioEngine.paused) return;
             const renderFrame = (timestamp) => {
                 visualizerFrameId = 0;
-                if (document.hidden || audioEngine.paused) return;
+                if (!visualizerEnabled || document.hidden || audioEngine.paused) return;
                 if (timestamp - visualizerLastPaint >= 33) {
                     visualizerLastPaint = timestamp;
                     let dataArray = visualizerDataArray;
