@@ -6,11 +6,13 @@ const { URL } = require('url');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
-const ffmpegPath = require('ffmpeg-static');
+let ffmpegPath = null;
+try { ffmpegPath = require('ffmpeg-static'); }
+catch (err) { console.error('ffmpeg-static yüklenemedi; yayın köprüsü çalışabilir ancak sunucu tarafı kayıt devre dışı:', err.message); }
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
-const VERSION = '3.5.1';
+const VERSION = '3.5.2';
 const MAX_REDIRECTS = 5;
 const MAX_RECORD_MS = 30 * 60 * 1000;
 const allowedHosts = (process.env.STREAM_PROXY_ALLOWED_HOSTS || 'sslyayin.netyayin.net').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
@@ -23,8 +25,8 @@ let lastRecording = null;
 app.use(cors({ origin: '*', methods: ['GET','HEAD','POST','OPTIONS'], allowedHeaders: ['Range','Icy-MetaData','Content-Type'], exposedHeaders: ['Content-Length','Content-Range','Accept-Ranges','Content-Type','Icy-MetaInt','Icy-Name','Icy-Br'] }));
 app.use(express.json({ limit: '32kb' }));
 
-app.get('/', (req,res) => res.json({ ok:true, service:'Online Radyo Sunucusu', version:VERSION, streamProxy:true, serverRecording:true, ffmpeg:!!ffmpegPath }));
-app.get('/health', (req,res) => res.json({ ok:true, status:'running', version:VERSION, serverRecording:true, recording:!!activeRecording, finishedRecording:!!lastRecording }));
+app.get('/', (req,res) => res.json({ ok:true, service:'Online Radyo Sunucusu', version:VERSION, streamProxy:true, serverRecording:!!ffmpegPath, ffmpeg:!!ffmpegPath }));
+app.get('/health', (req,res) => res.json({ ok:true, status:'running', version:VERSION, serverRecording:!!ffmpegPath, recording:!!activeRecording, finishedRecording:!!lastRecording }));
 
 function hostAllowed(url, list) {
   if (!['http:','https:'].includes(url.protocol)) return false;
@@ -171,4 +173,19 @@ app.use((req,res) => res.status(404).json({ error:'Adres bulunamadı',path:req.p
 const server = app.listen(PORT,() => {
   console.log(`Online Radyo sunucusu başlatıldı. Sürüm: ${VERSION} Port: ${PORT}`);
   console.log('Yayın izinli sunucular:',allowedHosts);
-  console.log('Kayıt izinli su
+  console.log('Kayıt izinli sunucular:',recordAllowedHosts);
+  console.log('Kayıt klasörü:',dataDir);
+});
+
+// Container yeniden başlatılırken FFmpeg işlemini ve MP3 dosyasını düzgün kapat.
+async function shutdown(signal) {
+  console.log(`${signal} alındı; kayıt servisi kapatılıyor...`);
+  if (activeRecording) {
+    if (activeRecording.maxTimer) clearTimeout(activeRecording.maxTimer);
+    try { await finishRecording('server-shutdown'); } catch (err) { console.error('Kayıt kapatma hatası:', err); }
+  }
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(1), 10000).unref();
+}
+process.once('SIGTERM', () => shutdown('SIGTERM'));
+process.once('SIGINT', () => shutdown('SIGINT'));
