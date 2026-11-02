@@ -1871,12 +1871,8 @@
 
             <div class="modal-section playlist-url-section" id="record-server-settings-section">
                 <div class="modal-section-title"><i class="fa-solid fa-cloud-arrow-up"></i> Sunucu Üzerinden Kayıt</div>
-                <label class="eq-field-label" for="record-server-url">Render servis adresi</label>
-                <input type="url" id="record-server-url" class="modal-input" placeholder="https://online-radyo-kayit.onrender.com" autocomplete="url">
-                <label class="eq-field-label" for="record-server-key" style="margin-top:9px">Kayıt sunucusu API anahtarı</label>
-                <input type="password" id="record-server-key" class="modal-input" placeholder="Render ortam değişkenine eklediğiniz anahtar" autocomplete="new-password">
-                <button class="btn btn-primary" id="record-server-save" type="button" style="width:100%;justify-content:center;margin-top:9px"><i class="fa-solid fa-floppy-disk"></i> Kayıt Sunucusu Ayarlarını Kaydet</button>
-                <small class="eq-help" id="record-server-status" style="display:block;margin-top:8px">iPad ve Safari dahil, radyo yayını sunucuda MP3 olarak kaydedilir. Durdurduğunuzda dosya cihazınıza aktarılır.</small>
+                <div class="eq-help" style="margin-top:8px;word-break:break-all"><i class="fa-solid fa-server"></i> Kayıt sunucusu: https://radyo-g3d2.onrender.com</div>
+                <small class="eq-help" id="record-server-status" style="display:block;margin-top:8px">API anahtarı gerekmez. Kayıt işlemi güvenli sunucu üzerinden yapılır; kayıt tamamlanınca MP3 cihazınızdaki Radyo Kayıtları bölümüne eklenir. Kayıt süresi en fazla 30 dakikadır.</small>
             </div>
 
             <div class="modal-section">
@@ -2126,8 +2122,15 @@
         let recordedChunks = [];
         let isRecording = false;
         let recordHeartbeatTimer = null;
-        let recordServerBase = localStorage.getItem('online_radyo_record_server_url') || '';
-        let recordServerKey = localStorage.getItem('online_radyo_record_server_key') || '';
+        let serverRecordingId = null;
+        let recordDeviceId = localStorage.getItem('online_radyo_device_id');
+        if (!recordDeviceId) {
+            recordDeviceId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('device-' + Date.now() + '-' + Math.random().toString(36).slice(2));
+            localStorage.setItem('online_radyo_device_id', recordDeviceId);
+        }
+        // Kayıt sunucusu herkese açık kullanım için yapılandırılmıştır; gizli API anahtarı tarayıcıya gönderilmez.
+        const recordServerBase = 'https://radyo-g3d2.onrender.com';
+        try { localStorage.removeItem('online_radyo_record_server_key'); } catch (_) {}
         let sleepTimerId = null;
 
         let audioCtx = null;
@@ -3002,10 +3005,9 @@
 
         // --- Sunucu üzerinden yayın kaydı (Safari/iPadOS uyumlu) ---
         async function recordServerRequest(path, options = {}) {
-            if (!recordServerBase || !recordServerKey) throw new Error('Önce Ayarlar bölümünden Render kayıt sunucusunu tanımlayın.');
             const response = await fetch(recordServerBase + path, {
                 ...options,
-                headers: { ...(options.headers || {}), 'Authorization': 'Bearer ' + recordServerKey }
+                headers: { ...(options.headers || {}), 'X-Device-ID': recordDeviceId }
             });
             if (!response.ok) {
                 let message = 'Kayıt sunucusu isteği başarısız oldu (' + response.status + ').';
@@ -3024,7 +3026,7 @@
             if (!isRecording) return;
             if (recordHeartbeatTimer) { clearInterval(recordHeartbeatTimer); recordHeartbeatTimer = null; }
             try {
-                const response = await recordServerRequest('/api/record/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+                const response = await recordServerRequest('/api/record/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: serverRecordingId }) });
                 const blob = await response.blob();
                 if (!blob || blob.size < 1024) throw new Error('Kayıt dosyası boş geldi. Radyo yayını sunucuya ulaşmamış olabilir.');
                 await saveRecording(new Blob([blob], { type: 'audio/mpeg' }), currentStation ? currentStation.name : 'Radyo Kaydı');
@@ -3034,6 +3036,7 @@
                 showToast(err.message || 'Kayıt dosyası alınamadı.', 'error', 6000);
             } finally {
                 setRecordingButtonState(false);
+                serverRecordingId = null;
             }
         }
         recordBtn.addEventListener('click', async () => {
@@ -3041,28 +3044,32 @@
                 if (!currentStation || (!currentStation.url && !currentStation.url_resolved)) {
                     showToast('Önce kaydetmek istediğiniz radyoyu açın.', 'error'); return;
                 }
-                if (!recordServerBase || !recordServerKey) {
-                    showToast('Önce Ayarlar > Sunucu Üzerinden Kayıt bölümüne Render adresini ve API anahtarını girin.', 'error', 6500); return;
-                }
                 if (recordBtn.dataset.busy === '1') return;
                 recordBtn.dataset.busy = '1';
                 try {
                     const streamUrl = currentStation.url_resolved || currentStation.url;
-                    await recordServerRequest('/api/record/start', {
+                    const startResponse = await recordServerRequest('/api/record/start', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ streamUrl, stationName: currentStation.name || 'Radyo Kaydı' })
                     });
+                    const startData = await startResponse.json();
+                    serverRecordingId = startData.id;
                     setRecordingButtonState(true);
                     showToast('Radyo yayını sunucuda kaydediliyor. Durdururken uygulamayı açık tutun.', 'success', 5000);
                     // Render Free servisi uykuya geçmesin diye kayıt sırasında düzenli istek gönder.
                     recordHeartbeatTimer = setInterval(async () => {
                         try {
-                            const response = await recordServerRequest('/api/record/status');
+                            const response = await recordServerRequest('/api/record/status?id=' + encodeURIComponent(serverRecordingId));
                             const status = await response.json();
                             if (!status.recording) {
                                 clearInterval(recordHeartbeatTimer); recordHeartbeatTimer = null;
-                                setRecordingButtonState(false);
-                                showToast('Sunucu kaydı beklenmedik şekilde sona erdi.', 'error', 5500);
+                                if (status.completed) {
+                                    showToast(status.reason || '30 dakikalık kayıt süresi tamamlandı. Kaydı durdurup cihazınıza indirebilirsiniz.', 'info', 6500);
+                                } else {
+                                    setRecordingButtonState(false);
+                                    serverRecordingId = null;
+                                    showToast('Sunucu kaydı beklenmedik şekilde sona erdi.', 'error', 5500);
+                                }
                             }
                         } catch (err) {
                             console.warn('Kayıt sunucusu kontrol edilemedi:', err);
@@ -3173,24 +3180,8 @@
         document.getElementById('settings-close-x').addEventListener('click', closeSettingsModal);
         settingsModal.addEventListener('click', (event) => { if (event.target === settingsModal) closeSettingsModal(); });
         document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && settingsModal.classList.contains('show')) closeSettingsModal(); });
-        // Sunucu üzerinden kayıt ayarları
-        const recordServerUrlInput = document.getElementById('record-server-url');
-        const recordServerKeyInput = document.getElementById('record-server-key');
+        // Kayıt sunucusu adresi uygulamaya sabittir; ziyaretçiden API anahtarı istenmez.
         const recordServerStatus = document.getElementById('record-server-status');
-        if (recordServerUrlInput) recordServerUrlInput.value = recordServerBase;
-        if (recordServerKeyInput) recordServerKeyInput.value = recordServerKey;
-        document.getElementById('record-server-save').addEventListener('click', async () => {
-            const url = (recordServerUrlInput.value || '').trim().replace(/\/+$/, '');
-            const key = (recordServerKeyInput.value || '').trim();
-            if (!/^https?:\/\//i.test(url)) { showToast('Geçerli bir Render servis adresi girin.', 'error'); return; }
-            if (key.length < 24) { showToast('API anahtarı en az 24 karakter olmalıdır.', 'error'); return; }
-            recordServerBase = url;
-            recordServerKey = key;
-            localStorage.setItem('online_radyo_record_server_url', url);
-            localStorage.setItem('online_radyo_record_server_key', key);
-            recordServerStatus.textContent = 'Ayarlar kaydedildi. Sunucu bağlantısını kontrol etmek için kayıt düğmesine basabilirsiniz.';
-            showToast('Kayıt sunucusu ayarları kaydedildi.', 'success');
-        });
 
         document.getElementById('playlist-url-add').addEventListener('click', async () => {
             const input = document.getElementById('playlist-url-input');
