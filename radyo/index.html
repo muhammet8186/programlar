@@ -2830,13 +2830,20 @@
 
 
         // GitHub Pages HTTPS sayfasında HTTP yayınlarını Render HTTPS köprüsünden aktar.
+        // Render server.js uç noktası /stream'dir ( /api/stream değil ).
         const streamProxyBase = 'https://radyo-g3d2.onrender.com';
         function getPlayableStreamUrl(url) {
             if (!url) return url;
             try {
                 const parsed = new URL(url);
                 if (parsed.protocol === 'http:') {
-                    return `${streamProxyBase}/api/stream?url=${encodeURIComponent(parsed.href)}`;
+                    // SHOUTcast v2 ana dizininde gerçek ses akışı çoğunlukla /; yolundadır.
+                    if (parsed.hostname.toLowerCase() === 'sslyayin.netyayin.net' &&
+                        (parsed.pathname === '/' || parsed.pathname === '') &&
+                        !parsed.search) {
+                        parsed.pathname = '/;';
+                    }
+                    return `${streamProxyBase}/stream?url=${encodeURIComponent(parsed.href)}`;
                 }
             } catch (e) {
                 console.warn('Yayın adresi çözümlenemedi:', e);
@@ -2870,6 +2877,8 @@
             // Bağlanıyor bildirimi göster
             showToast(`${st.name} kanalına bağlanılıyor...`, 'loading', 0);
             
+            // Proxy CORS başlıklarıyla çalışır; Web Audio / kayıt özellikleri için CORS modunu etkinleştir.
+            audioEngine.crossOrigin = 'anonymous';
             initAudioContext();
 
             if (offlineStations[st.changeuuid]) {
