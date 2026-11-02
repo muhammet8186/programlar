@@ -3744,9 +3744,11 @@
 
         async function startServerRecording() {
             const streamUrl = currentStation.url_resolved || currentStation.url;
-            await recordServerRequest('/api/record/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({streamUrl,stationName:currentStation.name || 'Radyo Kaydı'})});
+            const startResponse = await recordServerRequest('/api/record/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({streamUrl,stationName:currentStation.name || 'Radyo Kaydı'})});
+            const startInfo = await startResponse.json();
+            if (!startInfo.audioConfirmed || !startInfo.bytes) throw new Error('Sunucu kayıt dosyasına ses verisi yazdığını doğrulayamadı.');
             setRecordingButtonState(true);
-            showToast('Radyo yayını sunucuda kaydediliyor. Durdururken uygulamayı açık tutun.','success',5000);
+            showToast('Kayıt doğrulandı: sunucu ses verisi alıyor. Durdururken uygulamayı açık tutun.','success',5000);
             recordHeartbeatTimer = setInterval(async () => {
                 try {
                     const response = await recordServerRequest('/api/record/status');
