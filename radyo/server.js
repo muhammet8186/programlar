@@ -524,8 +524,8 @@ function finishRecording(reason = 'user-stop') {
     }
 
     const finalize = () => {
-        // FFmpeg close olayı finalize'dan önce rec.finished değerini
-        // değiştirebilir. Promise yine de mutlaka çözülmelidir.
+        // close olayı rec.finished'i daha önce ayarlamış olsa da
+        // finishPromise mutlaka çözümlensin.
         rec.finished = true;
 
         if (activeRecording === rec) {
@@ -535,9 +535,8 @@ function finishRecording(reason = 'user-stop') {
         lastRecording = rec;
 
         if (rec.resolveFinish) {
-            const resolve = rec.resolveFinish;
+            rec.resolveFinish(rec);
             rec.resolveFinish = null;
-            resolve(rec);
         }
     };
 
@@ -809,12 +808,52 @@ app.post('/api/record/start', (req, res) => {
         }
     }, RECORD_START_TIMEOUT);
 
-    res.json({
-        success: true,
-        message: 'Radyo kaydı başlatıldı.',
-        stationName,
-        fileName,
-        startTime: rec.startTime
+    // İstemci, kayıt dosyasına gerçekten ses yazıldığını doğrulamadan
+    // kayıt düğmesini aktif etmiyor. Bu nedenle FFmpeg'in dosya üretmesini
+    // kısa süre bekleyip doğrulanmış bilgiyi dön.
+    const verifyStarted = async () => {
+        const verifyDeadline = Date.now() + 10000;
+        while (Date.now() < verifyDeadline) {
+            if (rec.error || rec.ffmpegClosed) break;
+            try {
+                const stat = await fs.promises.stat(filePath);
+                if (stat.size >= 1024) {
+                    return res.json({
+                        success: true,
+                        audioConfirmed: true,
+                        bytes: stat.size,
+                        message: 'Radyo kaydı başladı ve ses verisi doğrulandı.',
+                        stationName,
+                        fileName,
+                        startTime: rec.startTime
+                    });
+                }
+            } catch (_) {}
+            await new Promise(resolve => setTimeout(resolve, 250));
+        }
+
+        const detail = rec.stderr || rec.error ||
+            (rec.ffmpegClosed ? `FFmpeg kapandı (kod: ${rec.exitCode}, sinyal: ${rec.signal || 'yok'}).` : 'Kayıt dosyasına yeterli ses verisi yazılamadı.');
+        console.error('Kayıt başlatma doğrulanamadı:', detail);
+        if (activeRecording === rec) {
+            await finishRecording('start-verification-failed');
+        }
+        return res.status(502).json({
+            success: false,
+            audioConfirmed: false,
+            error: 'Yayın ses verisi alınamadı. Kayıt başlatılamadı.',
+            detail
+        });
+    };
+
+    verifyStarted().catch(err => {
+        console.error('Kayıt doğrulama hatası:', err);
+        if (!res.headersSent) res.status(500).json({
+            success: false,
+            audioConfirmed: false,
+            error: 'Kayıt başlatma doğrulaması başarısız.',
+            detail: err.message
+        });
     });
 });
 
