@@ -990,9 +990,21 @@ app.post(
                 'audio/mpeg'
             );
 
+            // Content-Disposition başlığında Türkçe/Unicode karakterler
+            // doğrudan kullanılamaz. ASCII fallback ve RFC 5987 filename*
+            // birlikte gönderilerek tüm tarayıcılarda indirme desteklenir.
+            const safeAsciiName = String(rec.fileName || 'radyo-kaydi.mp3')
+                .replace(/[^\x20-\x7E]/g, '_')
+                .replace(/["\\;]/g, '_');
+            const utf8FileName = encodeURIComponent(
+                String(rec.fileName || 'radyo-kaydi.mp3')
+            ).replace(/[!'()*]/g, char =>
+                '%' + char.charCodeAt(0).toString(16).toUpperCase()
+            );
+
             res.setHeader(
                 'Content-Disposition',
-                `attachment; filename="${rec.fileName}"`
+                `attachment; filename="${safeAsciiName}"; filename*=UTF-8''${utf8FileName}`
             );
 
             res.setHeader(
