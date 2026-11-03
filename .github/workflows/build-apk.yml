@@ -1,3 +1,4 @@
+
 name: HTML to Android APK
 
 on:
@@ -9,14 +10,10 @@ on:
         type: string
         default: Yeni Uygulamam
       package_id:
-        description: Benzersiz paket kimliği (örn. com.muhammet.uygulama)
+        description: Benzersiz paket kimliği (ör. com.muhammet.uygulama)
         required: true
         type: string
         default: com.muhammet.yeniuygulamam
-  push:
-    paths:
-      - 'webapp/**'
-      - '.github/workflows/build-apk.yml'
 
 permissions:
   contents: read
@@ -24,9 +21,10 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 40
+
     steps:
-      - name: Kaynak kodu indir
+      - name: Kaynak kodunu indir
         uses: actions/checkout@v4
 
       - name: Java 17 kur
@@ -35,46 +33,80 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Node.js kur
+      - name: Node.js 20 kur
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Android SDK kur ve lisansları kabul et
+      - name: Android SDK kur
         uses: android-actions/setup-android@v3
+          with:
+            accept-android-sdk-licenses: true
 
-      - name: Android API 35 kur
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Android SDK lisanslarını otomatik kabul et
+        run: yes | sdkmanager --licenses
 
-      - name: Web içeriğini doğrula
+      - name: Android SDK paketlerini kur
         run: |
-          test -f webapp/index.html || (echo "webapp/index.html bulunamadı. HTML dosyanı webapp klasörüne index.html adıyla koy." && exit 1)
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0"
+
+      - name: HTML dosyasını kontrol et
+        run: |
+          if [ ! -f "webapp/index.html" ]; then
+            echo "HATA: webapp/index.html bulunamadı!"
+            echo "HTML dosyan webapp klasöründe olmalıdır."
+            exit 1
+          fi
 
       - name: Capacitor projesini oluştur
         run: |
           mkdir -p build-src/www
-          cp -R webapp/. build-src/www/
+          cp -r webapp/* build-src/www/
+
           cd build-src
           npm init -y
-          npm install @capacitor/core@6 @capacitor/android@6
-          npm install --save-dev @capacitor/cli@6
-          node -e "const fs=require('fs'); const appName=(process.env.APP_NAME||'Yeni Uygulamam').replace(/[\\\\/:*?\"<>|]/g,' ').slice(0,50); const appId=process.env.APP_ID||'com.muhammet.yeniuygulamam'; fs.writeFileSync('capacitor.config.json',JSON.stringify({appId,appName,webDir:'www'},null,2))"
+
+          npm install @capacitor/core @capacitor/android
+          npm install --save-dev @capacitor/cli
+
+          node -e "
+          const fs = require('fs');
+          const appName = process.env.APP_NAME || 'Yeni Uygulamam';
+          const appId = process.env.APP_ID || 'com.muhammet.yeniuygulamam';
+
+          fs.writeFileSync(
+            'capacitor.config.json',
+            JSON.stringify({
+              appId: appId,
+              appName: appName,
+              webDir: 'www',
+              bundledWebRuntime: false
+            }, null, 2)
+          );
+          "
+        env:
+          APP_NAME: ${{ inputs.app_name }}
+          APP_ID: ${{ inputs.package_id }}
+
+      - name: Android projesini oluştur
+        run: |
+          cd build-src
           npx cap add android
           npx cap sync android
-        env:
-          APP_NAME: ${{ inputs.app_name || 'Yeni Uygulamam' }}
-          APP_ID: ${{ inputs.package_id || 'com.muhammet.yeniuygulamam' }}
 
-      - name: Debug APK derle
+      - name: APK derle
         run: |
           cd build-src/android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: APK dosyasını artifact olarak yükle
+      - name: APK dosyasını yükle
         uses: actions/upload-artifact@v4
         with:
-          name: android-debug-apk
+          name: android-apk
           path: build-src/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
