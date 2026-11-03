@@ -60,6 +60,12 @@ try {
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
+// PWA ikonlarını Render üzerinde sun.
+app.use('/icons', express.static(path.join(__dirname, 'icons'), {
+    fallthrough: false,
+    maxAge: '7d'
+}));
+
 // --------------------------------------------------
 // ANA SAYFA VE PWA
 // --------------------------------------------------
