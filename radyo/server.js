@@ -367,74 +367,6 @@ function proxyStream(
     });
 }
 
-// GET harici M3U/PLS listesi (tarayıcı CORS kısıtlamasını sunucu tarafında aşar)
-app.get('/api/playlist', async (req, res) => {
-    const rawUrl = String(req.query.url || '').trim();
-    let playlistUrl;
-
-    try {
-        playlistUrl = new URL(rawUrl);
-        if (!['http:', 'https:'].includes(playlistUrl.protocol)) {
-            return res.status(400).json({ error: 'Yalnızca HTTP veya HTTPS liste adresleri desteklenir.' });
-        }
-    } catch (_) {
-        return res.status(400).json({ error: 'Geçerli bir liste URL’si gönderilmedi.' });
-    }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
-
-    try {
-        const response = await fetch(playlistUrl.href, {
-            method: 'GET',
-            redirect: 'follow',
-            cache: 'no-store',
-            signal: controller.signal,
-            headers: {
-                'User-Agent': 'Radyo-Playlist-Loader/1.0',
-                'Accept': 'audio/x-mpegurl, application/vnd.apple.mpegurl, audio/mpegurl, text/plain, */*'
-            }
-        });
-
-        if (!response.ok) {
-            return res.status(response.status).json({ error: `Liste sunucusu HTTP ${response.status} yanıtı verdi.` });
-        }
-
-        const finalUrl = new URL(response.url || playlistUrl.href);
-        if (!['http:', 'https:'].includes(finalUrl.protocol)) {
-            return res.status(400).json({ error: 'Liste yönlendirmesi güvenli olmayan bir protokole ulaştı.' });
-        }
-
-        const declaredLength = Number(response.headers.get('content-length') || 0);
-        const MAX_PLAYLIST_BYTES = 8 * 1024 * 1024;
-        if (declaredLength > MAX_PLAYLIST_BYTES) {
-            return res.status(413).json({ error: 'Kanal listesi 8 MB sınırını aşıyor.' });
-        }
-
-        const body = await response.arrayBuffer();
-        if (body.byteLength > MAX_PLAYLIST_BYTES) {
-            return res.status(413).json({ error: 'Kanal listesi 8 MB sınırını aşıyor.' });
-        }
-
-        const playlistText = Buffer.from(body).toString('utf8');
-        if (!playlistText.trim()) {
-            return res.status(422).json({ error: 'Liste içeriği boş.' });
-        }
-
-        res.set('Content-Type', 'text/plain; charset=utf-8');
-        res.set('Cache-Control', 'no-store');
-        res.set('X-Playlist-Source', finalUrl.hostname);
-        return res.send(playlistText);
-    } catch (error) {
-        const message = error.name === 'AbortError'
-            ? 'Kanal listesi bağlantısı 12 saniyede yanıt vermedi.'
-            : 'Kanal listesi sunucudan alınamadı.';
-        return res.status(502).json({ error: message });
-    } finally {
-        clearTimeout(timeout);
-    }
-});
-
 // GET yayın
 app.get('/stream', (req, res) => {
     const streamUrl = req.query.url;
@@ -499,4 +431,128 @@ app.head('/stream', (req, res) => {
     proxyReq.on('error', () => {
         if (!res.headersSent) {
             res.status(502).end();
-      
+        }
+    });
+
+    proxyReq.on('timeout', () => {
+        proxyReq.destroy();
+    });
+
+    proxyReq.end();
+});
+
+// --------------------------------------------------
+// KAYIT SİSTEMİ
+// --------------------------------------------------
+
+let activeRecording = null;
+let lastRecording = null;
+
+// Güvenli dosya adı oluştur
+function createFileName(stationName) {
+    const safeName = String(
+        stationName || 'Radyo'
+    )
+        .replace(
+            /[<>:"/\\|?*\x00-\x1F]/g,
+            '_'
+        )
+        .replace(/\s+/g, ' ')
+        .trim()
+        .substring(0, 100) || 'Radyo';
+
+    const now = new Date();
+
+    const date = [
+        now.getFullYear(),
+        String(
+            now.getMonth() + 1
+        ).padStart(2, '0'),
+        String(
+            now.getDate()
+        ).padStart(2, '0')
+    ].join('-');
+
+    const time = [
+        String(
+            now.getHours()
+        ).padStart(2, '0'),
+        String(
+            now.getMinutes()
+        ).padStart(2, '0'),
+        String(
+            now.getSeconds()
+        ).padStart(2, '0')
+    ].join('-');
+
+    return `${safeName}_${date}_${time}.mp3`;
+}
+
+// --------------------------------------------------
+// KAYIT TAMAMLAMA
+// --------------------------------------------------
+
+function finishRecording(reason = 'user-stop') {
+    const rec = activeRecording;
+
+    if (!rec) {
+        return Promise.resolve(
+            lastRecording || null
+        );
+    }
+
+    // Daha önce durdurma başladıysa aynı işlemi bekle.
+    if (rec.finishPromise) {
+        return rec.finishPromise;
+    }
+
+    rec.finishing = true;
+    rec.finishReason = reason;
+
+    rec.finishPromise = new Promise(resolve => {
+        rec.resolveFinish = resolve;
+    });
+
+    if (rec.maxTimer) {
+        clearTimeout(rec.maxTimer);
+        rec.maxTimer = null;
+    }
+
+    if (rec.startTimer) {
+        clearTimeout(rec.startTimer);
+        rec.startTimer = null;
+    }
+
+    const finalize = () => {
+        // close olayı rec.finished'i daha önce ayarlamış olsa da
+        // finishPromise mutlaka çözümlensin.
+        rec.finished = true;
+
+        if (activeRecording === rec) {
+            activeRecording = null;
+        }
+
+        lastRecording = rec;
+
+        if (rec.resolveFinish) {
+            rec.resolveFinish(rec);
+            rec.resolveFinish = null;
+        }
+    };
+
+    if (!rec.ffmpeg || rec.ffmpegClosed) {
+        finalize();
+        return rec.finishPromise;
+    }
+
+    // FFmpeg zaten kapanıyorsa close olayını bekle.
+    try {
+        rec.ffmpeg.kill('SIGINT');
+    } catch (err) {
+        console.error(
+            'FFmpeg durdurma hatası:',
+            err.message
+        );
+    }
+
+    // SIGINT yanıt vermezse z
