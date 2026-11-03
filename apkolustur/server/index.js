@@ -11,6 +11,17 @@ const PORT = process.env.PORT || 3000;
 const ROOT = path.join(os.tmpdir(), 'apk-builder-jobs');
 fs.mkdirSync(ROOT, { recursive: true });
 
+app.use((req, res, next) => {
+  const origin = req.headers.origin || '';
+  if (origin.endsWith('.github.io') || origin === 'http://localhost:3000' || origin === 'https://localhost:3000') {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
 app.use(express.static(path.join(__dirname, '..', 'public')));
 const upload = multer({
   dest: path.join(ROOT, 'uploads'),
@@ -114,5 +125,5 @@ app.post('/api/build', upload.single('project'), async (req, res) => {
   }
 });
 
-app.get('/api/health', (_, res) => res.json({ ok: true, service: 'Kendi APK Oluşturucumuz', version: '0.1.0' }));
+app.get('/api/health', (_, res) => res.json({ ok: true, service: 'Kendi APK Oluşturucumuz', version: '0.2.0', java: process.env.JAVA_HOME || null, androidSdk: process.env.ANDROID_HOME || null }));
 app.listen(PORT, '0.0.0.0', () => console.log(`APK oluşturucu çalışıyor: http://0.0.0.0:${PORT}`));
