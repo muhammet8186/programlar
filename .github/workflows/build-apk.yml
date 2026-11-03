@@ -10,7 +10,7 @@ on:
         type: string
         default: Yeni Uygulamam
       package_id:
-        description: Paket kimligi (or. com.muhammet.uygulama)
+        description: Paket kimligi (or. com.muhammet.yeniuygulamam)
         required: true
         type: string
         default: com.muhammet.yeniuygulamam
@@ -21,7 +21,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 45
 
     steps:
       - name: Kaynak kodunu indir
@@ -38,11 +38,15 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Android SDK kur
-        uses: android-actions/setup-android@v3
+      - name: Android SDK ortamini hazirla
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
 
       - name: Android SDK lisanslarini kabul et
-        run: yes | sdkmanager --licenses
+        run: |
+          mkdir -p "$ANDROID_HOME/licenses"
+          yes | sdkmanager --licenses || true
 
       - name: Android SDK paketlerini kur
         run: |
@@ -54,6 +58,7 @@ jobs:
         run: |
           if [ ! -f "webapp/index.html" ]; then
             echo "HATA: webapp/index.html bulunamadi!"
+            echo "HTML dosyasi webapp klasorunde olmali."
             exit 1
           fi
 
@@ -79,13 +84,13 @@ jobs:
           APP_NAME: ${{ inputs.app_name }}
           APP_ID: ${{ inputs.package_id }}
 
-      - name: Android projesini olustur
+      - name: Capacitor Android projesini olustur
         run: |
           cd build-src
           npx cap add android
           npx cap sync android
 
-      - name: APK derle
+      - name: Gradle ile APK derle
         run: |
           cd build-src/android
           chmod +x gradlew
