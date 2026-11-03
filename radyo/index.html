@@ -2347,7 +2347,6 @@
         let biquadFilter = null;
         let eqMidFilter = null;
         let eqTrebleFilter = null;
-        let audioCompressor = null;
         let eqValues = JSON.parse(localStorage.getItem('symphony_eq') || '{"bass":0,"mid":0,"treble":0}');
         let visualizerStyle = localStorage.getItem('symphony_visualizer_style') || 'bars';
         let visualizerEnabled = localStorage.getItem('symphony_visualizer_enabled') !== 'false';
@@ -3057,21 +3056,11 @@
                     eqTrebleFilter.type = 'highshelf';
                     eqTrebleFilter.frequency.value = 4000;
 
-                    // JBL/Bluetooth hoparlörlerde radyo sesini daha dengeli
-                    // ve kayıt önizlemesine yakın algılanır kılmak için hafif dinamik sıkıştırma.
-                    audioCompressor = audioCtx.createDynamicsCompressor();
-                    audioCompressor.threshold.value = -18;
-                    audioCompressor.knee.value = 12;
-                    audioCompressor.ratio.value = 3;
-                    audioCompressor.attack.value = 0.004;
-                    audioCompressor.release.value = 0.22;
-
                     sourceNode = audioCtx.createMediaElementSource(audioEngine);
                     sourceNode.connect(biquadFilter);
                     biquadFilter.connect(eqMidFilter);
                     eqMidFilter.connect(eqTrebleFilter);
-                    eqTrebleFilter.connect(audioCompressor);
-                    audioCompressor.connect(analyser);
+                    eqTrebleFilter.connect(analyser);
                     analyser.connect(audioCtx.destination);
                     // Safari'de HTMLMediaElement.captureStream bulunmayabilir.
                     // Web Audio çıkışını ayrıca MediaRecorder için kullanılabilir bir akışa bağla.
@@ -3967,22 +3956,8 @@
             const addButton = document.getElementById('playlist-url-add');
             addButton.disabled = true;
             try {
-                const controller = new AbortController();
-                const requestTimeout = setTimeout(() => controller.abort(), 15000);
-                let response;
-                try {
-                    response = await fetch(`${recordServerBase}/api/playlist?url=${encodeURIComponent(parsedUrl.href)}`, {
-                        cache: 'no-store',
-                        signal: controller.signal
-                    });
-                } finally {
-                    clearTimeout(requestTimeout);
-                }
-                if (!response.ok) {
-                    let detail = '';
-                    try { detail = (await response.json()).error || ''; } catch (_) {}
-                    throw new Error(detail || ('HTTP ' + response.status));
-                }
+                const response = await fetch(parsedUrl.href, { cache: 'no-store' });
+                if (!response.ok) throw new Error('HTTP ' + response.status);
                 const playlistText = await response.text();
                 const parsed = parseM3U(playlistText);
                 if (!parsed.length) throw new Error('Bu bağlantıda okunabilir M3U kanal bulunamadı.');
@@ -4001,8 +3976,8 @@
                 showToast(`${normalized.length} kanal listene eklendi.`, 'success');
             } catch (err) {
                 console.error('Harici kanal listesi yüklenemedi:', err);
-                status.textContent = 'Liste yüklenemedi: ' + (err.message || 'Sunucu bağlantısını kontrol edin.');
-                showToast('Kanal listesi okunamadı: ' + (err.message || 'Bağlantıyı kontrol edin.'), 'error', 6000);
+                status.textContent = 'Liste yüklenemedi. Bağlantının herkese açık ve CORS erişimine izin veriyor olduğundan emin olun.';
+                showToast('Kanal listesi okunamadı. URL veya sunucu CORS iznini kontrol edin.', 'error', 5000);
             } finally {
                 addButton.disabled = false;
             }
