@@ -20,3 +20,12 @@ Docker image içinde Node 20, JDK 17, Android command-line tools, platform 34 ve
 
 ## Güvenlik
 Bu MVP dosya yüklemelerini derleme sunucusunda işler. Sadece güvendiğiniz HTML/ZIP dosyalarını yükleyin. Üretim ortamında auth, rate limit, dosya tarama ve job temizleme eklenmelidir.
+
+
+## Bu sürümde düzeltme
+- `npx cap` yerine proje içindeki `node_modules/.bin/cap` doğrudan çağrılır. Böylece Render'daki `npm error could not determine executable to run` hatası önlenir.
+- Render servisi Docker runtime ile çalışmalıdır; Dockerfile Java 17 ve Android SDK'yı kurar.
+- Render Root Directory: boş (repo kökü `programlar`)
+- Dockerfile Path: `./apkolustur/Dockerfile`
+- Docker Context: `./apkolustur`
+- Health Check Path: `/api/health`
