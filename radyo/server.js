@@ -524,10 +524,8 @@ function finishRecording(reason = 'user-stop') {
     }
 
     const finalize = () => {
-        if (rec.finished) {
-            return;
-        }
-
+        // FFmpeg close olayı finalize'dan önce rec.finished değerini
+        // değiştirebilir. Promise yine de mutlaka çözülmelidir.
         rec.finished = true;
 
         if (activeRecording === rec) {
@@ -537,8 +535,9 @@ function finishRecording(reason = 'user-stop') {
         lastRecording = rec;
 
         if (rec.resolveFinish) {
-            rec.resolveFinish(rec);
+            const resolve = rec.resolveFinish;
             rec.resolveFinish = null;
+            resolve(rec);
         }
     };
 
