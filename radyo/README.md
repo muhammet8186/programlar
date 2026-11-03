@@ -1,29 +1,27 @@
-# Online Radyo - Ücretsiz Render Kayıt Sunucusu
+ONLINE RADYO SUNUCU 3.5.2 - RENDER KURULUM
 
-Bu servis radyo akışını sunucuda FFmpeg ile MP3 olarak kaydeder. Durdurulduğunda MP3 dosyasını tarayıcıya gönderir; uygulama dosyayı cihazın IndexedDB kayıtlarına kaydeder.
+Bu arşiv kök dizine göre düzenlenmiştir. ZIP'i GitHub deposuna yüklerken
+server.js, package.json ve Radyo.html dosyaları depo kökünde bulunmalıdır.
 
-## GitHub'a ekleme
+Render ayarları:
+- New + Web Service
+- GitHub deposunu seç
+- Runtime: Node
+- Build Command: npm install
+- Start Command: npm start
+- Health Check Path: /health
+- Node sürümü: 20 (render.yaml bunu tanımlar)
 
-Bu klasörü `muhammet8186/programlar` deposunun köküne `online-radyo-kayit-sunucusu` adıyla yükleyin.
+Render otomatik deploy için render.yaml dosyasını kullanabilir. Elle kurulumda
+aynı komutları girin.
 
-## Render kurulumu
+Önemli:
+- Render'da RECORD_ALLOWED_HOSTS ve STREAM_PROXY_ALLOWED_HOSTS ortam
+  değişkenlerini yayın kaynağınızın gerçek hostname'ine göre ayarlayın.
+- ffmpeg-static npm kurulumu sırasında platforma uygun FFmpeg ikilisini indirir.
+- Render Free servis uykuya geçebilir; sürekli yayın/kayıt için ücretli ve
+  uygun disk/çalışma planı gerekebilir.
+- Render'ın geçici dosya sistemi kalıcı değildir. Kayıtların kalıcı olması için
+  Render Persistent Disk bağlayıp RECORDINGS_DIR veya RENDER_DISK_PATH ayarlayın.
+- / ve /health adresleri servis durumunu JSON olarak döndürür.
 
-1. Render Dashboard > New > Web Service.
-2. `muhammet8186/programlar` deposunu seçin.
-3. Root Directory: `online-radyo-kayit-sunucusu`.
-4. Runtime: Docker.
-5. Plan: Free.
-6. Environment Variables bölümüne `RECORD_API_KEY` ekleyin. En az 32 karakterlik rastgele bir anahtar kullanın; bu anahtarı kimseyle paylaşmayın.
-7. Deploy edin. Servis adresiniz `https://...onrender.com` şeklinde olur.
-
-## Online Radyo ayarı
-
-Uygulama > Ayarlar > Sunucu Üzerinden Kayıt bölümüne Render servis adresini ve aynı API anahtarını girip kaydedin. Ardından radyoyu çalarken kayıt düğmesini kullanın.
-
-## Ücretsiz plan uyarısı
-
-Render Free kalıcı disk sunmaz. Bu nedenle sunucudaki geçici MP3, indirme tamamlanınca silinir. Uygulama dosyayı cihazdaki Radyo Kayıtları alanına kaydeder. Kayıt sırasında uygulamayı açık tutun; servis uykuya geçmesin diye uygulama yaklaşık 25 saniyede bir durum kontrolü gönderir. Uzun kayıtlar ücretsiz plandaki kaynak ve bağlantı sınırlarına takılabilir.
-
-## Güvenlik
-
-API anahtarı olmadan kayıt başlatılamaz. Yalnızca herkese açık HTTP/HTTPS akışları kabul edilir; yerel/özel ağ adresleri engellenir. Kayıt servisini yalnızca yetkili olduğunuz yayınlar için kullanın.
