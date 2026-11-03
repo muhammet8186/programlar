@@ -5,12 +5,12 @@ on:
   workflow_dispatch:
     inputs:
       app_name:
-        description: Android uygulama adı
+        description: Android uygulama adi
         required: true
         type: string
         default: Yeni Uygulamam
       package_id:
-        description: Benzersiz paket kimliği (ör. com.muhammet.uygulama)
+        description: Paket kimligi (or. com.muhammet.uygulama)
         required: true
         type: string
         default: com.muhammet.yeniuygulamam
@@ -40,31 +40,27 @@ jobs:
 
       - name: Android SDK kur
         uses: android-actions/setup-android@v3
-          with:
-            accept-android-sdk-licenses: true
 
-      - name: Android SDK lisanslarını otomatik kabul et
+      - name: Android SDK lisanslarini kabul et
         run: yes | sdkmanager --licenses
 
       - name: Android SDK paketlerini kur
         run: |
-          sdkmanager --install \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
+          sdkmanager "platform-tools"
+          sdkmanager "platforms;android-35"
+          sdkmanager "build-tools;35.0.0"
 
-      - name: HTML dosyasını kontrol et
+      - name: HTML dosyasini kontrol et
         run: |
           if [ ! -f "webapp/index.html" ]; then
-            echo "HATA: webapp/index.html bulunamadı!"
-            echo "HTML dosyan webapp klasöründe olmalıdır."
+            echo "HATA: webapp/index.html bulunamadi!"
             exit 1
           fi
 
-      - name: Capacitor projesini oluştur
+      - name: Capacitor projesini olustur
         run: |
           mkdir -p build-src/www
-          cp -r webapp/* build-src/www/
+          cp -r webapp/. build-src/www/
 
           cd build-src
           npm init -y
@@ -72,26 +68,18 @@ jobs:
           npm install @capacitor/core @capacitor/android
           npm install --save-dev @capacitor/cli
 
-          node -e "
-          const fs = require('fs');
-          const appName = process.env.APP_NAME || 'Yeni Uygulamam';
-          const appId = process.env.APP_ID || 'com.muhammet.yeniuygulamam';
-
-          fs.writeFileSync(
-            'capacitor.config.json',
-            JSON.stringify({
-              appId: appId,
-              appName: appName,
-              webDir: 'www',
-              bundledWebRuntime: false
-            }, null, 2)
-          );
-          "
+          cat > capacitor.config.json <<EOF
+          {
+            "appId": "${APP_ID}",
+            "appName": "${APP_NAME}",
+            "webDir": "www"
+          }
+          EOF
         env:
           APP_NAME: ${{ inputs.app_name }}
           APP_ID: ${{ inputs.package_id }}
 
-      - name: Android projesini oluştur
+      - name: Android projesini olustur
         run: |
           cd build-src
           npx cap add android
@@ -103,7 +91,7 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: APK dosyasını yükle
+      - name: APK dosyasini yukle
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
