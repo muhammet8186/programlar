@@ -2347,6 +2347,7 @@
         let biquadFilter = null;
         let eqMidFilter = null;
         let eqTrebleFilter = null;
+        let audioCompressor = null;
         let eqValues = JSON.parse(localStorage.getItem('symphony_eq') || '{"bass":0,"mid":0,"treble":0}');
         let visualizerStyle = localStorage.getItem('symphony_visualizer_style') || 'bars';
         let visualizerEnabled = localStorage.getItem('symphony_visualizer_enabled') !== 'false';
@@ -3056,11 +3057,21 @@
                     eqTrebleFilter.type = 'highshelf';
                     eqTrebleFilter.frequency.value = 4000;
 
+                    // Hafif dinamik ses kontrolü: yayınların ani seviye farklarını
+                    // yumuşatır; agresif sıkıştırma ve yapay bas yükseltmesi uygulanmaz.
+                    audioCompressor = audioCtx.createDynamicsCompressor();
+                    audioCompressor.threshold.value = -18;
+                    audioCompressor.knee.value = 12;
+                    audioCompressor.ratio.value = 2;
+                    audioCompressor.attack.value = 0.006;
+                    audioCompressor.release.value = 0.22;
+
                     sourceNode = audioCtx.createMediaElementSource(audioEngine);
                     sourceNode.connect(biquadFilter);
                     biquadFilter.connect(eqMidFilter);
                     eqMidFilter.connect(eqTrebleFilter);
-                    eqTrebleFilter.connect(analyser);
+                    eqTrebleFilter.connect(audioCompressor);
+                    audioCompressor.connect(analyser);
                     analyser.connect(audioCtx.destination);
                     // Safari'de HTMLMediaElement.captureStream bulunmayabilir.
                     // Web Audio çıkışını ayrıca MediaRecorder için kullanılabilir bir akışa bağla.
