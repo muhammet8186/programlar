@@ -232,35 +232,6 @@
             gap: 10px;
         }
 
-        /* Masaüstünde üst kontrol butonlarını sol tarafta birleşik grup yap.
-           Mobil düzen mevcut haliyle korunur. */
-        @media (min-width: 641px) {
-            .app-container > header { position: relative; }
-            .app-container > header .header-controls {
-                order: -1;
-                margin-right: 18px;
-                margin-left: 0;
-                gap: 0;
-                padding: 4px;
-                border: 1px solid var(--border-color);
-                border-radius: 14px;
-                background: var(--bg-surface);
-                box-shadow: var(--card-shadow);
-            }
-            .app-container > header .header-controls .btn {
-                border-radius: 9px;
-                border-color: transparent;
-                background: transparent;
-                box-shadow: none;
-            }
-            .app-container > header .header-controls .btn + .btn {
-                margin-left: 2px;
-            }
-            .app-container > header .header-controls .btn:hover {
-                background: var(--bg-surface-hover);
-            }
-        }
-
         .btn {
             padding: 12px 18px;
             border-radius: 24px;
@@ -4232,7 +4203,18 @@
             fullscreenPlayer.classList.remove('show');
             fullscreenPlayer.setAttribute('aria-hidden', 'true');
         };
-        document.getElementById('fullscreen-player-btn').addEventListener('click', openFullscreenPlayer);
+        document.getElementById('fullscreen-player-btn').addEventListener('click', async () => {
+            openFullscreenPlayer();
+            // Android/Chrome destekliyorsa gerçek tarayıcı tam ekranını kullanıcı dokunuşuyla iste.
+            try {
+                const root = document.documentElement;
+                if (!document.fullscreenElement && root.requestFullscreen) {
+                    await root.requestFullscreen({ navigationUI: 'hide' });
+                }
+            } catch (err) {
+                console.info('Tarayıcı tam ekran isteği desteklenmedi:', err?.message || err);
+            }
+        });
         document.getElementById('fullscreen-close').addEventListener('click', closeFullscreenPlayer);
         document.getElementById('fullscreen-prev').addEventListener('click', () => changeChannel(-1));
         document.getElementById('fullscreen-next').addEventListener('click', () => changeChannel(1));
