@@ -390,19 +390,17 @@ app.post('/api/record/start', (req, res) => {
 
     const filePath = path.join(dataDir, filename);
 
+    // FFmpeg parametreleri — düzeltilmiş
     const args = [
         '-y',
         '-i', streamUrl,
         '-vn',
         '-codec:a', 'libmp3lame',
         '-b:a', '192k',
-        '-ar', '44100,
+        '-ar', '44100',
         '-ac', '2',
         filePath
     ];
-
-    // FFmpeg parametreleri
-    args[args.indexOf('-ar') + 1] = '44100';
 
     const ffmpeg = spawn(ffmpegPath, args);
 
