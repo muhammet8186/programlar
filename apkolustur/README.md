@@ -1,14 +1,22 @@
-# Kendi APK Oluşturucumuz (MVP)
+# Kendi APK Oluşturucumuz (0.2.0)
 
-## Render kurulumu
-Bu klasör GitHub deposunda `apkolustur` adıyla yer alıyorsa Render ayarları:
-- Root Directory: `apkolustur`
-- Build Command: `npm install`
-- Start Command: `npm start`
+## Repo içi konum
+Bu klasör `programlar/apkolustur` altında tutulur. Render servisini Docker runtime ile oluşturun.
 
-Eğer `package.json` doğrudan depo kökündeyse Root Directory boş bırakılır; Start Command yine `npm start` olur.
+## Render ayarı
+- Runtime: Docker
+- Dockerfile Path (repo kökünden): `apkolustur/Dockerfile`
+- Docker Context: `apkolustur`
+- Health Check Path: `/api/health`
+- Plan: APK derleme için en az 2 GB RAM önerilir; Render free instance APK derleme için uygun değildir.
 
-`start.js`, `server/index.js` giriş dosyasını olası klasörlerde arar ve bulunamazsa denediği yolları loga yazar.
+Eğer Render servisi bu klasörün Root Directory'sini kullanacak şekilde oluşturulduysa Dockerfile Path `Dockerfile`, Docker Context `.` olmalıdır.
 
-## Önemli APK derleme notu
-Bu Node.js web servisi arayüzü sunar. APK oluşturma endpoint'i Capacitor ve Gradle çalıştırır; bunun için sunucuda Java JDK, Android SDK (platform-tools/build-tools/platform) ve unzip kurulu olmalıdır. Render'ın standart Node runtime'ında Android SDK hazır değildir. Bu nedenle web servisinin açılması, APK derlemesinin otomatik olarak çalışacağı anlamına gelmez. Güvenilir APK derlemesi için Android araçlarını içeren Docker ortamı veya GitHub Actions derleme iş akışı gerekir.
+## GitHub Pages arayüzü
+`public/index.html` API çağrısını `https://apk-olustur.onrender.com` adresine gönderir. Render servisi CORS için `*.github.io` kaynaklarına izin verir.
+
+## Gereksinimler
+Docker image içinde Node 20, JDK 17, Android command-line tools, platform 34 ve build-tools 34 kurulmaktadır. İlk Docker build büyük ve uzun sürebilir.
+
+## Güvenlik
+Bu MVP dosya yüklemelerini derleme sunucusunda işler. Sadece güvendiğiniz HTML/ZIP dosyalarını yükleyin. Üretim ortamında auth, rate limit, dosya tarama ve job temizleme eklenmelidir.

@@ -18,4 +18,5 @@ if (!entry) {
   console.error('Dizin içeriği:', fs.readdirSync(process.cwd()).join(', '));
   process.exit(1);
 }
-console.log('Sunucu giriş dosyası bulundu:', entry);require(entry);
+console.log('Sunucu giriş dosyası bulundu:', entry);
+require(entry);
