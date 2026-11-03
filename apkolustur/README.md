@@ -1,34 +1,14 @@
-# Kendi APK Oluşturucumuz — MVP
+# Kendi APK Oluşturucumuz (MVP)
 
-Bu proje, HTML dosyasını yükleyip Android **debug APK** üretmeye yönelik ilk sürümdür.
+## Render kurulumu
+Bu klasör GitHub deposunda `apkolustur` adıyla yer alıyorsa Render ayarları:
+- Root Directory: `apkolustur`
+- Build Command: `npm install`
+- Start Command: `npm start`
 
-## Gereksinimler
-- Node.js 20+
-- Java JDK 17
-- Android SDK (platform-tools, build-tools, Android platform)
-- `ANDROID_HOME` veya `ANDROID_SDK_ROOT` değişkeni
-- Linux üzerinde `unzip`, `zip`, `git` araçları
+Eğer `package.json` doğrudan depo kökündeyse Root Directory boş bırakılır; Start Command yine `npm start` olur.
 
-> APK derleme işlemi ilk çalıştırmada Capacitor ve Android Gradle bağımlılıklarını indirir.
-> Bu MVP, güvenlik nedeniyle herkese açık internete doğrudan açılmamalıdır. Önce LAN içinde test edin.
-> Yüklenen dosyaları izole bir kullanıcı/container altında derlemek üretim için önerilir.
+`start.js`, `server/index.js` giriş dosyasını olası klasörlerde arar ve bulunamazsa denediği yolları loga yazar.
 
-## Kurulum
-```bash
-npm install
-npm start
-```
-Ardından `http://SUNUCU_IP:3000` adresini açın.
-
-## Kullanım
-1. HTML dosyası (`.html`) veya web projesi ZIP'i yükleyin.
-2. Uygulama adını girin.
-3. Paket kimliğini (ör. `com.ornek.hizlisatis`) girin.
-4. **APK Oluştur** düğmesine basın.
-5. Derleme başarılı olursa debug APK indirme bağlantısı görünür.
-
-## Bilinen sınırlar
-- Bu sürüm yalnızca **debug APK** üretir; Play Store için imzalı release/AAB henüz yok.
-- Uygulama simgesi, splash screen, izinler ve imzalama sonraki sürüme eklenecek.
-- Derleme sunucusunda Android SDK/JDK kurulu değilse APK üretimi çalışmaz.
-- ZIP içindeki `index.html` kök dizinde bulunmalı (veya tek bir üst klasör içinde olmalı).
+## Önemli APK derleme notu
+Bu Node.js web servisi arayüzü sunar. APK oluşturma endpoint'i Capacitor ve Gradle çalıştırır; bunun için sunucuda Java JDK, Android SDK (platform-tools/build-tools/platform) ve unzip kurulu olmalıdır. Render'ın standart Node runtime'ında Android SDK hazır değildir. Bu nedenle web servisinin açılması, APK derlemesinin otomatik olarak çalışacağı anlamına gelmez. Güvenilir APK derlemesi için Android araçlarını içeren Docker ortamı veya GitHub Actions derleme iş akışı gerekir.
