@@ -1,1 +1,80 @@
-.
+name: HTML to Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_name:
+        description: Android uygulama adı
+        required: true
+        type: string
+        default: Yeni Uygulamam
+      package_id:
+        description: Benzersiz paket kimliği (örn. com.muhammet.uygulama)
+        required: true
+        type: string
+        default: com.muhammet.yeniuygulamam
+  push:
+    paths:
+      - 'webapp/**'
+      - '.github/workflows/build-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Kaynak kodu indir
+        uses: actions/checkout@v4
+
+      - name: Java 17 kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Node.js kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Android SDK kur ve lisansları kabul et
+        uses: android-actions/setup-android@v3
+
+      - name: Android API 35 kur
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Web içeriğini doğrula
+        run: |
+          test -f webapp/index.html || (echo "webapp/index.html bulunamadı. HTML dosyanı webapp klasörüne index.html adıyla koy." && exit 1)
+
+      - name: Capacitor projesini oluştur
+        run: |
+          mkdir -p build-src/www
+          cp -R webapp/. build-src/www/
+          cd build-src
+          npm init -y
+          npm install @capacitor/core@6 @capacitor/android@6
+          npm install --save-dev @capacitor/cli@6
+          node -e "const fs=require('fs'); const appName=(process.env.APP_NAME||'Yeni Uygulamam').replace(/[\\\\/:*?\"<>|]/g,' ').slice(0,50); const appId=process.env.APP_ID||'com.muhammet.yeniuygulamam'; fs.writeFileSync('capacitor.config.json',JSON.stringify({appId,appName,webDir:'www'},null,2))"
+          npx cap add android
+          npx cap sync android
+        env:
+          APP_NAME: ${{ inputs.app_name || 'Yeni Uygulamam' }}
+          APP_ID: ${{ inputs.package_id || 'com.muhammet.yeniuygulamam' }}
+
+      - name: Debug APK derle
+        run: |
+          cd build-src/android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: APK dosyasını artifact olarak yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-apk
+          path: build-src/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
