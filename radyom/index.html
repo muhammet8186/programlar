@@ -42,7 +42,7 @@
             --theme-primary: #00f2fe;
             --theme-secondary: #e100ff;
         }
- 
+
         .light-mode {
             --bg-gradient: radial-gradient(ellipse at 50% 0%, var(--accent-glow), transparent 42%), linear-gradient(180deg,#f1f5f9,#e2e8f0 65%,#f1f5f9);
             --panel-bg: rgba(255, 255, 255, 0.9);
@@ -451,6 +451,16 @@
                     <button onclick="uykuZamanlayiciAyarla(45)" class="theme-btn py-3 rounded-xl text-sm font-semibold transition">45 Dakika</button>
                     <button onclick="uykuZamanlayiciAyarla(60)" class="theme-btn py-3 rounded-xl text-sm font-semibold transition">60 Dakika</button>
                 </div>
+                
+                <!-- MANUEL SÜRE GİRİŞİ -->
+                <div class="pt-2 border-t space-y-2" style="border-color: var(--panel-border);">
+                    <label class="block text-xs font-bold text-left" style="color: var(--text-muted);">Manuel Süre Gir (Dakika)</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="manuel-uyku-input" min="1" max="720" placeholder="Örn: 90" class="flex-1 rounded-xl px-3.5 py-2 text-sm focus:outline-none transition border" style="background: var(--card-bg); border-color: var(--panel-border); color: var(--text-main);">
+                        <button onclick="manuelUykuBaslat()" class="px-4 py-2 rounded-xl text-slate-950 font-bold text-xs transition shadow-lg whitespace-nowrap" style="background: var(--theme-primary);">Başlat</button>
+                    </div>
+                </div>
+
                 <div id="aktif-uyku-bilgi" class="hidden p-3 rounded-xl border text-xs font-medium flex items-center justify-between" style="background: var(--card-bg); border-color: var(--theme-primary); color: var(--theme-primary);">
                     <span>Kalan Süre: <strong id="uyku-geri-sayim">--:--</strong></span>
                     <button onclick="uykuZamanlayiciIptal()" class="text-red-500 hover:underline font-bold">İptal Et</button>
@@ -713,6 +723,13 @@
                 bildirimGoster("En az bir kategori kalmalıdır.");
                 return;
             }
+
+            const buKategorideKanalVarMi = kanallar.some(k => k.genre === katAdi);
+            if (buKategorideKanalVarMi) {
+                bildirimGoster(`"${katAdi}" kategorisinde radyo kanalları bulunduğu için silinemez!`);
+                return;
+            }
+
             kategoriler = kategoriler.filter(k => k !== katAdi);
             kategorileriKaydet();
             kategorileriArayUzeYansit();
@@ -1193,6 +1210,17 @@
             bildirimGoster(`Uyku zamanlayıcı ${dakika} dakikaya ayarlandı.`);
         }
 
+        function manuelUykuBaslat() {
+            const inputEl = document.getElementById('manuel-uyku-input');
+            const dakika = parseInt(inputEl.value, 10);
+            if (isNaN(dakika) || dakika <= 0) {
+                bildirimGoster("Lütfen geçerli bir süre (dakika) girin.");
+                return;
+            }
+            uykuZamanlayiciAyarla(dakika);
+            inputEl.value = '';
+        }
+
         function uykuZamanlayiciIptal() {
             if (uykuSayacId) clearInterval(uykuSayacId);
             document.getElementById('aktif-uyku-bilgi').classList.add('hidden');
@@ -1308,7 +1336,6 @@
                     analyser.getByteFrequencyData(data);
                     const len = data.length;
 
-                    // Aktif temanın rengini dinamik yakala
                     const computedPrimary = getComputedStyle(document.documentElement).getPropertyValue('--theme-primary').trim() || '#00f2fe';
 
                     switch(aktifGorselIndeks) {
