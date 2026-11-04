@@ -1187,7 +1187,21 @@
             bekleyenOnayFonksiyonu = null;
         }
 
-        function aracModunuAc(ac) { document.getElementById('arac-modu-ekran').classList.toggle('hidden', !ac); }
+        function aracModunuAc(ac) { 
+            const aracEkran = document.getElementById('arac-modu-ekran');
+            if (aracEkran) {
+                aracEkran.classList.toggle('hidden', !ac);
+                if (ac) {
+                    setTimeout(() => {
+                        const canvasArac = document.getElementById('arac-gorsel-canvas');
+                        if (canvasArac && canvasArac.parentElement) {
+                            canvasArac.width = canvasArac.parentElement.clientWidth;
+                            canvasArac.height = canvasArac.parentElement.clientHeight;
+                        }
+                    }, 50);
+                }
+            }
+        }
 
         function uykuZamanlayiciAyarla(dakika) {
             if (uykuSayacId) clearInterval(uykuSayacId);
@@ -1322,8 +1336,16 @@
             function kareCiz() {
                 requestAnimationFrame(kareCiz);
 
-                [ { c: canvasAna, primary: '#00f2fe' }, { c: canvasArac, primary: '#f59e0b' } ].forEach(hedef => {
+                const computedPrimary = getComputedStyle(document.documentElement).getPropertyValue('--theme-primary').trim() || '#00f2fe';
+                const computedSecondary = getComputedStyle(document.documentElement).getPropertyValue('--theme-secondary').trim() || '#e100ff';
+
+                [ 
+                    { c: canvasAna }, 
+                    { c: canvasArac } 
+                ].forEach(hedef => {
                     if (!hedef.c) return;
+                    if (hedef.c.offsetWidth === 0 || hedef.c.offsetHeight === 0) return;
+
                     const ctx = hedef.c.getContext('2d');
                     const w = hedef.c.width;
                     const h = hedef.c.height;
@@ -1336,29 +1358,20 @@
                     analyser.getByteFrequencyData(data);
                     const len = data.length;
 
-                    const computedPrimary = getComputedStyle(document.documentElement).getPropertyValue('--theme-primary').trim() || '#00f2fe';
+                    const gradyan = ctx.createLinearGradient(0, h, 0, 0);
+                    gradyan.addColorStop(0, computedPrimary);
+                    gradyan.addColorStop(1, computedSecondary);
 
-                    switch(aktifGorselIndeks) {
-                        case 0:
-                            let cubukGenislik = (w / len) * 1.5;
-                            let x0 = 0;
-                            for (let i = 0; i < len; i++) {
-                                let cubukYukseklik = (data[i] / 255) * h;
-                                ctx.fillStyle = computedPrimary;
-                                ctx.fillRect(x0, h - cubukYukseklik, cubukGenislik - 3, cubukYukseklik);
-                                x0 += cubukGenislik;
-                            }
-                            break;
-                        default:
-                            let varsayilanGenislik = (w / len) * 1.5;
-                            let xDef = 0;
-                            for (let i = 0; i < len; i++) {
-                                let bh = (data[i] / 255) * h;
-                                ctx.fillStyle = computedPrimary;
-                                ctx.fillRect(xDef, h - bh, varsayilanGenislik - 2, bh);
-                                xDef += varsayilanGenislik;
-                            }
-                            break;
+                    let cubukGenislik = (w / len) * 1.8;
+                    let x = 0;
+
+                    for (let i = 0; i < len; i++) {
+                        let cubukYukseklik = (data[i] / 255) * h;
+                        ctx.fillStyle = gradyan;
+                        ctx.shadowBlur = 8;
+                        ctx.shadowColor = computedPrimary;
+                        ctx.fillRect(x, h - cubukYukseklik, cubukGenislik - 2, cubukYukseklik);
+                        x += cubukGenislik;
                     }
                 });
             }
