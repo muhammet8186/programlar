@@ -348,7 +348,7 @@
         .select-field {
             padding-left: 14px;
             appearance: none;
-            background-image: url('data:image/svg+xml;utf8,<svg fill="%2394a3b8" height="20" viewBox="0 0 24 24" width="2" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+            background-image: url('data:image/svg+xml;utf8,<svg fill="%2394a3b8" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
             background-repeat: no-repeat;
             background-position: right 12px center;
             cursor: pointer;
@@ -356,14 +356,13 @@
 
         .input-field:focus, .select-field:focus {
             border-color: var(--accent-primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
         }
 
         .tabs-container {
             display: flex;
             align-items: center;
             justify-content: space-between;
-
             margin-bottom: 16px;
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 10px;
@@ -2514,3 +2513,1824 @@
             const playerRect = canvas.getBoundingClientRect();
             const fullRect = fullscreenVisualizerCanvas.getBoundingClientRect();
             const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            canvas.width = Math.max(1, Math.floor(playerRect.width * dpr));
+            canvas.height = Math.max(1, Math.floor(playerRect.height * dpr));
+            fullscreenVisualizerCanvas.width = Math.max(1, Math.floor(fullRect.width * dpr));
+            fullscreenVisualizerCanvas.height = Math.max(1, Math.floor(fullRect.height * dpr));
+            canvasCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            fullscreenVisualizerCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        async function apiFetch(endpoint) {
+            for (let server of API_SERVERS) {
+                try {
+                    const response = await fetch(`${server}/${endpoint}`, { timeout: 5000 });
+                    if (response.ok) return await response.json();
+                } catch (e) {
+                    console.warn(`Server fallback triggered: ${server}`);
+                }
+            }
+            throw new Error('Tüm radyo sunucularına erişim başarısız oldu.');
+        }
+
+        async function populateFilters() {
+            try {
+                const countries = await apiFetch('countries');
+                countries.sort((a, b) => a.name.localeCompare(b.name));
+                countries.forEach(c => {
+                    if (c.stationcount > 5) {
+                        const opt = document.createElement('option');
+                        opt.value = c.name;
+                        opt.textContent = `${c.name} (${c.stationcount})`;
+                        if (c.name.toLowerCase() === 'turkey') {
+                            opt.selected = true;
+                        }
+                        countrySelect.appendChild(opt);
+                    }
+                });
+            } catch (err) {
+                showToast('Ülke listesi yüklenemedi.', 'error');
+            }
+        }
+
+        const SEARCH_FILTERS_KEY = 'symphony_search_filters_v1';
+        function saveSearchFilters() {
+            try {
+                localStorage.setItem(SEARCH_FILTERS_KEY, JSON.stringify({
+                    query: searchInput.value || '',
+                    genre: genreSelect.value || '',
+                    country: countrySelect.value || '',
+                    limit: limitSelect.value || '1000'
+                }));
+            } catch (err) { console.warn('Arama filtreleri kaydedilemedi:', err); }
+        }
+        function restoreSearchFilters() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(SEARCH_FILTERS_KEY) || 'null');
+                if (!saved || typeof saved !== 'object') return;
+                searchInput.value = typeof saved.query === 'string' ? saved.query : '';
+                genreSelect.value = typeof saved.genre === 'string' ? saved.genre : '';
+                if (typeof saved.country === 'string' && [...countrySelect.options].some(o => o.value === saved.country)) {
+                    countrySelect.value = saved.country;
+                }
+                if (typeof saved.limit === 'string' && [...limitSelect.options].some(o => o.value === saved.limit)) {
+                    limitSelect.value = saved.limit;
+                }
+            } catch (err) { console.warn('Kayıtlı arama filtreleri okunamadı:', err); }
+        }
+
+        function readListCache(key) {
+            try {
+                const saved = JSON.parse(localStorage.getItem(LIST_CACHE_PREFIX + key) || 'null');
+                if (!saved || !Array.isArray(saved.stations)) return null;
+                return saved;
+            } catch (_) { return null; }
+        }
+        function writeListCache(key, stations) {
+            try { localStorage.setItem(LIST_CACHE_PREFIX + key, JSON.stringify({ savedAt: Date.now(), stations })); }
+            catch (err) { console.warn('Liste önbelleğe kaydedilemedi:', err); }
+        }
+        function isCacheFresh(cache) {
+            return !!(cache && cache.savedAt && (Date.now() - cache.savedAt) < LIST_CACHE_MAX_AGE);
+        }
+        const CACHE_AUTO_UPDATE_KEY = 'symphony_cache_auto_update';
+        function getCacheStats() {
+            let bytes = 0, count = 0, newest = 0;
+            try {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (!key || !key.startsWith(LIST_CACHE_PREFIX)) continue;
+                    const value = localStorage.getItem(key) || '';
+                    bytes += (key.length + value.length) * 2;
+                    count++;
+                    try { const item = JSON.parse(value); newest = Math.max(newest, Number(item.savedAt) || 0); } catch (_) {}
+                }
+            } catch (_) {}
+            return { bytes, count, newest };
+        }
+        function formatCacheBytes(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+        function updateCacheSummary() {
+            const el = document.getElementById('cache-summary');
+            if (!el) return;
+            const stats = getCacheStats();
+            const last = stats.newest ? new Date(stats.newest).toLocaleString('tr-TR') : 'Henüz kayıt yok';
+            el.textContent = `Kayıtlı liste önbelleği: ${stats.count} kayıt • ${formatCacheBytes(stats.bytes)} • Son kayıt: ${last}`;
+            const toggle = document.getElementById('cache-auto-update');
+            if (toggle) toggle.checked = localStorage.getItem(CACHE_AUTO_UPDATE_KEY) !== 'false';
+        }
+        function clearOnlyListCache() {
+            const keys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith(LIST_CACHE_PREFIX)) keys.push(key);
+            }
+            keys.forEach(key => localStorage.removeItem(key));
+            githubStations = []; existingStations = [];
+            updateCacheSummary();
+            showToast('Kanal listesi önbelleği temizlendi. Favorileriniz ve ayarlarınız korundu.', 'success', 4500);
+        }
+        function stationIdentity(st) {
+            const name = String(st.name || '').trim().toLocaleLowerCase('tr').replace(/\s+/g, ' ');
+            const url = String(st.url_resolved || st.url || '').trim().replace(/\s+/g, '');
+            return name + '|' + url;
+        }
+        function uniqueStationsByNameAndUrl(stations) {
+            const seen = new Set();
+            return stations.filter(st => {
+                const key = stationIdentity(st);
+                if (seen.has(key)) return false;
+                seen.add(key); return true;
+            });
+        }
+        function applyStationSearch(stations) {
+            const query = searchInput.value.trim().toLocaleLowerCase('tr');
+            return query ? stations.filter(st => (st.name || '').toLocaleLowerCase('tr').includes(query)) : stations;
+        }
+        function renderCombinedList() {
+            const combined = uniqueStationsByNameAndUrl([
+                ...githubStations,
+                ...existingStations,
+                ...externalPlaylistStations,
+                ...customStations
+            ]);
+            currentStations = applyStationSearch(combined);
+            renderStations();
+        }
+        async function fetchStations(forceRefresh = false) {
+            if (activeSource === 'github') { await fetchGitHubStations(forceRefresh); return; }
+            if (activeSource === 'all') {
+                await loadAllLists(forceRefresh);
+                return;
+            }
+            const query = searchInput.value.trim();
+            const genre = genreSelect.value;
+            const country = countrySelect.value || 'Turkey';
+            const limit = limitSelect.value;
+            const cacheKey = 'manual_' + [query, genre, country, limit].join('|');
+            const cached = readListCache(cacheKey);
+            if (!forceRefresh && cached && cached.stations.length) {
+                existingStations = cached.stations;
+                currentStations = applyStationSearch([...existingStations, ...externalPlaylistStations, ...customStations]);
+                renderStations();
+                return;
+            }
+            grid.innerHTML = `<div class="loading-state"><i class="fa-solid fa-circle-notch spinner"></i><p>Manuel liste yükleniyor...</p></div>`;
+            let params = [`limit=${limit}`, 'order=clickcount', 'reverse=true', 'hidebroken=true'];
+            if (query) params.push(`name=${encodeURIComponent(query)}`);
+            else if (genre) params.push(`tag=${encodeURIComponent(genre)}`);
+            else if (country) params.push(`country=${encodeURIComponent(country)}`);
+            try {
+                const data = await apiFetch(`stations/search?${params.join('&')}`);
+                existingStations = Array.isArray(data) ? data : [];
+                writeListCache(cacheKey, existingStations);
+                currentStations = applyStationSearch([...existingStations, ...externalPlaylistStations, ...customStations]);
+                renderStations();
+            } catch (err) {
+                console.warn('Manuel liste yüklenemedi:', err);
+                existingStations = cached?.stations || existingStations || [];
+                currentStations = applyStationSearch([...existingStations, ...externalPlaylistStations, ...customStations]);
+                renderStations();
+                showToast(cached ? 'İnternet yok. Kayıtlı liste gösteriliyor.' : 'Manuel listeye erişilemedi.', 'warning');
+            }
+        }
+
+        async function fetchGitHubStations(forceRefresh = false) {
+            const cached = readListCache('github');
+            if (!forceRefresh && cached && cached.stations.length) {
+                githubStations = cached.stations;
+                if (activeSource === 'all') renderCombinedList();
+                else { currentStations = applyStationSearch([...githubStations, ...externalPlaylistStations, ...customStations]); renderStations(); }
+                if (isCacheFresh(cached)) return;
+                // Eski önbellek ekranda kalır; internetten otomatik tekrar indirme yapılmaz.
+                return;
+            }
+            grid.innerHTML = `<div class="loading-state"><i class="fa-solid fa-circle-notch spinner"></i><p>GitHub radyo listesi yükleniyor...</p></div>`;
+            try {
+                const response = await fetch(GITHUB_M3U_URL, { cache: 'no-store' });
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                const text = await response.text();
+                const parsed = parseM3U(text);
+                if (!parsed.length) throw new Error('M3U içinde radyo bulunamadı');
+                githubStations = parsed;
+                writeListCache('github', githubStations);
+                if (activeSource === 'all') renderCombinedList();
+                else { currentStations = applyStationSearch([...githubStations, ...externalPlaylistStations, ...customStations]); renderStations(); }
+            } catch (err) {
+                console.error('GitHub M3U yükleme hatası:', err);
+                githubStations = cached?.stations || [];
+                currentStations = applyStationSearch([...githubStations, ...externalPlaylistStations, ...customStations]);
+                renderStations();
+                showToast(cached ? 'GitHub bağlantısı yok. Kayıtlı liste kullanılıyor.' : 'GitHub listesi yüklenemedi. İnternet bağlantısını kontrol edin.', 'error', 5000);
+            }
+        }
+
+        async function loadAllLists(forceRefresh = false) {
+            const query = searchInput.value.trim();
+            const genre = genreSelect.value;
+            const country = countrySelect.value || 'Turkey';
+            const limit = limitSelect.value;
+            const manualKey = 'manual_' + [query, genre, country, limit].join('|');
+            const manualCache = readListCache(manualKey);
+            const githubCache = readListCache('github');
+            if (!forceRefresh) {
+                githubStations = githubCache?.stations || githubStations || [];
+                existingStations = manualCache?.stations || existingStations || [];
+                renderCombinedList();
+                if (githubStations.length && existingStations.length) return;
+            }
+            await fetchGitHubStations(forceRefresh);
+            let params = [`limit=${limit}`, 'order=clickcount', 'reverse=true', 'hidebroken=true'];
+            if (query) params.push(`name=${encodeURIComponent(query)}`);
+            else if (genre) params.push(`tag=${encodeURIComponent(genre)}`);
+            else if (country) params.push(`country=${encodeURIComponent(country)}`);
+            try {
+                const data = await apiFetch(`stations/search?${params.join('&')}`);
+                existingStations = Array.isArray(data) ? data : [];
+                writeListCache(manualKey, existingStations);
+            } catch (err) {
+                console.warn('Birleşik görünümde manuel liste alınamadı:', err);
+                existingStations = manualCache?.stations || existingStations || [];
+                if (!githubStations.length && !existingStations.length) showToast('Listeler yüklenemedi; internet bağlantısını kontrol edin.', 'warning');
+            }
+            renderCombinedList();
+        }
+
+        function parseM3U(content) {
+            const lines = content.replace(/^\uFEFF/, '').split(/\r?\n/);
+            const stations = [];
+            let info = '';
+            for (const rawLine of lines) {
+                const line = rawLine.trim();
+                if (!line) continue;
+                if (line.startsWith('#EXTINF')) { info = line; continue; }
+                if (line.startsWith('#')) continue;
+                const nameMatch = info.match(/,(.*)$/);
+                const logoMatch = info.match(/tvg-logo=["']([^"']*)["']/i);
+                const groupMatch = info.match(/group-title=["']([^"']*)["']/i);
+                const name = nameMatch ? nameMatch[1].trim() : line.split('/').pop() || 'İsimsiz Radyo';
+                const id = 'github_' + stations.length + '_' + name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+                stations.push({ changeuuid: id, stationuuid: id, name, url: line, url_resolved: line, favicon: logoMatch ? logoMatch[1] : '', homepage: '', country: '', tags: groupMatch ? groupMatch[1] : '', bitrate: 0, codec: '' });
+                info = '';
+            }
+            return stations;
+        }
+
+        function switchSource(source) {
+            if (!['all','github','existing'].includes(source)) source = 'all';
+            activeSource = source;
+            try { localStorage.setItem('symphony_active_source', source); } catch (_) {}
+            document.getElementById('all-list-btn').classList.toggle('active', source === 'all');
+            document.getElementById('github-list-btn').classList.toggle('active', source === 'github');
+            document.getElementById('existing-list-btn').classList.toggle('active', source === 'existing');
+            fetchStations(false);
+        }
+
+        function getActiveList() {
+            if (activeTab === 'favorites') return favorites;
+            if (activeTab === 'history') return history;
+            if (activeTab === 'external-playlists') return externalPlaylistStations;
+            return currentStations;
+        }
+
+        // Kayıtlar IndexedDB'de saklanır; böylece sayfa yenilense de listede kalır.
+        const RECORDINGS_DB_NAME = 'symphony-radio-recordings';
+        const RECORDINGS_STORE = 'recordings';
+        function openRecordingsDB() {
+            return new Promise((resolve, reject) => {
+                if (!('indexedDB' in window)) return reject(new Error('Bu tarayıcı yerel kayıt saklamayı desteklemiyor.'));
+                let settled = false;
+                const request = indexedDB.open(RECORDINGS_DB_NAME, 1);
+                const timer = setTimeout(() => {
+                    if (!settled) { settled = true; reject(new Error('Kayıt veritabanına erişim zaman aşımına uğradı.')); }
+                }, 5000);
+                request.onupgradeneeded = () => {
+                    const db = request.result;
+                    if (!db.objectStoreNames.contains(RECORDINGS_STORE)) db.createObjectStore(RECORDINGS_STORE, { keyPath: 'id' });
+                };
+                request.onsuccess = () => {
+                    if (settled) { request.result.close(); return; }
+                    settled = true; clearTimeout(timer); resolve(request.result);
+                };
+                request.onerror = () => { if (!settled) { settled = true; clearTimeout(timer); reject(request.error || new Error('Kayıt veritabanı açılamadı.')); } };
+                request.onblocked = () => console.warn('Radyo kayıt veritabanı başka bir sekme tarafından kullanılıyor.');
+            });
+        }
+        async function saveRecording(blob, stationName) {
+            const db = await openRecordingsDB();
+            const item = { id: 'rec_' + Date.now(), name: stationName || 'Radyo Kaydı', createdAt: Date.now(), type: blob.type || 'audio/webm', blob };
+            await new Promise((resolve, reject) => {
+                const tx = db.transaction(RECORDINGS_STORE, 'readwrite');
+                tx.objectStore(RECORDINGS_STORE).put(item);
+                tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+            });
+            db.close();
+            await loadRecordings();
+        }
+        async function loadRecordings() {
+            let db = null;
+            try {
+                db = await openRecordingsDB();
+                savedRecordings = await new Promise((resolve, reject) => {
+                    const tx = db.transaction(RECORDINGS_STORE, 'readonly');
+                    const req = tx.objectStore(RECORDINGS_STORE).getAll();
+                    req.onsuccess = () => resolve((req.result || []).sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0)));
+                    req.onerror = () => reject(req.error || new Error('Kayıtlar okunamadı.'));
+                    tx.onabort = () => reject(tx.error || new Error('Kayıt okuma işlemi iptal edildi.'));
+                });
+            } catch (err) {
+                console.warn('Kayıtlar okunamadı:', err);
+                savedRecordings = [];
+                const grid = document.getElementById('stations-grid');
+                if (activeTab === 'recordings' && grid) grid.innerHTML = `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation" style="font-size:30px;margin-bottom:10px"></i><p>Kayıtlar açılamadı.</p><small>${escapeHtml(err.message || 'Tarayıcı kayıtlarına erişilemiyor.')}</small><br><button class="btn btn-primary" type="button" onclick="loadRecordingsAgain()" style="margin-top:12px">Tekrar Dene</button></div>`;
+            } finally { if (db) db.close(); }
+            const count = document.getElementById('recording-count');
+            if (count) count.textContent = savedRecordings.length;
+            if (activeTab === 'recordings' && !document.querySelector('#stations-grid .empty-state p')?.textContent.includes('Kayıtlar açılamadı')) renderRecordings();
+            return savedRecordings;
+        }
+        window.loadRecordingsAgain = async function() {
+            const grid = document.getElementById('stations-grid');
+            grid.innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-notch spinner"></i><p>Kayıtlar yeniden yükleniyor...</p></div>';
+            await loadRecordings();
+        };
+        function formatRecordingDate(timestamp) {
+            return new Date(timestamp).toLocaleString('tr-TR', { dateStyle:'short', timeStyle:'short' });
+        }
+        function renderRecordings() {
+            const grid = document.getElementById('stations-grid');
+            if (!savedRecordings.length) {
+                grid.innerHTML = `<div class="empty-state"><i class="fa-solid fa-record-vinyl" style="font-size:32px;margin-bottom:10px"></i><p>Henüz kaydedilmiş radyo yayını yok.</p><small>Canlı yayında kayıt düğmesine basarak kayıt oluşturabilirsin.</small></div>`;
+                return;
+            }
+            grid.innerHTML = `<div class="recordings-list">${savedRecordings.map(rec => `
+                <article class="recording-card">
+                    <div class="recording-art"><i class="fa-solid fa-music"></i></div>
+                    <div class="recording-meta"><strong title="${escapeHtml(rec.name)}">${escapeHtml(rec.name)}</strong><small>${formatRecordingDate(rec.createdAt)} · Radyo kaydı</small></div>
+                    <div class="recording-actions">
+                        <button class="btn btn-primary" type="button" title="Kaydı dinle" aria-label="Kaydı dinle" onclick="playSavedRecording('${rec.id}')"><i class="fa-solid ${currentlyPlayingRecordingId === rec.id ? 'fa-pause' : 'fa-play'}"></i></button>
+                        <button class="btn" type="button" title="Cihaza indir" aria-label="Cihaza indir" onclick="downloadSavedRecording('${rec.id}')"><i class="fa-solid fa-download"></i></button>
+                        <button class="btn" type="button" title="Paylaş" aria-label="Kaydı paylaş" onclick="shareSavedRecording('${rec.id}')"><i class="fa-solid fa-share-nodes"></i></button>
+                        <button class="btn" type="button" title="Kaydı sil" aria-label="Kaydı sil" onclick="askDeleteRecording('${rec.id}')"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </article>`).join('')}</div>`;
+        }
+        function getRecordingExtension(rec) {
+            const type = (rec.type || rec.blob?.type || '').toLowerCase();
+            if (type.includes('mp4') || type.includes('m4a')) return 'm4a';
+            if (type.includes('ogg')) return 'ogg';
+            if (type.includes('mpeg') || type.includes('mp3')) return 'mp3';
+            return 'webm';
+        }
+        function getRecordingFilename(rec) {
+            const safeName = (rec.name || 'Radyo Kaydı')
+                .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/^_+|_+$/g, '') || 'Radyo_Kaydi';
+            const date = new Date(rec.createdAt || Date.now()).toISOString().slice(0,10);
+            return `${safeName}_${date}.${getRecordingExtension(rec)}`;
+        }
+        window.downloadSavedRecording = function(id) {
+            const rec = savedRecordings.find(item => item.id === id);
+            if (!rec || !rec.blob) { showToast('İndirilecek kayıt bulunamadı.', 'error'); return; }
+            downloadBlob(rec.blob, getRecordingFilename(rec));
+            showToast('Kayıt indirme işlemi başlatıldı. iPad kullanıyorsan Dosyalar uygulamasını kontrol et.', 'success', 5000);
+        };
+        window.shareSavedRecording = async function(id) {
+            const rec = savedRecordings.find(item => item.id === id);
+            if (!rec || !rec.blob) { showToast('Paylaşılacak kayıt bulunamadı.', 'error'); return; }
+            const filename = getRecordingFilename(rec);
+            try {
+                if (typeof File !== 'undefined' && navigator.share) {
+                    const file = new File([rec.blob], filename, { type: rec.type || rec.blob.type || 'application/octet-stream', lastModified: rec.createdAt || Date.now() });
+                    if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+                        await navigator.share({ files: [file], title: rec.name || 'Radyo Kaydı', text: 'Online Radyo kaydı' });
+                        showToast('Paylaşım menüsü açıldı.', 'success');
+                        return;
+                    }
+                }
+                // Dosya paylaşımı tarayıcıda desteklenmiyorsa önce cihaza indir.
+                downloadBlob(rec.blob, filename);
+                showToast('Bu tarayıcı dosyayı doğrudan paylaşamıyor. Kayıt indirildi; Dosyalar bölümünden Paylaş seçeneğini kullanabilirsin.', 'info', 6500);
+            } catch (err) {
+                if (err && err.name === 'AbortError') return;
+                console.warn('Kayıt paylaşma hatası:', err);
+                showToast('Paylaşım açılamadı. Kaydı indirip cihazının paylaş menüsünü kullanabilirsin.', 'error', 5500);
+            }
+        };
+        window.playSavedRecording = async function(id) {
+            const rec = savedRecordings.find(item => item.id === id);
+            if (!rec) return;
+            const preview = document.getElementById('recording-preview-audio');
+            if (currentlyPlayingRecordingId === id && !preview.paused) {
+                preview.pause(); currentlyPlayingRecordingId = null; renderRecordings(); return;
+            }
+            if (currentlyPlayingRecordingId === id && preview.paused && preview.src) {
+                try { await preview.play(); currentlyPlayingRecordingId = id; renderRecordings(); return; } catch (err) {}
+            }
+            if (activeRecordingObjectUrl) URL.revokeObjectURL(activeRecordingObjectUrl);
+            activeRecordingObjectUrl = URL.createObjectURL(rec.blob);
+            preview.pause();
+            preview.removeAttribute('src');
+            preview.src = activeRecordingObjectUrl;
+            preview.preload = 'auto';
+            preview.playsInline = true;
+            preview.load();
+            try { await preview.play(); currentlyPlayingRecordingId = id; renderRecordings(); showToast(`${rec.name} kaydı çalınıyor.`, 'success'); }
+            catch (err) { currentlyPlayingRecordingId = null; showToast('Kayıt bu cihazda oynatılamadı.', 'error'); }
+        };
+        document.getElementById('recording-preview-audio').addEventListener('ended', () => { currentlyPlayingRecordingId = null; renderRecordings(); });
+        window.askDeleteRecording = function(id) {
+            pendingRecordingDeleteId = id;
+            const modal = document.getElementById('recording-delete-modal');
+            modal.classList.add('show'); modal.setAttribute('aria-hidden','false');
+        };
+        function closeRecordingDeleteModal() {
+            const modal = document.getElementById('recording-delete-modal');
+            modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); pendingRecordingDeleteId = null;
+        }
+        document.getElementById('recording-delete-cancel').addEventListener('click', closeRecordingDeleteModal);
+        document.getElementById('recording-delete-modal').addEventListener('click', e => { if (e.target.id === 'recording-delete-modal') closeRecordingDeleteModal(); });
+        document.getElementById('recording-delete-confirm').addEventListener('click', async () => {
+            if (!pendingRecordingDeleteId) return;
+            const id = pendingRecordingDeleteId; closeRecordingDeleteModal();
+            if (currentlyPlayingRecordingId === id) {
+                const preview = document.getElementById('recording-preview-audio');
+                preview.pause(); preview.removeAttribute('src'); preview.load(); currentlyPlayingRecordingId = null;
+                if (activeRecordingObjectUrl) { URL.revokeObjectURL(activeRecordingObjectUrl); activeRecordingObjectUrl = null; }
+            }
+            try {
+                const db = await openRecordingsDB();
+                await new Promise((resolve,reject) => { const tx=db.transaction(RECORDINGS_STORE,'readwrite'); tx.objectStore(RECORDINGS_STORE).delete(id); tx.oncomplete=resolve; tx.onerror=()=>reject(tx.error); });
+                db.close();
+                await loadRecordings(); showToast('Radyo kaydı silindi.', 'success');
+            } catch(err) { showToast('Kayıt silinemedi.', 'error'); }
+        });
+
+        function renderStations() {
+            const stationGrid = document.getElementById('stations-grid');
+            stationGrid.classList.toggle('recordings-view', activeTab === 'recordings');
+            const allCount = document.getElementById('all-count');
+            if (allCount) allCount.textContent = String(currentStations.length);
+            if (activeTab === 'recordings') { renderRecordings(); return; }
+            let listToRender = getActiveList();
+
+            if (!listToRender || listToRender.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fa-solid fa-radio" style="font-size:32px; margin-bottom:10px;"></i>
+                        <p>Gösterilecek radyo istasyonu bulunamadı.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = listToRender.map(st => {
+                const isFav = favorites.some(f => f.changeuuid === st.changeuuid);
+                const isPlaying = currentStation && (currentStation.changeuuid === st.changeuuid) && (!audioEngine.paused || webviewModal.classList.contains('show'));
+                
+                let statusClass = 'online';
+                if (webviewStations[st.changeuuid]) {
+                    statusClass = 'webview';
+                } else if (offlineStations[st.changeuuid] || (currentStation && currentStation.changeuuid === st.changeuuid && audioEngine.error)) {
+                    statusClass = 'offline';
+                }
+
+                const tags = st.tags ? st.tags.split(',').slice(0, 2) : [];
+                const logo = st.favicon && st.favicon.startsWith('http') ? st.favicon : '';
+
+                let statusTitle = 'Bağlantı Sağlıklı';
+                if (statusClass === 'webview') statusTitle = 'Web Viewer (Iframe) ile Çalıyor';
+                if (statusClass === 'offline') statusTitle = 'Kanal Çevrimdışı';
+
+                return `
+                    <div class="station-card ${isPlaying ? 'playing' : ''}" onclick="playStation('${st.changeuuid}')">
+                        <button class="fav-btn ${isFav ? 'active' : ''}" onclick="toggleFav(event, '${st.changeuuid}')">
+                            <i class="fa-${isFav ? 'solid' : 'regular'} fa-heart"></i>
+                        </button>
+
+                        <div class="card-header">
+                            <div class="station-logo-wrap">
+                                ${logo ? `<img src="${logo}" class="station-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
+                                <i class="fa-solid fa-radio station-logo-fallback" style="${logo ? 'display:none;' : ''}"></i>
+                                <div class="status-dot ${statusClass}" title="${statusTitle}"></div>
+                            </div>
+                            <div class="card-info">
+                                <div class="station-title" title="${escapeHtml(st.name)}">${escapeHtml(st.name)}</div>
+                                <div class="station-country">
+                                    <i class="fa-solid fa-location-dot"></i> ${st.country || 'Özel Kanal'}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-tags">
+                            ${tags.map(t => `<span class="tag-badge">${escapeHtml(t.trim())}</span>`).join('')}
+                        </div>
+
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // --- Web Audio API ses görselleştiricisi ---
+        function initAudioContext() {
+            try {
+                if (!audioCtx) {
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioContextClass) return false;
+                    audioCtx = new AudioContextClass();
+                    analyser = audioCtx.createAnalyser();
+                    analyser.fftSize = 256;
+                    analyser.smoothingTimeConstant = 0.82;
+
+                    biquadFilter = audioCtx.createBiquadFilter();
+                    biquadFilter.type = 'lowshelf';
+                    biquadFilter.frequency.value = 250;
+                    eqMidFilter = audioCtx.createBiquadFilter();
+                    eqMidFilter.type = 'peaking';
+                    eqMidFilter.frequency.value = 1000;
+                    eqMidFilter.Q.value = 0.8;
+                    eqTrebleFilter = audioCtx.createBiquadFilter();
+                    eqTrebleFilter.type = 'highshelf';
+                    eqTrebleFilter.frequency.value = 4000;
+
+                    sourceNode = audioCtx.createMediaElementSource(audioEngine);
+                    sourceNode.connect(biquadFilter);
+                    biquadFilter.connect(eqMidFilter);
+                    eqMidFilter.connect(eqTrebleFilter);
+                    eqTrebleFilter.connect(analyser);
+                    analyser.connect(audioCtx.destination);
+                    // Safari'de HTMLMediaElement.captureStream bulunmayabilir.
+                    // Web Audio çıkışını ayrıca MediaRecorder için kullanılabilir bir akışa bağla.
+                    if (audioCtx.createMediaStreamDestination) {
+                        recordingDestination = audioCtx.createMediaStreamDestination();
+                        analyser.connect(recordingDestination);
+                    }
+                }
+                // iPadOS Safari ses bağlamını kullanıcı dokunuşunda uyandırmayı gerektirir.
+                if (audioCtx.state === 'suspended') {
+                    const resumeResult = audioCtx.resume();
+                    if (resumeResult && typeof resumeResult.catch === 'function') resumeResult.catch(() => {});
+                }
+                return true;
+            } catch (error) {
+                console.warn('Ses görselleştiricisi başlatılamadı:', error);
+                return false;
+            }
+        }
+
+        function paintSpectrum(ctx, targetCanvas, dataArray) {
+            const width = targetCanvas.clientWidth || targetCanvas.width;
+            const height = targetCanvas.clientHeight || targetCanvas.height;
+            if (!width || !height) return;
+            ctx.clearRect(0, 0, width, height);
+            const count = Math.min(dataArray.length, Math.max(28, Math.floor(width / 5)));
+            const step = Math.max(1, Math.floor(dataArray.length / count));
+            const values = Array.from({length: count}, (_, i) => (dataArray[i * step] || 0) / 255);
+            const paletteStyles = getComputedStyle(document.body);
+            const palettePrimary = paletteStyles.getPropertyValue('--accent-primary').trim() || '#8b5cf6';
+            const paletteSecondary = paletteStyles.getPropertyValue('--accent-secondary').trim() || '#c084fc';
+            const gradient = ctx.createLinearGradient(0, height, width, 0);
+            gradient.addColorStop(0, palettePrimary); gradient.addColorStop(.5, paletteSecondary); gradient.addColorStop(1, palettePrimary);
+            ctx.strokeStyle = gradient; ctx.fillStyle = gradient; ctx.lineWidth = 2.5;
+            ctx.shadowColor = palettePrimary; ctx.shadowBlur = 9;
+            const mid = height / 2;
+            const style = visualizerStyle;
+            if (style === 'spiral' || style === 'orbit' || style === 'mirrored-dots' || style === 'twin-wave' || style === 'skyline' || style === 'waterfall' || style === 'circular-bars' || style === 'heartbeat' || style === 'shards' || style === 'ribbon') {
+                const n = values.length;
+                if (style === 'spiral') {
+                    const cx=width/2, cy=height/2, maxR=Math.min(width,height)*.44;
+                    ctx.beginPath();
+                    for(let i=0;i<n*2;i++){const t=i/(n*2-1), idx=i%n, a=t*Math.PI*7, r=maxR*t+values[idx]*14; const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r; if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+                    ctx.lineWidth=3;ctx.stroke();
+                } else if (style === 'orbit') {
+                    const cx=width/2,cy=height/2,base=Math.min(width,height)*.16;
+                    [1,1.55,2.1].forEach((factor,ring)=>{ctx.beginPath();for(let i=0;i<n;i++){const a=i/n*Math.PI*2, r=base*factor+values[i]*18;const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;if(!i)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.closePath();ctx.globalAlpha=.45+ring*.2;ctx.stroke();});ctx.globalAlpha=1;
+                } else if (style === 'mirrored-dots') {
+                    const spacing=width/n; values.forEach((v,i)=>{const r=2+v*7,x=i*spacing+spacing/2;ctx.globalAlpha=.35+v*.65;ctx.beginPath();ctx.arc(x,mid-height*.18,r,0,Math.PI*2);ctx.arc(x,mid+height*.18,r,0,Math.PI*2);ctx.fill();});ctx.globalAlpha=1;
+                } else if (style === 'twin-wave' || style === 'ribbon') {
+                    [-1,1].forEach((side,si)=>{ctx.beginPath();values.forEach((v,i)=>{const x=i/Math.max(1,n-1)*width;const y=mid+side*(v*height*(style==='ribbon'?.34:.25)+Math.sin(i*.12+si)*height*.07);if(!i)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.lineWidth=style==='ribbon'?7:2.5;ctx.globalAlpha=style==='ribbon'?.32:1;ctx.stroke();});ctx.globalAlpha=1;
+                } else if (style === 'skyline' || style === 'waterfall' || style === 'shards') {
+                    const bw=width/n;
+                    values.forEach((v,i)=>{const h=Math.max(3,v*height*(style==='skyline'?.85:.7)),x=i*bw;
+                        if(style==='shards'){ctx.beginPath();ctx.moveTo(x+bw*.5,height-h);ctx.lineTo(x+bw,height);ctx.lineTo(x,height);ctx.closePath();ctx.globalAlpha=.35+v*.65;ctx.fill();}
+                        else if(style==='waterfall'){ctx.globalAlpha=.18+v*.75;ctx.fillRect(x+bw*.12,mid-h*.5,Math.max(1,bw*.55),h);ctx.fillRect(x+bw*.52,mid-h*.32,Math.max(1,bw*.35),h*.64);}
+                        else {ctx.globalAlpha=.35+v*.65;ctx.fillRect(x+bw*.12,height-h,Math.max(1,bw*.76),h);}
+                    });ctx.globalAlpha=1;
+                } else if (style === 'circular-bars') {
+                    const cx=width/2,cy=height/2,base=Math.min(width,height)*.17;values.forEach((v,i)=>{const a=i/n*Math.PI*2-Math.PI/2,r1=base,r2=base+v*Math.min(width,height)*.3;ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*r1,cy+Math.sin(a)*r1);ctx.lineTo(cx+Math.cos(a)*r2,cy+Math.sin(a)*r2);ctx.lineWidth=Math.max(2,width/n*.7);ctx.stroke();});
+                } else if (style === 'heartbeat') {
+                    ctx.beginPath();values.forEach((v,i)=>{const x=i/Math.max(1,n-1)*width;const spike=(i%18===9)?v*height*.65:Math.sin(i*.08)*v*height*.08;const y=mid-spike;if(!i)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.lineWidth=3.5;ctx.stroke();
+                }
+            } else if (style === 'wave' || style === 'line' || style === 'mountain') {
+                ctx.beginPath();
+                values.forEach((v, i) => {
+                    const x = (i / Math.max(1, count - 1)) * width;
+                    const y = style === 'mountain' ? height - Math.max(3, v * height * .88) : mid + Math.sin(i * .16) * v * height * .38;
+                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                });
+                if (style === 'mountain') { ctx.lineTo(width, height); ctx.lineTo(0, height); ctx.closePath(); ctx.globalAlpha = .72; ctx.fill(); ctx.globalAlpha = 1; }
+                else { ctx.lineWidth = style === 'line' ? 3.5 : 2.5; ctx.stroke(); }
+            } else if (style === 'dots') {
+                const spacing = width / count;
+                values.forEach((v, i) => { const r = 1.5 + v * Math.min(7, height * .045); ctx.beginPath(); ctx.arc(i * spacing + spacing/2, mid, r, 0, Math.PI*2); ctx.globalAlpha = .35 + v*.65; ctx.fill(); });
+                ctx.globalAlpha = 1;
+            } else if (style === 'radial' || style === 'pulse') {
+                const cx = width/2, cy = height/2, base = Math.min(width,height) * (style === 'radial' ? .18 : .2);
+                ctx.beginPath();
+                const points = Math.min(values.length, 160);
+                for (let i=0;i<points;i++) { const a = (i/points)*Math.PI*2 - Math.PI/2; const v=values[i]; const r=base + v*Math.min(width,height)*(style === 'radial' ? .28 : .18); const x=cx+Math.cos(a)*r, y=cy+Math.sin(a)*r; if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y); }
+                ctx.closePath(); ctx.lineWidth = style === 'pulse' ? 4 : 2.5; ctx.stroke();
+                ctx.beginPath(); ctx.arc(cx,cy,base*.72 + (values[3]||0)*12,0,Math.PI*2); ctx.globalAlpha=.2; ctx.fill(); ctx.globalAlpha=1;
+            } else {
+                const gap = style === 'columns' ? 1 : 2;
+                const barWidth = width / count;
+                values.forEach((v, i) => {
+                    const barHeight = Math.max(2, v * height * (style === 'mirror' ? .42 : .9));
+                    const x = i * barWidth;
+                    if (style === 'mirror') {
+                        ctx.fillRect(x + gap/2, mid - barHeight, Math.max(1,barWidth-gap), barHeight);
+                        ctx.fillRect(x + gap/2, mid, Math.max(1,barWidth-gap), barHeight);
+                    } else {
+                        const h = style === 'blocks' ? Math.max(3, Math.ceil(barHeight/7)*7) : barHeight;
+                        ctx.fillRect(x + gap/2, height-h, Math.max(1,barWidth-gap), h);
+                    }
+                });
+            }
+            ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+        }
+
+        // Performans: spektrum verisini her karede yeniden oluşturmuyoruz.
+        // Görselleştirici yalnızca yayın çalarken ve sekme görünürken çalışır (yaklaşık 30 FPS).
+        let visualizerFrameId = 0;
+        let visualizerLastPaint = 0;
+        let visualizerDataArray = new Uint8Array(128);
+        function stopVisualizer() {
+            if (visualizerFrameId) cancelAnimationFrame(visualizerFrameId);
+            visualizerFrameId = 0;
+        }
+        function drawVisualizer() {
+            stopVisualizer();
+            if (!visualizerEnabled || document.hidden || audioEngine.paused) return;
+            const renderFrame = (timestamp) => {
+                visualizerFrameId = 0;
+                if (!visualizerEnabled || document.hidden || audioEngine.paused) return;
+                if (timestamp - visualizerLastPaint >= 33) {
+                    visualizerLastPaint = timestamp;
+                    let dataArray = visualizerDataArray;
+                    let hasAnalyserSignal = false;
+                    if (analyser) {
+                        try {
+                            if (dataArray.length !== analyser.frequencyBinCount) visualizerDataArray = dataArray = new Uint8Array(analyser.frequencyBinCount);
+                            analyser.getByteFrequencyData(dataArray);
+                            for (let i = 0; i < dataArray.length; i++) { if (dataArray[i] > 0) { hasAnalyserSignal = true; break; } }
+                        } catch (_) { hasAnalyserSignal = false; }
+                    }
+                    if (!hasAnalyserSignal) {
+                        const t = timestamp / 310;
+                        for (let i = 0; i < dataArray.length; i++) {
+                            const wave = (Math.sin(t + i * 0.19) + 1) * 0.5;
+                            const detail = (Math.sin(t * 1.7 + i * 0.071) + 1) * 0.5;
+                            dataArray[i] = 12 + Math.round(wave * 48 + detail * 26);
+                        }
+                    }
+                    paintSpectrum(canvasCtx, canvas, dataArray);
+                    if (fullscreenPlayer && fullscreenPlayer.classList.contains('show')) paintSpectrum(fullscreenVisualizerCtx, fullscreenVisualizerCanvas, dataArray);
+                }
+                visualizerFrameId = requestAnimationFrame(renderFrame);
+            };
+            visualizerFrameId = requestAnimationFrame(renderFrame);
+        }
+        audioEngine.addEventListener('play', drawVisualizer);
+        audioEngine.addEventListener('pause', stopVisualizer);
+        document.addEventListener('visibilitychange', () => document.hidden ? stopVisualizer() : drawVisualizer());
+
+        const eqBass = document.getElementById('eq-bass');
+        const eqMid = document.getElementById('eq-mid');
+        const eqTreble = document.getElementById('eq-treble');
+
+        function applyEqualizer() {
+            const values = { bass: Number(eqBass.value), mid: Number(eqMid.value), treble: Number(eqTreble.value) };
+            eqValues = values;
+            document.getElementById('eq-bass-value').textContent = `${values.bass > 0 ? '+' : ''}${values.bass} dB`;
+            document.getElementById('eq-mid-value').textContent = `${values.mid > 0 ? '+' : ''}${values.mid} dB`;
+            document.getElementById('eq-treble-value').textContent = `${values.treble > 0 ? '+' : ''}${values.treble} dB`;
+            if (biquadFilter && eqMidFilter && eqTrebleFilter) {
+                biquadFilter.gain.setTargetAtTime(values.bass, audioCtx.currentTime, 0.04);
+                eqMidFilter.gain.setTargetAtTime(values.mid, audioCtx.currentTime, 0.04);
+                eqTrebleFilter.gain.setTargetAtTime(values.treble, audioCtx.currentTime, 0.04);
+            }
+            localStorage.setItem('symphony_eq', JSON.stringify(values));
+        }
+
+        function setEqValues(values, presetName) {
+            eqBass.value = values.bass; eqMid.value = values.mid; eqTreble.value = values.treble;
+            if (presetName) eqPresetSelect.value = presetName;
+            else eqPresetSelect.value = 'custom';
+            applyEqualizer();
+        }
+
+        const eqPresets = {
+            flat: { bass: 0, mid: 0, treble: 0 },
+            bass: { bass: 8, mid: 1, treble: 2 },
+            pop: { bass: 3, mid: 2, treble: 4 },
+            rock: { bass: 5, mid: -1, treble: 5 },
+            vocal: { bass: -2, mid: 5, treble: 3 }
+        };
+        [eqBass, eqMid, eqTreble].forEach(input => input.addEventListener('input', () => setEqValues({ bass:eqBass.value, mid:eqMid.value, treble:eqTreble.value })));
+        eqPresetSelect.addEventListener('change', () => setEqValues(eqPresets[eqPresetSelect.value] || eqPresets.flat, eqPresetSelect.value));
+        document.getElementById('eq-reset').addEventListener('click', () => { setEqValues(eqPresets.flat, 'flat'); showToast('Ekolayzır varsayılan ayarlara döndürüldü.', 'success'); });
+        setEqValues(eqValues);
+
+
+        // GitHub Pages HTTPS sayfasında HTTP yayınlarını Render HTTPS köprüsünden aktar.
+        // Render yayın köprüsü uç noktası /stream'dir.
+        const streamProxyBase = 'https://radyo-h6bh.onrender.com';
+        function getPlayableStreamUrl(url) {
+            if (!url) return url;
+            try {
+                const parsed = new URL(url);
+                if (parsed.protocol === 'http:') {
+                    // SHOUTcast v2 ana dizininde gerçek ses akışı çoğunlukla /; yolundadır.
+                    if (parsed.hostname.toLowerCase() === 'sslyayin.netyayin.net' &&
+                        (parsed.pathname === '/' || parsed.pathname === '') &&
+                        !parsed.search) {
+                        parsed.pathname = '/;';
+                    }
+                    return `${streamProxyBase}/stream?url=${encodeURIComponent(parsed.href)}`;
+                }
+            } catch (e) {
+                console.warn('Yayın adresi çözümlenemedi:', e);
+            }
+            return url;
+        }
+
+        // Kaynağı akıllıca sınıflandır: gerçek ses/playlist bağlantıları normal oynatıcıya,
+        // yalnızca sayfa adresleri Web Viewer'a yönlendirilir. Yayın başarısız diye iframe açılmaz.
+        function detectStationSource(st) {
+            const raw = String(st && (st.url_resolved || st.url) || '').trim();
+            if (!raw) return st && st.homepage ? 'webpage' : 'unknown';
+            try {
+                const u = new URL(raw);
+                const path = u.pathname.toLowerCase();
+                if (/\.(mp3|aac|m4a|ogg|opus|oga|wav|flac|m3u8?|pls|asx|xspf)$/.test(path)) return 'stream';
+                if (/\.(html?|php|asp|aspx|jsp)$/.test(path)) return 'webpage';
+                if (st.homepage && raw.replace(/\/$/, '') === String(st.homepage).trim().replace(/\/$/, '')) return 'webpage';
+                return 'stream'; // uzantısız radyo mount noktaları çoğunlukla canlı akıştır
+            } catch (_) { return 'unknown'; }
+        }
+
+        async function resolvePlaylistStreamUrl(rawUrl) {
+            if (!rawUrl) return rawUrl;
+            try {
+                const original = new URL(rawUrl);
+                if (!/\.(m3u|pls)$/i.test(original.pathname)) return getPlayableStreamUrl(rawUrl);
+                const response = await fetch(getPlayableStreamUrl(rawUrl), { cache:'no-store' });
+                if (!response.ok) throw new Error(`Liste HTTP ${response.status}`);
+                const body = await response.text();
+                let candidate = '';
+                const pls = body.match(/^\s*File\d+\s*=\s*(.+)\s*$/im);
+                if (pls) candidate = pls[1].trim();
+                if (!candidate) {
+                    candidate = body.split(/\r?\n/).map(line => line.trim())
+                        .find(line => line && !line.startsWith('#') && /^https?:\/\//i.test(line)) || '';
+                }
+                return candidate ? getPlayableStreamUrl(new URL(candidate, original).href) : getPlayableStreamUrl(rawUrl);
+            } catch (err) {
+                console.warn('Çalma listesi çözümlenemedi; doğrudan adres denenecek:', err);
+                return getPlayableStreamUrl(rawUrl);
+            }
+        }
+
+        async function probeStation(st, timeoutMs = 10000) {
+            const raw = st && (st.url_resolved || st.url);
+            if (!raw) return { ok:false, reason:'Yayın adresi yok' };
+            if (detectStationSource(st) === 'webpage') return { ok:null, reason:'Web sayfası; ses akışı değil' };
+            const playableUrl = await resolvePlaylistStreamUrl(raw);
+            return new Promise(resolve => {
+                const probe = new Audio();
+                let done = false;
+                const finish = result => {
+                    if (done) return;
+                    done = true;
+                    clearTimeout(timer);
+                    probe.pause();
+                    probe.removeAttribute('src');
+                    probe.load();
+                    resolve(result);
+                };
+                const timer = setTimeout(() => finish({ok:false,reason:'Zaman aşımı / yanıt alınamadı'}), timeoutMs);
+                probe.muted = true;
+                probe.preload = 'none';
+                probe.addEventListener('canplay', () => finish({ok:true,reason:'Yayın yanıt verdi'}), {once:true});
+                probe.addEventListener('playing', () => finish({ok:true,reason:'Yayın oynatılabilir'}), {once:true});
+                probe.addEventListener('error', () => finish({ok:false,reason:'Tarayıcı kaynağı açamadı'}), {once:true});
+                probe.src = playableUrl;
+                const playPromise = probe.play();
+                if (playPromise && playPromise.catch) playPromise.catch(err => finish({ok:false,reason:err && err.name === 'NotAllowedError' ? 'Tarayıcı test oynatmasına izin vermedi' : 'Yayın başlatılamadı'}));
+            });
+        }
+
+        async function testRadioServer() {
+            const out = document.getElementById('radio-server-status');
+            const started = performance.now();
+            out.textContent = 'Render sunucusuna bağlanılıyor...';
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 9000);
+            try {
+                const response = await fetch(`${streamProxyBase}/health`, { cache:'no-store', signal:controller.signal });
+                const elapsed = Math.round(performance.now() - started);
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                out.textContent = `✓ Sunucu çalışıyor · ${elapsed} ms · ${data.version ? 'Sürüm ' + data.version : (data.service || 'Çevrimiçi')}`;
+                out.style.color = 'var(--success-color, #16a34a)';
+            } catch (err) {
+                out.textContent = `✕ Sunucuya ulaşılamadı: ${err.name === 'AbortError' ? 'zaman aşımı' : (err.message || 'bağlantı hatası')}`;
+                out.style.color = 'var(--danger-color, #dc2626)';
+            } finally { clearTimeout(timer); }
+        }
+
+        async function testCurrentStation() {
+            const out = document.getElementById('radio-test-status');
+            if (!currentStation) { out.textContent = 'Önce bir kanal seçin.'; return; }
+            out.textContent = `${currentStation.name}: test ediliyor...`;
+            const result = await probeStation(currentStation);
+            out.textContent = `${result.ok === true ? '✓' : result.ok === false ? '✕' : 'ℹ'} ${currentStation.name}: ${result.reason}`;
+        }
+
+        async function testStationList() {
+            const out = document.getElementById('radio-test-status');
+            const list = (getActiveList() || []).slice(0,20);
+            if (!list.length) { out.textContent = 'Test edilecek kanal bulunamadı.'; return; }
+            let good = 0, bad = 0, skipped = 0;
+            out.textContent = `İlk ${list.length} kanal kontrol ediliyor...`;
+            for (let i=0; i<list.length; i++) {
+                const st = list[i];
+                out.textContent = `Kontrol ediliyor (${i+1}/${list.length}): ${st.name}`;
+                const result = await probeStation(st, 7000);
+                if (result.ok === true) good++; else if (result.ok === false) bad++; else skipped++;
+            }
+            out.textContent = `Tarama tamamlandı: ${good} yanıt veren, ${bad} açılamayan, ${skipped} web sayfası/atlanmış kanal. Sonuçlar tarayıcı ve yayın sunucusuna göre değişebilir.`;
+        }
+
+        // --- Ses oynatma ve web görüntüleyici bağlantısı ---
+        async function playStation(uuid) {
+            let list = getActiveList();
+            let st = list.find(s => s.changeuuid === uuid) 
+                  || currentStations.find(s => s.changeuuid === uuid) 
+                  || favorites.find(s => s.changeuuid === uuid) 
+                  || history.find(s => s.changeuuid === uuid)
+                  || customStations.find(s => s.changeuuid === uuid);
+
+            if (!st) return;
+            reconnectGeneration++;
+            if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+            reconnectAttempts = 0;
+            autoReconnectEnabled = true;
+
+            // Önceki kanalı tamamen kapat
+            audioEngine.pause();
+            audioEngine.currentTime = 0;
+            closeWebViewModal();
+
+            currentStation = st;
+            // Önceki sürümden kalan Web Viewer zorlamasını temizle; normal ses oynatıcıyı dene.
+            if (webviewStations[st.changeuuid]) {
+                delete webviewStations[st.changeuuid];
+                localStorage.setItem('symphony_webview', JSON.stringify(webviewStations));
+            }
+
+            // Adres açıkça bir web sayfasıysa ses oynatıcıyı zorlamadan Web Viewer'ı aç.
+            if (detectStationSource(st) === 'webpage') {
+                openInWebView(st);
+                return;
+            }
+
+            // Bağlanıyor bildirimi göster
+            showToast(`${st.name} kanalına bağlanılıyor...`, 'loading', 0);
+            
+            // Proxy CORS başlıklarıyla çalışır; Web Audio / kayıt özellikleri için CORS modunu etkinleştir.
+            audioEngine.crossOrigin = 'anonymous';
+            initAudioContext();
+
+            if (offlineStations[st.changeuuid]) {
+                delete offlineStations[st.changeuuid];
+                localStorage.setItem('symphony_offline', JSON.stringify(offlineStations));
+            }
+
+            const playGeneration = reconnectGeneration;
+            const primaryUrl = await resolvePlaylistStreamUrl(st.url_resolved || st.url);
+            if (playGeneration !== reconnectGeneration || !currentStation || currentStation.changeuuid !== st.changeuuid) return;
+            const fallbackUrl = await resolvePlaylistStreamUrl(st.url || st.url_resolved);
+
+            audioEngine.src = primaryUrl;
+            audioEngine.play().then(() => {
+                updatePlayerUI(true);
+                addToHistory(st);
+                showToast(`${st.name} yayını başlatıldı.`, 'success', 2500);
+            }).catch(err => {
+                console.warn('Birincil akış başarısız, yedek deneniyor...');
+                if (fallbackUrl && fallbackUrl !== primaryUrl) {
+                    audioEngine.src = fallbackUrl;
+                    audioEngine.play().then(() => {
+                        updatePlayerUI(true);
+                        addToHistory(st);
+                        showToast(`${st.name} yayını başlatıldı.`, 'success', 2500);
+                    }).catch(() => handlePlayError(st));
+                } else {
+                    handlePlayError(st);
+                }
+            });
+
+            updatePlayerUI(true);
+            renderStations();
+        }
+
+        function handlePlayError(st) {
+            if (!st || !autoReconnectEnabled || !currentStation || currentStation.changeuuid !== st.changeuuid) return;
+            if (reconnectTimer) return;
+            if (reconnectAttempts < 3) {
+                reconnectAttempts++;
+                const attempt = reconnectAttempts;
+                const waitMs = attempt * 2500;
+                showToast(`${st.name}: bağlantı kesildi. ${attempt}/3 yeniden bağlanma denemesi yapılacak...`, 'loading', waitMs);
+                reconnectTimer = setTimeout(() => {
+                    reconnectTimer = null;
+                    if (!autoReconnectEnabled || !currentStation || currentStation.changeuuid !== st.changeuuid) return;
+                    const url = getPlayableStreamUrl(st.url_resolved || st.url);
+                    audioEngine.src = url;
+                    audioEngine.load();
+                    audioEngine.play().then(() => {
+                        reconnectAttempts = 0;
+                        updatePlayerUI(true);
+                        showToast(`${st.name} yayınına yeniden bağlanıldı.`, 'success', 3000);
+                    }).catch(() => handlePlayError(st));
+                }, waitMs);
+                return;
+            }
+            // Üç gerçek oynatma/yeniden bağlanma denemesi başarısız oldu.
+            autoReconnectEnabled = false;
+            audioEngine.pause();
+            audioEngine.removeAttribute('src');
+            audioEngine.load();
+            updatePlayerUI(false);
+            renderStations();
+
+            // Web Viewer yalnızca gerçek bir web sayfası adresi varsa açılır.
+            const pageUrl = getStationWebPageUrl(st);
+            if (pageUrl) {
+                showToast(`${st.name}: 3 deneme başarısız. Web sayfası açılıyor...`, 'warning', 3500);
+                setTimeout(() => {
+                    if (currentStation && currentStation.changeuuid === st.changeuuid) openInWebView(st, pageUrl);
+                }, 500);
+            } else {
+                // Ana sayfa bulunmuyorsa ses akışını iframe'e koyup beyaz ekran üretme.
+                // Yayın adresini normal ses oynatıcıda bir kez daha dene.
+                showToast(`${st.name}: Web sayfası adresi yok. Yayın normal oynatıcıda son kez deneniyor...`, 'warning', 4000);
+                setTimeout(() => retryStreamWithoutWebView(st), 500);
+            }
+        }
+
+        function getStationWebPageUrl(st) {
+            if (!st) return '';
+            const candidates = [st.homepage, st.url_resolved, st.url].filter(Boolean);
+            for (const candidate of candidates) {
+                try {
+                    const u = new URL(candidate);
+                    if (u.protocol !== 'http:' && u.protocol !== 'https:') continue;
+                    const path = u.pathname.toLowerCase();
+                    if (/\.(mp3|aac|m4a|ogg|opus|oga|wav|flac|m3u8?|pls|asx|xspf)(?:$)/i.test(path)) continue;
+                    if (candidate === st.homepage || /\.(html?|php|asp|aspx|jsp)$/i.test(path)) return u.href;
+                } catch (_) {}
+            }
+            return '';
+        }
+
+        function retryStreamWithoutWebView(st) {
+            if (!st || !currentStation || currentStation.changeuuid !== st.changeuuid) return;
+            const retryUrl = getPlayableStreamUrl(st.url_resolved || st.url);
+            if (!retryUrl) {
+                showToast(`${st.name}: kullanılabilir yayın adresi bulunamadı.`, 'error', 5000);
+                return;
+            }
+            audioEngine.crossOrigin = 'anonymous';
+            audioEngine.src = retryUrl;
+            audioEngine.load();
+            audioEngine.play().then(() => {
+                reconnectAttempts = 0;
+                updatePlayerUI(true);
+                addToHistory(st);
+                showToast(`${st.name} yayını normal oynatıcıda açıldı.`, 'success', 3000);
+            }).catch(() => {
+                audioEngine.pause();
+                updatePlayerUI(false);
+                showToast(`${st.name}: Yayın açılamadı. Web sayfası adresi de bulunamadığı için Web Viewer açılmadı.`, 'error', 6000);
+            });
+        }
+
+        function openInWebView(st, suppliedUrl = '') {
+            if (!st) return;
+            const targetUrl = suppliedUrl || getStationWebPageUrl(st);
+            if (!targetUrl) {
+                showToast(`${st.name}: Web Viewer için gerçek bir web sayfası adresi bulunamadı.`, 'error', 5000);
+                return;
+            }
+            currentStation = st;
+            webviewHomeUrl = getStationWebPageUrl(st) || targetUrl;
+            webviewCurrentUrl = targetUrl;
+            if (webviewUrlInput) webviewUrlInput.value = targetUrl;
+            autoReconnectEnabled = false;
+            if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+            if (webviewLoadTimer) { clearTimeout(webviewLoadTimer); webviewLoadTimer = null; }
+            const token = ++webviewLoadToken;
+            webviewStations[st.changeuuid] = true;
+            localStorage.setItem('symphony_webview', JSON.stringify(webviewStations));
+            webviewStationName.textContent = `${st.name} (Web Viewer)`;
+            webviewAddress.textContent = targetUrl;
+            webviewAddress.title = targetUrl;
+            webviewStatus.hidden = false;
+            setWebViewStatus('loading', 'Sayfa yükleniyor…', 'Lütfen bekleyin. Sayfa 12 saniye içinde yanıt vermezse hata bilgisi gösterilecek.');
+            webviewModal.classList.add('show');
+            activeWebviewFrame.src = 'about:blank';
+            // about:blank yüklenmesinin ardından gerçek sayfayı yükle.
+            setTimeout(() => {
+                if (token !== webviewLoadToken || !webviewModal.classList.contains('show')) return;
+                activeWebviewFrame.src = targetUrl;
+                webviewLoadTimer = setTimeout(() => {
+                    if (token !== webviewLoadToken || !webviewModal.classList.contains('show')) return;
+                    setWebViewStatus('error', 'Sayfa 12 saniyede yüklenemedi', 'Site yanıt vermiyor olabilir veya başka uygulama içinde açılmayı (iframe) engelliyor olabilir. Bu durumda sayfayı harici tarayıcıda açmak gerekir.');
+                }, 12000);
+            }, 80);
+            updatePlayerUI(false);
+            addToHistory(st);
+            renderStations();
+        }
+
+        function closeWebViewModal() {
+            webviewModal.classList.remove('show');
+            webviewLoadToken++;
+            if (webviewLoadTimer) { clearTimeout(webviewLoadTimer); webviewLoadTimer = null; }
+            activeWebviewFrame.src = 'about:blank';
+            if (webviewStatus) webviewStatus.hidden = false;
+        }
+
+        function navigateWebView(rawUrl) {
+            let url;
+            try { url = new URL(String(rawUrl || '').trim()); } catch (_) {
+                showToast('Geçerli bir web adresi girin.', 'warning'); return;
+            }
+            if (!['http:', 'https:'].includes(url.protocol)) {
+                showToast('Yalnızca HTTP ve HTTPS adresleri açılabilir.', 'warning'); return;
+            }
+            webviewCurrentUrl = url.href;
+            if (webviewUrlInput) webviewUrlInput.value = url.href;
+            webviewAddress.textContent = url.href;
+            webviewAddress.title = url.href;
+            setWebViewStatus('loading', 'Sayfa yükleniyor…', 'Yeni adres açılıyor.');
+            if (webviewLoadTimer) clearTimeout(webviewLoadTimer);
+            const token = ++webviewLoadToken;
+            activeWebviewFrame.src = url.href;
+            webviewLoadTimer = setTimeout(() => {
+                if (token !== webviewLoadToken) return;
+                setWebViewStatus('error', 'Sayfa yanıt vermedi', 'Site iframe içinde açılmayı engelliyor olabilir. Harici tarayıcıda açmayı deneyin.');
+            }, 12000);
+        }
+        document.getElementById('webview-url-form')?.addEventListener('submit', e => {
+            e.preventDefault(); navigateWebView(webviewUrlInput.value);
+        });
+        document.getElementById('webview-back')?.addEventListener('click', () => {
+            try { activeWebviewFrame.contentWindow.history.back(); } catch (_) {}
+        });
+        document.getElementById('webview-forward')?.addEventListener('click', () => {
+            try { activeWebviewFrame.contentWindow.history.forward(); } catch (_) {}
+        });
+        document.getElementById('webview-reload')?.addEventListener('click', () => {
+            try { activeWebviewFrame.contentWindow.location.reload(); } catch (_) { navigateWebView(webviewCurrentUrl); }
+        });
+        document.getElementById('webview-home')?.addEventListener('click', () => navigateWebView(webviewHomeUrl));
+        document.getElementById('webview-external')?.addEventListener('click', () => {
+            const url = webviewCurrentUrl || webviewHomeUrl;
+            if (url) window.open(url, '_blank', 'noopener,noreferrer');
+        });
+
+        closeWebviewBtn.addEventListener('click', () => {
+            closeWebViewModal();
+            renderStations();
+        });
+
+        function updatePlayerUI(isPlaying) {
+            if (!currentStation) return;
+
+            playerTitle.textContent = currentStation.name;
+            playerSub.textContent = webviewStations[currentStation.changeuuid] ? 'Web Viewer Modunda' : `${currentStation.country || 'Özel Kanal'}`;
+            const art = currentStation.favicon && /^https?:\/\//i.test(currentStation.favicon) ? currentStation.favicon : '';
+            playerArt.src = art || '';
+            playerArt.style.display = art ? 'block' : 'none';
+            fullscreenTitle.textContent = currentStation.name;
+            fullscreenSub.textContent = playerSub.textContent;
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({ title: currentStation.name, artist: currentStation.country || 'Online Radyo', album: 'Canlı Radyo', artwork: art ? [{ src: art, sizes: '512x512', type: 'image/png' }] : [] });
+                navigator.mediaSession.setActionHandler('play', () => audioEngine.play());
+                navigator.mediaSession.setActionHandler('pause', () => audioEngine.pause());
+                navigator.mediaSession.setActionHandler('previoustrack', () => changeChannel(-1));
+                navigator.mediaSession.setActionHandler('nexttrack', () => changeChannel(1));
+            }
+            
+            mainPlayBtn.innerHTML = isPlaying ? '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play"></i>';
+
+            const isFav = favorites.some(f => f.changeuuid === currentStation.changeuuid);
+            playerFavBtn.innerHTML = `<i class="fa-${isFav ? 'solid' : 'regular'} fa-heart"></i>`;
+            playerFavBtn.style.color = isFav ? 'var(--danger-color)' : '';
+            const fullscreenFav = document.getElementById('fullscreen-fav');
+            if (fullscreenFav) { fullscreenFav.innerHTML = `<i class="fa-${isFav ? 'solid' : 'regular'} fa-heart"></i>`; fullscreenFav.style.color = isFav ? 'var(--danger-color)' : ''; }
+        }
+
+        function changeChannel(direction) {
+            let list = getActiveList();
+            if (!list || list.length === 0) return;
+
+            let currentIndex = list.findIndex(s => currentStation && s.changeuuid === currentStation.changeuuid);
+            if (currentIndex === -1) {
+                playStation(list[0].changeuuid);
+                return;
+            }
+
+            let newIndex = currentIndex + direction;
+            if (newIndex >= list.length) newIndex = 0;
+            if (newIndex < 0) newIndex = list.length - 1;
+
+            playStation(list[newIndex].changeuuid);
+        }
+
+        prevBtn.addEventListener('click', () => changeChannel(-1));
+        nextBtn.addEventListener('click', () => changeChannel(1));
+
+        shuffleBtn.addEventListener('click', () => {
+            let list = getActiveList();
+            if (!list || list.length === 0) return;
+            let randomIndex = Math.floor(Math.random() * list.length);
+            playStation(list[randomIndex].changeuuid);
+            showToast('Rastgele kanal çalınıyor...', 'success');
+        });
+
+        mainPlayBtn.addEventListener('click', () => {
+            if (!currentStation) {
+                let list = getActiveList();
+                if (list.length > 0) playStation(list[0].changeuuid);
+                return;
+            }
+            if (webviewStations[currentStation.changeuuid]) {
+                if (webviewModal.classList.contains('show')) {
+                    closeWebViewModal();
+                } else {
+                    openInWebView(currentStation);
+                }
+                return;
+            }
+
+            initAudioContext();
+            if (audioEngine.paused) {
+                autoReconnectEnabled = true;
+                reconnectAttempts = 0;
+                audioEngine.play().catch(() => currentStation && handlePlayError(currentStation));
+                updatePlayerUI(true);
+            } else {
+                autoReconnectEnabled = false;
+                if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+                audioEngine.pause();
+                updatePlayerUI(false);
+            }
+            renderStations();
+        });
+
+        volumeSlider.addEventListener('input', (e) => {
+            const val = e.target.value;
+            audioEngine.volume = val;
+            updateVolumeIcon(val);
+        });
+
+        function updateVolumeIcon(val) {
+            if (val == 0) volumeIcon.className = 'fa-solid fa-volume-xmark';
+            else if (val < 0.5) volumeIcon.className = 'fa-solid fa-volume-low';
+            else volumeIcon.className = 'fa-solid fa-volume-high';
+        }
+
+        volumeIcon.addEventListener('click', () => {
+            if (audioEngine.volume > 0) {
+                audioEngine.dataset.lastVolume = audioEngine.volume;
+                audioEngine.volume = 0;
+                volumeSlider.value = 0;
+                updateVolumeIcon(0);
+            } else {
+                const lastVol = audioEngine.dataset.lastVolume || 0.8;
+                audioEngine.volume = lastVol;
+                volumeSlider.value = lastVol;
+                updateVolumeIcon(lastVol);
+            }
+        });
+
+        // --- Kayıt modu seçimi ve cihaz/sunucu kayıtları ---
+        async function recordServerRequest(path, options = {}) {
+            const response = await fetch(recordServerBase + path, { ...options, headers: { ...(options.headers || {}) } });
+            if (!response.ok) {
+                let message = 'Kayıt sunucusu isteği başarısız oldu (' + response.status + ').';
+                try { const data = await response.json(); if (data.error) message = data.error; if (data.detail) message += ' Ayrıntı: ' + data.detail; } catch {}
+                throw new Error(message);
+            }
+            return response;
+        }
+        function setRecordingButtonState(recording) {
+            isRecording = recording;
+            recordBtn.classList.toggle('recording', recording);
+            const fullRecord = document.getElementById('fullscreen-record');
+            if (fullRecord) fullRecord.classList.toggle('recording', recording);
+        }
+        const recordModeModal = document.getElementById('record-mode-modal');
+        function openRecordModeModal() { recordModeModal.classList.add('show'); recordModeModal.setAttribute('aria-hidden','false'); }
+        function closeRecordModeModal() { recordModeModal.classList.remove('show'); recordModeModal.setAttribute('aria-hidden','true'); }
+        document.getElementById('record-mode-cancel').addEventListener('click', closeRecordModeModal);
+        recordModeModal.addEventListener('click', e => { if (e.target === recordModeModal) closeRecordModeModal(); });
+
+        async function startLocalRecording() {
+            if (!window.MediaRecorder) throw new Error('Bu tarayıcı normal cihaz kaydını desteklemiyor. Sunucu üzerinden kayıt seçeneğini deneyin.');
+            if (!recordingDestination) {
+                const ready = initAudioContext();
+                if (!ready || !recordingDestination) throw new Error('Cihaz kaydı için ses bağlantısı hazırlanamadı. Sayfayı HTTPS üzerinden açıp yeniden deneyin.');
+            }
+            if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume();
+            const stream = recordingDestination.stream;
+            if (!stream || !stream.getAudioTracks().length) throw new Error('Kayıt için ses akışı alınamadı.');
+            const mimeType = ['audio/webm;codecs=opus','audio/webm','audio/mp4'].find(type => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(type));
+            mediaRecorder = mimeType ? new MediaRecorder(stream,{mimeType}) : new MediaRecorder(stream);
+            recordedChunks = [];
+            mediaRecorder.ondataavailable = e => { if (e.data && e.data.size) recordedChunks.push(e.data); };
+            mediaRecorder.onerror = e => { console.error('Cihaz kaydı hatası:',e.error); showToast('Cihaz kaydı sırasında hata oluştu.','error',5000); };
+            mediaRecorder.onstop = async () => {
+                try {
+                    const type = mediaRecorder && mediaRecorder.mimeType ? mediaRecorder.mimeType : 'audio/webm';
+                    const blob = new Blob(recordedChunks,{type});
+                    if (blob.size < 1024) throw new Error('Kayıt boş oluştu. Yayının çaldığından emin olun.');
+                    await saveRecording(blob,currentStation ? currentStation.name : 'Radyo Kaydı');
+                    showToast('Normal kayıt tamamlandı ve cihazına kaydedildi.','success',5500);
+                } catch(err) { showToast(err.message || 'Kayıt kaydedilemedi.','error',5500); }
+                finally { recordedChunks=[]; mediaRecorder=null; setRecordingButtonState(false); }
+            };
+            mediaRecorder.start(1000);
+            setRecordingButtonState(true);
+            showToast('Normal kayıt başladı. Durdurmak için kayıt düğmesine tekrar bas.','success',4500);
+        }
+
+        async function startServerRecording() {
+            const streamUrl = currentStation.url_resolved || currentStation.url;
+            const startResponse = await recordServerRequest('/api/record/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({streamUrl,stationName:currentStation.name || 'Radyo Kaydı'})});
+            const startInfo = await startResponse.json();
+            if (!startInfo.audioConfirmed || !startInfo.bytes) throw new Error('Sunucu kayıt dosyasına ses verisi yazdığını doğrulayamadı.');
+            setRecordingButtonState(true);
+            showToast('Kayıt doğrulandı: sunucu ses verisi alıyor. Durdururken uygulamayı açık tutun.','success',5000);
+            recordHeartbeatTimer = setInterval(async () => {
+                try {
+                    const response = await recordServerRequest('/api/record/status');
+                    const status = await response.json();
+                    if (!status.recording) {
+                        clearInterval(recordHeartbeatTimer); recordHeartbeatTimer=null;
+                        if (status.finished && status.hasFile) {
+                            // Kayıt sunucuda tamamlandı; düğmeyi açık tut ki kullanıcı dosyayı alabilsin.
+                            setRecordingButtonState(true);
+                            showToast('Sunucu kaydı sona erdi. Kayıt dosyasını almak için kayıt düğmesine bas.','warning',6500);
+                        } else {
+                            setRecordingButtonState(false);
+                            showToast('Sunucu kaydı durmuş görünüyor; kayıt dosyası oluşmamış olabilir.','error',6500);
+                        }
+                    }
+                } catch(err) { console.warn('Kayıt sunucusu kontrol edilemedi:',err); }
+            },25000);
+        }
+        async function stopServerRecording(showMessage=true) {
+            if (!isRecording) return;
+            if (recordHeartbeatTimer) { clearInterval(recordHeartbeatTimer); recordHeartbeatTimer=null; }
+            try {
+                const response = await recordServerRequest('/api/record/stop',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+                const blob = await response.blob();
+                if (!blob || blob.size < 1024) throw new Error('Kayıt dosyası boş geldi. Radyo yayını sunucuya ulaşmamış olabilir.');
+                await saveRecording(new Blob([blob],{type:'audio/mpeg'}),currentStation ? currentStation.name : 'Radyo Kaydı');
+                if (showMessage) showToast('Sunucu kaydı tamamlandı ve cihazına kaydedildi.','success',5500);
+            } catch(err) { console.error('Sunucu kaydı durdurma hatası:',err); showToast(err.message || 'Kayıt dosyası alınamadı.','error',6000); }
+            finally { setRecordingButtonState(false); }
+        }
+        async function stopLocalRecording() {
+            if (!mediaRecorder || mediaRecorder.state === 'inactive') { setRecordingButtonState(false); return; }
+            try { mediaRecorder.stop(); showToast('Kayıt tamamlanıyor, dosya kaydediliyor...','loading',0); }
+            catch(err) { setRecordingButtonState(false); showToast('Kayıt durdurulamadı.','error',5000); }
+        }
+        document.getElementById('record-mode-local').addEventListener('click',async()=>{
+            closeRecordModeModal(); if(recordBtn.dataset.busy==='1') return; recordBtn.dataset.busy='1';
+            try { await startLocalRecording(); } catch(err) { console.error(err); showToast(err.message || 'Normal kayıt başlatılamadı.','error',6500); }
+            finally { recordBtn.dataset.busy='0'; }
+        });
+        document.getElementById('record-mode-server').addEventListener('click',async()=>{
+            closeRecordModeModal(); if(recordBtn.dataset.busy==='1') return; recordBtn.dataset.busy='1';
+            try { await startServerRecording(); } catch(err) { console.error('Sunucu kaydı başlatılamadı:',err); showToast(err.message || 'Sunucu kaydı başlatılamadı.','error',6500); }
+            finally { recordBtn.dataset.busy='0'; }
+        });
+        recordBtn.addEventListener('click',async()=>{
+            if (!isRecording) {
+                if (!currentStation || (!currentStation.url && !currentStation.url_resolved)) { showToast('Önce kaydetmek istediğiniz radyoyu açın.','error'); return; }
+                if (recordBtn.dataset.busy==='1') return;
+                openRecordModeModal();
+            } else {
+                if (recordBtn.dataset.busy==='1') return;
+                recordBtn.dataset.busy='1'; recordBtn.disabled=true;
+                try {
+                    if (mediaRecorder && mediaRecorder.state !== 'inactive') await stopLocalRecording();
+                    else await stopServerRecording(true);
+                } finally { recordBtn.disabled=false; recordBtn.dataset.busy='0'; }
+            }
+        });
+
+        // --- Modern uyku zamanlayıcısı ---
+        const sleepModal = document.getElementById('sleep-modal');
+        const sleepCustomMinutes = document.getElementById('sleep-custom-minutes');
+        const sleepModalStart = document.getElementById('sleep-modal-start');
+        const sleepModalStop = document.getElementById('sleep-modal-stop');
+        let selectedSleepMinutes = 0;
+        function openSleepModal() {
+            sleepModal.classList.add('show');
+            sleepModal.setAttribute('aria-hidden', 'false');
+            sleepModalStop.style.display = sleepTimerId ? 'flex' : 'none';
+            sleepModalStart.innerHTML = '<i class="fa-solid fa-moon"></i> Zamanlayıcıyı başlat';
+            selectedSleepMinutes = 0;
+            sleepCustomMinutes.value = '';
+        }
+        function closeSleepModal() {
+            sleepModal.classList.remove('show');
+            sleepModal.setAttribute('aria-hidden', 'true');
+        }
+        sleepBtn.addEventListener('click', openSleepModal);
+        document.getElementById('sleep-modal-cancel').addEventListener('click', closeSleepModal);
+        sleepModal.addEventListener('click', e => { if (e.target === sleepModal) closeSleepModal(); });
+        document.querySelectorAll('.sleep-preset').forEach(btn => btn.addEventListener('click', () => {
+            selectedSleepMinutes = Number(btn.dataset.minutes);
+            sleepCustomMinutes.value = '';
+            document.querySelectorAll('.sleep-preset').forEach(item => item.style.borderColor = item === btn ? 'var(--accent-primary)' : 'var(--border-color)');
+        }));
+        sleepCustomMinutes.addEventListener('input', () => {
+            selectedSleepMinutes = 0;
+            document.querySelectorAll('.sleep-preset').forEach(item => item.style.borderColor = 'var(--border-color)');
+        });
+        sleepModalStart.addEventListener('click', () => {
+            const mins = Number(sleepCustomMinutes.value) || selectedSleepMinutes;
+            if (!Number.isFinite(mins) || mins < 1 || mins > 720) {
+                showToast('Lütfen 1 ile 720 dakika arasında bir süre seçin.', 'error');
+                return;
+            }
+            if (sleepTimerId) clearTimeout(sleepTimerId);
+            sleepTimerId = setTimeout(() => {
+                audioEngine.pause();
+                closeWebViewModal();
+                updatePlayerUI(false);
+                renderStations();
+                showToast('Uyku zamanlayıcısı radyoyu durdurdu.', 'success');
+                sleepBtn.style.color = '';
+                sleepTimerId = null;
+            }, mins * 60 * 1000);
+            sleepBtn.style.color = 'var(--accent-secondary)';
+            closeSleepModal();
+            showToast(`${mins} dakikalık uyku zamanlayıcısı etkinleştirildi.`, 'success');
+        });
+        sleepModalStop.addEventListener('click', () => {
+            if (sleepTimerId) clearTimeout(sleepTimerId);
+            sleepTimerId = null;
+            sleepBtn.style.color = '';
+            closeSleepModal();
+            showToast('Uyku zamanlayıcısı iptal edildi.', 'success');
+        });
+
+        // --- Ayarlar penceresi ve özel yayın ---
+        const settingsModal = document.getElementById('settings-modal');
+        let settingsSavedScrollY = 0;
+        const openSettingsModal = () => {
+            if (settingsModal.classList.contains('show')) return;
+            settingsSavedScrollY = window.scrollY || window.pageYOffset || 0;
+            settingsModal.classList.add('show');
+            document.documentElement.classList.add('settings-open');
+            document.body.classList.add('settings-open');
+            // iPad Safari'de body'yi fixed yapmak modalın kendi kaydırma alanını bozabilir.
+            // Arka planı overflow ile kilitleyip kaydırmayı yalnızca içerik alanında bırak.
+            document.documentElement.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden';
+            requestAnimationFrame(() => {
+                const content = settingsModal.querySelector('.settings-modal-content');
+                if (content) { content.scrollTop = 0; content.scrollTo({ top: 0, behavior: 'auto' }); }
+            });
+        };
+        const closeSettingsModal = () => {
+            if (!settingsModal.classList.contains('show')) return;
+            settingsModal.classList.remove('show');
+            document.documentElement.classList.remove('settings-open');
+            document.body.classList.remove('settings-open');
+            document.documentElement.style.overflow = '';
+            document.body.style.overflow = '';
+            window.scrollTo(0, settingsSavedScrollY);
+        };
+        // Kaydırma, iPad Safari'de daha güvenilir olan dış modal katmanında gerçekleşir.
+        document.getElementById('settings-btn').addEventListener('click', openSettingsModal);
+        document.getElementById('settings-close-x').addEventListener('click', closeSettingsModal);
+        settingsModal.addEventListener('click', (event) => { if (event.target === settingsModal) closeSettingsModal(); });
+        document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && settingsModal.classList.contains('show')) closeSettingsModal(); });
+        // Kayıt sunucusu adresi uygulamaya sabittir; ziyaretçiden API anahtarı istenmez.
+        const recordServerStatus = document.getElementById('record-server-status');
+
+        document.getElementById('playlist-url-add').addEventListener('click', async () => {
+            const input = document.getElementById('playlist-url-input');
+            const status = document.getElementById('playlist-url-status');
+            const rawUrl = input.value.trim();
+            let parsedUrl;
+            try { parsedUrl = new URL(rawUrl); } catch (_) { parsedUrl = null; }
+            if (!parsedUrl || !['http:', 'https:'].includes(parsedUrl.protocol)) {
+                showToast('Geçerli bir http:// veya https:// kanal listesi adresi girin.', 'error');
+                return;
+            }
+            status.textContent = 'Kanal listesi bağlantısı kontrol ediliyor...';
+            const addButton = document.getElementById('playlist-url-add');
+            addButton.disabled = true;
+            try {
+                const response = await fetch(parsedUrl.href, { cache: 'no-store' });
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                const playlistText = await response.text();
+                const parsed = parseM3U(playlistText);
+                if (!parsed.length) throw new Error('Bu bağlantıda okunabilir M3U kanal bulunamadı.');
+                const urlKey = parsedUrl.href;
+                const prefix = 'ext_' + Math.abs(Array.from(urlKey).reduce((a,c) => ((a * 31) + c.charCodeAt(0)) | 0, 7)) + '_';
+                const normalized = parsed.map((station, index) => { const streamUrl = new URL(station.url, urlKey).href; return { ...station, url: streamUrl, url_resolved: streamUrl, favicon: station.favicon ? new URL(station.favicon, urlKey).href : '', changeuuid: prefix + index + '_' + station.changeuuid, stationuuid: prefix + index + '_' + station.stationuuid, playlistUrl: urlKey }; });
+                externalPlaylistStations = externalPlaylistStations.filter(st => st.playlistUrl !== urlKey).concat(normalized);
+                if (!externalPlaylistUrls.includes(urlKey)) externalPlaylistUrls.push(urlKey);
+                localStorage.setItem('symphony_external_playlists', JSON.stringify(externalPlaylistStations));
+                localStorage.setItem('symphony_external_playlist_urls', JSON.stringify(externalPlaylistUrls));
+                const externalCount = document.getElementById('external-playlist-count');
+                if (externalCount) externalCount.textContent = externalPlaylistStations.length;
+                input.value = '';
+                status.textContent = `${normalized.length} kanal eklendi. Kayıtlı liste sayısı: ${externalPlaylistUrls.length}`;
+                if (activeSource === 'github') await fetchGitHubStations(); else await fetchStations();
+                showToast(`${normalized.length} kanal listene eklendi.`, 'success');
+            } catch (err) {
+                console.error('Harici kanal listesi yüklenemedi:', err);
+                status.textContent = 'Liste yüklenemedi. Bağlantının herkese açık ve CORS erişimine izin veriyor olduğundan emin olun.';
+                showToast('Kanal listesi okunamadı. URL veya sunucu CORS iznini kontrol edin.', 'error', 5000);
+            } finally {
+                addButton.disabled = false;
+            }
+        });
+
+        document.getElementById('custom-save').addEventListener('click', () => {
+            const name = document.getElementById('custom-name').value.trim();
+            const url = document.getElementById('custom-url').value.trim();
+            const country = document.getElementById('custom-country').value.trim() || 'Özel Kanal';
+            const favicon = document.getElementById('custom-logo').value.trim();
+
+            if (!name || !url) {
+                showToast('Lütfen radyo adı ve yayın adresini girin.', 'error');
+                return;
+            }
+
+            const newStation = {
+                changeuuid: 'custom_' + Date.now(),
+                name: name,
+                url: url,
+                url_resolved: url,
+                country: country,
+                favicon: favicon,
+                tags: 'özel, kullanıcı',
+                clickcount: 1
+            };
+
+            customStations.push(newStation);
+            localStorage.setItem('symphony_custom', JSON.stringify(customStations));
+            document.getElementById('custom-name').value = '';
+            document.getElementById('custom-url').value = '';
+            document.getElementById('custom-country').value = '';
+            document.getElementById('custom-logo').value = '';
+            settingsModal.classList.remove('show');
+            fetchStations();
+            showToast('Özel radyo başarıyla eklendi!', 'success');
+        });
+
+        // --- Favoriler ve yedekleme / geri yükleme ---
+        function toggleFav(e, uuid) {
+            e.stopPropagation();
+            let list = getActiveList();
+            let st = list.find(s => s.changeuuid === uuid) 
+                  || currentStations.find(s => s.changeuuid === uuid) 
+                  || favorites.find(s => s.changeuuid === uuid) 
+                  || history.find(s => s.changeuuid === uuid)
+                  || customStations.find(s => s.changeuuid === uuid);
+
+            if (!st) return;
+
+            const index = favorites.findIndex(f => f.changeuuid === st.changeuuid);
+            if (index > -1) {
+                favorites.splice(index, 1);
+                showToast('Favorilerden çıkarıldı.', 'success');
+            } else {
+                favorites.push(st);
+                showToast('Favorilere eklendi!', 'success');
+            }
+
+            localStorage.setItem('symphony_favs', JSON.stringify(favorites));
+            updateFavCount();
+            renderStations();
+
+            if (currentStation && currentStation.changeuuid === uuid) {
+                updatePlayerUI(!audioEngine.paused || webviewModal.classList.contains('show'));
+            }
+        }
+
+        playerFavBtn.addEventListener('click', (e) => {
+            if (currentStation) toggleFav(e, currentStation.changeuuid);
+        });
+
+        function updateFavCount() {
+            favCountSpan.textContent = favorites.length;
+        }
+
+        function updateExternalPlaylistCount() {
+            const count = document.getElementById('external-playlist-count');
+            if (count) count.textContent = externalPlaylistStations.length;
+        }
+        updateExternalPlaylistCount();
+
+        function addToHistory(st) {
+            history = history.filter(h => h.changeuuid !== st.changeuuid);
+            history.unshift(st);
+            if (history.length > 30) history.pop();
+            localStorage.setItem('symphony_history', JSON.stringify(history));
+        }
+
+        document.getElementById('import-json-btn-modal').addEventListener('click', () => {
+            document.getElementById('import-file-input').click();
+        });
+
+        document.getElementById('import-file-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const importedFavs = JSON.parse(event.target.result);
+                    if (Array.isArray(importedFavs)) {
+                        favorites = importedFavs;
+                        localStorage.setItem('symphony_favs', JSON.stringify(favorites));
+                        updateFavCount();
+                        renderStations();
+                        showToast('Favori yedeği yüklendi!', 'success');
+                    } else {
+                        throw new Error();
+                    }
+                } catch (err) {
+                    showToast('Geçersiz dosya formatı.', 'error');
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        document.getElementById('export-json-modal').addEventListener('click', () => {
+            if (favorites.length === 0) {
+                showToast('Yedeklenecek favori bulunmuyor.', 'error');
+                return;
+            }
+            const blob = new Blob([JSON.stringify(favorites, null, 2)], { type: 'application/json' });
+            downloadBlob(blob, 'symphony_favoriler_yedek.json');
+            showToast('Yedek JSON dosyası indirildi.', 'success');
+        });
+
+        // --- Klavye kısayolları ---
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    mainPlayBtn.click();
+                } else if (e.code === 'KeyM') {
+                    volumeIcon.click();
+                } else if (e.code === 'ArrowRight') {
+                    e.preventDefault();
+                    changeChannel(1);
+                } else if (e.code === 'ArrowLeft') {
+                    e.preventDefault();
+                    changeChannel(-1);
+                } else if (e.code === 'ArrowUp') {
+                    e.preventDefault();
+                    let newVol = Math.min(1, audioEngine.volume + 0.05);
+                    audioEngine.volume = newVol;
+                    volumeSlider.value = newVol;
+                    updateVolumeIcon(newVol);
+                } else if (e.code === 'ArrowDown') {
+                    e.preventDefault();
+                    let newVol = Math.max(0, audioEngine.volume - 0.05);
+                    audioEngine.volume = newVol;
+                    volumeSlider.value = newVol;
+                    updateVolumeIcon(newVol);
+                }
+            });
+        }
+
+        function setupEventListeners() {
+            document.getElementById('all-list-btn').addEventListener('click', () => switchSource('all'));
+            document.getElementById('github-list-btn').addEventListener('click', () => switchSource('github'));
+            document.getElementById('existing-list-btn').addEventListener('click', () => switchSource('existing'));
+            document.getElementById('refresh-lists-btn').addEventListener('click', async () => {
+                const btn = document.getElementById('refresh-lists-btn');
+                btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Güncelleniyor';
+                try {
+                    if (activeSource === 'all') await loadAllLists(true);
+                    else if (activeSource === 'github') await fetchGitHubStations(true);
+                    else await fetchStations(true);
+                    showToast('Liste güncelleme işlemi tamamlandı.', 'success');
+                } finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Listeyi Güncelle'; }
+            });
+            const autoCacheToggle = document.getElementById('cache-auto-update');
+            if (autoCacheToggle) autoCacheToggle.addEventListener('change', () => {
+                localStorage.setItem(CACHE_AUTO_UPDATE_KEY, autoCacheToggle.checked ? 'true' : 'false');
+                showToast(autoCacheToggle.checked ? 'Arka plan liste güncellemesi açıldı.' : 'Arka plan liste güncellemesi kapatıldı.');
+            });
+            const cacheInfoBtn = document.getElementById('cache-refresh-info');
+            if (cacheInfoBtn) cacheInfoBtn.addEventListener('click', updateCacheSummary);
+            const clearCacheBtn = document.getElementById('cache-clear-lists');
+            if (clearCacheBtn) clearCacheBtn.addEventListener('click', () => {
+                if (confirm('Yalnızca kayıtlı kanal listesi önbelleği silinsin mi? Favoriler, geçmiş ve ayarlar korunacaktır.')) clearOnlyListCache();
+            });
+            updateCacheSummary();
+            searchOpenBtn.addEventListener('click', () => { searchModal.classList.add('show'); searchModal.setAttribute('aria-hidden','false'); setTimeout(() => searchInput.focus(), 120); });
+            searchCloseBtn.addEventListener('click', () => { searchModal.classList.remove('show'); searchModal.setAttribute('aria-hidden','true'); });
+            searchModal.addEventListener('click', (e) => { if (e.target === searchModal) { searchModal.classList.remove('show'); searchModal.setAttribute('aria-hidden','true'); } });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && searchModal.classList.contains('show')) { searchModal.classList.remove('show'); searchModal.setAttribute('aria-hidden','true'); } });
+            searchBtn.addEventListener('click', () => { saveSearchFilters(); fetchStations(); searchModal.classList.remove('show'); searchModal.setAttribute('aria-hidden','true'); });
+
+            let timeout = null;
+            searchInput.addEventListener('input', () => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => { saveSearchFilters(); fetchStations(); }, 500);
+            });
+
+            genreSelect.addEventListener('change', () => { saveSearchFilters(); fetchStations(); });
+            countrySelect.addEventListener('change', () => { saveSearchFilters(); fetchStations(); });
+            limitSelect.addEventListener('change', () => { saveSearchFilters(); fetchStations(); });
+            searchInput.addEventListener('change', saveSearchFilters);
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', async (event) => {
+                    event.preventDefault();
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    activeTab = btn.dataset.tab;
+                    const stationGrid = document.getElementById('stations-grid');
+                    stationGrid.classList.toggle('recordings-view', activeTab === 'recordings');
+                    if (activeTab === 'recordings') {
+                        stationGrid.innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-notch spinner"></i><p>Radyo kayıtları yükleniyor...</p></div>';
+                        try { await loadRecordings(); }
+                        catch (err) { console.error('Kayıt ekranı açılamadı:', err); }
+                        if (!stationGrid.querySelector('.empty-state p')?.textContent.includes('Kayıtlar açılamadı')) renderRecordings();
+                    } else {
+                        renderStations();
+                    }
+                });
+            });
+
+            const paletteSelect = document.getElementById('theme-palette');
+            if (paletteSelect) paletteSelect.addEventListener('change', () => {
+                applyPalette(paletteSelect.value);
+                localStorage.setItem('symphony_palette', paletteSelect.value);
+                showToast('Renk teması güncellendi.', 'success');
+            });
+
+            themeToggle.addEventListener('click', () => {
+                const currentTheme = localStorage.getItem('symphony_theme') || 'auto';
+                const nextTheme = currentTheme === 'auto' ? 'dark' : currentTheme === 'dark' ? 'light' : 'auto';
+                applyTheme(nextTheme);
+                localStorage.setItem('symphony_theme', nextTheme);
+                showToast(`Tema: ${nextTheme === 'auto' ? 'Otomatik' : nextTheme === 'dark' ? 'Koyu' : 'Açık'}`, 'success');
+            });
+
+            audioEngine.onerror = () => {
+                if (currentStation) handlePlayError(currentStation);
+            };
+        }
+
+        // Tam ekran oynatıcı kontrolleri
+        const openFullscreenPlayer = () => {
+            fullscreenPlayer.classList.add('show');
+            fullscreenPlayer.setAttribute('aria-hidden', 'false');
+            document.getElementById('fullscreen-volume-value').textContent = `${Math.round(audioEngine.volume * 100)}%`;
+            document.getElementById('fullscreen-record').classList.toggle('recording', isRecording);
+            requestAnimationFrame(resizeCanvas);
+            if (currentStation) updatePlayerUI(!audioEngine.paused);
+        };
+        const closeFullscreenPlayer = () => {
+            fullscreenPlayer.classList.remove('show');
+            fullscreenPlayer.setAttribute('aria-hidden', 'true');
+        };
+        document.getElementById('fullscreen-player-btn').addEventListener('click', openFullscreenPlayer);
+        document.getElementById('fullscreen-close').addEventListener('click', closeFullscreenPlayer);
+        document.getElementById('fullscreen-prev').addEventListener('click', () => changeChannel(-1));
+        document.getElementById('fullscreen-next').addEventListener('click', () => changeChannel(1));
+        document.getElementById('fullscreen-play').addEventListener('click', () => mainPlayBtn.click());
+        document.getElementById('fullscreen-shuffle').addEventListener('click', () => shuffleBtn.click());
+        document.getElementById('fullscreen-record').addEventListener('click', () => recordBtn.click());
+        document.getElementById('fullscreen-fav').addEventListener('click', () => playerFavBtn.click());
+        function setPlayerVolume(next) {
+            const value = Math.max(0, Math.min(1, next));
+            audioEngine.volume = value;
+            volumeSlider.value = value;
+            updateVolumeIcon(value);
+            document.getElementById('fullscreen-volume-value').textContent = `${Math.round(value * 100)}%`;
+        }
+        document.getElementById('fullscreen-volume-down').addEventListener('click', () => setPlayerVolume(audioEngine.volume - 0.1));
+        document.getElementById('fullscreen-volume-up').addEventListener('click', () => setPlayerVolume(audioEngine.volume + 0.1));
+        volumeSlider.addEventListener('input', () => { document.getElementById('fullscreen-volume-value').textContent = `${Math.round(audioEngine.volume * 100)}%`; });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFullscreenPlayer(); });
+        audioEngine.addEventListener('playing', () => { reconnectAttempts = 0; });
+        audioEngine.addEventListener('play', () => { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing'; document.getElementById('fullscreen-play').innerHTML = '<i class="fa-solid fa-pause"></i>'; });
+        audioEngine.addEventListener('pause', () => { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'; document.getElementById('fullscreen-play').innerHTML = '<i class="fa-solid fa-play"></i>'; });
+
+        function applyTheme(theme) {
+            const effective = theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : theme;
+            document.body.setAttribute('data-theme', effective);
+            themeToggle.innerHTML = theme === 'auto' ? '<i class="fa-solid fa-circle-half-stroke"></i>' : theme === 'light' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+            themeToggle.title = `Tema: ${theme === 'auto' ? 'Otomatik' : theme === 'light' ? 'Açık' : 'Koyu'} (değiştirmek için tıkla)`;
+        }
+        function applyPalette(palette) {
+            const validPalettes = ['violet','sapphire','emerald','ruby','amber','teal','royal-blue','burgundy','jade','copper','midnight','gold','ocean','forest','plum','coral','bronze','cyan','olive','charcoal'];
+            const selected = validPalettes.includes(palette) ? palette : 'amber';
+            document.body.setAttribute('data-palette', selected);
+            const picker = document.getElementById('theme-palette');
+            if (picker) picker.value = selected;
+        }
+        function initPalette() {
+            applyPalette(localStorage.getItem('symphony_palette') || 'amber');
+        }
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('symphony_theme') || 'auto';
+            applyTheme(savedTheme);
+            if (window.matchMedia) window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+                if ((localStorage.getItem('symphony_theme') || 'auto') === 'auto') applyTheme('auto');
+            });
+        }
+
+        let toastTimer = null;
+        function showToast(msg, type = 'success', duration = 3000) {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const toastMsg = document.getElementById('toast-msg');
+
+            if (toastTimer) clearTimeout(toastTimer);
+
+            toastMsg.textContent = msg;
+            toast.className = `toast ${type} show`;
+            
+            if (type === 'error') {
+                icon.className = 'fa-solid fa-circle-exclamation';
+            } else if (type === 'loading') {
+                icon.className = 'fa-solid fa-circle-notch spinner';
+            } else {
+                icon.className = 'fa-solid fa-circle-check';
+            }
+
+            if (duration > 0) {
+                toastTimer = setTimeout(() => { 
+                    toast.classList.remove('show'); 
+                }, duration);
+            }
+        }
+
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            // Safari/iPadOS bazen blob URL'yi indirme başlatıldıktan sonra okur.
+            setTimeout(() => URL.revokeObjectURL(url), 30000);
+        }
+
+        function escapeHtml(str) {
+            return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+    </script>
+
+<script>
+// PWA servis çalışanıcısı: kayıt API'si ve canlı yayınlar cache'lenmez.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(err => console.warn('PWA kurulumu:', err));
+  });
+}
+</script>
+
+</body>
+</html>
