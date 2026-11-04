@@ -549,10 +549,18 @@
             { id: 'mint', name: 'Nane Ferahlığı', primary: '#2dd4bf', secondary: '#0d9488', glow: 'rgba(45, 212, 191, 0.25)' }
         ];
 
+        // Tam 10 Adet Görselleştirici Modu
         const GORSEL_MODLARI = [
-            { id: 0, name: 'Neon Çubuklar' }, { id: 1, name: 'Dairesel Spektrum' },
-            { id: 2, name: 'Simetrik Dalga' }, { id: 3, name: 'Noktasal Matris' },
-            { id: 4, name: 'Çift Yönlü Spektrum' }
+            { id: 0, name: '1. Neon Çubuklar' }, 
+            { id: 1, name: '2. Dairesel Spektrum' },
+            { id: 2, name: '3. Simetrik Dalga' }, 
+            { id: 3, name: '4. Noktasal Matris' },
+            { id: 4, name: '5. Çift Yönlü Spektrum' },
+            { id: 5, name: '6. Radyyal Patlama' },
+            { id: 6, name: '7. Frekans Dalgası' },
+            { id: 7, name: '8. Boşluklu Modern' },
+            { id: 8, name: '9. Dikey Neon Çizgiler' },
+            { id: 9, name: '10. Yansımalı Ekolayzer' }
         ];
 
         let kanallar = [];
@@ -1331,67 +1339,144 @@
 
                     const computedPrimary = getComputedStyle(document.documentElement).getPropertyValue('--theme-primary').trim() || hedef.primary;
 
-                    const mod = aktifGorselIndeks % 5;
-
-                    if (mod === 0) {
-                        // Neon Çubuklar
-                        let cubukGenislik = (w / len) * 1.5;
-                        let x = 0;
-                        for (let i = 0; i < len; i++) {
-                            let cubukYukseklik = (data[i] / 255) * h;
-                            ctx.fillStyle = computedPrimary;
-                            ctx.fillRect(x, h - cubukYukseklik, cubukGenislik - 3, cubukYukseklik);
-                            x += cubukGenislik;
-                        }
-                    } else if (mod === 1) {
-                        // Dairesel Spektrum
-                        let cx = w / 2;
-                        let cy = h / 2;
-                        for (let i = 0; i < len; i++) {
-                            let r = (data[i] / 255) * (h / 2);
+                    // 10 Farklı Efekt Modu Algoritması
+                    switch(aktifGorselIndeks) {
+                        case 0: // 1. Neon Çubuklar
+                            let w0 = (w / len) * 1.5;
+                            let x0 = 0;
+                            for (let i = 0; i < len; i++) {
+                                let bh = (data[i] / 255) * h;
+                                ctx.fillStyle = computedPrimary;
+                                ctx.fillRect(x0, h - bh, w0 - 3, bh);
+                                x0 += w0;
+                            }
+                            break;
+                        case 1: // 2. Dairesel Spektrum
+                            let cx = w / 2, cy = h / 2;
+                            for (let i = 0; i < len; i++) {
+                                let r = (data[i] / 255) * (h / 2);
+                                ctx.beginPath();
+                                ctx.arc(cx, cy, Math.max(r, 2), 0, Math.PI * 2);
+                                ctx.strokeStyle = computedPrimary;
+                                ctx.lineWidth = 1.2;
+                                ctx.stroke();
+                            }
+                            break;
+                        case 2: // 3. Simetrik Dalga
                             ctx.beginPath();
-                            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                            let sw = w / len;
+                            let xw = 0;
+                            for (let i = 0; i < len; i++) {
+                                let v = data[i] / 128.0;
+                                let y = (v * h) / 2;
+                                if (i === 0) ctx.moveTo(xw, y);
+                                else ctx.lineTo(xw, y);
+                                xw += sw;
+                            }
                             ctx.strokeStyle = computedPrimary;
-                            ctx.lineWidth = 1.5;
+                            ctx.lineWidth = 2;
                             ctx.stroke();
-                        }
-                    } else if (mod === 2) {
-                        // Simetrik Dalga
-                        ctx.beginPath();
-                        let sliceWidth = w / len;
-                        let x = 0;
-                        for (let i = 0; i < len; i++) {
-                            let v = data[i] / 128.0;
-                            let y = (v * h) / 2;
-                            if (i === 0) ctx.moveTo(x, y);
-                            else ctx.lineTo(x, y);
-                            x += sliceWidth;
-                        }
-                        ctx.strokeStyle = computedPrimary;
-                        ctx.lineWidth = 2;
-                        ctx.stroke();
-                    } else if (mod === 3) {
-                        // Noktasal Matris
-                        let step = Math.max(Math.floor(len / 12), 1);
-                        for (let i = 0; i < len; i += step) {
-                            let radius = (data[i] / 255) * 15;
-                            let x = (i / len) * w + 15;
-                            let y = h / 2;
+                            break;
+                        case 3: // 4. Noktasal Matris
+                            let step = Math.max(Math.floor(len / 12), 1);
+                            for (let i = 0; i < len; i += step) {
+                                let radius = (data[i] / 255) * 15;
+                                let xp = (i / len) * w + 15;
+                                let yp = h / 2;
+                                ctx.beginPath();
+                                ctx.arc(xp, yp, Math.max(radius, 2), 0, Math.PI * 2);
+                                ctx.fillStyle = computedPrimary;
+                                ctx.fill();
+                            }
+                            break;
+                        case 4: // 5. Çift Yönlü Spektrum
+                            let barW4 = (w / len) * 1.5;
+                            let x4 = 0;
+                            for (let i = 0; i < len; i++) {
+                                let barH4 = (data[i] / 255) * (h / 2);
+                                ctx.fillStyle = computedPrimary;
+                                ctx.fillRect(x4, (h / 2) - barH4, barW4 - 2, barH4 * 2);
+                                x4 += barW4;
+                            }
+                            break;
+                        case 5: // 6. Radyal Patlama
+                            let cx5 = w / 2, cy5 = h / 2;
+                            let angleStep = (Math.PI * 2) / len;
+                            for (let i = 0; i < len; i++) {
+                                let angle = i * angleStep;
+                                let r5 = (data[i] / 255) * (h / 2.2);
+                                let xEnd = cx5 + Math.cos(angle) * r5;
+                                let yEnd = cy5 + Math.sin(angle) * r5;
+                                ctx.beginPath();
+                                ctx.moveTo(cx5, cy5);
+                                ctx.lineTo(xEnd, yEnd);
+                                ctx.strokeStyle = computedPrimary;
+                                ctx.lineWidth = 2;
+                                ctx.stroke();
+                            }
+                            break;
+                        case 6: // 7. Frekans Dalgası
                             ctx.beginPath();
-                            ctx.arc(x, y, Math.max(radius, 2), 0, Math.PI * 2);
-                            ctx.fillStyle = computedPrimary;
-                            ctx.fill();
-                        }
-                    } else {
-                        // Çift Yönlü Spektrum
-                        let barW = (w / len) * 1.5;
-                        let x = 0;
-                        for (let i = 0; i < len; i++) {
-                            let barH = (data[i] / 255) * (h / 2);
-                            ctx.fillStyle = computedPrimary;
-                            ctx.fillRect(x, (h / 2) - barH, barW - 2, barH * 2);
-                            x += barW;
-                        }
+                            let slice6 = w / len;
+                            let curX = 0;
+                            for (let i = 0; i < len; i++) {
+                                let v6 = data[i] / 255;
+                                let y6 = h - (v6 * h);
+                                if (i === 0) ctx.moveTo(curX, y6);
+                                else ctx.lineTo(curX, y6);
+                                curX += slice6;
+                            }
+                            ctx.strokeStyle = computedPrimary;
+                            ctx.lineWidth = 2.5;
+                            ctx.stroke();
+                            break;
+                        case 7: // 8. Boşluklu Modern Sütunlar
+                            let bw7 = (w / len);
+                            let x7 = 0;
+                            for (let i = 0; i < len; i++) {
+                                let bh7 = (data[i] / 255) * h;
+                                ctx.fillStyle = computedPrimary;
+                                ctx.fillRect(x7 + 2, h - bh7, Math.max(bw7 - 4, 2), bh7);
+                                x7 += bw7;
+                            }
+                            break;
+                        case 8: // 9. Dikey Neon Çizgiler
+                            let bw8 = w / len;
+                            let x8 = 0;
+                            for (let i = 0; i < len; i++) {
+                                let bh8 = (data[i] / 255) * h;
+                                ctx.fillStyle = computedPrimary;
+                                ctx.fillRect(x8, 0, 1, bh8);
+                                ctx.fillRect(x8, h - bh8, 1, bh8);
+                                x8 += bw8;
+                            }
+                            break;
+                        case 9: // 10. Yansımalı Ekolayzer
+                            let bw9 = (w / len) * 1.5;
+                            let x9 = 0;
+                            for (let i = 0; i < len; i++) {
+                                let bh9 = (data[i] / 255) * (h / 1.8);
+                                ctx.fillStyle = computedPrimary;
+                                // Üst çubuk
+                                ctx.fillRect(x9, (h / 2) - bh9, bw9 - 3, bh9);
+                                // Alt yansıma çubuğu (soluk)
+                                ctx.fillStyle = computedPrimary;
+                                ctx.globalAlpha = 0.3;
+                                ctx.fillRect(x9, h / 2, bw9 - 3, bh9 * 0.6);
+                                ctx.globalAlpha = 1.0;
+                                x9 += bw9;
+                            }
+                            break;
+                        default:
+                            let defW = (w / len) * 1.5;
+                            let xD = 0;
+                            for (let i = 0; i < len; i++) {
+                                let dh = (data[i] / 255) * h;
+                                ctx.fillStyle = computedPrimary;
+                                ctx.fillRect(xD, h - dh, defW - 3, dh);
+                                xD += defW;
+                            }
+                            break;
                     }
                 });
             }
