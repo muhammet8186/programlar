@@ -451,16 +451,6 @@
                     <button onclick="uykuZamanlayiciAyarla(45)" class="theme-btn py-3 rounded-xl text-sm font-semibold transition">45 Dakika</button>
                     <button onclick="uykuZamanlayiciAyarla(60)" class="theme-btn py-3 rounded-xl text-sm font-semibold transition">60 Dakika</button>
                 </div>
-                
-                <!-- MANUEL SÜRE GİRİŞİ -->
-                <div class="pt-2 border-t space-y-2" style="border-color: var(--panel-border);">
-                    <label class="block text-xs font-bold text-left" style="color: var(--text-muted);">Manuel Süre Gir (Dakika)</label>
-                    <div class="flex gap-2">
-                        <input type="number" id="manuel-uyku-input" min="1" max="720" placeholder="Örn: 90" class="flex-1 rounded-xl px-3.5 py-2 text-sm focus:outline-none transition border" style="background: var(--card-bg); border-color: var(--panel-border); color: var(--text-main);">
-                        <button onclick="manuelUykuBaslat()" class="px-4 py-2 rounded-xl text-slate-950 font-bold text-xs transition shadow-lg whitespace-nowrap" style="background: var(--theme-primary);">Başlat</button>
-                    </div>
-                </div>
-
                 <div id="aktif-uyku-bilgi" class="hidden p-3 rounded-xl border text-xs font-medium flex items-center justify-between" style="background: var(--card-bg); border-color: var(--theme-primary); color: var(--theme-primary);">
                     <span>Kalan Süre: <strong id="uyku-geri-sayim">--:--</strong></span>
                     <button onclick="uykuZamanlayiciIptal()" class="text-red-500 hover:underline font-bold">İptal Et</button>
@@ -562,14 +552,7 @@
         const GORSEL_MODLARI = [
             { id: 0, name: 'Neon Çubuklar' }, { id: 1, name: 'Dairesel Spektrum' },
             { id: 2, name: 'Simetrik Dalga' }, { id: 3, name: 'Noktasal Matris' },
-            { id: 4, name: 'Akışkan Osiloskop' }, { id: 5, name: 'Dijital Sütunlar' },
-            { id: 6, name: 'Lazer Işınları' }, { id: 7, name: 'Pulsar Halka' },
-            { id: 8, name: 'Parçacık Yağmuru' }, { id: 9, name: 'Çift Yönlü Spektrum' },
-            { id: 10, name: 'Retro EQ Grid' }, { id: 11, name: 'Cyber Şerit' },
-            { id: 12, name: 'Ateş Zirveleri' }, { id: 13, name: 'Yıldız Patlaması' },
-            { id: 14, name: 'Ses Tüneli' }, { id: 15, name: 'Ayna Frekans' },
-            { id: 16, name: 'Kuantum Noktalar' }, { id: 17, name: 'Parlayan Küre' },
-            { id: 18, name: 'Ufuk Çizgisi' }, { id: 19, name: 'Sonar Radar' }
+            { id: 4, name: 'Çift Yönlü Spektrum' }
         ];
 
         let kanallar = [];
@@ -628,7 +611,7 @@
                 const metin = await res.text();
                 m3uMetniniIsle(metin, true);
             } catch (e) {
-                console.warn("GitHub otomatik kanal yükleme hatası:", e);
+                console.warn("GitHub otomatik kanal yükleme hatası (CORS veya ağ sorunu):", e);
             }
         }
 
@@ -991,10 +974,17 @@
             if (!kayitAkisi) { bildirimGoster("Tarayıcınız ses kaydını desteklemiyor."); return; }
             try {
                 kayitParcalari = [];
-                mediaKaydedici = new MediaRecorder(kayitAkisi);
+                let secilenMime = 'audio/webm';
+                if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                    secilenMime = 'audio/webm;codecs=opus';
+                } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                    secilenMime = 'audio/mp4';
+                }
+
+                mediaKaydedici = new MediaRecorder(kayitAkisi, { mimeType: secilenMime });
                 mediaKaydedici.ondataavailable = e => { if (e.data.size > 0) kayitParcalari.push(e.data); };
                 mediaKaydedici.onstop = async () => {
-                    const blob = new Blob(kayitParcalari, { type: 'audio/webm' });
+                    const blob = new Blob(kayitParcalari, { type: secilenMime });
                     const temizAd = (aktifKanal ? aktifKanal.name : 'Radyo').replace(/[^a-z0-9ğüşöçıİĞÜŞÖÇ]/gi, '_');
                     const oge = { id: Date.now(), name: temizAd, date: new Date().toLocaleString('tr-TR'), created: Date.now(), blob, size: blob.size };
                     try { await kaydiVeritabaninaKaydet(oge); bildirimGoster('Kayıt arşive eklendi!'); } catch(e) { kaydiIndirDosya(blob, `Kayit_${temizAd}.webm`); }
@@ -1130,7 +1120,7 @@
                 const metin = await res.text();
                 m3uMetniniIsle(metin, false);
                 urlGirdi.value = '';
-            } catch(e) { bildirimGoster("M3U URL çekilemedi (CORS engeli olabilir)."); }
+            } catch(e) { bildirimGoster("M3U URL çekilemedi (CORS engeli veya ağ hatası)."); }
         }
 
         function m3uMetinIsle() {
@@ -1188,18 +1178,16 @@
         }
 
         function aracModunuAc(ac) { 
-            const aracEkran = document.getElementById('arac-modu-ekran');
-            if (aracEkran) {
-                aracEkran.classList.toggle('hidden', !ac);
-                if (ac) {
-                    setTimeout(() => {
-                        const canvasArac = document.getElementById('arac-gorsel-canvas');
-                        if (canvasArac && canvasArac.parentElement) {
-                            canvasArac.width = canvasArac.parentElement.clientWidth;
-                            canvasArac.height = canvasArac.parentElement.clientHeight;
-                        }
-                    }, 50);
-                }
+            const ekran = document.getElementById('arac-modu-ekran');
+            ekran.classList.toggle('hidden', !ac);
+            if (ac) {
+                setTimeout(() => {
+                    const canvasArac = document.getElementById('arac-gorsel-canvas');
+                    if (canvasArac && canvasArac.parentElement) {
+                        canvasArac.width = canvasArac.parentElement.clientWidth;
+                        canvasArac.height = canvasArac.parentElement.clientHeight;
+                    }
+                }, 50);
             }
         }
 
@@ -1222,17 +1210,6 @@
             }, 1000);
             modalToggle('modal-uyku', false);
             bildirimGoster(`Uyku zamanlayıcı ${dakika} dakikaya ayarlandı.`);
-        }
-
-        function manuelUykuBaslat() {
-            const inputEl = document.getElementById('manuel-uyku-input');
-            const dakika = parseInt(inputEl.value, 10);
-            if (isNaN(dakika) || dakika <= 0) {
-                bildirimGoster("Lütfen geçerli bir süre (dakika) girin.");
-                return;
-            }
-            uykuZamanlayiciAyarla(dakika);
-            inputEl.value = '';
         }
 
         function uykuZamanlayiciIptal() {
@@ -1336,15 +1313,9 @@
             function kareCiz() {
                 requestAnimationFrame(kareCiz);
 
-                const computedPrimary = getComputedStyle(document.documentElement).getPropertyValue('--theme-primary').trim() || '#00f2fe';
-                const computedSecondary = getComputedStyle(document.documentElement).getPropertyValue('--theme-secondary').trim() || '#e100ff';
-
-                [ 
-                    { c: canvasAna }, 
-                    { c: canvasArac } 
-                ].forEach(hedef => {
+                [ { c: canvasAna, primary: '#00f2fe' }, { c: canvasArac, primary: '#f59e0b' } ].forEach(hedef => {
                     if (!hedef.c) return;
-                    if (hedef.c.offsetWidth === 0 || hedef.c.offsetHeight === 0) return;
+                    if (hedef.c.clientWidth === 0 || hedef.c.clientHeight === 0) return;
 
                     const ctx = hedef.c.getContext('2d');
                     const w = hedef.c.width;
@@ -1358,20 +1329,69 @@
                     analyser.getByteFrequencyData(data);
                     const len = data.length;
 
-                    const gradyan = ctx.createLinearGradient(0, h, 0, 0);
-                    gradyan.addColorStop(0, computedPrimary);
-                    gradyan.addColorStop(1, computedSecondary);
+                    const computedPrimary = getComputedStyle(document.documentElement).getPropertyValue('--theme-primary').trim() || hedef.primary;
 
-                    let cubukGenislik = (w / len) * 1.8;
-                    let x = 0;
+                    const mod = aktifGorselIndeks % 5;
 
-                    for (let i = 0; i < len; i++) {
-                        let cubukYukseklik = (data[i] / 255) * h;
-                        ctx.fillStyle = gradyan;
-                        ctx.shadowBlur = 8;
-                        ctx.shadowColor = computedPrimary;
-                        ctx.fillRect(x, h - cubukYukseklik, cubukGenislik - 2, cubukYukseklik);
-                        x += cubukGenislik;
+                    if (mod === 0) {
+                        // Neon Çubuklar
+                        let cubukGenislik = (w / len) * 1.5;
+                        let x = 0;
+                        for (let i = 0; i < len; i++) {
+                            let cubukYukseklik = (data[i] / 255) * h;
+                            ctx.fillStyle = computedPrimary;
+                            ctx.fillRect(x, h - cubukYukseklik, cubukGenislik - 3, cubukYukseklik);
+                            x += cubukGenislik;
+                        }
+                    } else if (mod === 1) {
+                        // Dairesel Spektrum
+                        let cx = w / 2;
+                        let cy = h / 2;
+                        for (let i = 0; i < len; i++) {
+                            let r = (data[i] / 255) * (h / 2);
+                            ctx.beginPath();
+                            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                            ctx.strokeStyle = computedPrimary;
+                            ctx.lineWidth = 1.5;
+                            ctx.stroke();
+                        }
+                    } else if (mod === 2) {
+                        // Simetrik Dalga
+                        ctx.beginPath();
+                        let sliceWidth = w / len;
+                        let x = 0;
+                        for (let i = 0; i < len; i++) {
+                            let v = data[i] / 128.0;
+                            let y = (v * h) / 2;
+                            if (i === 0) ctx.moveTo(x, y);
+                            else ctx.lineTo(x, y);
+                            x += sliceWidth;
+                        }
+                        ctx.strokeStyle = computedPrimary;
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    } else if (mod === 3) {
+                        // Noktasal Matris
+                        let step = Math.max(Math.floor(len / 12), 1);
+                        for (let i = 0; i < len; i += step) {
+                            let radius = (data[i] / 255) * 15;
+                            let x = (i / len) * w + 15;
+                            let y = h / 2;
+                            ctx.beginPath();
+                            ctx.arc(x, y, Math.max(radius, 2), 0, Math.PI * 2);
+                            ctx.fillStyle = computedPrimary;
+                            ctx.fill();
+                        }
+                    } else {
+                        // Çift Yönlü Spektrum
+                        let barW = (w / len) * 1.5;
+                        let x = 0;
+                        for (let i = 0; i < len; i++) {
+                            let barH = (data[i] / 255) * (h / 2);
+                            ctx.fillStyle = computedPrimary;
+                            ctx.fillRect(x, (h / 2) - barH, barW - 2, barH * 2);
+                            x += barW;
+                        }
                     }
                 });
             }
@@ -1440,14 +1460,18 @@
                             <div class="text-[10px]" style="color: var(--text-muted);">${item.date}</div>
                         </div>
                         <div class="flex items-center space-x-1.5">
-                            <button onclick="kaydiIndir('${blobUrl}', '${item.name}.webm')" class="p-2 rounded-lg transition text-xs" style="background: var(--card-bg); color: var(--theme-primary);" title="İndir"><i class="fa-solid fa-download"></i></button>
-                            <button onclick="kaydiPaylas('${blobUrl}', '${item.name}')" class="p-2 rounded-lg transition text-xs" style="background: var(--card-bg); color: var(--theme-primary);" title="Paylaş"><i class="fa-solid fa-share-nodes"></i></button>
-                            <button class="p-2 rounded-lg bg-red-500/20 text-red-500 hover:bg-red-500/30 transition text-xs" title="Sil"><i class="fa-solid fa-trash"></i></button>
+                            <button class="btn-indir p-2 rounded-lg transition text-xs" style="background: var(--card-bg); color: var(--theme-primary);" title="İndir"><i class="fa-solid fa-download"></i></button>
+                            <button class="btn-paylas p-2 rounded-lg transition text-xs" style="background: var(--card-bg); color: var(--theme-primary);" title="Paylaş"><i class="fa-solid fa-share-nodes"></i></button>
+                            <button class="btn-sil p-2 rounded-lg bg-red-500/20 text-red-500 hover:bg-red-500/30 transition text-xs" title="Sil"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </div>
                     <audio controls class="w-full h-8" src="${blobUrl}"></audio>
                 `;
-                satir.querySelector('button[title="Sil"]').onclick = () => kayitArsivdenSil(item.id);
+                
+                satir.querySelector('.btn-indir').onclick = () => kaydiIndir(blobUrl, `${item.name}.webm`);
+                satir.querySelector('.btn-paylas').onclick = () => kaydiPaylas(blobUrl, item.name);
+                satir.querySelector('.btn-sil').onclick = () => kayitArsivdenSil(item.id);
+
                 liste.appendChild(satir);
             });
         }
