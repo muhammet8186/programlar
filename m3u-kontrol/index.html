@@ -1,738 +1,538 @@
 <!DOCTYPE html>
 <html lang="tr" class="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0f172a">
-  <title>M3U Kanal Kontrol & Oynatıcı</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <div id="downloadModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="downloadModalTitle">
-    <div class="panel w-full max-w-sm p-5 shadow-2xl">
-      <div class="flex items-center justify-between mb-3">
-        <h3 id="downloadModalTitle" class="text-base font-bold text-slate-100"><i class="fa-solid fa-download text-indigo-400 mr-2"></i>M3U indirme seçenekleri</h3>
-        <button id="closeDownloadModal" class="text-slate-400 hover:text-white text-xl" aria-label="Kapat">&times;</button>
-      </div>
-      <p class="text-xs text-slate-400 mb-4">Hangi kanalları indirmek istiyorsunuz?</p>
-      <div class="space-y-2" id="downloadOptions">
-        <label class="flex items-center gap-3 rounded-lg border border-slate-700 p-3 hover:border-emerald-500 cursor-pointer"><input type="radio" name="downloadType" value="working" checked><span><b class="text-emerald-300 text-sm">🟢 Sadece çalışanlar</b><span id="workingDownloadCount" class="block text-xs text-slate-400">0 kanal</span></span></label>
-        <label class="flex items-center gap-3 rounded-lg border border-slate-700 p-3 hover:border-rose-500 cursor-pointer"><input type="radio" name="downloadType" value="dead"><span><b class="text-rose-300 text-sm">🔴 Sadece hatalılar</b><span id="deadDownloadCount" class="block text-xs text-slate-400">0 kanal</span></span></label>
-        <label class="flex items-center gap-3 rounded-lg border border-slate-700 p-3 hover:border-amber-500 cursor-pointer"><input type="radio" name="downloadType" value="unknown"><span><b class="text-amber-300 text-sm">🟡 Sadece belirsizler</b><span id="unknownDownloadCount" class="block text-xs text-slate-400">0 kanal</span></span></label>
-        <label class="flex items-center gap-3 rounded-lg border border-slate-700 p-3 hover:border-indigo-500 cursor-pointer"><input type="radio" name="downloadType" value="all"><span><b class="text-indigo-300 text-sm">📋 Tüm kanallar</b><span id="allDownloadCount" class="block text-xs text-slate-400">0 kanal</span></span></label>
-      </div>
-      <div class="flex gap-2 mt-5"><button id="cancelDownload" class="btn btn-muted flex-1">Vazgeç</button><button id="confirmDownload" class="btn btn-green flex-1"><i class="fa-solid fa-download mr-1"></i>İndir</button></div>
-    </div>
-  </div>
-
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: { extend: { colors: { darkBg: '#0f172a', cardBg: '#1e293b' } } }
-    };
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.18"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <style>
-    * { scrollbar-width: thin; scrollbar-color: #475569 #0f172a; }
-    body { background:#0f172a; }
-    .panel { background:#1e293b; border:1px solid #334155; border-radius:14px; }
-    .field { width:100%; background:#0b1220; border:1px solid #334155; color:#e2e8f0; border-radius:9px; padding:10px 12px; outline:none; }
-    .field:focus { border-color:#818cf8; box-shadow:0 0 0 2px #6366f133; }
-    .btn { border:1px solid transparent; border-radius:9px; padding:9px 12px; font-size:12px; font-weight:600; transition:.15s; display:inline-flex; align-items:center; justify-content:center; gap:7px; cursor:pointer; }
-    .btn:disabled { opacity:.45; cursor:not-allowed; }
-    .btn-primary { background:#4f46e5; color:white; } .btn-primary:hover:not(:disabled){background:#4338ca}
-    .btn-green { background:#059669; color:white; } .btn-green:hover:not(:disabled){background:#047857}
-    .btn-muted { background:#0f172a; border-color:#334155; color:#cbd5e1; } .btn-muted:hover:not(:disabled){background:#273449}
-    .btn-danger { background:#9f1239; color:#fff; } .btn-danger:hover:not(:disabled){background:#881337}
-    .filter-btn.active { background:#4f46e5; color:#fff; border-color:#4f46e5; }
-    .filter-btn { background:#0f172a; color:#94a3b8; border:1px solid #334155; border-radius:8px; padding:7px 8px; font-size:12px; font-weight:600; }
-    .channel-row { display:flex; align-items:center; gap:9px; width:100%; text-align:left; padding:9px; border:1px solid #334155a8; background:#0f172a99; border-radius:9px; cursor:pointer; }
-    .channel-row:hover { background:#273449; border-color:#475569; }
-    .channel-row.selected { border-color:#818cf8; background:#312e8155; }
-    .status-dot { width:8px;height:8px;border-radius:50%;flex:0 0 8px;background:#64748b; }
-    .status-working { background:#10b981; } .status-dead { background:#f43f5e; } .status-unknown { background:#64748b; } .status-checking { background:#f59e0b; }
-    .stat { background:#0f172a80; border:1px solid #334155; border-radius:10px; padding:9px 11px; }
-    #videoPlayer { background:#000; width:100%; height:100%; object-fit:contain; }
-    .progress-track { height:7px; background:#0f172a; border-radius:99px; overflow:hidden; }
-    .progress-fill { height:100%; width:0; background:#10b981; transition:width .12s; }
-    .hidden { display:none !important; }
-    @media (max-width: 640px) { .main-grid { padding:12px !important; gap:12px !important; } .list-panel { height:420px !important; } }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gelişmiş M3U IPTV Kontrol ve Oynatıcı</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f172a',
+                        cardBg: '#1e293b',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- HLS.js for streaming m3u8 in browsers -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
 </head>
-<body class="text-slate-100 min-h-screen flex flex-col font-sans">
-  <header class="bg-cardBg border-b border-slate-800 p-4 shadow-md">
-    <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3">
-      <h1 class="text-lg sm:text-xl font-bold flex items-center gap-2 text-indigo-400">
-        <i class="fa-solid fa-tv"></i> M3U Kanal Kontrol & Oynatıcı
-      </h1>
-      <span class="text-xs bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-3 py-1.5 rounded-full">
-        <i class="fa-solid fa-shield-halved mr-1"></i> Tarayıcı tabanlı
-      </span>
-    </div>
-  </header>
+<body class="bg-darkBg text-slate-100 min-h-screen flex flex-col font-sans">
 
-  <main class="main-grid max-w-7xl mx-auto w-full p-4 flex-grow grid grid-cols-1 lg:grid-cols-3 gap-5">
-    <section class="lg:col-span-1 flex flex-col gap-4 min-w-0">
-      <div class="panel p-4 shadow-sm">
-        <h2 class="text-sm font-semibold mb-3 text-slate-300 flex items-center gap-2">
-          <i class="fa-solid fa-file-arrow-up text-indigo-400"></i> M3U Listesi Yükle
-        </h2>
-        <div class="flex flex-col gap-3">
-          <input type="file" id="m3uFile" accept=".m3u,.m3u8,.txt,text/plain,audio/x-mpegurl" class="text-xs text-slate-400 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
-          <div class="flex gap-2">
-            <input id="m3uUrl" type="url" placeholder="https://site.com/playlist.m3u" class="field text-xs min-w-0" autocomplete="url">
-            <button id="fetchUrlBtn" class="btn btn-muted shrink-0"><i class="fa-solid fa-cloud-arrow-down"></i> URL'den al</button>
-          </div>
-          <p id="urlFetchMessage" class="text-[10px] text-slate-500 -mt-1">Not: Kaynak sunucu CORS izni vermelidir. Bazı IPTV adresleri tarayıcıdan alınamayabilir.</p>
-          <textarea id="m3uText" rows="4" placeholder="M3U içeriğini buraya yapıştırın…" class="field text-xs resize-y"></textarea>
-          <div class="grid grid-cols-2 gap-2">
-            <button id="loadBtn" class="btn btn-primary"><i class="fa-solid fa-folder-open"></i> Listeyi Yükle</button>
-            <button id="checkAllBtn" class="btn btn-green" disabled><i class="fa-solid fa-circle-check"></i> Kanalları Test Et</button>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            <button id="pauseCheckBtn" class="btn btn-muted flex-1 hidden"><i class="fa-solid fa-pause"></i> Beklet</button>
-            <button id="stopCheckBtn" class="btn btn-danger flex-1 hidden"><i class="fa-solid fa-stop"></i> Durdur</button>
-          </div>
+    <!-- Header -->
+    <header class="bg-cardBg border-b border-slate-800 p-4 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold flex items-center gap-2 text-indigo-400">
+                <i class="fa-solid fa-tv"></i> M3U Kanal Kontrol & Oynatıcı
+            </h1>
+            <span class="text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-1 rounded-full flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Otomatik Tarama Destekli
+            </span>
         </div>
-        <div id="progressContainer" class="mt-3 hidden">
-          <div class="flex justify-between text-[11px] text-slate-400 mb-1">
-            <span id="progressText">Hazırlanıyor…</span><span id="progressPercent">0%</span>
-          </div>
-          <div class="progress-track"><div id="progressBar" class="progress-fill"></div></div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto p-4 flex-grow grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Sol Panel: Yükleme, Kontrol ve Liste -->
+        <div class="lg:col-span-1 flex flex-col gap-4">
+            
+            <!-- Dosya / Metin / URL Yükleme Kutusu -->
+            <div class="bg-cardBg p-4 rounded-xl border border-slate-800 shadow-sm">
+                <h2 class="text-sm font-semibold mb-3 text-slate-300 flex items-center gap-2">
+                    <i class="fa-solid fa-file-arrow-up text-indigo-400"></i> M3U Listesi Yükle
+                </h2>
+                
+                <div class="flex flex-col gap-3">
+                    <!-- URL ile Yükleme Alanı -->
+                    <div class="flex gap-2">
+                        <input type="text" id="m3uUrlInput" placeholder="M3U URL adresi girin (http://...)" class="flex-grow bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                        <button id="loadUrlBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-3 py-2 rounded-lg text-xs transition-colors shrink-0 flex items-center gap-1">
+                            <i class="fa-solid fa-link"></i> Çek
+                        </button>
+                    </div>
+
+                    <div class="relative flex py-0.5 items-center">
+                        <div class="flex-grow border-t border-slate-800"></div>
+                        <span class="flex-shrink mx-2 text-[10px] text-slate-500 font-medium">VEYA DOSYA / METİN</span>
+                        <div class="flex-grow border-t border-slate-800"></div>
+                    </div>
+
+                    <input type="file" id="m3uFile" accept=".m3u,.m3u8,.txt" class="text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
+                    
+                    <textarea id="m3uText" rows="2" placeholder="Veya M3U içeriğini buraya yapıştırın..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 resize-none custom-scrollbar"></textarea>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="loadBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-3 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-rotate"></i> Metni Yükle
+                        </button>
+                        <button id="checkAllBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-3 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50" disabled>
+                            <i class="fa-solid fa-circle-check"></i> Tümünü Kontrol Et
+                        </button>
+                    </div>
+                </div>
+
+                <!-- İlerleme Çubuğu -->
+                <div id="progressContainer" class="mt-3 hidden">
+                    <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+                        <span id="progressText">Taranıyor...</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                        <div id="progressBar" class="bg-emerald-500 h-full w-0 transition-all duration-200"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Arama, Filtreler ve Kanal Listesi -->
+            <div class="bg-cardBg p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col h-[460px]">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                        <i class="fa-solid fa-list text-indigo-400"></i> Kanallar (<span id="channelCount">0</span>)
+                    </h2>
+                    <button id="exportWorkingBtn" class="text-xs bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/30 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-40" disabled>
+                        <i class="fa-solid fa-download"></i> Çalışanları İndir
+                    </button>
+                </div>
+
+                <!-- Durum Filtre Butonları -->
+                <div class="grid grid-cols-4 gap-1 mb-2 text-[11px]">
+                    <button data-filter="all" class="filter-btn bg-indigo-600 text-white py-1.5 px-1 rounded-lg font-medium transition-colors">Tümü</button>
+                    <button data-filter="favorites" class="filter-btn bg-slate-900 text-slate-400 hover:bg-slate-800 py-1.5 px-1 rounded-lg font-medium transition-colors flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-star text-amber-400"></i> Favori
+                    </button>
+                    <button data-filter="working" class="filter-btn bg-slate-900 text-slate-400 hover:bg-slate-800 py-1.5 px-1 rounded-lg font-medium transition-colors">Çalışan</button>
+                    <button data-filter="dead" class="filter-btn bg-slate-900 text-slate-400 hover:bg-slate-800 py-1.5 px-1 rounded-lg font-medium transition-colors">Çalışmayan</button>
+                </div>
+
+                <!-- Kategori Seçim Dropdown -->
+                <div class="mb-2">
+                    <select id="groupSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500 cursor-pointer">
+                        <option value="all">Tüm Kategoriler</option>
+                    </select>
+                </div>
+
+                <!-- Arama Kutusu -->
+                <div class="relative mb-3">
+                    <i class="fa-solid fa-search absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+                    <input type="text" id="searchBox" placeholder="Kanal ara..." class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <!-- Liste Alanı -->
+                <div id="channelList" class="flex-grow overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+                    <div class="text-center text-slate-500 text-xs py-12">
+                        Henüz liste yüklenmedi.<br>Lütfen URL girin, dosya seçin veya yapıştırın.
+                    </div>
+                </div>
+            </div>
+
         </div>
-        <p class="mt-3 text-[10px] text-slate-500 leading-relaxed">
-          <i class="fa-solid fa-circle-info mr-1"></i>
-          Tarayıcı güvenliği (CORS) bazı yayınları doğrulamayı engelleyebilir. “Doğrulanamadı” sonucu, kanalın kesinlikle kapalı olduğu anlamına gelmez.
-        </p>
-      </div>
 
-      <div class="panel p-4 shadow-sm list-panel flex flex-col h-[520px] min-h-0">
-        <div class="flex justify-between items-center gap-2 mb-3">
-          <h2 class="text-sm font-semibold text-slate-300 flex items-center gap-2">
-            <i class="fa-solid fa-list text-indigo-400"></i> Kanallar <span id="channelCount" class="text-indigo-300">(0)</span>
-          </h2>
-          <div class="flex gap-1">
-            <button id="exportWorkingBtn" class="btn btn-green !px-2 !py-1.5" disabled title="İndirme seçeneklerini aç"><i class="fa-solid fa-download"></i><span class="hidden sm:inline">M3U indir</span></button>
-            <button id="exportCsvBtn" class="btn btn-muted !px-2 !py-1.5" disabled title="Test sonuçlarını CSV indir"><i class="fa-solid fa-file-csv"></i></button>
-          </div>
+        <!-- Sağ Panel: Video Oynatıcı -->
+        <div class="lg:col-span-2 flex flex-col gap-4">
+            <div class="bg-cardBg p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col h-full">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 id="currentChannelTitle" class="text-base font-bold text-slate-200 flex items-center gap-2 truncate">
+                        <i class="fa-solid fa-circle-play text-indigo-400"></i> Oynatıcı (Kanal Seçilmedi)
+                    </h2>
+                    <span id="currentGroupBadge" class="hidden text-[10px] bg-slate-800 text-indigo-300 border border-slate-700 px-2 py-0.5 rounded">
+                        -
+                    </span>
+                </div>
+                
+                <!-- Video Konteyner -->
+                <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+                    <video id="videoPlayer" controls autoplay class="w-full h-full object-contain"></video>
+                    <div id="playerPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 text-sm gap-2 bg-slate-950">
+                        <i class="fa-solid fa-tv text-4xl opacity-40"></i>
+                        <span>İzlemek için soldan bir kanal seçin</span>
+                        <span class="text-[11px] text-slate-600 mt-2">İpucu: Klavyedeki <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-400">↑</kbd> <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-400">↓</kbd> tuşları ile kanalları değiştirebilirsiniz</span>
+                    </div>
+                </div>
+
+                <!-- Bilgi Alanı -->
+                <div class="mt-4 p-3 bg-slate-900/50 rounded-lg border border-slate-800/80 text-xs text-slate-400 flex flex-col gap-1">
+                    <div><strong class="text-slate-300">Yayın Adresi:</strong> <span id="currentUrl" class="break-all font-mono text-slate-500">-</span></div>
+                </div>
+            </div>
         </div>
 
-        <div class="grid grid-cols-4 gap-1.5 mb-3 text-[11px]">
-          <button data-filter="all" class="filter-btn active">Tümü</button>
-          <button data-filter="working" class="filter-btn">Çalışan</button>
-          <button data-filter="dead" class="filter-btn">Hatalı</button>
-          <button data-filter="unknown" class="filter-btn">Belirsiz</button>
-        </div>
-        <div class="grid grid-cols-2 gap-2 mb-3">
-          <input id="searchBox" type="search" placeholder="Kanal veya grup ara…" class="field text-xs">
-          <select id="groupFilter" class="field text-xs"><option value="">Tüm gruplar</option></select>
-        </div>
-        <div id="channelList" class="flex-grow overflow-y-auto space-y-1.5 pr-1 min-h-0">
-          <div class="text-center text-slate-500 text-xs py-12">Henüz liste yüklenmedi.<br>Dosya seçin veya M3U içeriğini yapıştırın.</div>
-        </div>
-        <div class="mt-2 text-[10px] text-slate-500 flex justify-between gap-2">
-          <span id="listSummary">Liste bekleniyor</span>
-          <button id="exportAllBtn" class="underline hover:text-indigo-300" disabled>Listenin tamamını indir</button>
-        </div>
-      </div>
-    </section>
+    </main>
 
-    <section class="lg:col-span-2 flex flex-col min-w-0">
-      <div class="panel p-4 shadow-sm flex flex-col h-full">
-        <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
-          <h2 id="currentChannelTitle" class="text-base font-bold text-slate-200 flex items-center gap-2">
-            <i class="fa-solid fa-circle-play text-indigo-400"></i> Oynatıcı (Kanal seçilmedi)
-          </h2>
-          <div class="flex items-center gap-2 text-xs text-slate-400">
-            <span id="playerStatus" class="px-2 py-1 rounded-md bg-slate-900 border border-slate-700">Hazır</span>
-          </div>
-        </div>
-        <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
-          <video id="videoPlayer" controls playsinline preload="none" class="w-full h-full object-contain"></video>
-          <div id="playerPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 text-sm gap-3 bg-black pointer-events-none">
-            <i class="fa-solid fa-tv text-4xl opacity-40"></i>
-            <span>İzlemek için soldan bir kanal seçin</span>
-          </div>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-          <div class="stat text-xs min-w-0">
-            <strong class="text-slate-300 block mb-1"><i class="fa-solid fa-link text-indigo-400 mr-1"></i> Yayın adresi</strong>
-            <span id="currentUrl" class="break-all font-mono text-slate-500">—</span>
-          </div>
-          <div class="stat text-xs">
-            <strong class="text-slate-300 block mb-1"><i class="fa-solid fa-circle-info text-indigo-400 mr-1"></i> Oynatma bilgisi</strong>
-            <span id="playerMessage" class="text-slate-500">Bir kanal seçtiğinizde durum burada görünür.</span>
-          </div>
-        </div>
-        <div class="mt-3 flex flex-wrap gap-2">
-          <button id="retryPlayerBtn" class="btn btn-muted" disabled><i class="fa-solid fa-rotate"></i> Yeniden dene</button>
-          <button id="stopPlayerBtn" class="btn btn-muted" disabled><i class="fa-solid fa-stop"></i> Oynatmayı durdur</button>
-          <button id="copyUrlBtn" class="btn btn-muted" disabled><i class="fa-solid fa-copy"></i> Adresi kopyala</button>
-        </div>
-      </div>
-    </section>
-  </main>
+    <!-- JavaScript Mantığı -->
+    <script>
+        let channels = [];
+        let favorites = JSON.parse(localStorage.getItem('iptv_favorites') || '[]');
+        let currentFilter = 'all';
+        let currentGroup = 'all';
+        let activeChannelIndex = -1;
+        let hls = null;
 
-  <footer class="max-w-7xl mx-auto w-full px-4 pb-4 text-[10px] text-slate-600">
-    M3U dosyası cihazınızda tarayıcı içinde işlenir; bir sunucuya yüklenmez.
-  </footer>
+        const m3uUrlInput = document.getElementById('m3uUrlInput');
+        const loadUrlBtn = document.getElementById('loadUrlBtn');
+        const m3uFileInput = document.getElementById('m3uFile');
+        const m3uTextInput = document.getElementById('m3uText');
+        const loadBtn = document.getElementById('loadBtn');
+        const checkAllBtn = document.getElementById('checkAllBtn');
+        const exportWorkingBtn = document.getElementById('exportWorkingBtn');
+        const channelListEl = document.getElementById('channelList');
+        const channelCountEl = document.getElementById('channelCount');
+        const groupSelect = document.getElementById('groupSelect');
+        const searchBox = document.getElementById('searchBox');
+        const videoPlayer = document.getElementById('videoPlayer');
+        const playerPlaceholder = document.getElementById('playerPlaceholder');
+        const currentChannelTitle = document.getElementById('currentChannelTitle');
+        const currentGroupBadge = document.getElementById('currentGroupBadge');
+        const currentUrlEl = document.getElementById('currentUrl');
+        
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const progressPercent = document.getElementById('progressPercent');
+        const progressText = document.getElementById('progressText');
 
-<script>
-(() => {
-  "use strict";
-  const $ = id => document.getElementById(id);
-  let channels = [];
-  let currentFilter = "all";
-  let currentChannel = null;
-  let hls = null;
-  let checkRun = null;
-  let isPaused = false;
-  const MAX_PARALLEL = 5;
-  const TEST_TIMEOUT_MS = 7000;
+        // URL ile M3U Liste Çekme
+        loadUrlBtn.addEventListener('click', async () => {
+            let url = m3uUrlInput.value.trim();
+            if (!url) {
+                alert('Lütfen geçerli bir M3U URL adresi girin.');
+                return;
+            }
 
-  const els = {
-    file: $("m3uFile"), text: $("m3uText"), load: $("loadBtn"), check: $("checkAllBtn"),
-    pause: $("pauseCheckBtn"), stop: $("stopCheckBtn"), exportWorking: $("exportWorkingBtn"),
-    exportAll: $("exportAllBtn"), exportCsv: $("exportCsvBtn"), list: $("channelList"),
-    count: $("channelCount"), search: $("searchBox"), group: $("groupFilter"),
-    progress: $("progressContainer"), progressBar: $("progressBar"), progressText: $("progressText"),
-    percent: $("progressPercent"), title: $("currentChannelTitle"), player: $("videoPlayer"),
-    placeholder: $("playerPlaceholder"), url: $("currentUrl"), playerStatus: $("playerStatus"),
-    playerMessage: $("playerMessage"), retryPlayer: $("retryPlayerBtn"), stopPlayer: $("stopPlayerBtn"), copyUrl: $("copyUrlBtn"),
-    summary: $("listSummary")
-  };
+            loadUrlBtn.disabled = true;
+            loadUrlBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
-  function safeText(value) {
-    return String(value ?? "").replace(/[&<>"']/g, ch => ({
-      "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
-    }[ch]));
-  }
-
-  function parseAttributes(extinf) {
-    const attrs = {};
-    const re = /([\w-]+)\s*=\s*"([^"]*)"/g;
-    let match;
-    while ((match = re.exec(extinf)) !== null) attrs[match[1].toLowerCase()] = match[2];
-    return attrs;
-  }
-
-  function parseM3U(raw) {
-    const lines = String(raw).replace(/^\uFEFF/, "").split(/\r?\n/);
-    const parsed = [];
-    let meta = null;
-    for (const rawLine of lines) {
-      const line = rawLine.trim();
-      if (!line) continue;
-      if (line.startsWith("#EXTINF:")) {
-        const comma = line.indexOf(",");
-        const attrs = parseAttributes(line);
-        const name = comma >= 0 ? line.slice(comma + 1).trim() : (attrs["tvg-name"] || "İsimsiz kanal");
-        meta = {
-          name: name || attrs["tvg-name"] || "İsimsiz kanal",
-          logo: attrs["tvg-logo"] || "",
-          group: attrs["group-title"] || "Genel",
-          tvgId: attrs["tvg-id"] || "",
-          duration: (line.slice(8, comma >= 0 ? comma : undefined).trim() || "-1"),
-          status: "untested", url: "", duplicate: false, testMessage: ""
-        };
-      } else if (!line.startsWith("#") && meta) {
-        meta.url = line;
-        parsed.push(meta);
-        meta = null;
-      } else if (line.startsWith("#EXTVLCOPT:") || line.startsWith("#KODIPROP:") || line.startsWith("#EXTHTTP:")) {
-        // Player-specific directives are retained for compatibility in future enhancements.
-      }
-    }
-    // Aynı kanal adı + aynı yayın URL'si varsa tek kayda indir.
-    // Karşılaştırma büyük/küçük harf ve URL baş/son boşluklarından etkilenmez.
-    const unique = new Map();
-    for (const ch of parsed) {
-      const nameKey = ch.name.trim().toLocaleLowerCase("tr");
-      const urlKey = ch.url.trim();
-      const key = nameKey + "\u0000" + urlKey;
-      if (!unique.has(key)) unique.set(key, ch);
-    }
-    return Array.from(unique.values());
-  }
-
-  function loadContent(content) {
-    if (!content || !content.trim()) {
-      alert("Lütfen bir M3U dosyası seçin veya içeriğini yapıştırın.");
-      return;
-    }
-    stopCheck(false);
-    channels = parseM3U(content);
-    currentFilter = "all";
-    document.querySelectorAll(".filter-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.filter === "all"));
-    refreshGroups();
-    renderChannels();
-    updateButtons();
-    els.progress.classList.add("hidden");
-    els.progressBar.style.width = "0%";
-    els.progressText.textContent = "Hazır";
-    els.percent.textContent = "0%";
-    els.summary.textContent = `${channels.length} kanal • ${channels.filter(c => c.duplicate).length} yinelenen adres`;
-    if (!channels.length) {
-      els.list.innerHTML = '<div class="text-center text-amber-300 text-xs py-8">M3U içinde kanal bulunamadı. #EXTINF satırlarını ve yayın adreslerini kontrol edin.</div>';
-    }
-  }
-
-  const urlInput = $("m3uUrl");
-  const fetchUrlBtn = $("fetchUrlBtn");
-  const urlFetchMessage = $("urlFetchMessage");
-
-  fetchUrlBtn.addEventListener("click", async () => {
-    const url = urlInput.value.trim();
-    if (!url) {
-      alert("Lütfen M3U listesinin URL adresini girin.");
-      urlInput.focus();
-      return;
-    }
-    let parsedUrl;
-    try {
-      parsedUrl = new URL(url);
-      if (!["http:", "https:"].includes(parsedUrl.protocol)) throw new Error("protocol");
-    } catch {
-      alert("Geçerli bir http:// veya https:// URL adresi girin.");
-      return;
-    }
-    fetchUrlBtn.disabled = true;
-    fetchUrlBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Alınıyor…';
-    urlFetchMessage.textContent = "URL'den liste indiriliyor…";
-    urlFetchMessage.className = "text-[10px] text-indigo-300 -mt-1";
-    try {
-      const response = await fetch(parsedUrl.href, { method: "GET", mode: "cors", cache: "no-store" });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const content = await response.text();
-      if (!content.trim()) throw new Error("empty");
-      els.text.value = content;
-      loadContent(content);
-      urlFetchMessage.textContent = `Liste URL'den alındı: ${parsedUrl.hostname}`;
-      urlFetchMessage.className = "text-[10px] text-emerald-300 -mt-1";
-    } catch (err) {
-      let message = "URL'den liste alınamadı.";
-      if (err.message === "Failed to fetch" || err instanceof TypeError) {
-        message += " Kaynak sunucu CORS erişimini engelliyor olabilir. Bu HTML sürümünde CORS engeli sunucu olmadan aşılamaz. Listeyi indirilip dosya olarak yüklemeyi deneyin.";
-      } else if (err.message === "empty") {
-        message += " Adres boş içerik döndürdü.";
-      } else {
-        message += ` ${err.message}`;
-      }
-      urlFetchMessage.textContent = message;
-      urlFetchMessage.className = "text-[10px] text-rose-300 -mt-1";
-    } finally {
-      fetchUrlBtn.disabled = false;
-      fetchUrlBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> URL\'den al';
-    }
-  });
-
-  els.file.addEventListener("change", event => {
-    const file = event.target.files && event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-      els.text.value = String(e.target.result || "");
-      loadContent(els.text.value);
-    };
-    reader.onerror = () => alert("Dosya okunamadı. Lütfen başka bir M3U dosyası deneyin.");
-    reader.readAsText(file);
-  });
-  els.load.addEventListener("click", () => loadContent(els.text.value));
-
-  function refreshGroups() {
-    const groups = [...new Set(channels.map(c => c.group || "Genel"))].sort((a,b) => a.localeCompare(b, "tr"));
-    const old = els.group.value;
-    els.group.innerHTML = '<option value="">Tüm gruplar</option>';
-    for (const group of groups) {
-      const option = document.createElement("option");
-      option.value = group; option.textContent = group;
-      els.group.appendChild(option);
-    }
-    if (groups.includes(old)) els.group.value = old;
-  }
-
-  function statusInfo(status) {
-    if (status === "working") return {label:"Doğrulandı", cls:"status-working", text:"HTTP yanıtı alınabildi"};
-    if (status === "dead") return {label:"Hata", cls:"status-dead", text:"Bağlantı hatası / yayın yanıt vermedi"};
-    if (status === "checking") return {label:"Test ediliyor", cls:"status-checking", text:"Kontrol sürüyor"};
-    if (status === "unknown") return {label:"Belirsiz", cls:"status-unknown", text:"CORS veya erişim kısıtlaması"};
-    return {label:"Test edilmedi", cls:"status-unknown", text:"Henüz kontrol edilmedi"};
-  }
-
-  function renderChannels() {
-    const q = els.search.value.trim().toLocaleLowerCase("tr");
-    const group = els.group.value;
-    const filtered = channels.filter(ch => {
-      const match = !q || ch.name.toLocaleLowerCase("tr").includes(q) ||
-        ch.group.toLocaleLowerCase("tr").includes(q) || ch.url.toLocaleLowerCase("tr").includes(q);
-      const matchGroup = !group || ch.group === group;
-      const matchStatus = currentFilter === "all" ||
-          (currentFilter === "working" && ch.status === "working") ||
-          (currentFilter === "dead" && ch.status === "dead") ||
-          (currentFilter === "unknown" && ["unknown","untested","checking"].includes(ch.status));
-      return match && matchGroup && matchStatus;
-    });
-    els.count.textContent = `(${filtered.length}/${channels.length})`;
-    els.list.replaceChildren();
-    if (!filtered.length) {
-      const empty = document.createElement("div");
-      empty.className = "text-center text-slate-500 text-xs py-8";
-      empty.textContent = channels.length ? "Bu filtreyle kanal bulunamadı." : "Henüz liste yüklenmedi.";
-      els.list.appendChild(empty); return;
-    }
-    const fragment = document.createDocumentFragment();
-    filtered.forEach(ch => {
-      const row = document.createElement("div");
-      row.setAttribute("role", "button");
-      row.tabIndex = 0;
-      row.className = "channel-row flex items-center gap-2" + (currentChannel === ch ? " selected" : "");
-      row.title = `${ch.name} — ${ch.url}`;
-      const dot = document.createElement("span");
-      dot.className = "status-dot " + statusInfo(ch.status).cls;
-      dot.title = statusInfo(ch.status).label;
-      const logoBox = document.createElement("span");
-      logoBox.className = "w-8 h-8 rounded bg-slate-800 flex items-center justify-center shrink-0 overflow-hidden border border-slate-700 text-slate-500 text-[10px]";
-      if (ch.logo) {
-        const img = document.createElement("img");
-        img.src = ch.logo; img.alt = ""; img.loading = "lazy";
-        img.className = "w-full h-full object-contain";
-        img.onerror = () => { img.remove(); logoBox.innerHTML = '<i class="fa-solid fa-tv"></i>'; };
-        logoBox.appendChild(img);
-      } else logoBox.innerHTML = '<i class="fa-solid fa-tv"></i>';
-      const details = document.createElement("span");
-      details.className = "min-w-0 flex-1 overflow-hidden";
-      const name = document.createElement("span");
-      name.className = "block text-xs font-medium text-slate-200 truncate";
-      name.textContent = ch.name;
-      const sub = document.createElement("span");
-      sub.className = "block text-[10px] text-slate-500 truncate";
-      sub.textContent = `${ch.group} · ${statusInfo(ch.status).label}${ch.duplicate ? " · yinelenen" : ""}`;
-      details.append(name, sub);
-      const play = document.createElement("span");
-      play.className = "text-indigo-300 text-xs shrink-0";
-      play.innerHTML = '<i class="fa-solid fa-play"></i>';
-      row.append(dot, logoBox, details, play);
-      row.addEventListener("click", () => playStream(ch));
-      row.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); playStream(ch); } });
-      if (ch.status !== "working") {
-        const markBtn = document.createElement("button");
-        markBtn.type = "button";
-        markBtn.className = "shrink-0 text-[10px] px-2 py-1 rounded border border-emerald-700 text-emerald-300 hover:bg-emerald-900/40";
-        markBtn.textContent = "Çalışana aktar";
-        markBtn.title = "Bu kanalı manuel olarak çalışan kabul et";
-        markBtn.addEventListener("click", e => {
-          e.stopPropagation();
-          ch.status = "working";
-          ch.testMessage = "Kullanıcı tarafından çalışan olarak işaretlendi";
-          renderChannels(); updateButtons();
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Bağlantı sağlanamadı.');
+                
+                const textContent = await response.text();
+                m3uTextInput.value = textContent;
+                parseM3U(textContent);
+            } catch (err) {
+                alert('URLden liste çekilemedi (CORS engeli veya hatalı bağlantı). Lütfen dosyayı indirip doğrudan yüklemeyi deneyin.\n\nHata: ' + err.message);
+            } finally {
+                loadUrlBtn.disabled = false;
+                loadUrlBtn.innerHTML = '<i class="fa-solid fa-link"></i> Çek';
+            }
         });
-        row.appendChild(markBtn);
-      }
-      fragment.appendChild(row);
-    });
-    els.list.appendChild(fragment);
-  }
 
-  document.querySelectorAll(".filter-btn").forEach(btn => btn.addEventListener("click", () => {
-    currentFilter = btn.dataset.filter;
-    document.querySelectorAll(".filter-btn").forEach(b => b.classList.toggle("active", b === btn));
-    renderChannels();
-  }));
-  els.search.addEventListener("input", renderChannels);
-  els.group.addEventListener("change", renderChannels);
+        // Dosya seçildiğinde okuma
+        m3uFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                m3uTextInput.value = event.target.result;
+                parseM3U(event.target.result);
+            };
+            reader.readAsText(file);
+        });
 
-  function updateButtons() {
-    const loaded = channels.length > 0;
-    els.check.disabled = !loaded || !!checkRun;
-    els.exportAll.disabled = !loaded;
-    els.exportCsv.disabled = !loaded;
-    els.exportWorking.disabled = !channels.some(c => c.status === "working");
-  }
+        loadBtn.addEventListener('click', () => {
+            const content = m3uTextInput.value.trim();
+            if (!content) {
+                alert('Lütfen geçerli bir M3U içeriği girin veya dosya seçin.');
+                return;
+            }
+            parseM3U(content);
+        });
 
-  function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+        // M3U Ayrıştırıcı
+        function parseM3U(data) {
+            channels = [];
+            const lines = data.split('\n');
+            let currentChannel = {};
 
-  async function testOne(ch, signal) {
-    if (!ch.url || !/^https?:\/\//i.test(ch.url)) {
-      ch.status = "dead"; ch.testMessage = "Geçersiz veya desteklenmeyen URL";
-      return;
-    }
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), TEST_TIMEOUT_MS);
-    const abortListener = () => controller.abort();
-    signal.addEventListener("abort", abortListener, {once:true});
-    try {
-      // CORS erişimine izin veren yayınlarda gerçek HTTP durumu doğrulanabilir.
-      const response = await fetch(ch.url, { method:"GET", mode:"cors", cache:"no-store", signal:controller.signal });
-      if (response.ok) {
-        ch.status = "working";
-        ch.testMessage = `HTTP ${response.status}`;
-      } else {
-        ch.status = "dead";
-        ch.testMessage = `HTTP ${response.status}`;
-      }
-      try { response.body?.cancel(); } catch {}
-    } catch (err) {
-      if (signal.aborted) {
-        ch.status = "untested"; ch.testMessage = "Test durduruldu";
-      } else if (err && err.name === "AbortError") {
-        ch.status = "unknown"; ch.testMessage = "Zaman aşımı";
-      } else {
-        // CORS hatası, yayın kapalı olduğu anlamına gelmez.
-        ch.status = "unknown"; ch.testMessage = "CORS / tarayıcı erişim engeli";
-      }
-    } finally {
-      clearTimeout(timer);
-      signal.removeEventListener("abort", abortListener);
-    }
-  }
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (line.startsWith('#EXTINF:')) {
+                    currentChannel = { status: 'untested' };
+                    
+                    let logoMatch = line.match(/tvg-logo="([^"]*)"/);
+                    currentChannel.logo = logoMatch ? logoMatch[1] : '';
 
-  async function runPool(items, signal, concurrency, onDone) {
-    let next = 0, done = 0;
-    const workers = Array.from({length:Math.min(concurrency, items.length)}, async () => {
-      while (true) {
-        while (isPaused && !signal.aborted && checkRun?.pausePromise) {
-          await checkRun.pausePromise;
+                    let groupMatch = line.match(/group-title="([^"]*)"/);
+                    currentChannel.group = groupMatch ? groupMatch[1] : 'Genel';
+
+                    let nameParts = line.split(',');
+                    currentChannel.name = nameParts.length > 1 ? nameParts[nameParts.length - 1].trim() : 'İsimsiz Kanal';
+                } else if (line && !line.startsWith('#')) {
+                    currentChannel.url = line;
+                    if (currentChannel.name && currentChannel.url) {
+                        channels.push(currentChannel);
+                        currentChannel = {};
+                    }
+                }
+            }
+
+            populateGroups();
+            renderChannels();
+            checkAllBtn.disabled = channels.length === 0;
+            exportWorkingBtn.disabled = true;
         }
-        if (signal.aborted) return;
-        const index = next++;
-        if (index >= items.length) return;
-        await testOne(items[index], signal);
-        done++;
-        onDone(done, items.length, items[index]);
-      }
-    });
-    await Promise.all(workers);
-  }
 
-  els.check.addEventListener("click", async () => {
-    if (!channels.length || checkRun) return;
-    const controller = new AbortController();
-    checkRun = {controller};
-    isPaused = false;
-    els.check.disabled = true; els.load.disabled = true;
-    els.pause.classList.remove("hidden"); els.stop.classList.remove("hidden");
-    els.pause.innerHTML = '<i class="fa-solid fa-pause"></i> Beklet';
-    els.progress.classList.remove("hidden");
-    const pending = channels.filter(c => c.status !== "working");
-    pending.forEach(c => c.status = "checking");
-    renderChannels();
-    let done = 0;
-    const total = pending.length;
-    els.progressText.textContent = total ? "Test başlatılıyor…" : "Tüm kanallar zaten doğrulanmış";
-    els.progressBar.style.width = total ? "0%" : "100%";
-    els.percent.textContent = total ? "0%" : "100%";
-    try {
-      await runPool(pending, controller.signal, MAX_PARALLEL, (completed,totalCount,ch) => {
-        done = completed;
-        const pct = totalCount ? Math.round(done / totalCount * 100) : 100;
-        els.progressText.textContent = `${done}/${totalCount} · ${ch.name}`;
-        els.progressBar.style.width = pct + "%";
-        els.percent.textContent = pct + "%";
-        renderChannels(); updateButtons();
-      });
-    } finally {
-      pending.filter(c => c.status === "checking").forEach(c => { c.status = "untested"; });
-      checkRun = null; isPaused = false;
-      els.check.disabled = channels.length === 0;
-      els.load.disabled = false;
-      els.pause.classList.add("hidden"); els.stop.classList.add("hidden");
-      const working = channels.filter(c=>c.status==="working").length;
-      const dead = channels.filter(c=>c.status==="dead").length;
-      const unknown = channels.filter(c=>c.status==="unknown").length;
-      els.progressText.textContent = controller.signal.aborted ? "Test durduruldu" : "Test tamamlandı";
-      els.summary.textContent = `${channels.length} kanal · ${working} doğrulandı · ${dead} hata · ${unknown} belirsiz`;
-      renderChannels(); updateButtons();
-    }
-  });
-
-  // Pause is cooperative: active requests finish; no new test begins until resumed.
-  els.pause.addEventListener("click", async () => {
-    if (!checkRun) return;
-    if (!isPaused) {
-      isPaused = true;
-      checkRun.pausePromise = new Promise(resolve => checkRun.resume = resolve);
-      els.pause.innerHTML = '<i class="fa-solid fa-play"></i> Devam et';
-      els.progressText.textContent = "Bekletildi (devam etmek için tıklayın)";
-    } else {
-      isPaused = false;
-      checkRun.resume?.();
-      checkRun.pausePromise = null;
-      els.pause.innerHTML = '<i class="fa-solid fa-pause"></i> Beklet';
-    }
-  });
-
-  els.stop.addEventListener("click", () => stopCheck(true));
-  function stopCheck(resetStatuses = true) {
-    if (!checkRun) return;
-    checkRun.controller.abort();
-    checkRun.resume?.();
-    checkRun.pausePromise = null;
-    isPaused = false;
-    if (resetStatuses) channels.forEach(c => { if (c.status === "checking") c.status = "untested"; });
-  }
-
-  // Player helpers
-  function cleanupHls() {
-    if (hls) { try { hls.destroy(); } catch {} hls = null; }
-  }
-  function setPlayerMessage(message, status="Bilgi") {
-    els.playerMessage.textContent = message;
-    els.playerStatus.textContent = status;
-  }
-  function playStream(ch, attempt = "auto") {
-    currentChannel = ch;
-    renderChannels();
-    cleanupHls();
-    els.player.pause();
-    els.player.removeAttribute("src");
-    els.player.load();
-    els.title.textContent = `Oynatılıyor: ${ch.name}`;
-    els.url.textContent = ch.url;
-    els.placeholder.classList.add("hidden");
-    els.stopPlayer.disabled = false;
-    els.copyUrl.disabled = false;
-    els.retryPlayer.disabled = false;
-    setPlayerMessage("Uyumlu oynatma motoru seçiliyor… CORS, yayın sunucusu veya codec kısıtları tarayıcıdan tamamen kaldırılamaz.", "Hazırlanıyor");
-
-    const isHls = /\.m3u8(?:$|[?#])/i.test(ch.url);
-    const nativeHls = els.player.canPlayType("application/vnd.apple.mpegurl") || els.player.canPlayType("application/x-mpegURL");
-    const useHlsJs = isHls && window.Hls && Hls.isSupported() && attempt !== "native";
-
-    if (useHlsJs) {
-      hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: false,
-        backBufferLength: 30,
-        maxBufferLength: 30,
-        maxMaxBufferLength: 60,
-        manifestLoadingTimeOut: 20000,
-        manifestLoadingMaxRetry: 4,
-        manifestLoadingRetryDelay: 1000,
-        levelLoadingTimeOut: 20000,
-        levelLoadingMaxRetry: 4,
-        levelLoadingRetryDelay: 1000,
-        fragLoadingTimeOut: 30000,
-        fragLoadingMaxRetry: 6,
-        fragLoadingRetryDelay: 1000,
-        startLevel: -1
-      });
-      hls.loadSource(ch.url);
-      hls.attachMedia(els.player);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        els.player.play().then(() => setPlayerMessage("HLS.js ile yayın oynatılıyor.", "Oynatılıyor"))
-          .catch(() => setPlayerMessage("Otomatik oynatma engellendi; video üzerindeki ▶ düğmesine basın.", "Bekliyor"));
-      });
-      hls.on(Hls.Events.ERROR, (_event, data) => {
-        if (!data.fatal) {
-          if (data.details) setPlayerMessage(`HLS uyarısı: ${data.details}`, "Uyarı");
-          return;
+        // Grupları Popüle Etme
+        function populateGroups() {
+            groupSelect.innerHTML = '<option value="all">Tüm Kategoriler</option>';
+            const groups = [...new Set(channels.map(c => c.group || 'Genel'))].sort();
+            groups.forEach(g => {
+                const opt = document.createElement('option');
+                opt.value = g;
+                opt.textContent = g;
+                groupSelect.appendChild(opt);
+            });
         }
-        const detail = `${data.type || "Bilinmeyen hata"}${data.details ? " / " + data.details : ""}`;
-        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-          setPlayerMessage(`Ağ hatası: ${detail}. Yeniden bağlantı deneniyor…`, "Bağlanıyor");
-          try { hls.startLoad(); } catch {}
-        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-          setPlayerMessage(`Medya/codec hatası: ${detail}. Kurtarma deneniyor…`, "Kurtarılıyor");
-          try { hls.recoverMediaError(); } catch {}
-        } else {
-          setPlayerMessage(`Kritik HLS hatası: ${detail}. Yeniden dene veya Native HLS seçeneğini dene.`, "Hata");
-          cleanupHls();
+
+        groupSelect.addEventListener('change', (e) => {
+            currentGroup = e.target.value;
+            renderChannels();
+        });
+
+        // Favori Ekle / Çıkar
+        function toggleFavorite(chUrl, e) {
+            e.stopPropagation();
+            if (favorites.includes(chUrl)) {
+                favorites = favorites.filter(fav => fav !== chUrl);
+            } else {
+                favorites.push(chUrl);
+            }
+            localStorage.setItem('iptv_favorites', JSON.stringify(favorites));
+            renderChannels();
         }
-      });
-    } else if (isHls && nativeHls && attempt !== "hlsjs") {
-      els.player.src = ch.url;
-      els.player.play().then(() => setPlayerMessage("Cihazın yerel HLS motoru ile oynatılıyor.", "Oynatılıyor"))
-        .catch(() => setPlayerMessage("Native HLS otomatik başlatılamadı. ▶ düğmesine basın.", "Bekliyor"));
-    } else {
-      els.player.src = ch.url;
-      els.player.play().then(() => setPlayerMessage("Tarayıcının yerel medya motoru ile oynatılıyor.", "Oynatılıyor"))
-        .catch(err => setPlayerMessage(err?.name === "NotAllowedError" ? "Otomatik oynatma engellendi. ▶ düğmesine basın." : "Doğrudan oynatma başarısız. URL, CORS, erişim yetkisi veya codec engeli olabilir.", "Oynatma hatası"));
-    }
-  }
-  els.retryPlayer.addEventListener("click", () => {
-    if (!currentChannel) return;
-    const isHls = /\.m3u8(?:$|[?#])/i.test(currentChannel.url);
-    if (isHls && hls) playStream(currentChannel, "native");
-    else playStream(currentChannel, "auto");
-  });
-  els.player.addEventListener("playing", () => setPlayerMessage("Yayın oynatılıyor.", "Oynatılıyor"));
-  els.player.addEventListener("waiting", () => setPlayerMessage("Yayın yükleniyor / ara belleğe alınıyor…", "Yükleniyor"));
-  els.player.addEventListener("error", () => setPlayerMessage("Video etiketi bu formatı oynatamadı. HLS veya codec uyumsuz olabilir.", "Oynatma hatası"));
-  els.stopPlayer.addEventListener("click", () => {
-    cleanupHls(); els.player.pause(); els.player.removeAttribute("src"); els.player.load();
-    els.placeholder.classList.remove("hidden"); els.stopPlayer.disabled = true; els.retryPlayer.disabled = true;
-    els.title.textContent = "Oynatıcı (Kanal seçilmedi)";
-    els.url.textContent = "—"; els.copyUrl.disabled = true;
-    setPlayerMessage("Oynatma durduruldu.", "Hazır");
-  });
-  els.copyUrl.addEventListener("click", async () => {
-    if (!currentChannel) return;
-    try {
-      await navigator.clipboard.writeText(currentChannel.url);
-      setPlayerMessage("Yayın adresi panoya kopyalandı.", "Kopyalandı");
-    } catch {
-      setPlayerMessage("Kopyalama desteklenmedi. Adresi seçerek kopyalayabilirsiniz.", "Bilgi");
-    }
-  });
 
-  function buildM3U(items) {
-    let output = "#EXTM3U\n";
-    for (const ch of items) {
-      const logo = (ch.logo || "").replace(/"/g, "&quot;");
-      const group = (ch.group || "Genel").replace(/"/g, "&quot;");
-      const id = (ch.tvgId || "").replace(/"/g, "&quot;");
-      output += `#EXTINF:${ch.duration || "-1"} tvg-id="${id}" tvg-logo="${logo}" group-title="${group}",${ch.name}\n${ch.url}\n`;
-    }
-    return output;
-  }
-  function downloadFile(filename, content, mime) {
-    const blob = new Blob([content], {type:mime});
-    const objectUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = objectUrl; a.download = filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-  }
-  const downloadModal = $("downloadModal");
-  function openDownloadModal() {
-    const counts = {
-      working: channels.filter(c => c.status === "working").length,
-      dead: channels.filter(c => c.status === "dead").length,
-      unknown: channels.filter(c => c.status === "unknown").length,
-      all: channels.length
-    };
-    $("workingDownloadCount").textContent = `${counts.working} kanal`;
-    $("deadDownloadCount").textContent = `${counts.dead} kanal`;
-    $("unknownDownloadCount").textContent = `${counts.unknown} kanal`;
-    $("allDownloadCount").textContent = `${counts.all} kanal`;
-    downloadModal.classList.remove("hidden"); downloadModal.classList.add("flex");
-  }
-  function closeDownloadModal() { downloadModal.classList.add("hidden"); downloadModal.classList.remove("flex"); }
-  els.exportWorking.addEventListener("click", openDownloadModal);
-  $("closeDownloadModal").addEventListener("click", closeDownloadModal);
-  $("cancelDownload").addEventListener("click", closeDownloadModal);
-  downloadModal.addEventListener("click", e => { if (e.target === downloadModal) closeDownloadModal(); });
-  $("confirmDownload").addEventListener("click", () => {
-    const type = document.querySelector('input[name="downloadType"]:checked')?.value || "working";
-    const labels = {working:"calisan", dead:"hatali", unknown:"belirsiz", all:"tum_kanallar"};
-    const items = type === "all" ? channels : channels.filter(c => c.status === type);
-    if (!items.length) { alert("Bu kategoride indirilecek kanal bulunamadı."); return; }
-    downloadFile(`m3u_${labels[type]}.m3u`, buildM3U(items), "audio/x-mpegurl;charset=utf-8");
-    closeDownloadModal();
-  });
-  els.exportAll.addEventListener("click", () => {
-    if (channels.length) downloadFile("m3u_tam_liste.m3u", buildM3U(channels), "audio/x-mpegurl;charset=utf-8");
-  });
-  els.exportCsv.addEventListener("click", () => {
-    const quote = v => `"${String(v ?? "").replace(/"/g,'""')}"`;
-    const rows = [["Kanal","Grup","Durum","Test bilgisi","Yayın adresi","Yinelenen"]];
-    channels.forEach(c => rows.push([c.name,c.group,statusInfo(c.status).label,c.testMessage,c.url,c.duplicate?"Evet":"Hayır"]));
-    const csv = "\uFEFF" + rows.map(row => row.map(quote).join(";")).join("\r\n");
-    downloadFile("m3u_test_sonuclari.csv", csv, "text/csv;charset=utf-8");
-  });
+        // Listeyi Ekrana Çizme
+        function renderChannels() {
+            const query = searchBox.value.toLowerCase();
+            const filtered = channels.filter((ch, index) => {
+                ch._originalIndex = index;
+                const matchesQuery = ch.name.toLowerCase().includes(query) || ch.group.toLowerCase().includes(query);
+                const matchesGroup = currentGroup === 'all' || ch.group === currentGroup;
+                const isFav = favorites.includes(ch.url);
 
-  updateButtons();
-})();
-</script>
+                if (!matchesGroup || !matchesQuery) return false;
+
+                if (currentFilter === 'favorites') return isFav;
+                if (currentFilter === 'working') return ch.status === 'working';
+                if (currentFilter === 'dead') return ch.status === 'dead';
+                return true;
+            });
+
+            channelCountEl.textContent = filtered.length;
+            channelListEl.innerHTML = '';
+
+            if (filtered.length === 0) {
+                channelListEl.innerHTML = '<div class="text-center text-slate-500 text-xs py-8">Kanal bulunamadı.</div>';
+                return;
+            }
+
+            filtered.forEach((ch) => {
+                const isFav = favorites.includes(ch.url);
+                const isActive = activeChannelIndex === ch._originalIndex;
+                
+                const item = document.createElement('div');
+                item.className = `flex items-center justify-between p-2 rounded-lg border transition-all cursor-pointer group ${
+                    isActive ? 'bg-indigo-600/20 border-indigo-500/50' : 'bg-slate-900/60 border-slate-800/60 hover:bg-slate-800'
+                }`;
+                
+                let statusBadge = '';
+                if (ch.status === 'working') {
+                    statusBadge = '<span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Çalışıyor"></span>';
+                } else if (ch.status === 'dead') {
+                    statusBadge = '<span class="w-2 h-2 rounded-full bg-rose-500 shrink-0" title="Çalışmıyor"></span>';
+                } else {
+                    statusBadge = '<span class="w-2 h-2 rounded-full bg-slate-600 shrink-0" title="Test Edilmedi"></span>';
+                }
+
+                item.innerHTML = `
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        ${statusBadge}
+                        <div class="w-7 h-7 rounded bg-slate-800 flex items-center justify-center shrink-0 overflow-hidden border border-slate-700">
+                            ${ch.logo ? `<img src="${ch.logo}" class="w-full h-full object-contain" onerror="this.remove()">` : '<i class="fa-solid fa-tv text-slate-500 text-[10px]"></i>'}
+                        </div>
+                        <div class="overflow-hidden">
+                            <h3 class="text-xs font-medium ${isActive ? 'text-indigo-400' : 'text-slate-200'} truncate group-hover:text-indigo-400 transition-colors">${ch.name}</h3>
+                            <span class="text-[10px] text-slate-500 truncate block">${ch.group}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button class="fav-btn text-xs p-1 text-slate-500 hover:text-amber-400 transition-colors" title="Favorilere Ekle">
+                            <i class="${isFav ? 'fa-solid fa-star text-amber-400' : 'fa-regular fa-star'}"></i>
+                        </button>
+                        <button class="text-slate-400 hover:text-indigo-400 p-1 text-xs">
+                            <i class="fa-solid fa-play"></i>
+                        </button>
+                    </div>
+                `;
+
+                item.querySelector('.fav-btn').addEventListener('click', (e) => toggleFavorite(ch.url, e));
+                item.addEventListener('click', () => playStream(ch, ch._originalIndex));
+                channelListEl.appendChild(item);
+            });
+        }
+
+        // Filtre Butonları İşlevi
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.filter-btn').forEach(b => {
+                    b.classList.remove('bg-indigo-600', 'text-white');
+                    b.classList.add('bg-slate-900', 'text-slate-400');
+                });
+                const target = e.currentTarget;
+                target.classList.remove('bg-slate-900', 'text-slate-400');
+                target.classList.add('bg-indigo-600', 'text-white');
+                
+                currentFilter = target.getAttribute('data-filter');
+                renderChannels();
+            });
+        });
+
+        searchBox.addEventListener('input', () => renderChannels());
+
+        // tüm Kanalları Asenkron Test Etme
+        checkAllBtn.addEventListener('click', async () => {
+            if (channels.length === 0) return;
+
+            checkAllBtn.disabled = true;
+            loadBtn.disabled = true;
+            progressContainer.classList.remove('hidden');
+            
+            let checkedCount = 0;
+            const total = channels.length;
+
+            for (let i = 0; i < channels.length; i++) {
+                const ch = channels[i];
+                progressText.textContent = `Test ediliyor: ${ch.name}`;
+                
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+                    await fetch(ch.url, { 
+                        method: 'GET', 
+                        mode: 'no-cors', 
+                        signal: controller.signal 
+                    });
+                    clearTimeout(timeoutId);
+                    
+                    ch.status = 'working';
+                } catch (err) {
+                    ch.status = 'dead';
+                }
+
+                checkedCount++;
+                let percent = Math.round((checkedCount / total) * 100);
+                progressBar.style.width = percent + '%';
+                progressPercent.textContent = percent + '%';
+
+                renderChannels();
+            }
+
+            progressText.textContent = 'Test Tamamlandı!';
+            checkAllBtn.disabled = false;
+            loadBtn.disabled = false;
+            
+            const workingCount = channels.filter(c => c.status === 'working').length;
+            if (workingCount > 0) {
+                exportWorkingBtn.disabled = false;
+            }
+        });
+
+        // Yayın Oynatma
+        function playStream(ch, originalIndex) {
+            activeChannelIndex = originalIndex;
+            currentChannelTitle.innerHTML = `<i class="fa-solid fa-circle-play text-indigo-400"></i> ${ch.name}`;
+            currentGroupBadge.textContent = ch.group || 'Genel';
+            currentGroupBadge.classList.remove('hidden');
+            currentUrlEl.textContent = ch.url;
+            playerPlaceholder.style.display = 'none';
+
+            const streamUrl = ch.url;
+
+            if (Hls.isSupported() && ch.url.includes('.m3u8')) {
+                if (hls) hls.destroy();
+                hls = new Hls({
+                    xhrSetup: function (xhr, url) {
+                        xhr.withCredentials = false;
+                    }
+                });
+                hls.loadSource(streamUrl);
+                hls.attachMedia(videoPlayer);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => videoPlayer.play());
+            } else {
+                videoPlayer.src = streamUrl;
+                videoPlayer.play().catch(err => {
+                    console.error("Oynatma hatası:", err);
+                });
+            }
+
+            renderChannels();
+        }
+
+        // Klavye ile Kanal Değiştirme (Kumanda Modu)
+        document.addEventListener('keydown', (e) => {
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+            if (channels.length === 0) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                let nextIndex = activeChannelIndex + 1;
+                if (nextIndex < channels.length) {
+                    playStream(channels[nextIndex], nextIndex);
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                let prevIndex = activeChannelIndex - 1;
+                if (prevIndex >= 0) {
+                    playStream(channels[prevIndex], prevIndex);
+                }
+            }
+        });
+
+        // Sadece Çalışan Kanalları Dışarı Aktarma (M3U İndir)
+        exportWorkingBtn.addEventListener('click', () => {
+            const workingChannels = channels.filter(ch => ch.status === 'working');
+            if (workingChannels.length === 0) {
+                alert('İndirilecek çalışan kanal bulunamadı.');
+                return;
+            }
+
+            let m3uContent = '#EXTM3U\n';
+            workingChannels.forEach(ch => {
+                m3uContent += `#EXTINF:-1 tvg-logo="${ch.logo || ''}" group-title="${ch.group || 'Genel'},${ch.name}\n`;
+                m3uContent += `${ch.url}\n`;
+            });
+
+            const blob = new Blob([m3uContent], { type: 'audio/x-mpegurl' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'calisan_kanallar.m3u';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+    </script>
 </body>
 </html>
