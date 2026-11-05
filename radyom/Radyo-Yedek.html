@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STREAM PULSE PRO v2 — Akıllı İnternet Radyo Stüdyosu</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome İkonları -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.4); }
+        ::-webkit-scrollbar-thumb { background: var(--theme-primary); border-radius: 9999px; }
+
+        :root {
+            --bg-gradient: radial-gradient(ellipse at 50% 0%, var(--accent-glow), transparent 42%), linear-gradient(180deg,#070a12,#0a1020 65%,#070a12);
+            --panel-bg: rgba(15, 23, 42, 0.85);
+            --panel-border: rgba(255, 255, 255, 0.1);
+            --card-bg: rgba(30, 41, 59, 0.5);
+            --card-hover: rgba(30, 41, 59, 0.85);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --btn-bg: rgba(30, 41, 59, 0.7);
+            --btn-text: #f8fafc;
+            --btn-border: rgba(255, 255, 255, 0.1);
+            --accent-glow: rgba(0, 242, 254, 0.15);
+            --theme-primary: #00f2fe;
+            --theme-secondary: #e100ff;
+        }
+
+        .light-mode {
+            --bg-gradient: radial-gradient(ellipse at 50% 0%, var(--accent-glow), transparent 42%), linear-gradient(180deg,#f1f5f9,#e2e8f0 65%,#f1f5f9);
+            --panel-bg: rgba(255, 255, 255, 0.9);
+            --panel-border: rgba(0, 0, 0, 0.08);
+            --card-bg: rgba(255, 255, 255, 0.8);
+            --card-hover: rgba(241, 245, 249, 1);
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --btn-bg: rgba(226, 232, 240, 0.8);
+            --btn-text: #0f172a;
+            --btn-border: rgba(0, 0, 0, 0.1);
+            --accent-glow: rgba(0, 242, 254, 0.1);
+        }
+
+        body {
+            background-image: var(--bg-gradient);
+            color: var(--text-main);
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--panel-border);
+            box-shadow: 0 18px 55px rgba(0,0,0,.15);
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--panel-border);
+            transition: transform .2s ease, background .2s ease, border-color .2s ease;
+        }
+        .glass-card:hover {
+            background: var(--card-hover);
+            border-color: var(--theme-primary);
+            transform: translateY(-2px);
+        }
+
+        .theme-btn {
+            background-color: var(--btn-bg);
+            color: var(--btn-text);
+            border: 1px solid var(--btn-border);
+        }
+        .theme-btn:hover {
+            border-color: var(--theme-primary);
+        }
+
+        .eq-bar {
+            width: 4px;
+            background: linear-gradient(to top, var(--theme-primary), var(--theme-secondary));
+            border-radius: 2px;
+            animation: bounce 1s infinite ease-in-out alternate;
+            transform-origin: bottom;
+        }
+        .eq-bar:nth-child(1) { animation-delay: 0.1s; height: 30%; }
+        .eq-bar:nth-child(2) { animation-delay: 0.3s; height: 75%; }
+        .eq-bar:nth-child(3) { animation-delay: 0.15s; height: 100%; }
+        .eq-bar:nth-child(4) { animation-delay: 0.4s; height: 50%; }
+        .eq-bar:nth-child(5) { animation-delay: 0.2s; height: 85%; }
+
+        @keyframes bounce {
+            0% { transform: scaleY(0.2); }
+            100% { transform: scaleY(1); }
+        }
+
+        .paused .eq-bar {
+            animation-play-state: paused;
+            transform: scaleY(0.15) !important;
+        }
+
+        .bg-glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(140px);
+            opacity: 0.22;
+            pointer-events: none;
+            z-index: 0;
+            background: var(--theme-primary);
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        button { cursor: pointer; touch-action: manipulation; position: relative; z-index: 20; }
+        #btn-play-pause, #drive-btn-play { box-shadow: 0 0 32px var(--accent-glow), 0 10px 30px rgba(0,0,0,.2); }
+        .toast-enhanced { animation: toastIn .25s ease-out; }
+        @keyframes toastIn { from { opacity:0; transform:translateY(12px) scale(.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+    </style>
+</head>
+<body class="font-sans min-h-screen flex flex-col justify-between selection:bg-[var(--theme-primary)] selection:text-black overflow-x-hidden relative">
+
+    <div class="bg-glow -top-40 -left-40"></div>
+    <div class="bg-glow -bottom-40 -right-40" style="background: var(--theme-secondary);"></div>
+
+    <div class="relative z-10 flex flex-col min-h-screen">
+        
+        <!-- ÜST BİLGİ ÇUBUĞU (HEADER) -->
+        <header class="glass-panel sticky top-0 z-30 border-b px-4 py-3 lg:px-8">
+            <div class="max-w-7xl mx-auto flex items-center justify-between">
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="modalToggle('modal-kanal-listesi', true)">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg" style="background: linear-gradient(135deg, var(--theme-primary), var(--theme-secondary));">
+                        <i class="fa-solid fa-radio"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-extrabold text-lg tracking-wide bg-clip-text text-transparent" style="background-image: linear-gradient(to right, var(--theme-primary), var(--theme-secondary));">
+                            STREAM<span>PULSE</span> <span class="text-xs font-bold px-1.5 py-0.5 rounded border" style="color: var(--theme-primary); background: var(--card-bg); border-color: var(--panel-border);">PRO</span>
+                        </h1>
+                        <p class="text-[10px] font-medium tracking-wider uppercase" style="color: var(--text-muted);">Akıllı İnternet Radyo Stüdyosu</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2 sm:space-x-3">
+                    <div id="uyku-durum-rozet" class="hidden px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center space-x-1.5" style="background: var(--card-bg); border-color: var(--panel-border); color: var(--theme-primary);">
+                        <i class="fa-solid fa-moon animate-pulse" style="color: var(--theme-primary);"></i>
+                        <span id="uyku-sayac-etiket">00:00</span>
+                    </div>
+
+                    <button onclick="modalToggle('modal-temalar', true)" class="theme-btn px-3.5 py-2 rounded-xl font-semibold transition flex items-center space-x-2 text-xs sm:text-sm">
+                        <i class="fa-solid fa-palette" style="color: var(--theme-primary);"></i>
+                        <span class="hidden sm:inline">Temalar</span>
+                    </button>
+
+                    <button onclick="modalToggle('modal-ayarlar', true)" class="px-3.5 py-2 rounded-xl text-slate-950 font-bold transition flex items-center space-x-2 text-xs sm:text-sm shadow-lg" style="background: var(--theme-primary);">
+                        <i class="fa-solid fa-gear"></i>
+                        <span class="hidden sm:inline">Ayarlar / URL</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- ANA İÇERİK ALANI -->
+        <main class="flex-grow max-w-4xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col items-center justify-center">
+            <section class="w-full max-w-xl">
+                <div class="glass-panel rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center relative overflow-hidden shadow-2xl">
+                    
+                    <div class="w-full flex items-center justify-between mb-4 z-20">
+                        <span id="canli-gosterge" class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-semibold">
+                            <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+                            <span>CANLI</span>
+                        </span>
+                        
+                        <div id="equalizer-cubuklari" class="flex items-end space-x-1 h-5 paused">
+                            <div class="eq-bar"></div>
+                            <div class="eq-bar"></div>
+                            <div class="eq-bar"></div>
+                            <div class="eq-bar"></div>
+                            <div class="eq-bar"></div>
+                        </div>
+                    </div>
+
+                    <div class="relative group my-2 z-20">
+                        <div class="absolute -inset-2 rounded-2xl blur-lg opacity-40 group-hover:opacity-75 transition duration-500" style="background: linear-gradient(to right, var(--theme-primary), var(--theme-secondary));"></div>
+                        <div class="relative w-44 h-44 sm:w-52 sm:h-52 rounded-2xl bg-slate-900 border border-slate-700/60 overflow-hidden shadow-2xl flex items-center justify-center">
+                            <img id="aktif-kanal-resim" src="" alt="Radyo Logosu" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 hidden" onerror="kanalResimHata(this)">
+                            <div id="aktif-kanal-varsayilan" class="text-6xl text-slate-600 flex items-center justify-center w-full h-full bg-gradient-to-br from-slate-800 to-slate-900">
+                                <i class="fa-solid fa-radio" style="color: var(--theme-primary);"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 w-full z-20">
+                        <span id="aktif-kanal-tur" class="inline-block px-3 py-1 rounded-lg text-xs font-semibold tracking-wide mb-2 uppercase border" style="background: var(--card-bg); border-color: var(--panel-border); color: var(--theme-primary);">
+                            Yükleniyor...
+                        </span>
+                        <h2 id="aktif-kanal-ad" class="text-2xl sm:text-3xl font-extrabold tracking-tight truncate">
+                            İstasyon Seçiniz
+                        </h2>
+                        <p id="aktif-kanal-url-bilgi" class="text-xs sm:text-sm mt-1 truncate" style="color: var(--text-muted);">
+                            Listeden bir radyo seçin veya URL ekleyin.
+                        </p>
+                    </div>
+
+                    <!-- GÖRSELLEŞTİRİCİ CANVAS VE DEĞİŞTİRME BUTONU -->
+                    <div class="w-full h-28 sm:h-32 mt-4 rounded-xl bg-slate-900/90 border border-slate-800 overflow-hidden relative z-20 shadow-inner group">
+                        <canvas id="gorsellestirici-canvas" class="w-full h-full pointer-events-none"></canvas>
+                        
+                        <button onclick="gorsellestiriciModuDegistir()" class="absolute top-2 right-2 px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 border text-[11px] font-bold transition flex items-center gap-1.5 shadow-md" style="border-color: var(--panel-border); color: var(--theme-primary);">
+                            <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
+                            <span id="gorsel-mod-etiket">Neon Çubuklar</span>
+                        </button>
+                    </div>
+
+                    <!-- OYNATICI KONTROLLERİ -->
+                    <div class="w-full mt-6 space-y-5 z-20">
+                        <div class="flex items-center justify-center space-x-6">
+                            <button onclick="oncekiKanaliCal()" class="theme-btn w-12 h-12 rounded-full flex items-center justify-center transition active:scale-95 shadow" title="Önceki Kanal">
+                                <i class="fa-solid fa-backward-step text-lg"></i>
+                            </button>
+
+                            <button id="btn-play-pause" onclick="oynatVeyaDurdur()" class="w-20 h-20 sm:w-22 sm:h-22 rounded-full text-slate-950 font-bold flex items-center justify-center hover:scale-105 active:scale-95 transition shadow-2xl" style="background: linear-gradient(135deg, var(--theme-primary), var(--theme-secondary));">
+                                <i id="oynat-ikon" class="fa-solid fa-play text-3xl ml-1 text-slate-950"></i>
+                            </button>
+
+                            <button onclick="sonrakiKanaliCal()" class="theme-btn w-12 h-12 rounded-full flex items-center justify-center transition active:scale-95 shadow" title="Sonraki Kanal">
+                                <i class="fa-solid fa-forward-step text-lg"></i>
+                            </button>
+                        </div>
+
+                        <!-- ALT İŞLEM BUTONLARI ÇUBUĞU -->
+                        <div class="grid grid-cols-6 gap-1.5 sm:gap-2 pt-2 border-t" style="border-color: var(--panel-border);">
+                            <button id="btn-kayit-ana" onclick="kaydiBaslatDurdur()" class="theme-btn py-2.5 px-1 rounded-xl hover:bg-red-500/20 text-red-500 transition flex flex-col items-center justify-center space-y-1 group" title="Yayın Kaydet">
+                                <i id="kayit-ikon-ana" class="fa-solid fa-circle text-xs text-red-500 group-hover:scale-110 transition"></i>
+                                <span id="kayit-metin-ana" class="text-[10px] font-bold">Kayıt</span>
+                                <span id="kayit-sayac-ana" class="hidden text-[9px] font-mono text-red-400">00:00</span>
+                            </button>
+
+                            <button onclick="kayitlariAc()" class="theme-btn py-2.5 px-1 rounded-xl transition flex flex-col items-center justify-center space-y-1 group" title="Kayıtlarımı Aç" style="color: var(--theme-primary);">
+                                <i class="fa-solid fa-folder-open text-xs group-hover:scale-110 transition"></i>
+                                <span class="text-[10px] font-bold">Kayıtlar</span>
+                            </button>
+
+                            <button onclick="rastgeleKanalCal()" class="theme-btn py-2.5 px-1 rounded-xl transition flex flex-col items-center justify-center space-y-1 group" title="Rastgele Kanal" style="color: var(--theme-primary);">
+                                <i class="fa-solid fa-shuffle text-xs group-hover:scale-110 transition"></i>
+                                <span class="text-[10px] font-bold">Rastgele</span>
+                            </button>
+
+                            <button onclick="aracModunuAc(true)" class="theme-btn py-2.5 px-1 rounded-xl text-amber-500 transition flex flex-col items-center justify-center space-y-1 group" title="Araç Modu">
+                                <i class="fa-solid fa-car text-xs group-hover:scale-110 transition"></i>
+                                <span class="text-[10px] font-bold">Araç</span>
+                            </button>
+
+                            <button id="btn-uyku-zaman" onclick="modalToggle('modal-uyku', true)" class="theme-btn py-2.5 px-1 rounded-xl transition flex flex-col items-center justify-center space-y-1 group" title="Uyku Zamanlayıcısı" style="color: var(--theme-primary);">
+                                <i class="fa-solid fa-moon text-xs group-hover:scale-110 transition"></i>
+                                <span class="text-[10px] font-bold">Zaman</span>
+                            </button>
+
+                            <button onclick="modalToggle('modal-kanal-listesi', true)" class="py-2.5 px-1 rounded-xl border transition flex flex-col items-center justify-center space-y-1 group shadow-lg" title="Kanal Listesini Aç" style="background: var(--card-bg); border-color: var(--panel-border); color: var(--theme-primary);">
+                                <i class="fa-solid fa-list-ul text-xs group-hover:scale-110 transition"></i>
+                                <span class="text-[10px] font-bold">Liste</span>
+                            </button>
+                        </div>
+
+                        <!-- SES SEVİYESİ VE FAVORİ -->
+                        <div class="flex items-center justify-between pt-1 px-2">
+                            <button id="btn-favori-gecis" onclick="favoriDegistirAktif()" class="text-slate-400 hover:text-red-500 transition text-xl p-2" title="Favorilere Ekle">
+                                <i id="favori-ikon" class="fa-regular fa-heart"></i>
+                            </button>
+
+                            <div class="flex items-center space-x-3 w-2/3 max-w-[200px]">
+                                <button id="btn-sessiz" onclick="sesSessizToggle()" class="text-slate-400 transition" style="color: var(--theme-primary);">
+                                    <i id="ses-ikon" class="fa-solid fa-volume-high text-sm"></i>
+                                </button>
+                                <input type="range" id="ses-seviye-cubuk" min="0" max="1" step="0.01" value="0.8" class="w-full h-1.5 rounded-lg appearance-none cursor-pointer" style="accent-color: var(--theme-primary); background: var(--panel-border);">
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </main>
+
+        <!-- MODAL: KANAL LİSTESİ -->
+        <div id="modal-kanal-listesi" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-md hidden" onclick="if(event.target === this) modalToggle('modal-kanal-listesi', false)">
+            <div class="glass-panel max-w-2xl w-full max-h-[85vh] rounded-3xl p-5 sm:p-7 shadow-2xl flex flex-col space-y-4 relative">
+                <div class="flex items-center justify-between border-b pb-3" style="border-color: var(--panel-border);">
+                    <div class="flex items-center space-x-2" style="color: var(--theme-primary);">
+                        <i class="fa-solid fa-list-ul text-lg"></i>
+                        <h3 class="text-lg font-bold">Radyo Kanalları</h3>
+                        <span class="text-xs px-2 py-0.5 rounded-full font-semibold border" style="background: var(--btn-bg); border-color: var(--panel-border); color: var(--text-muted);">
+                            <span id="kanal-sayac">0</span> Kanal
+                        </span>
+                    </div>
+                    <button onclick="modalToggle('modal-kanal-listesi', false)" class="p-1.5 rounded-lg transition" style="color: var(--text-muted);">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-sm" style="color: var(--text-muted);"></i>
+                        <input type="text" id="arama-girdi" placeholder="Radyo adı veya türü ile ara..." class="w-full rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none transition border" style="background: var(--card-bg); border-color: var(--panel-border); color: var(--text-main);">
+                    </div>
+
+                    <div id="kategori-butonlari" class="flex items-center space-x-2 overflow-x-auto pb-1 text-xs no-scrollbar"></div>
+                </div>
+
+                <div id="kanal-listesi-kapsayici" class="space-y-2.5 overflow-y-auto pr-1 flex-grow min-h-[250px]"></div>
+                <div id="liste-bos-durum" class="hidden glass-panel p-8 rounded-2xl text-center space-y-3">
+                    <i class="fa-solid fa-radio-slash text-4xl" style="color: var(--text-muted);"></i>
+                    <p class="text-sm" style="color: var(--text-muted);">Aramanıza uygun radyo kanalı bulunamadı.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: TEMALAR -->
+        <div id="modal-temalar" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md hidden" onclick="if(event.target === this) modalToggle('modal-temalar', false)">
+            <div class="glass-panel max-w-xl w-full rounded-3xl p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+                <div class="flex items-center justify-between border-b pb-3" style="border-color: var(--panel-border);">
+                    <div class="flex items-center space-x-2" style="color: var(--theme-primary);">
+                        <i class="fa-solid fa-palette text-lg"></i>
+                        <h3 class="text-lg font-bold">Görünüm & Temalar</h3>
+                    </div>
+                    <button onclick="modalToggle('modal-temalar', false)" class="p-1" style="color: var(--text-muted);"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+
+                <div class="flex items-center justify-between p-4 rounded-2xl glass-card">
+                    <div>
+                        <h4 class="font-bold text-sm">Aydınlık / Karanlık Mod</h4>
+                        <p class="text-xs" style="color: var(--text-muted);">Arayüz renk modunu değiştirin</p>
+                    </div>
+                    <button onclick="moduDegistir()" id="btn-mod-gecis" class="px-4 py-2 rounded-xl text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg transition" style="background: var(--theme-primary);">
+                        <i class="fa-solid fa-moon" id="mod-ikon"></i>
+                        <span id="mod-etiket">Karanlık Mod</span>
+                    </button>
+                </div>
+
+                <div class="space-y-3">
+                    <h4 class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-muted);">20 Renk Paleti</h4>
+                    <div id="tema-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: ONAY MESAJI -->
+        <div id="modal-onay" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md hidden">
+            <div class="glass-panel max-w-sm w-full rounded-3xl p-6 text-center space-y-4 border shadow-2xl" style="border-color: var(--panel-border);">
+                <div class="w-12 h-12 rounded-2xl bg-red-500/20 text-red-500 border border-red-500/40 flex items-center justify-center mx-auto text-xl">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h4 id="onay-baslik" class="font-bold text-base">İşlem Onayı</h4>
+                <p id="onay-mesaj" class="text-xs" style="color: var(--text-muted);">Bu işlemi gerçekleştirmek istediğinize emin misiniz?</p>
+                <div class="flex items-center space-x-3 pt-2">
+                    <button onclick="onayKapat(false)" class="theme-btn flex-1 py-2.5 rounded-xl text-xs font-bold transition">İptal</button>
+                    <button onclick="onayKapat(true)" class="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold text-xs shadow-lg shadow-red-500/20 transition">Evet, Sil</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAM EKRAN ARAÇ MODU -->
+        <div id="arac-modu-ekran" class="fixed inset-0 z-50 bg-[#05070d] hidden flex flex-col justify-between p-6 sm:p-10">
+            <div class="flex items-center justify-between z-20">
+                <div class="flex items-center space-x-3 text-amber-400">
+                    <i class="fa-solid fa-car text-3xl"></i>
+                    <span class="font-black text-xl tracking-wider">ARAÇ MODU</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button id="btn-kayit-arac" onclick="kaydiBaslatDurdur()" class="px-4 py-2.5 rounded-2xl bg-red-950/40 border border-red-500/50 text-red-400 font-bold text-sm flex items-center gap-2 active:bg-red-900/60 transition">
+                        <i id="kayit-ikon-arac" class="fa-solid fa-circle text-red-500"></i>
+                        <span id="kayit-metin-arac">KAYIT</span>
+                        <span id="kayit-sayac-arac" class="hidden text-xs font-mono text-red-300">00:00</span>
+                    </button>
+                    <button onclick="aracModunuAc(false)" class="px-5 py-2.5 rounded-2xl bg-slate-800 text-white font-bold text-sm border border-slate-700 hover:bg-slate-700">
+                        <i class="fa-solid fa-xmark mr-1"></i> Çıkış
+                    </button>
+                </div>
+            </div>
+
+            <div class="my-auto text-center space-y-4 px-4 flex flex-col items-center z-20">
+                <span id="arac-kanal-tur" class="inline-block px-4 py-1.5 rounded-full bg-amber-500/20 text-amber-400 text-sm font-bold uppercase tracking-wider">CANLI</span>
+                <h1 id="arac-kanal-ad" class="text-4xl sm:text-6xl font-black text-white tracking-tight leading-tight truncate max-w-4xl mx-auto">Kanal Seçilmedi</h1>
+                <p id="arac-kanal-url" class="text-slate-400 text-lg font-medium truncate max-w-2xl mx-auto">-</p>
+                <div class="w-full max-w-3xl h-28 sm:h-36 mt-4 rounded-2xl bg-slate-950/90 border border-amber-500/30 overflow-hidden relative shadow-2xl pointer-events-none">
+                    <canvas id="arac-gorsel-canvas" class="w-full h-full"></canvas>
+                </div>
+            </div>
+
+            <div class="space-y-6 z-20">
+                <div class="flex items-center justify-center space-x-6 sm:space-x-10">
+                    <button onclick="oncekiKanaliCal()" class="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-slate-800 border-2 border-slate-700 active:bg-slate-700 text-white flex items-center justify-center transition">
+                        <i class="fa-solid fa-backward-step text-3xl sm:text-4xl"></i>
+                    </button>
+                    <button id="drive-btn-play" onclick="oynatVeyaDurdur()" class="w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-amber-500 active:bg-amber-400 text-slate-950 flex items-center justify-center shadow-2xl transition">
+                        <i id="arac-oynat-ikon" class="fa-solid fa-play text-4xl sm:text-5xl ml-1"></i>
+                    </button>
+                    <button onclick="sonrakiKanaliCal()" class="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-slate-800 border-2 border-slate-700 active:bg-slate-700 text-white flex items-center justify-center transition">
+                        <i class="fa-solid fa-forward-step text-3xl sm:text-4xl"></i>
+                    </button>
+                </div>
+                <div class="flex items-center justify-center space-x-4 max-w-md mx-auto pt-2">
+                    <button onclick="rastgeleKanalCal()" class="w-full py-4 rounded-2xl bg-slate-800 border border-slate-700 text-amber-400 font-extrabold text-base tracking-wide hover:bg-slate-700 flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-shuffle text-amber-400 text-xl"></i>
+                        <span>RASTGELE KANAL SEÇ</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: KAYIT ARŞİVİ -->
+        <div id="modal-kayitlar" class="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-md hidden" onclick="if(event.target === this) modalToggle('modal-kayitlar', false)">
+            <div class="glass-panel max-w-2xl w-full max-h-[90vh] overflow-hidden rounded-3xl p-4 sm:p-6 border shadow-2xl flex flex-col" style="border-color: var(--theme-primary);">
+                <div class="flex items-center justify-between border-b pb-3 mb-4" style="border-color: var(--panel-border);">
+                    <div class="flex items-center gap-3" style="color: var(--theme-primary);"><i class="fa-solid fa-record-vinyl text-xl"></i><div><h3 class="text-lg font-bold">Kayıt Arşivim</h3><p class="text-xs" style="color: var(--text-muted);">Dinle, indir, paylaş veya sil</p></div></div>
+                    <button onclick="modalToggle('modal-kayitlar', false)" class="p-2" style="color: var(--text-muted);"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+                <div id="kayit-listesi-kapsayici" class="overflow-y-auto space-y-3 pr-1"><div class="text-center py-8" style="color: var(--text-muted);">Kayıtlar yükleniyor...</div></div>
+            </div>
+        </div>
+
+        <!-- MODAL: UYKU ZAMANLAYICI -->
+        <div id="modal-uyku" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md hidden" onclick="if(event.target === this) modalToggle('modal-uyku', false)">
+            <div class="glass-panel max-w-sm w-full rounded-3xl p-6 shadow-2xl space-y-5 text-center">
+                <div class="flex items-center justify-between border-b pb-3" style="border-color: var(--panel-border);">
+                    <div class="flex items-center space-x-2" style="color: var(--theme-primary);">
+                        <i class="fa-solid fa-moon text-lg"></i>
+                        <h3 class="text-lg font-bold">Uyku Zamanlayıcı</h3>
+                    </div>
+                    <button onclick="modalToggle('modal-uyku', false)" class="p-1" style="color: var(--text-muted);"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+                <p class="text-xs" style="color: var(--text-muted);">Belirlenen süre sonunda radyo otomatik olarak duracaktır.</p>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button onclick="uykuZamanlayiciAyarla(15)" class="theme-btn py-3 rounded-xl text-sm font-semibold transition">15 Dakika</button>
+                    <button onclick="uykuZamanlayiciAyarla(30)" class="theme-btn py-3 rounded-xl text-sm font-semibold transition">30 Dakika</button>
+                    <button onclick="uykuZamanlayiciAyarla(45)" class="theme-btn py-3 rounded-xl text-sm font-semibold transition">45 Dakika</button>
+                    <button onclick="uykuZamanlayiciAyarla(60)" class="theme-btn py-3 rounded-xl text-sm font-semibold transition">60 Dakika</button>
+                </div>
+                <div id="aktif-uyku-bilgi" class="hidden p-3 rounded-xl border text-xs font-medium flex items-center justify-between" style="background: var(--card-bg); border-color: var(--theme-primary); color: var(--theme-primary);">
+                    <span>Kalan Süre: <strong id="uyku-geri-sayim">--:--</strong></span>
+                    <button onclick="uykuZamanlayiciIptal()" class="text-red-500 hover:underline font-bold">İptal Et</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: AYARLAR & M3U YÖNETİMİ -->
+        <div id="modal-ayarlar" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md hidden" onclick="if(event.target === this) modalToggle('modal-ayarlar', false)">
+            <div class="glass-panel max-w-xl w-full rounded-3xl p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+                <div class="flex items-center justify-between border-b pb-3" style="border-color: var(--panel-border);">
+                    <div class="flex items-center space-x-2" style="color: var(--theme-primary);">
+                        <i class="fa-solid fa-sliders text-lg"></i>
+                        <h3 class="text-lg font-bold">İstasyon, Kategori & M3U Yönetimi</h3>
+                    </div>
+                    <button onclick="modalToggle('modal-ayarlar', false)" class="p-1" style="color: var(--text-muted);"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+
+                <!-- Kategori Yönetimi Bölümü -->
+                <div class="space-y-3 pb-2 border-b" style="border-color: var(--panel-border);">
+                    <h4 class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-muted);">Özel Kategori Ekle / Sil</h4>
+                    <div class="flex gap-2">
+                        <input type="text" id="yeni-kategori-input" placeholder="Yeni Kategori Adı (Örn: Arabesk)" class="flex-1 rounded-xl px-3.5 py-2 text-sm focus:outline-none transition border" style="background: var(--card-bg); border-color: var(--panel-border); color: var(--text-main);">
+                        <button onclick="kategoriEkleIslem()" class="px-4 py-2 rounded-xl text-slate-950 font-bold text-xs transition whitespace-nowrap shadow-lg" style="background: var(--theme-primary);">Kategori Ekle</button>
+                    </div>
+                    <div id="yonetilebilir-kategori-listesi" class="flex flex-wrap gap-2 pt-1"></div>
+                </div>
+
+                <div class="space-y-4">
+                    <h4 class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-muted);">Manuel Radyo URL Ekle</h4>
+                    <form id="ozel-kanal-form" onsubmit="ozelKanalKaydet(event)" class="space-y-3">
+                        <input type="text" id="girdi-ad" required placeholder="Radyo Adı *" class="w-full rounded-xl px-3.5 py-2 text-sm focus:outline-none transition border" style="background: var(--card-bg); border-color: var(--panel-border); color: var(--text-main);">
+                        <input type="url" id="girdi-url" required placeholder="Yayın URL (http://domain.com/stream.mp3) *" class="w-full rounded-xl px-3.5 py-2 text-sm focus:outline-none transition border" style="background: var(--card-bg); border-color: var(--panel-border); color: var(--text-main);">
+                        <div class="grid grid-cols-2 gap-3">
+                            <select id="girdi-tur" class="w-full rounded-xl px-3 py-2 text-sm focus:outline-none transition border" style="background: var(--card-bg); border-color: var(--panel-border); color: var(--text-main);">
+                                <!-- Dinamik doldurulacak -->
+                            </select>
+                            <input type="url" id="girdi-logo" placeholder="Logo URL (İsteğe bağlı)" class="w-full rounded-xl px-3 py-2 text-sm focus:outline-none transition border" style="background: var(--card-bg); border-color: var(--panel-border); color: var(--text-main);">
+                        </div>
+                        <button type="submit" class="w-full py-2.5 rounded-xl text-slate-950 font-extrabold text-sm transition shadow-lg" style="background: var(--theme-primary);">İstasyonu Kaydet</button>
+                    </form>
+                </div>
+
+                <div class="border-t pt-4 space-y-3" style="border-color: var(--panel-border);">
+                    <h4 class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-muted);">M3U / M3U8 Bağlantısından İçe Aktar</h4>
+                    <div class="flex gap-2">
+                        <input type="url" id="girdi-m3u-url" placeholder="https://example.com/playlist.m3u" class="flex-1 rounded-xl px-3.5 py-2 text-sm focus:outline-none transition border" style="background: var(--card-bg); border-color: var(--panel-border); color: var(--text-main);">
+                        <button onclick="m3uUrlYukle()" class="px-4 py-2 rounded-xl border font-bold text-xs transition whitespace-nowrap shadow" style="background: var(--card-bg); border-color: var(--panel-border); color: var(--theme-primary);">İçe Aktar</button>
+                    </div>
+                </div>
+
+                <div class="border-t pt-4 space-y-3" style="border-color: var(--panel-border);">
+                    <h4 class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-muted);">M3U Metni Kopyala / Yapıştır</h4>
+                    <textarea id="girdi-m3u-metin" rows="3" placeholder="#EXTM3U&#10;#EXTINF:-1, Radyo Adı&#10;http://yayin-adresi.com/stream" class="w-full rounded-xl p-3 text-xs font-mono focus:outline-none transition border" style="background: var(--card-bg); border-color: var(--panel-border); color: var(--text-main);"></textarea>
+                    <button onclick="m3uMetinIsle()" class="theme-btn w-full py-2 rounded-xl text-xs font-semibold transition">Yapıştırılan Liste Metnini Yükle</button>
+                </div>
+
+                <div class="border-t pt-4 space-y-3" style="border-color: var(--panel-border);">
+                    <h4 class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-muted);">M3U Dosyası İçe / Dışa Aktar</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <input type="file" id="m3u-dosya-secici" accept=".m3u,.m3u8" onchange="m3uDosyaYukle(event)" class="hidden">
+                        <button onclick="document.getElementById('m3u-dosya-secici').click()" class="theme-btn py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center space-x-2"><i class="fa-solid fa-file-arrow-up" style="color: var(--theme-primary);"></i><span>Dosya Seç (.m3u)</span></button>
+                        <button onclick="m3uDisaAktar()" class="py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center space-x-2" style="background: var(--card-bg); border-color: var(--panel-border); color: var(--theme-primary);"><i class="fa-solid fa-file-arrow-down" style="color: var(--theme-primary);"></i><span>M3U Olarak İndir</span></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <audio id="audio-element" preload="none" crossorigin="anonymous"></audio>
+
+    <!-- JAVASCRIPT ÇALIŞMA MOTORU -->
+    <script>
+        const GITHUB_M3U_URL = 'https://raw.githubusercontent.com/muhammet8186/programlar/refs/heads/main/radyo/radyo.m3u';
+
+        const TEMALAR = [
+            { id: 'cyberpunk', name: 'Cyberpunk Neon', primary: '#00f2fe', secondary: '#e100ff', glow: 'rgba(0, 242, 254, 0.25)' },
+            { id: 'emerald', name: 'Zümrüt Yeşili', primary: '#10b981', secondary: '#059669', glow: 'rgba(16, 185, 129, 0.25)' },
+            { id: 'sunset', name: 'Gün Batımı', primary: '#f97316', secondary: '#db2777', glow: 'rgba(249, 115, 22, 0.25)' },
+            { id: 'royal', name: 'Kraliyet Moru', primary: '#8b5cf6', secondary: '#6d28d9', glow: 'rgba(139, 92, 246, 0.25)' },
+            { id: 'crimson', name: 'Kan Kırmızı', primary: '#ef4444', secondary: '#991b1b', glow: 'rgba(239, 68, 68, 0.25)' },
+            { id: 'gold', name: 'Altın Sarısı', primary: '#eab308', secondary: '#ca8a04', glow: 'rgba(234, 179, 8, 0.25)' },
+            { id: 'ocean', name: 'Okyanus Mavisi', primary: '#3b82f6', secondary: '#1d4ed8', glow: 'rgba(59, 130, 246, 0.25)' },
+            { id: 'matrix', name: 'Matrix Hacker', primary: '#22c55e', secondary: '#15803d', glow: 'rgba(34, 197, 94, 0.25)' },
+            { id: 'sakura', name: 'Sakura Çiçeği', primary: '#f472b6', secondary: '#db2777', glow: 'rgba(244, 114, 182, 0.25)' },
+            { id: 'amethyst', name: 'Ametist', primary: '#a855f7', secondary: '#7e22ce', glow: 'rgba(168, 85, 247, 0.25)' },
+            { id: 'amber', name: 'Kehribar Ateşi', primary: '#f59e0b', secondary: '#b45309', glow: 'rgba(245, 158, 11, 0.25)' },
+            { id: 'teal', name: 'Camgöbeği', primary: '#14b8a6', secondary: '#0f766e', glow: 'rgba(20, 184, 166, 0.25)' },
+            { id: 'indigo', name: 'İndigo Gece', primary: '#6366f1', secondary: '#4338ca', glow: 'rgba(99, 102, 241, 0.25)' },
+            { id: 'lime', name: 'Asit Lime', primary: '#84cc16', secondary: '#4d7c0f', glow: 'rgba(132, 204, 22, 0.25)' },
+            { id: 'rose', name: 'Gül Kurusu', primary: '#fb7185', secondary: '#e11d48', glow: 'rgba(251, 113, 133, 0.25)' },
+            { id: 'cyan', name: 'Parlak Cyan', primary: '#06b6d4', secondary: '#0891b2', glow: 'rgba(6, 182, 212, 0.25)' },
+            { id: 'slate', name: 'Kurşun Gri', primary: '#94a3b8', secondary: '#475569', glow: 'rgba(148, 163, 184, 0.25)' },
+            { id: 'copper', name: 'Bakır Parıltısı', primary: '#d97706', secondary: '#92400e', glow: 'rgba(217, 119, 6, 0.25)' },
+            { id: 'electric', name: 'Elektrik Mor', primary: '#c084fc', secondary: '#9333ea', glow: 'rgba(192, 132, 252, 0.25)' },
+            { id: 'mint', name: 'Nane Ferahlığı', primary: '#2dd4bf', secondary: '#0d9488', glow: 'rgba(45, 212, 191, 0.25)' }
+        ];
+
+        // Tam 10 Adet Görselleştirici Modu
+        const GORSEL_MODLARI = [
+            { id: 0, name: '1. Neon Çubuklar' }, 
+            { id: 1, name: '2. Dairesel Spektrum' },
+            { id: 2, name: '3. Simetrik Dalga' }, 
+            { id: 3, name: '4. Noktasal Matris' },
+            { id: 4, name: '5. Çift Yönlü Spektrum' },
+            { id: 5, name: '6. Radyyal Patlama' },
+            { id: 6, name: '7. Frekans Dalgası' },
+            { id: 7, name: '8. Boşluklu Modern' },
+            { id: 8, name: '9. Dikey Neon Çizgiler' },
+            { id: 9, name: '10. Yansımalı Ekolayzer' }
+        ];
+
+        let kanallar = [];
+        let favoriler = [];
+        let kategoriler = ['Pop', 'Haber/Konuşma', 'Caz/Chill', 'Rock', 'Klasik', 'Özel'];
+        let aktifKanal = null;
+        let oynatiliyorMu = false;
+        let aktifKategori = 'Tümü';
+        let aramaSorgusu = '';
+        let aktifGorselIndeks = 0;
+        let bekleyenOnayFonksiyonu = null;
+
+        let uykuSayacId = null;
+        let uykuKalanSaniye = 0;
+
+        const sesElementi = document.getElementById('audio-element');
+        let audioCtx = null;
+        let analyser = null;
+        let gorselKaynak = null;
+        let destStreamNode = null;
+
+        let mediaKaydedici = null;
+        let kayitParcalari = [];
+        let kayittaMi = false;
+        let kayitBaslangicZamani = 0;
+        let kayitZamanlayici = null;
+
+        const oynatIkon = document.getElementById('oynat-ikon');
+        const aracOynatIkon = document.getElementById('arac-oynat-ikon');
+        const eqCubuklari = document.getElementById('equalizer-cubuklari');
+        const sesSeviyeCubuk = document.getElementById('ses-seviye-cubuk');
+        const sesIkon = document.getElementById('ses-ikon');
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            veriDeposunuYukle();
+            temaSeciciyiOlustur();
+            kaydedilenTemaVeModuYukle();
+            kategorileriArayUzeYansit();
+            
+            await githubM3uOtomatikYukle();
+
+            kanalListesiniCiz();
+            if (kanallar.length > 0 && !aktifKanal) {
+                kanalSec(kanallar[0].id, false);
+            }
+
+            sesOlaylariniAyarla();
+            aramaDinleyicisiKur();
+            gorsellestiricileriBaslat();
+        });
+
+        async function githubM3uOtomatikYukle() {
+            try {
+                const res = await fetch(GITHUB_M3U_URL);
+                if (!res.ok) throw new Error("GitHub M3U dosyası alınamadı");
+                const metin = await res.text();
+                m3uMetniniIsle(metin, true);
+            } catch (e) {
+                console.warn("GitHub otomatik kanal yükleme hatası (CORS veya ağ sorunu):", e);
+            }
+        }
+
+        function veriDeposunuYukle() {
+            try {
+                const depolananOzel = JSON.parse(localStorage.getItem('sp_ozel_kanallar')) || [];
+                const depolananFavoriler = JSON.parse(localStorage.getItem('sp_favoriler')) || [];
+                const depolananKategoriler = JSON.parse(localStorage.getItem('sp_kategoriler')) || null;
+                
+                if (depolananKategoriler) kategoriler = depolananKategoriler;
+                aktifGorselIndeks = parseInt(localStorage.getItem('sp_gorsel_mod') || '0', 10);
+
+                kanallar = [...depolananOzel];
+                favoriler = depolananFavoriler;
+                gorselEtiketGuncelle();
+            } catch (e) {
+                console.error('Depolama hatası:', e);
+                kanallar = [];
+                favoriler = [];
+            }
+        }
+
+        function ozelKanallariKaydet() {
+            localStorage.setItem('sp_ozel_kanallar', JSON.stringify(kanallar));
+        }
+
+        function favorileriKaydet() {
+            localStorage.setItem('sp_favoriler', JSON.stringify(favoriler));
+        }
+
+        function kategorileriKaydet() {
+            localStorage.setItem('sp_kategoriler', JSON.stringify(kategoriler));
+        }
+
+        function kategorileriArayUzeYansit() {
+            const filtreKapsayici = document.getElementById('kategori-butonlari');
+            if (filtreKapsayici) {
+                filtreKapsayici.innerHTML = `
+                    <button onclick="kategoriFiltrele('Tümü')" class="kat-hap ${aktifKategori === 'Tümü' ? 'active font-semibold text-slate-950' : 'theme-btn font-medium'} px-3.5 py-1.5 rounded-lg transition whitespace-nowrap" style="${aktifKategori === 'Tümü' ? 'background: var(--theme-primary);' : ''}">Tümü</button>
+                    <button onclick="kategoriFiltrele('Favoriler')" class="kat-hap ${aktifKategori === 'Favoriler' ? 'active font-semibold text-slate-950' : 'theme-btn font-medium'} px-3.5 py-1.5 rounded-lg transition whitespace-nowrap flex items-center space-x-1" style="${aktifKategori === 'Favoriler' ? 'background: var(--theme-primary);' : ''}">
+                        <i class="fa-solid fa-heart text-red-500 text-[10px]"></i>
+                        <span>Favoriler</span>
+                    </button>
+                `;
+                kategoriler.forEach(kat => {
+                    const seciliMi = aktifKategori === kat;
+                    const aktifClass = seciliMi ? 'active font-semibold text-slate-950' : 'theme-btn font-medium';
+                    const stil = seciliMi ? 'background: var(--theme-primary);' : '';
+                    filtreKapsayici.innerHTML += `<button onclick="kategoriFiltrele('${kat}')" class="kat-hap ${aktifClass} px-3.5 py-1.5 rounded-lg transition whitespace-nowrap" style="${stil}">${kat}</button>`;
+                });
+            }
+
+            const selectEl = document.getElementById('girdi-tur');
+            if (selectEl) {
+                selectEl.innerHTML = '';
+                kategoriler.forEach(kat => {
+                    selectEl.innerHTML += `<option value="${kat}">${kat}</option>`;
+                });
+            }
+
+            const yonetimListesi = document.getElementById('yonetilebilir-kategori-listesi');
+            if (yonetimListesi) {
+                yonetimListesi.innerHTML = '';
+                kategoriler.forEach(kat => {
+                    yonetimListesi.innerHTML += `
+                        <div class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl text-xs font-semibold border" style="background: var(--card-bg); border-color: var(--panel-border); color: var(--text-main);">
+                            <span>${kat}</span>
+                            <button onclick="kategoriSil('${kat}')" class="text-red-500 hover:text-red-400 ml-1"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        function kategoriEkleIslem() {
+            const input = document.getElementById('yeni-kategori-input');
+            const yeniKat = input.value.trim();
+            if (!yeniKat) return;
+            if (kategoriler.includes(yeniKat)) {
+                bildirimGoster("Bu kategori zaten mevcut!");
+                return;
+            }
+            kategoriler.push(yeniKat);
+            kategorileriKaydet();
+            kategorileriArayUzeYansit();
+            input.value = '';
+            bildirimGoster(`"${yeniKat}" kategorisi eklendi.`);
+        }
+
+        function kategoriSil(katAdi) {
+            if (kategoriler.length <= 1) {
+                bildirimGoster("En az bir kategori kalmalıdır.");
+                return;
+            }
+
+            const buKategorideKanalVarMi = kanallar.some(k => k.genre === katAdi);
+            if (buKategorideKanalVarMi) {
+                bildirimGoster(`"${katAdi}" kategorisinde radyo kanalları bulunduğu için silinemez!`);
+                return;
+            }
+
+            kategoriler = kategoriler.filter(k => k !== katAdi);
+            kategorileriKaydet();
+            kategorileriArayUzeYansit();
+            bildirimGoster(`"${katAdi}" kategorisi silindi.`);
+        }
+
+        function gorsellestiriciModuDegistir() {
+            aktifGorselIndeks = (aktifGorselIndeks + 1) % GORSEL_MODLARI.length;
+            localStorage.setItem('sp_gorsel_mod', aktifGorselIndeks.toString());
+            gorselEtiketGuncelle();
+            bildirimGoster(`Görselleştirici: ${GORSEL_MODLARI[aktifGorselIndeks].name}`);
+        }
+
+        function gorselEtiketGuncelle() {
+            const etiket = document.getElementById('gorsel-mod-etiket');
+            if (etiket && GORSEL_MODLARI[aktifGorselIndeks]) {
+                etiket.innerText = GORSEL_MODLARI[aktifGorselIndeks].name;
+            }
+        }
+
+        function temaSeciciyiOlustur() {
+            const grid = document.getElementById('tema-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            TEMALAR.forEach(t => {
+                const btn = document.createElement('button');
+                btn.className = 'p-3 rounded-2xl glass-card flex flex-col items-center justify-center space-y-2 border transition group';
+                btn.style.borderColor = 'var(--panel-border)';
+                btn.onclick = () => temaUygula(t.id);
+                btn.innerHTML = `
+                    <div class="w-8 h-8 rounded-full shadow-md flex items-center justify-center text-white text-xs font-bold" style="background: linear-gradient(135deg, ${t.primary}, ${t.secondary});">
+                        <i class="fa-solid fa-check tema-tik hidden" id="tik-${t.id}"></i>
+                    </div>
+                    <span class="text-[11px] font-semibold truncate w-full text-center" style="color: var(--text-main);">${t.name}</span>
+                `;
+                grid.appendChild(btn);
+            });
+        }
+
+        function temaUygula(temaId) {
+            const tema = TEMALAR.find(t => t.id === temaId) || TEMALAR[0];
+            document.documentElement.style.setProperty('--theme-primary', tema.primary);
+            document.documentElement.style.setProperty('--theme-secondary', tema.secondary);
+            document.documentElement.style.setProperty('--accent-glow', tema.glow);
+
+            document.querySelectorAll('.tema-tik').forEach(el => el.classList.add('hidden'));
+            const aktifTik = document.getElementById(`tik-${tema.id}`);
+            if (aktifTik) aktifTik.classList.remove('hidden');
+
+            localStorage.setItem('sp_aktif_tema', tema.id);
+            bildirimGoster(`Tema uygulandı: ${tema.name}`);
+        }
+
+        function moduDegistir() {
+            const acikModMu = document.body.classList.toggle('light-mode');
+            const ikon = document.getElementById('mod-ikon');
+            const etiket = document.getElementById('mod-etiket');
+
+            if (acikModMu) {
+                if (ikon) ikon.className = 'fa-solid fa-sun';
+                if (etiket) etiket.innerText = 'Aydınlık Mod';
+                localStorage.setItem('sp_mod', 'light');
+            } else {
+                if (ikon) ikon.className = 'fa-solid fa-moon';
+                if (etiket) etiket.innerText = 'Karanlık Mod';
+                localStorage.setItem('sp_mod', 'dark');
+            }
+        }
+
+        function kaydedilenTemaVeModuYukle() {
+            const kaydedilenTema = localStorage.getItem('sp_aktif_tema') || 'cyberpunk';
+            temaUygula(kaydedilenTema);
+
+            const kaydedilenMod = localStorage.getItem('sp_mod') || 'dark';
+            if (kaydedilenMod === 'light') {
+                document.body.classList.add('light-mode');
+                const ikon = document.getElementById('mod-ikon');
+                const etiket = document.getElementById('mod-etiket');
+                if (ikon) ikon.className = 'fa-solid fa-sun';
+                if (etiket) etiket.innerText = 'Aydınlık Mod';
+            }
+        }
+
+        function kanalListesiniCiz() {
+            const kapsayici = document.getElementById('kanal-listesi-kapsayici');
+            const bosDurum = document.getElementById('liste-bos-durum');
+            if (!kapsayici) return;
+            kapsayici.innerHTML = '';
+
+            let filtrelenmis = kanallar.filter(st => {
+                const aramayaUyar = st.name.toLowerCase().includes(aramaSorgusu.toLowerCase()) || 
+                                     st.genre.toLowerCase().includes(aramaSorgusu.toLowerCase());
+                
+                if (aktifKategori === 'Tümü') return aramayaUyar;
+                if (aktifKategori === 'Favoriler') return aramayaUyar && favoriler.includes(st.id);
+                if (aktifKategori === 'Özel') return aramayaUyar && !st.isPreset;
+                return aramayaUyar && st.genre === aktifKategori;
+            });
+
+            const sayacEl = document.getElementById('kanal-sayac');
+            if (sayacEl) sayacEl.innerText = filtrelenmis.length;
+
+            if (filtrelenmis.length === 0) {
+                if (bosDurum) bosDurum.classList.remove('hidden');
+                return;
+            } else {
+                if (bosDurum) bosDurum.classList.add('hidden');
+            }
+
+            filtrelenmis.forEach(st => {
+                const seciliMi = aktifKanal && aktifKanal.id === st.id;
+                const favoriMi = favoriler.includes(st.id);
+
+                const ogu = document.createElement('div');
+                ogu.className = `glass-card p-3.5 rounded-2xl flex items-center justify-between cursor-pointer transition duration-200 group ${seciliMi ? 'shadow-md' : ''}`;
+                if (seciliMi) ogu.style.borderColor = 'var(--theme-primary)';
+
+                ogu.onclick = (e) => {
+                    if (e.target.closest('.islem-buton')) return;
+                    kanalSec(st.id, true);
+                };
+
+                const logoSrc = st.logo || '';
+                const varsayilanAvatar = `<div class="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700/60 flex items-center justify-center font-bold text-lg" style="color: var(--theme-primary);"><i class="fa-solid fa-radio"></i></div>`;
+                const resimAvatar = `<img src="${logoSrc}" alt="${st.name}" class="w-12 h-12 rounded-xl object-cover border border-slate-700/60" onerror="this.onerror=null; this.parentElement.innerHTML='${varsayilanAvatar.replace(/'/g, "\\'")}';">`;
+
+                ogu.innerHTML = `
+                    <div class="flex items-center space-x-3 overflow-hidden">
+                        <button onclick="ozelKanalSil('${st.id}')" class="islem-buton p-2 text-red-500 hover:bg-red-500/20 border border-red-500/30 rounded-lg transition mr-1" title="Kanalı Sil">
+                            <i class="fa-solid fa-trash text-xs"></i>
+                        </button>
+
+                        <div>
+                            ${logoSrc ? resimAvatar : varsayilanAvatar}
+                        </div>
+
+                        <div class="truncate">
+                            <h4 class="font-bold text-sm transition truncate" style="color: var(--text-main);" onmouseover="this.style.color='var(--theme-primary)'" onmouseout="this.style.color='var(--text-main)'">${st.name}</h4>
+                            <div class="flex items-center space-x-2 mt-0.5">
+                                <span class="text-[10px] px-2 py-0.5 rounded font-medium border" style="background: var(--btn-bg); border-color: var(--panel-border); color: var(--text-muted);">${st.genre}</span>
+                                ${seciliMi && oynatiliyorMu ? '<span class="text-[10px] font-semibold flex items-center" style="color: var(--theme-primary);"><i class="fa-solid fa-volume-high mr-1"></i> Çalıyor</span>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-2">
+                        <button onclick="favoriDegistir('${st.id}')" class="islem-buton p-2 text-slate-400 hover:text-red-500 transition">
+                            <i class="${favoriMi ? 'fa-solid text-red-500' : 'fa-regular'} fa-heart"></i>
+                        </button>
+
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center transition" style="${seciliMi ? 'background: var(--theme-primary); color: #0f172a;' : 'background: var(--btn-bg); color: var(--text-muted);'}">
+                            <i class="fa-solid ${seciliMi && oynatiliyorMu ? 'fa-pause' : 'fa-play'} text-xs"></i>
+                        </div>
+                    </div>
+                `;
+                kapsayici.appendChild(ogu);
+            });
+        }
+
+        function kanalSec(id, otomatikOynat = true) {
+            const hedef = kanallar.find(s => s.id === id);
+            if (!hedef) return;
+
+            aktifKanal = hedef;
+            document.getElementById('aktif-kanal-ad').innerText = aktifKanal.name;
+            document.getElementById('aktif-kanal-tur').innerText = aktifKanal.genre;
+            document.getElementById('aktif-kanal-url-bilgi').innerText = aktifKanal.url;
+
+            document.getElementById('arac-kanal-ad').innerText = aktifKanal.name;
+            document.getElementById('arac-kanal-tur').innerText = aktifKanal.genre;
+            document.getElementById('arac-kanal-url').innerText = aktifKanal.url;
+
+            const resimEl = document.getElementById('aktif-kanal-resim');
+            const placeholderEl = document.getElementById('aktif-kanal-varsayilan');
+
+            if (aktifKanal.logo) {
+                resimEl.src = aktifKanal.logo;
+                resimEl.classList.remove('hidden');
+                placeholderEl.classList.add('hidden');
+            } else {
+                resimEl.classList.add('hidden');
+                placeholderEl.classList.remove('hidden');
+            }
+
+            favoriIkonGuncelle();
+            sesElementi.src = aktifKanal.url;
+
+            if (otomatikOynat) sesiBaslat();
+            else sesiDurdur();
+
+            kanalListesiniCiz();
+        }
+
+        function rastgeleKanalCal() {
+            if (kanallar.length === 0) return;
+            const rastgeleIndeks = Math.floor(Math.random() * kanallar.length);
+            kanalSec(kanallar[rastgeleIndeks].id, true);
+            bildirimGoster(`Rastgele Kanal: ${kanallar[rastgeleIndeks].name}`);
+        }
+
+        function oynatVeyaDurdur() {
+            if (!aktifKanal) {
+                if (kanallar.length > 0) kanalSec(kanallar[0].id, true);
+                else bildirimGoster("Lütfen önce kanal listesine radyo ekleyin.");
+                return;
+            }
+            if (oynatiliyorMu) sesiDurdur();
+            else sesiBaslat();
+        }
+
+        function sesiBaslat() {
+            sesBaglaminiHazirla();
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            sesElementi.play().then(() => {
+                oynatiliyorMu = true;
+                oynatIkon.className = 'fa-solid fa-pause text-3xl';
+                aracOynatIkon.className = 'fa-solid fa-pause text-4xl sm:text-5xl';
+                eqCubuklari.classList.remove('paused');
+                kanalListesiniCiz();
+            }).catch(err => {
+                console.error("Oynatma hatası:", err);
+                bildirimGoster("Yayın başlatılamadı. URL geçersiz veya akış formatı desteklenmiyor.");
+                sesDurdur();
+            });
+        }
+
+        function sesiDurdur() {
+            if (kayittaMi) kaydiDurdur();
+            sesElementi.pause();
+            oynatiliyorMu = false;
+            oynatIkon.className = 'fa-solid fa-play text-3xl ml-1';
+            aracOynatIkon.className = 'fa-solid fa-play text-4xl sm:text-5xl ml-1';
+            eqCubuklari.classList.add('paused');
+            kanalListesiniCiz();
+        }
+
+        function sonrakiKanaliCal() {
+            if (kanallar.length === 0) return;
+            let idx = kanallar.findIndex(s => s.id === (aktifKanal ? aktifKanal.id : ''));
+            kanalSec(kanallar[(idx + 1) % kanallar.length].id, true);
+        }
+
+        function oncekiKanaliCal() {
+            if (kanallar.length === 0) return;
+            let idx = kanallar.findIndex(s => s.id === (aktifKanal ? aktifKanal.id : ''));
+            kanalSec(kanallar[(idx - 1 + kanallar.length) % kanallar.length].id, true);
+        }
+
+        function kaydiBaslatDurdur() {
+            if (!oynatiliyorMu) { bildirimGoster("Kayıt için önce yayını başlatmalısınız."); return; }
+            if (kayittaMi) kaydiDurdur();
+            else kaydiBaslat();
+        }
+
+        function kaydiBaslat() {
+            sesBaglaminiHazirla();
+            let kayitAkisi = destStreamNode ? destStreamNode.stream : (sesElementi.captureStream ? sesElementi.captureStream() : null);
+            if (!kayitAkisi) { bildirimGoster("Tarayıcınız ses kaydını desteklemiyor."); return; }
+            try {
+                kayitParcalari = [];
+                let secilenMime = 'audio/webm';
+                if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                    secilenMime = 'audio/webm;codecs=opus';
+                } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                    secilenMime = 'audio/mp4';
+                }
+
+                mediaKaydedici = new MediaRecorder(kayitAkisi, { mimeType: secilenMime });
+                mediaKaydedici.ondataavailable = e => { if (e.data.size > 0) kayitParcalari.push(e.data); };
+                mediaKaydedici.onstop = async () => {
+                    const blob = new Blob(kayitParcalari, { type: secilenMime });
+                    const temizAd = (aktifKanal ? aktifKanal.name : 'Radyo').replace(/[^a-z0-9ğüşöçıİĞÜŞÖÇ]/gi, '_');
+                    const oge = { id: Date.now(), name: temizAd, date: new Date().toLocaleString('tr-TR'), created: Date.now(), blob, size: blob.size };
+                    try { await kaydiVeritabaninaKaydet(oge); bildirimGoster('Kayıt arşive eklendi!'); } catch(e) { kaydiIndirDosya(blob, `Kayit_${temizAd}.webm`); }
+                };
+                mediaKaydedici.start();
+                kayittaMi = true;
+                kayitBaslangicZamani = Date.now();
+                kayitArayuzGuncelle(true);
+                kayitZamanlayici = setInterval(() => {
+                    let s = Math.floor((Date.now() - kayitBaslangicZamani)/1000);
+                    let m = Math.floor(s/60).toString().padStart(2,'0');
+                    let sec = (s%60).toString().padStart(2,'0');
+                    document.getElementById('kayit-sayac-ana').innerText = `${m}:${sec}`;
+                    document.getElementById('kayit-metin-arac').innerText = `${m}:${sec}`;
+                }, 1000);
+                bildirimGoster("Ses kaydı başlatıldı!");
+            } catch(err) { console.error(err); bildirimGoster("Kayıt başlatılamadı."); }
+        }
+
+        function kaydiDurdur() {
+            if (mediaKaydedici && mediaKaydedici.state !== 'inactive') mediaKaydedici.stop();
+            kayittaMi = false;
+            if (kayitZamanlayici) clearInterval(kayitZamanlayici);
+            kayitArayuzGuncelle(false);
+        }
+
+        function kayitArayuzGuncelle(kaydediyor) {
+            const btn = document.getElementById('btn-kayit-ana');
+            const ikon = document.getElementById('kayit-ikon-ana');
+            const metin = document.getElementById('kayit-metin-ana');
+            const sayac = document.getElementById('kayit-sayac-ana');
+            if (kaydediyor) {
+                btn.classList.add('bg-red-500/30', 'border-red-500');
+                ikon.className = 'fa-solid fa-square text-red-500 animate-pulse';
+                metin.innerText = 'Durdur';
+                sayac.classList.remove('hidden');
+            } else {
+                btn.classList.remove('bg-red-500/30', 'border-red-500');
+                ikon.className = 'fa-solid fa-circle text-red-500';
+                metin.innerText = 'Kayıt';
+                sayac.classList.add('hidden');
+            }
+        }
+
+        function m3uMetniniIsle(icerik, ilkAcilisSessiz = false) {
+            const satirlar = icerik.split('\n');
+            let eklenenSayisi = 0;
+            let geciciAd = '';
+            let geciciTur = kategoriler[0] || 'Özel';
+            let geciciLogo = '';
+
+            const mevcutUrlSet = new Set(kanallar.map(k => k.url.trim().toLowerCase()));
+
+            satirlar.forEach(satir => {
+                satir = satir.trim();
+                if (satir.startsWith('#EXTINF:')) {
+                    const adEslesme = satir.split(',');
+                    if (adEslesme.length > 1) geciciAd = adEslesme[1].trim();
+                    const logoEslesme = satir.match(/tvg-logo="([^"]+)"/);
+                    if (logoEslesme) geciciLogo = logoEslesme[1];
+                    const turEslesme = satir.match(/group-title="([^"]+)"/);
+                    if (turEslesme) {
+                        geciciTur = turEslesme[1];
+                        if (!kategoriler.includes(geciciTur)) {
+                            kategoriler.push(geciciTur);
+                            kategorileriKaydet();
+                            kategorileriArayUzeYansit();
+                        }
+                    }
+                } else if (satir.length > 0 && !satir.startsWith('#')) {
+                    const yayinUrl = satir.trim();
+                    const temizUrlKucuk = yayinUrl.toLowerCase();
+
+                    if (!mevcutUrlSet.has(temizUrlKucuk)) {
+                        mevcutUrlSet.add(temizUrlKucuk);
+                        const yeniId = 'kanal_' + Date.now() + Math.random().toString(36).substring(2, 5);
+                        kanallar.push({
+                            id: yeniId,
+                            name: geciciAd || `Radyo ${kanallar.length + 1}`,
+                            url: yayinUrl,
+                            genre: geciciTur || kategoriler[0],
+                            logo: geciciLogo || '',
+                            isPreset: false
+                        });
+                        eklenenSayisi++;
+                    }
+                    geciciAd = '';
+                    geciciLogo = '';
+                    geciciTur = kategoriler[0];
+                }
+            });
+
+            ozelKanallariKaydet();
+            kanalListesiniCiz();
+            if (!ilkAcilisSessiz) {
+                modalToggle('modal-ayarlar', false);
+                bildirimGoster(`${eklenenSayisi} yeni kanal eklendi!`);
+            }
+        }
+
+        function ozelKanalKaydet(e) {
+            e.preventDefault();
+            const name = document.getElementById('girdi-ad').value.trim();
+            const url = document.getElementById('girdi-url').value.trim();
+            const genre = document.getElementById('girdi-tur').value;
+            const logo = document.getElementById('girdi-logo').value.trim();
+
+            if (!name || !url) return;
+
+            const temizUrl = url.toLowerCase();
+            if (kanallar.some(k => k.url.trim().toLowerCase() === temizUrl)) {
+                bildirimGoster("Bu yayın adresi zaten kayıtlı!");
+                return;
+            }
+
+            const yeniKanal = { id: 'kanal_' + Date.now(), name, url, genre, logo, isPreset: false };
+            kanallar.push(yeniKanal);
+            ozelKanallariKaydet();
+            document.getElementById('ozel-kanal-form').reset();
+            modalToggle('modal-ayarlar', false);
+            kanalListesiniCiz();
+            kanalSec(yeniKanal.id, true);
+            bildirimGoster("Yeni radyo eklendi!");
+        }
+
+        async function m3uUrlYukle() {
+            const urlGirdi = document.getElementById('girdi-m3u-url');
+            const url = urlGirdi.value.trim();
+            if (!url) { bildirimGoster("Lütfen geçerli M3U bağlantısı girin."); return; }
+            try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error("Ağ hatası");
+                const metin = await res.text();
+                m3uMetniniIsle(metin, false);
+                urlGirdi.value = '';
+            } catch(e) { bildirimGoster("M3U URL çekilemedi (CORS engeli veya ağ hatası)."); }
+        }
+
+        function m3uMetinIsle() {
+            const val = document.getElementById('girdi-m3u-metin').value.trim();
+            if (!val) { bildirimGoster("Metin alanı boş."); return; }
+            m3uMetniniIsle(val, false);
+            document.getElementById('girdi-m3u-metin').value = '';
+        }
+
+        function m3uDosyaYukle(e) {
+            const dosya = e.target.files[0];
+            if (!dosya) return;
+            const okuyucu = new FileReader();
+            okuyucu.onload = ev => m3uMetniniIsle(ev.target.result, false);
+            okuyucu.readAsText(dosya);
+        }
+
+        function m3uDisaAktar() {
+            let icerik = "#EXTM3U\n";
+            kanallar.forEach(st => { icerik += `#EXTINF:-1 tvg-logo="${st.logo || ''}" group-title="${st.genre}",${st.name}\n${st.url}\n`; });
+            const blob = new Blob([icerik], { type: 'audio/x-mpegurl' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `Radyolar_${Date.now()}.m3u`;
+            document.body.appendChild(a); a.click(); a.remove();
+            bildirimGoster("M3U listesi indirildi!");
+        }
+
+        function ozelKanalSil(id) {
+            const hedef = kanallar.find(s => s.id === id);
+            const kanalAdi = hedef ? hedef.name : 'Bu istasyon';
+
+            onayModaliniAc("Kanalı Sil", `"${kanalAdi}" radyosunu silmek istediğinize emin misiniz?`, () => {
+                kanallar = kanallar.filter(s => s.id !== id);
+                favoriler = favoriler.filter(f => f !== id);
+                ozelKanallariKaydet();
+                favorileriKaydet();
+                kanalListesiniCiz();
+                bildirimGoster("İstasyon silindi.");
+            });
+        }
+
+        function onayModaliniAc(baslik, mesaj, onaylaCallback) {
+            document.getElementById('onay-baslik').innerText = baslik;
+            document.getElementById('onay-mesaj').innerText = mesaj;
+            bekleyenOnayFonksiyonu = onaylaCallback;
+            modalToggle('modal-onay', true);
+        }
+
+        function onayKapat(kabulEdildi) {
+            modalToggle('modal-onay', false);
+            if (kabulEdildi && typeof bekleyenOnayFonksiyonu === 'function') {
+                bekleyenOnayFonksiyonu();
+            }
+            bekleyenOnayFonksiyonu = null;
+        }
+
+        function aracModunuAc(ac) { 
+            const ekran = document.getElementById('arac-modu-ekran');
+            ekran.classList.toggle('hidden', !ac);
+            if (ac) {
+                setTimeout(() => {
+                    const canvasArac = document.getElementById('arac-gorsel-canvas');
+                    if (canvasArac && canvasArac.parentElement) {
+                        canvasArac.width = canvasArac.parentElement.clientWidth;
+                        canvasArac.height = canvasArac.parentElement.clientHeight;
+                    }
+                }, 50);
+            }
+        }
+
+        function uykuZamanlayiciAyarla(dakika) {
+            if (uykuSayacId) clearInterval(uykuSayacId);
+            uykuKalanSaniye = dakika * 60;
+            document.getElementById('aktif-uyku-bilgi').classList.remove('hidden');
+            document.getElementById('uyku-durum-rozet').classList.remove('hidden');
+            uykuSayacId = setInterval(() => {
+                uykuKalanSaniye--;
+                let m = Math.floor(uykuKalanSaniye/60).toString().padStart(2,'0');
+                let s = (uykuKalanSaniye%60).toString().padStart(2,'0');
+                document.getElementById('uyku-geri-sayim').innerText = `${m}:${s}`;
+                document.getElementById('uyku-sayac-etiket').innerText = `${m}:${s}`;
+                if (uykuKalanSaniye <= 0) {
+                    clearInterval(uykuSayacId);
+                    sesDurdur();
+                    bildirimGoster("Uyku zamanlayıcı yayını durdurdu.");
+                }
+            }, 1000);
+            modalToggle('modal-uyku', false);
+            bildirimGoster(`Uyku zamanlayıcı ${dakika} dakikaya ayarlandı.`);
+        }
+
+        function uykuZamanlayiciIptal() {
+            if (uykuSayacId) clearInterval(uykuSayacId);
+            document.getElementById('aktif-uyku-bilgi').classList.add('hidden');
+            document.getElementById('uyku-durum-rozet').classList.add('hidden');
+            bildirimGoster("Uyku zamanlayıcı iptal edildi.");
+        }
+
+        function favoriDegistir(id) {
+            const idx = favoriler.indexOf(id);
+            if (idx > -1) favoriler.splice(idx, 1);
+            else favoriler.push(id);
+            favorileriKaydet();
+            favoriIkonGuncelle();
+            kanalListesiniCiz();
+        }
+
+        function favoriDegistirAktif() { if (aktifKanal) favoriDegistir(aktifKanal.id); }
+
+        function favoriIkonGuncelle() {
+            const ikon = document.getElementById('favori-ikon');
+            if (!ikon) return;
+            if (aktifKanal && favoriler.includes(aktifKanal.id)) ikon.className = 'fa-solid fa-heart text-red-500';
+            else ikon.className = 'fa-regular fa-heart text-slate-400';
+        }
+
+        function kategoriFiltrele(kat) {
+            aktifKategori = kat;
+            kategorileriArayUzeYansit();
+            kanalListesiniCiz();
+        }
+
+        function aramaDinleyicisiKur() {
+            const aramaInp = document.getElementById('arama-girdi');
+            if (aramaInp) {
+                aramaInp.addEventListener('input', e => {
+                    aramaSorgusu = e.target.value;
+                    kanalListesiniCiz();
+                });
+            }
+        }
+
+        function sesOlaylariniAyarla() {
+            sesElementi.addEventListener('error', () => { sesiDurdur(); bildirimGoster("Yayın akışı kesildi."); });
+        }
+
+        function sesSessizToggle() {
+            sesElementi.muted = !sesElementi.muted;
+            sessizlikIkonGuncelle();
+        }
+
+        function sessizlikIkonGuncelle() {
+            if (!sesIkon) return;
+            if (sesElementi.muted || sesElementi.volume === 0) sesIkon.className = 'fa-solid fa-volume-xmark text-sm text-red-500';
+            else if (sesElementi.volume < 0.5) sesIkon.className = 'fa-solid fa-volume-low text-sm';
+            else sesIkon.className = 'fa-solid fa-volume-high text-sm';
+        }
+
+        if (sesSeviyeCubuk) {
+            sesSeviyeCubuk.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                sesElementi.volume = val;
+                sesElementi.muted = (val === 0);
+                sessizlikIkonGuncelle();
+            });
+        }
+
+        function sesBaglaminiHazirla() {
+            if (audioCtx) return;
+            try {
+                const AC = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AC();
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 64;
+                gorselKaynak = audioCtx.createMediaElementSource(sesElementi);
+                destStreamNode = audioCtx.createMediaStreamDestination();
+                gorselKaynak.connect(analyser);
+                gorselKaynak.connect(destStreamNode);
+                analyser.connect(audioCtx.destination);
+            } catch(e) { console.warn(e); }
+        }
+
+        function gorsellestiricileriBaslat() {
+            const canvasAna = document.getElementById('gorsellestirici-canvas');
+            const canvasArac = document.getElementById('arac-gorsel-canvas');
+            
+            function boyutlandir() {
+                if (canvasAna && canvasAna.parentElement) {
+                    canvasAna.width = canvasAna.parentElement.clientWidth;
+                    canvasAna.height = canvasAna.parentElement.clientHeight;
+                }
+                if (canvasArac && canvasArac.parentElement) {
+                    canvasArac.width = canvasArac.parentElement.clientWidth;
+                    canvasArac.height = canvasArac.parentElement.clientHeight;
+                }
+            }
+            boyutlandir();
+            window.addEventListener('resize', boyutlandir);
+
+            function kareCiz() {
+                requestAnimationFrame(kareCiz);
+
+                [ { c: canvasAna, primary: '#00f2fe' }, { c: canvasArac, primary: '#f59e0b' } ].forEach(hedef => {
+                    if (!hedef.c) return;
+                    if (hedef.c.clientWidth === 0 || hedef.c.clientHeight === 0) return;
+
+                    const ctx = hedef.c.getContext('2d');
+                    const w = hedef.c.width;
+                    const h = hedef.c.height;
+
+                    ctx.clearRect(0, 0, w, h);
+
+                    if (!analyser || !oynatiliyorMu) return;
+
+                    const data = new Uint8Array(analyser.frequencyBinCount);
+                    analyser.getByteFrequencyData(data);
+                    const len = data.length;
+
+                    const computedPrimary = getComputedStyle(document.documentElement).getPropertyValue('--theme-primary').trim() || hedef.primary;
+
+                    // 10 Farklı Efekt Modu Algoritması
+                    switch(aktifGorselIndeks) {
+                        case 0: // 1. Neon Çubuklar
+                            let w0 = (w / len) * 1.5;
+                            let x0 = 0;
+                            for (let i = 0; i < len; i++) {
+                                let bh = (data[i] / 255) * h;
+                                ctx.fillStyle = computedPrimary;
+                                ctx.fillRect(x0, h - bh, w0 - 3, bh);
+                                x0 += w0;
+                            }
+                            break;
+                        case 1: // 2. Dairesel Spektrum
+                            let cx = w / 2, cy = h / 2;
+                            for (let i = 0; i < len; i++) {
+                                let r = (data[i] / 255) * (h / 2);
+                                ctx.beginPath();
+                                ctx.arc(cx, cy, Math.max(r, 2), 0, Math.PI * 2);
+                                ctx.strokeStyle = computedPrimary;
+                                ctx.lineWidth = 1.2;
+                                ctx.stroke();
+                            }
+                            break;
+                        case 2: // 3. Simetrik Dalga
+                            ctx.beginPath();
+                            let sw = w / len;
+                            let xw = 0;
+                            for (let i = 0; i < len; i++) {
+                                let v = data[i] / 128.0;
+                                let y = (v * h) / 2;
+                                if (i === 0) ctx.moveTo(xw, y);
+                                else ctx.lineTo(xw, y);
+                                xw += sw;
+                            }
+                            ctx.strokeStyle = computedPrimary;
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
+                            break;
+                        case 3: // 4. Noktasal Matris
+                            let step = Math.max(Math.floor(len / 12), 1);
+                            for (let i = 0; i < len; i += step) {
+                                let radius = (data[i] / 255) * 15;
+                                let xp = (i / len) * w + 15;
+                                let yp = h / 2;
+                                ctx.beginPath();
+                                ctx.arc(xp, yp, Math.max(radius, 2), 0, Math.PI * 2);
+                                ctx.fillStyle = computedPrimary;
+                                ctx.fill();
+                            }
+                            break;
+                        case 4: // 5. Çift Yönlü Spektrum
+                            let barW4 = (w / len) * 1.5;
+                            let x4 = 0;
+                            for (let i = 0; i < len; i++) {
+                                let barH4 = (data[i] / 255) * (h / 2);
+                                ctx.fillStyle = computedPrimary;
+                                ctx.fillRect(x4, (h / 2) - barH4, barW4 - 2, barH4 * 2);
+                                x4 += barW4;
+                            }
+                            break;
+                        case 5: // 6. Radyal Patlama
+                            let cx5 = w / 2, cy5 = h / 2;
+                            let angleStep = (Math.PI * 2) / len;
+                            for (let i = 0; i < len; i++) {
+                                let angle = i * angleStep;
+                                let r5 = (data[i] / 255) * (h / 2.2);
+                                let xEnd = cx5 + Math.cos(angle) * r5;
+                                let yEnd = cy5 + Math.sin(angle) * r5;
+                                ctx.beginPath();
+                                ctx.moveTo(cx5, cy5);
+                                ctx.lineTo(xEnd, yEnd);
+                                ctx.strokeStyle = computedPrimary;
+                                ctx.lineWidth = 2;
+                                ctx.stroke();
+                            }
+                            break;
+                        case 6: // 7. Frekans Dalgası
+                            ctx.beginPath();
+                            let slice6 = w / len;
+                            let curX = 0;
+                            for (let i = 0; i < len; i++) {
+                                let v6 = data[i] / 255;
+                                let y6 = h - (v6 * h);
+                                if (i === 0) ctx.moveTo(curX, y6);
+                                else ctx.lineTo(curX, y6);
+                                curX += slice6;
+                            }
+                            ctx.strokeStyle = computedPrimary;
+                            ctx.lineWidth = 2.5;
+                            ctx.stroke();
+                            break;
+                        case 7: // 8. Boşluklu Modern Sütunlar
+                            let bw7 = (w / len);
+                            let x7 = 0;
+                            for (let i = 0; i < len; i++) {
+                                let bh7 = (data[i] / 255) * h;
+                                ctx.fillStyle = computedPrimary;
+                                ctx.fillRect(x7 + 2, h - bh7, Math.max(bw7 - 4, 2), bh7);
+                                x7 += bw7;
+                            }
+                            break;
+                        case 8: // 9. Dikey Neon Çizgiler
+                            let bw8 = w / len;
+                            let x8 = 0;
+                            for (let i = 0; i < len; i++) {
+                                let bh8 = (data[i] / 255) * h;
+                                ctx.fillStyle = computedPrimary;
+                                ctx.fillRect(x8, 0, 1, bh8);
+                                ctx.fillRect(x8, h - bh8, 1, bh8);
+                                x8 += bw8;
+                            }
+                            break;
+                        case 9: // 10. Yansımalı Ekolayzer
+                            let bw9 = (w / len) * 1.5;
+                            let x9 = 0;
+                            for (let i = 0; i < len; i++) {
+                                let bh9 = (data[i] / 255) * (h / 1.8);
+                                ctx.fillStyle = computedPrimary;
+                                // Üst çubuk
+                                ctx.fillRect(x9, (h / 2) - bh9, bw9 - 3, bh9);
+                                // Alt yansıma çubuğu (soluk)
+                                ctx.fillStyle = computedPrimary;
+                                ctx.globalAlpha = 0.3;
+                                ctx.fillRect(x9, h / 2, bw9 - 3, bh9 * 0.6);
+                                ctx.globalAlpha = 1.0;
+                                x9 += bw9;
+                            }
+                            break;
+                        default:
+                            let defW = (w / len) * 1.5;
+                            let xD = 0;
+                            for (let i = 0; i < len; i++) {
+                                let dh = (data[i] / 255) * h;
+                                ctx.fillStyle = computedPrimary;
+                                ctx.fillRect(xD, h - dh, defW - 3, dh);
+                                xD += defW;
+                            }
+                            break;
+                    }
+                });
+            }
+            kareCiz();
+        }
+
+        function modalToggle(id, goster) { 
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle('hidden', !goster); 
+        }
+
+        function kanalResimHata(img) { 
+            img.classList.add('hidden'); 
+            const fallback = document.getElementById('aktif-kanal-varsayilan');
+            if (fallback) fallback.classList.remove('hidden'); 
+        }
+        
+        function bildirimGoster(mesaj) {
+            const t = document.createElement('div');
+            t.className = 'toast-enhanced fixed bottom-5 right-5 z-[80] glass-panel border px-4 py-3 rounded-xl shadow-2xl text-xs font-medium flex items-center space-x-2';
+            t.style.borderColor = 'var(--panel-border)';
+            t.style.color = 'var(--text-main)';
+            t.innerHTML = `<i class="fa-solid fa-circle-info text-cyan-500 text-sm" style="color: var(--theme-primary);"></i><span>${mesaj}</span>`;
+            document.body.appendChild(t);
+            setTimeout(() => { t.classList.add('opacity-0'); setTimeout(() => t.remove(), 300); }, 3000);
+        }
+
+        const VERITABANI_ADI = 'StreamPulseKayitlar';
+        const VERITABANI_DEPO = 'kayitlar';
+        function veritabaniAc() {
+            return new Promise((res, rej) => {
+                const req = indexedDB.open(VERITABANI_ADI, 1);
+                req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(VERITABANI_DEPO)) req.result.createObjectStore(VERITABANI_DEPO, { keyPath: 'id' }); };
+                req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error);
+            });
+        }
+        async function kaydiVeritabaninaKaydet(item) {
+            const db = await veritabaniAc();
+            return new Promise((res, rej) => { const tx = db.transaction(VERITABANI_DEPO, 'readwrite'); tx.objectStore(VERITABANI_DEPO).put(item); tx.oncomplete = () => { db.close(); res(); }; });
+        }
+        async function veritabanindanKayitlariAl() {
+            const db = await veritabaniAc();
+            return new Promise((res, rej) => { const tx = db.transaction(VERITABANI_DEPO, 'readonly'); const req = tx.objectStore(VERITABANI_DEPO).getAll(); req.onsuccess = () => { db.close(); res(req.result || []); }; });
+        }
+        async function veritabanindanKayitSil(id) {
+            const db = await veritabaniAc();
+            return new Promise((res, rej) => { const tx = db.transaction(VERITABANI_DEPO, 'readwrite'); tx.objectStore(VERITABANI_DEPO).delete(id); tx.oncomplete = () => { db.close(); res(); }; });
+        }
+
+        async function kayitlariAc() { modalToggle('modal-kayitlar', true); await kayitListesiniCiz(); }
+
+        async function kayitListesiniCiz() {
+            const liste = document.getElementById('kayit-listesi-kapsayici');
+            if (!liste) return;
+            const ogeler = (await veritabanindanKayitlariAl()).reverse();
+            if (!ogeler.length) { liste.innerHTML = '<div class="text-center py-8" style="color: var(--text-muted);">Henüz kayıt yok.</div>'; return; }
+            liste.innerHTML = '';
+            ogeler.forEach(item => {
+                const blobUrl = URL.createObjectURL(item.blob);
+                const satir = document.createElement('div'); 
+                satir.className = 'glass-card p-3 rounded-2xl space-y-2';
+                satir.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="font-bold text-sm" style="color: var(--text-main);">${item.name}</div>
+                            <div class="text-[10px]" style="color: var(--text-muted);">${item.date}</div>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                            <button class="btn-indir p-2 rounded-lg transition text-xs" style="background: var(--card-bg); color: var(--theme-primary);" title="İndir"><i class="fa-solid fa-download"></i></button>
+                            <button class="btn-paylas p-2 rounded-lg transition text-xs" style="background: var(--card-bg); color: var(--theme-primary);" title="Paylaş"><i class="fa-solid fa-share-nodes"></i></button>
+                            <button class="btn-sil p-2 rounded-lg bg-red-500/20 text-red-500 hover:bg-red-500/30 transition text-xs" title="Sil"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <audio controls class="w-full h-8" src="${blobUrl}"></audio>
+                `;
+                
+                satir.querySelector('.btn-indir').onclick = () => kaydiIndir(blobUrl, `${item.name}.webm`);
+                satir.querySelector('.btn-paylas').onclick = () => kaydiPaylas(blobUrl, item.name);
+                satir.querySelector('.btn-sil').onclick = () => kayitArsivdenSil(item.id);
+
+                liste.appendChild(satir);
+            });
+        }
+
+        function kaydiIndir(url, dosyaAdi) {
+            const a = document.createElement('a'); a.href = url; a.download = dosyaAdi;
+            document.body.appendChild(a); a.click(); a.remove();
+            bildirimGoster("Kayıt indiriliyor...");
+        }
+
+        async function kaydiPaylas(url, baslik) {
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                const file = new File([blob], `${baslik}.webm`, { type: 'audio/webm' });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file], title: baslik, text: 'Stream Pulse Pro Radyo Kaydı' });
+                } else if (navigator.share) {
+                    await navigator.share({ title: baslik, url: window.location.href });
+                } else {
+                    bildirimGoster("Tarayıcınız doğrudan paylaşımı desteklemiyor, indirme yapabilirsiniz.");
+                }
+            } catch (e) {
+                console.error("Paylaşım iptal edildi veya hata oluştu:", e);
+            }
+        }
+
+        async function kayitArsivdenSil(id) {
+            onayModaliniAc("Kayıt Sil", "Bu ses kaydını arşivden silmek istediğinize emin misiniz?", async () => {
+                await veritabanindanKayitSil(id);
+                await kayitListesiniCiz();
+                bildirimGoster("Kayıt silindi.");
+            });
+        }
+    </script>
+</body>
+</html>
