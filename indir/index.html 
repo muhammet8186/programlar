@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ultimate Download Manager Pro</title>
+  <title>Ultimate Download Manager Pro - WebViewer Edition</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -36,18 +36,21 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="bg-gradient-to-tr from-brand-600 to-indigo-600 text-white p-2.5 rounded-xl shadow-md">
-          <i class="fa-solid font-bold fa-cloud-arrow-down text-xl"></i>
+          <i class="fa-solid fa-cloud-arrow-down text-xl"></i>
         </div>
         <div>
           <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-brand-600 to-indigo-600 bg-clip-text text-transparent">Ultimate Downloader</h1>
-          <p class="text-xs text-gray-500 dark:text-gray-400">Pro V3.5 • Akıllı İndirme Yöneticisi</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400">Pro V4.0 • WebViewer & Video Sniffer Edition</p>
         </div>
       </div>
 
       <div class="flex items-center gap-3">
-        <!-- Pano Algılayıcı Simülasyonu -->
+        <button id="btn-toggle-browser" onclick="toggleBrowserModal()" class="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm transition">
+          <i class="fa-solid fa-globe"></i> Dahili Tarayıcı (WebViewer)
+        </button>
+
         <button id="btn-clipboard" onclick="checkClipboard()" class="hidden sm:flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 transition">
-          <i class="fa-solid fa-paste"></i> Panoyu Bağlantı İçin Tara
+          <i class="fa-solid fa-paste"></i> Panoyu Tara
         </button>
 
         <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition">
@@ -58,10 +61,10 @@
     </div>
   </header>
 
-  <!-- Main Container -->
+  <!-- Ana İçerik Konteyneri -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-    <!-- Sol / Üst Kontrol Paneli -->
+    <!-- Sol Paneller -->
     <div class="lg:col-span-8 space-y-6">
       
       <!-- İndirme Ekleme Kartı -->
@@ -118,7 +121,7 @@
           </div>
         </form>
 
-        <!-- Toplu Form (Gizli) -->
+        <!-- Toplu Form -->
         <form id="form-batch" onsubmit="addBatchDownloads(event)" class="space-y-3 hidden">
           <textarea id="batch-urls" rows="3" placeholder="Her satıra bir URL gelecek şekilde yapıştırın..." class="w-full p-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 focus:ring-2 focus:ring-brand-500 text-xs font-mono"></textarea>
           <button type="submit" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-xs shadow-md transition">
@@ -126,7 +129,7 @@
           </button>
         </form>
 
-        <!-- Torrent Form (Gizli) -->
+        <!-- Torrent Form -->
         <form id="form-torrent" onsubmit="addTorrentDownload(event)" class="space-y-3 hidden">
           <input type="text" id="torrent-url" placeholder="magnet:?xt=urn:btih:..." class="w-full py-2 px-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 focus:ring-2 focus:ring-brand-500 text-xs font-mono">
           <button type="submit" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-xs shadow-md transition">
@@ -135,7 +138,7 @@
         </form>
       </div>
 
-      <!-- Aktif ve Kuyruktaki İndirmeler -->
+      <!-- Aktif İndirmeler -->
       <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-base font-semibold flex items-center gap-2">
@@ -150,7 +153,6 @@
         </div>
 
         <div id="active-list" class="space-y-3 max-h-[350px] overflow-y-auto custom-scrollbar pr-1">
-          <!-- Boş Durum -->
           <div id="empty-active-state" class="text-center py-8 text-gray-400 dark:text-gray-500">
             <i class="fa-solid fa-inbox text-3xl mb-2"></i>
             <p class="text-sm">Şu an aktif bir indirme bulunmuyor.</p>
@@ -166,7 +168,6 @@
             <span id="completed-count-badge" class="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
           </h2>
 
-          <!-- Filtre ve Arama -->
           <div class="flex items-center gap-2">
             <input type="text" id="search-completed" oninput="renderCompleted()" placeholder="Dosya ara..." class="px-3 py-1 rounded-lg text-xs border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none">
             <button onclick="exportHistory()" title="Dışa Aktar" class="p-1.5 text-xs text-gray-500 hover:text-brand-500"><i class="fa-solid fa-download"></i></button>
@@ -183,17 +184,16 @@
 
     </div>
 
-    <!-- Sağ Yan Panel / Analitik & İstatistikler -->
+    <!-- Sağ Yan Panel -->
     <div class="lg:col-span-4 space-y-6">
 
-      <!-- Canlı Bant Genişliği & İstatistik Kartları -->
+      <!-- Trafik Grafiği -->
       <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm space-y-4">
         <h3 class="text-sm font-semibold flex items-center justify-between">
           <span><i class="fa-solid fa-chart-line text-brand-500 mr-1.5"></i> Canlı Ağ Trafiği</span>
           <span id="live-speed-indicator" class="text-xs text-brand-600 font-mono font-bold">0.0 MB/s</span>
         </h3>
 
-        <!-- Chart.js Tuvali -->
         <div class="h-32 w-full">
           <canvas id="speedChart"></canvas>
         </div>
@@ -210,7 +210,7 @@
         </div>
       </div>
 
-      <!-- Sistem Durumu & Checksum (MD5/SHA256) Araçları -->
+      <!-- Hash Kontrolü -->
       <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm space-y-4">
         <h3 class="text-sm font-semibold flex items-center gap-2">
           <i class="fa-solid fa-shield-halved text-emerald-500"></i> Dosya Doğrulama & Güvenlik
@@ -225,7 +225,7 @@
         </div>
       </div>
 
-      <!-- Ayarlar ve Otomatik Kapatma -->
+      <!-- Otomatik İşlemler -->
       <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm space-y-3">
         <h3 class="text-sm font-semibold flex items-center gap-2">
           <i class="fa-solid fa-sliders text-indigo-500"></i> Otomatik İşlemler
@@ -244,7 +244,77 @@
     </div>
   </main>
 
-  <!-- Modal: Medya Önizleme / QR Paylaşım -->
+  <!-- DAHİLİ WEBVIEWER & VIDEO SNIFFER MODALI -->
+  <div id="browser-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center hidden p-2 sm:p-6">
+    <div class="bg-white dark:bg-gray-800 w-full h-full max-w-6xl rounded-2xl overflow-hidden flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700">
+      
+      <!-- Tarayıcı Üst Çubuğu -->
+      <div class="bg-gray-100 dark:bg-gray-900 px-4 py-2.5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <button class="p-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"><i class="fa-solid fa-arrow-left"></i></button>
+          <button class="p-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"><i class="fa-solid fa-arrow-right"></i></button>
+          <button onclick="loadBrowserUrl()" class="p-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"><i class="fa-solid fa-rotate-right"></i></button>
+        </div>
+
+        <!-- Adres Çubuğu -->
+        <div class="flex-1 max-w-2xl relative">
+          <input type="text" id="browser-url-input" value="https://example-video-site.com/watch?v=demo" class="w-full pl-8 pr-4 py-1.5 text-xs rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono">
+          <i class="fa-solid fa-lock absolute left-3 top-2.5 text-emerald-500 text-[10px]"></i>
+        </div>
+
+        <!-- Yakalanan Medya Rozeti -->
+        <div class="flex items-center gap-3">
+          <button onclick="toggleSnifferList()" class="relative flex items-center gap-2 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold shadow-md transition animate-pulse">
+            <i class="fa-solid fa-video"></i>
+            <span>Yakalanan Videolar</span>
+            <span id="sniffer-badge" class="bg-white text-red-600 rounded-full px-1.5 py-0.2 text-[10px] font-bold">3</span>
+          </button>
+
+          <button onclick="toggleBrowserModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tarayıcı İçerik Alanı & Video Sniffer Panel -->
+      <div class="flex-1 relative bg-gray-900 flex">
+        
+        <!-- Simüle Edilen Web Sayfası / Video Oynatıcı -->
+        <div class="flex-1 flex flex-col items-center justify-center p-6 text-white text-center space-y-4">
+          <div class="w-full max-w-2xl aspect-video bg-black rounded-2xl relative overflow-hidden border border-gray-800 flex items-center justify-center group shadow-xl">
+            <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop" class="absolute inset-0 w-full h-full object-cover opacity-60">
+            <div class="relative z-10 space-y-3">
+              <div class="w-16 h-16 rounded-full bg-brand-600/90 flex items-center justify-center mx-auto text-white text-2xl shadow-lg cursor-pointer hover:scale-110 transition">
+                <i class="fa-solid fa-play ml-1"></i>
+              </div>
+              <p class="font-semibold text-sm">Demo Video Oynatılıyor: "4K Nature & Cinematic Scene"</p>
+            </div>
+            <div class="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded text-[10px] font-mono">
+              <i class="fa-solid fa-circle text-red-500 animate-ping mr-1"></i> Media Sniffer Aktif: 1080p Stream Algılandı
+            </div>
+          </div>
+          <p class="text-xs text-gray-400 max-w-md">Dahili tarayıcı ağ üzerindeki video ve ses bağlantılarını otomatik olarak tarar. Sağ üstteki <b>Yakalanan Videolar</b> butonuna basarak indirebilirsiniz.</p>
+        </div>
+
+        <!-- Pop-over: Yakalanan Videolar Listesi -->
+        <div id="sniffer-panel" class="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-4 space-y-3 flex flex-col shadow-xl">
+          <div class="flex items-center justify-between border-b pb-2 dark:border-gray-700">
+            <h4 class="font-bold text-xs flex items-center gap-1.5">
+              <i class="fa-solid fa-bolt text-amber-500"></i> Tespit Edilen Medyalar
+            </h4>
+            <span class="text-[10px] text-gray-400">3 Adet Akış</span>
+          </div>
+
+          <div class="space-y-2 overflow-y-auto flex-1 custom-scrollbar pr-1" id="sniffer-list">
+            <!-- Liste JS ile doldurulacak -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Medya Önizleme / QR / Kalite Seçimi -->
   <div id="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
     <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full mx-4 space-y-4 shadow-xl border border-gray-200 dark:border-gray-700">
       <div class="flex items-center justify-between">
@@ -257,32 +327,76 @@
     </div>
   </div>
 
-  <!-- JavaScript -->
   <script>
     // State Yönetimi
     let downloads = JSON.parse(localStorage.getItem('udm_downloads')) || [];
     let completedDownloads = JSON.parse(localStorage.getItem('udm_completed')) || [];
     let totalBytesDownloaded = parseInt(localStorage.getItem('udm_total_bytes')) || 0;
 
-    // Hız Grafiği Verileri
+    // Yakalanan Örnek Videolar (Sniffer)
+    const detectedVideos = [
+      { id: 1, title: 'Nature_Cinematic_4K.mp4', quality: '4K Ultra HD (2160p)', size: 850, ext: 'mp4' },
+      { id: 2, title: 'Nature_Cinematic_1080p.mp4', quality: 'Full HD (1080p)', size: 240, ext: 'mp4' },
+      { id: 3, title: 'Nature_Audio_Track.mp3', quality: 'Sadece Ses (320kbps MP3)', size: 12, ext: 'mp3' }
+    ];
+
     const speedHistory = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     let chart;
 
-    // Başlatma
     document.addEventListener("DOMContentLoaded", () => {
       initChart();
       renderActive();
       renderCompleted();
+      renderSnifferList();
       updateStats();
       setInterval(simulateDownloads, 1000);
     });
 
-    // Dark Mode Toggle
     function toggleDarkMode() {
       document.documentElement.classList.toggle('dark');
     }
 
-    // Tab Değişimi
+    function toggleBrowserModal() {
+      document.getElementById('browser-modal').classList.toggle('hidden');
+    }
+
+    function toggleSnifferList() {
+      document.getElementById('sniffer-panel').classList.toggle('hidden');
+    }
+
+    function renderSnifferList() {
+      const list = document.getElementById('sniffer-list');
+      list.innerHTML = detectedVideos.map(v => `
+        <div class="p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600 space-y-1.5">
+          <div class="flex items-center justify-between text-xs font-semibold">
+            <span class="truncate max-w-[140px]">${v.title}</span>
+            <span class="text-[10px] bg-brand-100 text-brand-600 px-1.5 py-0.5 rounded">${v.ext.toUpperCase()}</span>
+          </div>
+          <p class="text-[11px] text-gray-500 dark:text-gray-400">${v.quality} • ${v.size} MB</p>
+          <button onclick="downloadCapturedVideo('${v.title}', ${v.size}, '${v.ext}')" class="w-full py-1 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-medium transition flex items-center justify-center gap-1">
+            <i class="fa-solid fa-download"></i> İndirmeye Ekle
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function downloadCapturedVideo(title, size, ext) {
+      downloads.push({
+        id: Date.now(),
+        filename: title,
+        url: `https://sniffed-stream.com/${title}`,
+        category: ext === 'mp3' ? 'audio' : 'video',
+        totalSize: size,
+        downloaded: 0,
+        speed: 0,
+        speedLimit: 0,
+        status: 'downloading'
+      });
+      saveState();
+      renderActive();
+      toggleBrowserModal();
+    }
+
     function setTab(tab) {
       ['single', 'batch', 'torrent'].forEach(t => {
         document.getElementById(`form-${t}`).classList.add('hidden');
@@ -292,83 +406,67 @@
       document.getElementById(`tab-btn-${tab}`).classList.add('text-brand-600', 'dark:text-brand-400', 'underline');
     }
 
-    // Otomatik Kategori Algılama
     function autoDetectCategory(url) {
       const select = document.getElementById('select-category');
       const ext = url.split('.').pop().toLowerCase();
       if (['mp4', 'mkv', 'avi', 'mov'].includes(ext)) select.value = 'video';
       else if (['mp3', 'wav', 'flac'].includes(ext)) select.value = 'audio';
-      else if (['zip', 'rar', '7z', 'tar'].includes(ext)) select.value = 'archive';
-      else if (['pdf', 'docx', 'xlsx', 'txt'].includes(ext)) select.value = 'document';
+      else if (['zip', 'rar', '7z'].includes(ext)) select.value = 'archive';
+      else if (['pdf', 'docx'].includes(ext)) select.value = 'document';
     }
 
-    // Pano Yapıştırma
     async function pasteFromClipboard() {
       try {
         const text = await navigator.clipboard.readText();
         document.getElementById('input-url').value = text;
         autoDetectCategory(text);
       } catch (e) {
-        alert("Pano erişim izni alınamadı.");
+        alert("Pano erişim izni verilmeli.");
       }
     }
 
-    // Pano Algılama Düğmesi
     async function checkClipboard() {
       try {
         const text = await navigator.clipboard.readText();
-        if (text.startsWith('http://') || text.startsWith('https://')) {
+        if (text.startsWith('http')) {
           document.getElementById('input-url').value = text;
           autoDetectCategory(text);
-          alert("Panodaki bağlantı algılandı ve porta aktarıldı!");
-        } else {
-          alert("Panoda geçerli bir URL bulunamadı.");
+          alert("Panodaki bağlantı yakalandı!");
         }
-      } catch(e) {
-        alert("Pano okunamadı.");
-      }
+      } catch(e){}
     }
 
-    // Yeni İndirme Ekle
     function addDownload(e) {
       e.preventDefault();
-      const urlInput = document.getElementById('input-url');
-      const categorySelect = document.getElementById('select-category');
-      const speedLimitSelect = document.getElementById('select-speed-limit');
-
-      const url = urlInput.value;
+      const url = document.getElementById('input-url').value;
+      const category = document.getElementById('select-category').value;
+      const speedLimit = parseFloat(document.getElementById('select-speed-limit').value);
       const filename = url.substring(url.lastIndexOf('/') + 1) || `dosya_${Date.now()}.bin`;
-      const sizeMB = Math.floor(Math.random() * 450) + 50; // 50MB - 500MB simülasyon
 
-      const newDownload = {
+      downloads.push({
         id: Date.now(),
         filename: filename,
         url: url,
-        category: categorySelect.value === 'auto' ? 'document' : categorySelect.value,
-        totalSize: sizeMB,
+        category: category === 'auto' ? 'document' : category,
+        totalSize: Math.floor(Math.random() * 400) + 50,
         downloaded: 0,
         speed: 0,
-        speedLimit: parseFloat(speedLimitSelect.value),
-        status: 'downloading', // downloading, paused, completed
-        isTorrent: false
-      };
-
-      downloads.push(newDownload);
+        speedLimit: speedLimit,
+        status: 'downloading'
+      });
       saveState();
       renderActive();
-      urlInput.value = '';
+      document.getElementById('input-url').value = '';
     }
 
-    // Toplu İndirme Ekle
     function addBatchDownloads(e) {
       e.preventDefault();
       const urls = document.getElementById('batch-urls').value.split('\n');
       urls.forEach(url => {
         if (url.trim()) {
-          const filename = url.trim().substring(url.trim().lastIndexOf('/') + 1) || `batch_${Date.now()}.bin`;
           downloads.push({
             id: Date.now() + Math.random(),
-            filename: filename,
+            filename: url.trim().substring(url.trim().lastIndexOf('/') + 1) || `batch_${Date.now()}.bin`,
             url: url.trim(),
             category: 'document',
             totalSize: Math.floor(Math.random() * 200) + 20,
@@ -384,7 +482,6 @@
       renderActive();
     }
 
-    // Torrent Ekle
     function addTorrentDownload(e) {
       e.preventDefault();
       const magnet = document.getElementById('torrent-url').value;
@@ -395,7 +492,7 @@
         filename: `Torrent_Release_${Math.floor(Math.random()*1000)}.mkv`,
         url: magnet,
         category: 'video',
-        totalSize: 1400, // 1.4 GB
+        totalSize: 1400,
         downloaded: 0,
         speed: 0,
         speedLimit: 0,
@@ -408,17 +505,14 @@
       renderActive();
     }
 
-    // Simülasyon Döngüsü (Her Saniye)
     function simulateDownloads() {
       let currentTotalSpeed = 0;
 
       downloads.forEach(d => {
         if (d.status === 'downloading') {
-          // Hız hesapla
-          let maxSpeed = d.speedLimit > 0 ? d.speedLimit : (Math.random() * 8 + 4); // 4-12 MB/s
+          let maxSpeed = d.speedLimit > 0 ? d.speedLimit : (Math.random() * 8 + 4);
           d.speed = parseFloat(maxSpeed.toFixed(1));
-          d.downloaded += d.speed * 2; // Hızlı simülasyon için katsayı
-
+          d.downloaded += d.speed * 2;
           currentTotalSpeed += d.speed;
 
           if (d.downloaded >= d.totalSize) {
@@ -433,7 +527,6 @@
         }
       });
 
-      // Tamamlananları aktar
       downloads = downloads.filter(d => d.status !== 'completed');
 
       saveState();
@@ -443,7 +536,6 @@
       updateStats();
     }
 
-    // Aktif İndirmeleri Çiz
     function renderActive() {
       const list = document.getElementById('active-list');
       const emptyState = document.getElementById('empty-active-state');
@@ -477,7 +569,6 @@
               </div>
             </div>
 
-            <!-- İlerleme Çubuğu -->
             <div class="w-full bg-gray-200 dark:bg-gray-600 h-2 rounded-full overflow-hidden">
               <div class="bg-gradient-to-r from-brand-500 to-indigo-500 h-full transition-all duration-300" style="width: ${percent}%"></div>
             </div>
@@ -499,7 +590,6 @@
       }).join('');
     }
 
-    // Tamamlanan Dosyaları Çiz
     function renderCompleted() {
       const list = document.getElementById('completed-list');
       const emptyState = document.getElementById('empty-completed-state');
@@ -543,7 +633,6 @@
       `).join('');
     }
 
-    // Aksiyonlar
     function togglePause(id) {
       const d = downloads.find(x => x.id === id);
       if (d) {
@@ -583,7 +672,6 @@
       renderCompleted();
     }
 
-    // Modal İşlemleri
     function openPreview(filename) {
       const modal = document.getElementById('modal');
       document.getElementById('modal-title').innerText = `Dosya Önizleme: ${filename}`;
@@ -592,12 +680,7 @@
           <div class="p-4 bg-gray-100 dark:bg-gray-700 rounded-xl inline-block text-brand-500">
             <i class="fa-solid fa-file-circle-check text-4xl"></i>
           </div>
-          <p class="text-xs text-gray-500">Dosya başarıyla simüle edilmiş medya oynatıcıda açıldı.</p>
-          <div class="p-3 bg-black rounded-lg text-white font-mono text-xs text-left">
-            > Playing stream for: ${filename}<br>
-            > Codec: H.264 / AAC<br>
-            > Status: Ready
-          </div>
+          <p class="text-xs text-gray-500">Dosya başarıyla simüle edilmiş oynatıcıda açıldı.</p>
         </div>
       `;
       modal.classList.remove('hidden');
@@ -609,7 +692,7 @@
       document.getElementById('modal-content').innerHTML = `
         <div class="flex flex-col items-center justify-center space-y-3 py-2">
           <div id="qrcode" class="p-2 bg-white rounded-lg border"></div>
-          <p class="text-xs text-gray-500 text-center">Mobil tarayıcınız ile QR kodu okutarak <b>${filename}</b> dosyasını ağ üzerinden indirin.</p>
+          <p class="text-xs text-gray-500 text-center">Mobil tarayıcınız ile QR kodu okutarak <b>${filename}</b> dosyasını indirin.</p>
         </div>
       `;
       modal.classList.remove('hidden');
@@ -626,7 +709,6 @@
       document.getElementById('modal').classList.add('hidden');
     }
 
-    // Hash Doğrulama Araçları
     function verifyHash() {
       const input = document.getElementById('hash-input').value.trim();
       const res = document.getElementById('hash-result');
@@ -635,14 +717,13 @@
       res.classList.remove('hidden');
       if (input.length === 32 || input.length === 64) {
         res.className = "text-[11px] text-center font-mono text-emerald-500 font-bold";
-        res.innerText = "✓ Checksum Doğrulandı! Dosya güvenli ve orijinal.";
+        res.innerText = "✓ Checksum Doğrulandı! Dosya güvenli.";
       } else {
         res.className = "text-[11px] text-center font-mono text-red-500 font-bold";
         res.innerText = "✕ Geçersiz Hash formatı (MD5/SHA256 beklenen).";
       }
     }
 
-    // İstatistik & Grafik
     function initChart() {
       const ctx = document.getElementById('speedChart').getContext('2d');
       chart = new Chart(ctx, {
@@ -663,10 +744,7 @@
           responsive: true,
           maintainAspectRatio: false,
           plugins: { legend: { display: false } },
-          scales: {
-            x: { display: false },
-            y: { display: false, min: 0 }
-          }
+          scales: { x: { display: false }, y: { display: false, min: 0 } }
         }
       });
     }
@@ -687,7 +765,6 @@
       document.getElementById('stat-avg-speed').innerText = `${avg} MB/s`;
     }
 
-    // Yardımcı Fonksiyonlar
     function getCategoryIcon(cat) {
       switch(cat) {
         case 'video': return 'fa-file-video';
