@@ -6,7 +6,7 @@
     version: "1.0.0",
     serviceWorker: "./sw.js",
     checkInterval: 60 * 60 * 1000,
-    showInstallButton: false,
+    showInstallButton: true,
     showFullscreenButton: false,
     autoCheckUpdates: true
   }, window.PWA_CONFIG || {});
