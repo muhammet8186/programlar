@@ -1,46 +1,220 @@
-
-name: Build and Deploy GitHub Pages
+name: Build Android APK and AAB
+run-name: Android build - ${{ inputs.app_name || 'manual test' }}
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'public/**'
-      - '.github/workflows/pages.yml'
   workflow_dispatch:
+    inputs:
+      job_id:
+        description: Render job ID
+        required: true
+        type: string
+      source_url:
+        description: Temporary project download URL
+        required: true
+        type: string
+      app_name:
+        description: Android application name
+        required: true
+        type: string
+      package_name:
+        description: Android package ID
+        required: true
+        type: string
+      version:
+        description: App version
+        required: true
+        default: '1.0.0'
+        type: string
+      has_icon:
+        description: Custom icon uploaded
+        required: true
+        default: 'false'
+        type: string
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
+  actions: read
 
 concurrency:
-  group: github-pages
+  group: android-build-${{ inputs.job_id }}
   cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Validate inputs
+        shell: bash
+        env:
+          JOB_ID: ${{ inputs.job_id }}
+          PACKAGE_NAME: ${{ inputs.package_name }}
+          APP_VERSION: ${{ inputs.version }}
+        run: |
+          [[ "$JOB_ID" =~ ^[A-Za-z0-9_-]{8,32}$ ]] || { echo "Invalid job ID"; exit 1; }
+          [[ "$PACKAGE_NAME" =~ ^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){1,5}$ ]] || { echo "Invalid package name"; exit 1; }
+          [[ "$APP_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Invalid version"; exit 1; }
 
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
+      - uses: actions/checkout@v4
 
-      - name: Upload website files
-        uses: actions/upload-pages-artifact@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          path: public
+          node-version: 20
 
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Notify build started
+        if: always()
+        continue-on-error: true
+        env:
+          CALLBACK_URL: ${{ vars.WEB_CALLBACK_URL }}
+          CALLBACK_SECRET: ${{ secrets.BUILD_WEBHOOK_SECRET }}
+          JOB_ID: ${{ inputs.job_id }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          if [[ -n "$CALLBACK_URL" && -n "$CALLBACK_SECRET" ]]; then
+            curl --fail-with-body -sS -X POST "$CALLBACK_URL" \
+              -H "Authorization: Bearer $CALLBACK_SECRET" \
+              -H "Content-Type: application/json" \
+              --data "$(jq -n --arg id "$JOB_ID" --arg run "$RUN_ID" '{job_id:$id,status:"building",progress:15,message:"Android derlemesi başladı.",run_id:$run}')"
+          fi
+
+      - name: Download uploaded project
+        env:
+          SOURCE_URL: ${{ inputs.source_url }}
+          SOURCE_SECRET: ${{ secrets.SOURCE_ACCESS_SECRET }}
+          JOB_ID: ${{ inputs.job_id }}
+        run: |
+          test -n "$SOURCE_SECRET" || { echo "SOURCE_ACCESS_SECRET secret missing"; exit 1; }
+          mkdir -p input www output
+          curl --fail-with-body -sS "$SOURCE_URL" \
+            -H "Authorization: Bearer $SOURCE_SECRET" \
+            -o /tmp/project-upload
+          file /tmp/project-upload
+
+      - name: Safely unpack and prepare web assets
+        env:
+          APP_NAME: ${{ inputs.app_name }}
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 - <<'PY'
+          import os, zipfile, pathlib, shutil, sys
+          src="/tmp/project-upload"
+          out=pathlib.Path("www")
+          if zipfile.is_zipfile(src):
+              total=0; count=0
+              with zipfile.ZipFile(src) as z:
+                  for info in z.infolist():
+                      name=info.filename.replace("\\","/")
+                      p=pathlib.PurePosixPath(name)
+                      if p.is_absolute() or ".." in p.parts:
+                          raise SystemExit("Unsafe ZIP path rejected")
+                      if info.is_dir(): continue
+                      count += 1; total += info.file_size
+                      if count > 2000 or total > 100*1024*1024:
+                          raise SystemExit("ZIP exceeds extraction limits")
+                      dest=out.joinpath(*p.parts)
+                      dest.parent.mkdir(parents=True, exist_ok=True)
+                      with z.open(info) as r, open(dest,"wb") as w:
+                          shutil.copyfileobj(r,w)
+          else:
+              shutil.copyfile(src, out/"index.html")
+          html=list(out.rglob("index.html"))
+          if not html:
+              candidates=list(out.rglob("*.html"))+list(out.rglob("*.htm"))
+              if not candidates: raise SystemExit("No HTML file found in upload")
+              chosen=candidates[0]
+              shutil.copyfile(chosen, out/"index.html")
+          elif not (out/"index.html").exists():
+              shutil.copyfile(html[0],out/"index.html")
+          PY
+
+      - name: Create Capacitor Android project
+        env:
+          APP_NAME: ${{ inputs.app_name }}
+          PACKAGE_NAME: ${{ inputs.package_name }}
+          APP_VERSION: ${{ inputs.version }}
+        run: |
+          mkdir -p android-project
+          cd android-project
+          npm init -y >/dev/null
+          npm install @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7
+          cp -a ../www ./www
+          npx cap init "$APP_NAME" "$PACKAGE_NAME" --web-dir=www
+          npx cap add android
+          cd android
+          sed -i "s/versionName \"1.0\"/versionName \"$APP_VERSION\"/" app/build.gradle
+          sed -i "s/versionCode 1/versionCode 1/" app/build.gradle
+
+      - name: Apply optional app icon
+        if: ${{ inputs.has_icon == 'true' }}
+        env:
+          SOURCE_URL: ${{ inputs.source_url }}
+          SOURCE_SECRET: ${{ secrets.SOURCE_ACCESS_SECRET }}
+          JOB_ID: ${{ inputs.job_id }}
+        run: |
+          curl --fail-with-body -sS "${SOURCE_URL%/build-source/*}/build-icon/$JOB_ID" \
+            -H "Authorization: Bearer $SOURCE_SECRET" -o /tmp/app-icon || true
+          if file /tmp/app-icon | grep -qi image; then
+            python3 - <<'PY'
+          from PIL import Image
+          import os
+          im=Image.open("/tmp/app-icon").convert("RGBA")
+          for density,size in [("mdpi",48),("hdpi",72),("xhdpi",96),("xxhdpi",144),("xxxhdpi",192)]:
+              d=f"android-project/android/app/src/main/res/mipmap-{density}"
+              os.makedirs(d,exist_ok=True)
+              im.resize((size,size),Image.Resampling.LANCZOS).save(f"{d}/ic_launcher.png")
+          PY
+          fi
+
+      - name: Build APK and AAB
+        working-directory: android-project/android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug bundleRelease
+          mkdir -p ../../output
+          cp app/build/outputs/apk/debug/*.apk ../../output/
+          cp app/build/outputs/bundle/release/*.aab ../../output/
+
+      - name: Upload APK and AAB artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: html-den-apk-${{ inputs.job_id }}
+          path: output/*
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Notify success
+        if: success()
+        continue-on-error: true
+        env:
+          CALLBACK_URL: ${{ vars.WEB_CALLBACK_URL }}
+          CALLBACK_SECRET: ${{ secrets.BUILD_WEBHOOK_SECRET }}
+          JOB_ID: ${{ inputs.job_id }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          if [[ -n "$CALLBACK_URL" && -n "$CALLBACK_SECRET" ]]; then
+            curl --fail-with-body -sS -X POST "$CALLBACK_URL" \
+              -H "Authorization: Bearer $CALLBACK_SECRET" -H "Content-Type: application/json" \
+              --data "$(jq -n --arg id "$JOB_ID" --arg run "$RUN_ID" '{job_id:$id,status:"success",progress:100,message:"APK ve AAB üretildi.",run_id:$run}')"
+          fi
+
+      - name: Notify failure
+        if: failure()
+        continue-on-error: true
+        env:
+          CALLBACK_URL: ${{ vars.WEB_CALLBACK_URL }}
+          CALLBACK_SECRET: ${{ secrets.BUILD_WEBHOOK_SECRET }}
+          JOB_ID: ${{ inputs.job_id }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          if [[ -n "$CALLBACK_URL" && -n "$CALLBACK_SECRET" ]]; then
+            curl --fail-with-body -sS -X POST "$CALLBACK_URL" \
+              -H "Authorization: Bearer $CALLBACK_SECRET" -H "Content-Type: application/json" \
+              --data "$(jq -n --arg id "$JOB_ID" --arg run "$RUN_ID" '{job_id:$id,status:"failed",progress:0,message:"Android derlemesi başarısız oldu. GitHub Actions loglarını kontrol edin.",run_id:$run}')"
+          fi
