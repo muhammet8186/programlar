@@ -15,8 +15,8 @@ HTML/HTM/ZIP dosyalarını Android uygulamasına dönüştüren herkese açık w
 
 ### A. GitHub deposu
 
-1. GitHub'da `html-den-apk` adlı depo oluşturun. Özel (private) depo önerilir; Actions kullanım koşullarını ve dakika limitlerini GitHub planınızdan kontrol edin.
-2. Bu paketin içindeki tüm dosyaları depo köküne yükleyin; `.github/workflows/build-android.yml` yolu korunmalıdır.
+1. Bu projenin mevcut deposu `muhammet8186/programlar` olarak kullanılabilir. Özel (private) depo önerilir; Actions kullanım koşullarını ve dakika limitlerini GitHub planınızdan kontrol edin.
+2. Depo kökünde `.github/workflows/build-android.yml` bulunmalı; uygulama dosyaları `HTML-den-APK/` altında kalmalıdır.
 3. Varsayılan dal `main` olmalıdır (farklıysa Render'daki `GH_BRANCH` değerini değiştirin).
 4. Depo → Settings → Actions → General bölümünde workflow izinlerini etkin tutun. Workflow `workflow_dispatch` kullanır.
 
