@@ -534,7 +534,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 </button>
 </nav>
 <div class="flex items-center space-x-2 text-xs">
-<button id="install-app-button" type="button" onclick="uygulamayiYukle()" class="rounded-md bg-emerald-700 hover:bg-emerald-600 px-2 py-1.5 text-white text-[10px] md:text-xs font-bold whitespace-nowrap" title="Uygulamayı yükle"><i class="fa-solid fa-download mr-1"></i><span class="hidden sm:inline">Uygulamayı Yükle</span><span class="sm:hidden">Yükle</span></button>
+
 <button class="text-slate-400 hover:text-red-500 p-1.5 transition" onclick="cikisYap()" title="Çıkış Yap">
 <i class="fa-solid fa-right-from-bracket text-sm"></i>
 </button>
@@ -6112,10 +6112,6 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 })();
 </script>
 <script>
-let deferredPwaInstallPrompt=null;
-window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredPwaInstallPrompt=event;const button=document.getElementById('install-app-button');if(button)button.title='Uygulamayı cihazınıza yükleyin';});
-window.addEventListener('appinstalled',()=>{deferredPwaInstallPrompt=null;const button=document.getElementById('install-app-button');if(button)button.classList.add('hidden');if(typeof islemBildirimiGoster==='function')islemBildirimiGoster('Uygulama cihaza yüklendi.');});
-async function uygulamayiYukle(){if(location.protocol==='file:'){onayModaliniGoster('Uygulama olarak yüklemek için HTTPS gerekli','Bu dosyayı HTTPS destekli web adresinde açın. Ardından Chrome veya Edge menüsündeki “Uygulamayı yükle” seçeneğini ya da bu düğmeyi kullanabilirsiniz.',null,true);return;}if(deferredPwaInstallPrompt){deferredPwaInstallPrompt.prompt();const result=await deferredPwaInstallPrompt.userChoice;deferredPwaInstallPrompt=null;if(result?.outcome==='accepted')islemBildirimiGoster('Uygulama yükleme başlatıldı.');return;}const standalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;if(standalone){islemBildirimiGoster('Uygulama zaten yüklenmiş.');return;}const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);const message=ios?'Safari paylaşım menüsünü açıp “Ana Ekrana Ekle” seçeneğini kullanın.':'Chrome veya Edge menüsünden “Uygulamayı yükle” ya da “Ana ekrana ekle” seçeneğini seçin. Kurulum seçeneği görünmüyorsa sayfanın HTTPS adresinde açıldığını kontrol edin.';onayModaliniGoster('Uygulamayı yükle',message,null,true);}
 if('serviceWorker' in navigator&&location.protocol!=='file:'){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(error=>console.warn('Uygulama çevrimdışı desteği başlatılamadı.',error)));}
 </script>
 </body>
