@@ -4,6 +4,13 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta name="theme-color" content="#0f172a"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Hızlı POS"/>
+<link rel="manifest" href="./manifest.webmanifest"/>
+<link rel="icon" type="image/png" sizes="192x192" href="./app-icon-192.png"/>
+<link rel="apple-touch-icon" href="./app-icon-192.png"/>
 <title>Profesyonel Hızlı Satış &amp; Stok Yönetim Sistemi - Yerel &amp; Firebase</title>
 <!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com"></script>
@@ -22,7 +29,7 @@
 <!-- Firebase SDK (Modüler v10) -->
 <script type="module">
         import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, remove, onValue, get, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, remove, onValue, get, runTransaction, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const customerParams = new URLSearchParams(window.location.search);
         const customerMode = customerParams.get('musteriSiparis') === '1';
@@ -47,6 +54,8 @@
             satisYaziBoyutu: 14,
             mutfakAktif: true,
             firebaseAktif: false,
+            mutfakAktif: false,
+            ozellikler: { adisyon: false, customerorders: false },
             kokDugum: '',
             firebaseConfig: {
                 apiKey: "",
@@ -80,6 +89,7 @@
 
         window.dbRef = ref;
         window.dbSet = set;
+        window.dbUpdate = update;
         window.dbRemove = remove;
         window.dbOnValue = onValue;
         window.dbGet = get;
@@ -89,6 +99,7 @@
         window.getRootNode = () => savedSettings.kokDugum ? savedSettings.kokDugum : 'hizli_pos';
         window.customerMode = customerMode;
         window.customerTable = customerParams.get('masa') || '1';
+        window.customerOrderType = customerParams.get('tip') === 'paket' ? 'paket' : 'masa';
         window.customerPeriod = customerParams.get('period') || '';
         window.customerOrderApi = {
             async loadMenu() {
@@ -100,15 +111,29 @@
                     get(ref(db, `${root}/${period}/kategoriler`)),
                     get(ref(db, `${root}/ayarlar`))
                 ]);
-                return { products: productsSnap.exists() ? productsSnap.val() : [], categories: categoriesSnap.exists() ? categoriesSnap.val() : [], company: settingsSnap.exists() ? (settingsSnap.val().sirketAdi || 'Menümüz') : 'Menümüz' };
+                const settings = settingsSnap.exists() ? settingsSnap.val() : {};
+                const qrId = customerParams.get('qrid');
+                if (qrId && !(Array.isArray(settings.customerQrLinks) && settings.customerQrLinks.some(q => String(q.id) === qrId))) throw new Error('Bu QR kod silinmiş veya devre dışı bırakılmış.');
+                return { products: productsSnap.exists() ? productsSnap.val() : [], categories: categoriesSnap.exists() ? categoriesSnap.val() : [], company: settings.sirketAdi || 'Menümüz' };
             },
             async placeOrder(order) {
                 if (!db) throw new Error('Sunucuya bağlanılamadı.');
                 const root = customerParams.get('root') || 'hizli_pos';
                 const period = customerParams.get('period') || 'varsayilan';
                 const id = 'MUS-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
-                await set(ref(db, `${root}/${period}/musteri_siparisleri/${id}`), { ...order, id, table: window.customerTable, createdAt: Date.now(), status: 'new', assignedWaiter: customerParams.get('garson') || '', updatedAt: Date.now() });
+                await set(ref(db, `${root}/${period}/musteri_siparisleri/${id}`), { ...order, id, table: window.customerTable, orderType: window.customerOrderType, createdAt: Date.now(), status: 'new', assignedWaiter: customerParams.get('garson') || '', updatedAt: Date.now() });
                 return id;
+            },
+            async updateMyOrder(id, order) {
+                if (!db) throw new Error('Sunucuya bağlanılamadı.');
+                const root = customerParams.get('root') || 'hizli_pos';
+                const period = customerParams.get('period') || 'varsayilan';
+                const orderRef = ref(db, `${root}/${period}/musteri_siparisleri/${id}`);
+                const result = await runTransaction(orderRef, current => {
+                    if (!current || current.status !== 'new') return;
+                    return { ...current, items: order.items, note: order.note, total: order.total, updatedAt: Date.now() };
+                });
+                return result.committed;
             },
             subscribeMyOrder(id, callback) {
                 if (!db) return () => {};
@@ -221,18 +246,27 @@ button:not(:disabled):active { transform: translateY(1px); }
         body[data-theme="ocean"] .theme-input { background-color:#164e63 !important; border-color:#0e7490 !important; color:#ecfeff !important; }
         body[data-theme="forest"] .theme-card, body[data-theme="forest"] .theme-header { background-color:#052e16 !important; border-color:#166534 !important; }
         body[data-theme="forest"] .theme-input { background-color:#14532d !important; border-color:#15803d !important; color:#f0fdf4 !important; }
-        body[data-theme="rose"] .theme-card, body[data-theme="rose"] .theme-header { background-color:#4c0519 !important; border-color:#9f1239 !important; }
-        body[data-theme="rose"] .theme-input { background-color:#881337 !important; border-color:#be123c !important; color:#fff1f2 !important; }
-        body[data-theme="lavender"] .theme-card, body[data-theme="lavender"] .theme-header { background-color:#2e1065 !important; border-color:#6d28d9 !important; }
-        body[data-theme="lavender"] .theme-input { background-color:#4c1d95 !important; border-color:#7c3aed !important; color:#f5f3ff !important; }
+        body[data-theme="rose"] .theme-card { background-color:#241d1c !important; color:#f1e8e5 !important; border-color:#69524d !important; }
+        body[data-theme="rose"] .theme-header, body[data-theme="rose"] .theme-nav, body[data-theme="rose"] .theme-subbar, body[data-theme="rose"] .theme-category, body[data-theme="rose"] .theme-summary, body[data-theme="rose"] .theme-table-header { background-color:#1b1514 !important; color:#f1e8e5 !important; border-color:#69524d !important; }
+        body[data-theme="rose"] .theme-input { background-color:#2f2423 !important; border-color:#80645d !important; color:#f1e8e5 !important; }
+        body[data-theme="rose"] .theme-btn-theme, body[data-theme="rose"] .theme-btn-alt { background-color:#5b2829 !important; border-color:#8c4c49 !important; color:#fffaf7 !important; }
+        body[data-theme="rose"] table tr { color:#f1e8e5 !important; border-color:#493b38 !important; }
+        body[data-theme="lavender"] .theme-card { background-color:#202635 !important; color:#e6ebf5 !important; border-color:#53627e !important; }
+        body[data-theme="lavender"] .theme-header, body[data-theme="lavender"] .theme-nav, body[data-theme="lavender"] .theme-subbar, body[data-theme="lavender"] .theme-category, body[data-theme="lavender"] .theme-summary, body[data-theme="lavender"] .theme-table-header { background-color:#171d2b !important; color:#e6ebf5 !important; border-color:#53627e !important; }
+        body[data-theme="lavender"] .theme-input { background-color:#273248 !important; border-color:#64748b !important; color:#e6ebf5 !important; }
+        body[data-theme="lavender"] .theme-btn-theme, body[data-theme="lavender"] .theme-btn-alt { background-color:#33466e !important; border-color:#64799f !important; color:#f8faff !important; }
+        body[data-theme="lavender"] table tr { color:#e6ebf5 !important; border-color:#364052 !important; }
         body[data-theme="sand"] .theme-card, body[data-theme="sand"] .theme-header { background-color:#fef3c7 !important; border-color:#d6b98c !important; color:#422006 !important; }
         body[data-theme="sand"] .theme-input { background-color:#fffbeb !important; border-color:#d6b98c !important; color:#422006 !important; }
         body[data-theme="slate"] .theme-card, body[data-theme="slate"] .theme-header { background-color:#334155 !important; border-color:#64748b !important; }
         body[data-theme="slate"] .theme-input { background-color:#475569 !important; border-color:#64748b !important; color:#f8fafc !important; }
         body[data-theme="mint"] .theme-card, body[data-theme="mint"] .theme-header { background-color:#d1fae5 !important; border-color:#6ee7b7 !important; color:#064e3b !important; }
         body[data-theme="mint"] .theme-input { background-color:#ecfdf5 !important; border-color:#6ee7b7 !important; color:#064e3b !important; }
-        body[data-theme="cherry"] .theme-card, body[data-theme="cherry"] .theme-header { background-color:#450a0a !important; border-color:#991b1b !important; }
-        body[data-theme="cherry"] .theme-input { background-color:#7f1d1d !important; border-color:#b91c1c !important; color:#fff1f2 !important; }
+        body[data-theme="cherry"] .theme-card { background-color:#252117 !important; color:#efe6d2 !important; border-color:#806f4b !important; }
+        body[data-theme="cherry"] .theme-header, body[data-theme="cherry"] .theme-nav, body[data-theme="cherry"] .theme-subbar, body[data-theme="cherry"] .theme-category, body[data-theme="cherry"] .theme-summary, body[data-theme="cherry"] .theme-table-header { background-color:#1b180f !important; color:#efe6d2 !important; border-color:#806f4b !important; }
+        body[data-theme="cherry"] .theme-input { background-color:#332b1b !important; border-color:#8a754b !important; color:#efe6d2 !important; }
+        body[data-theme="cherry"] .theme-btn-theme, body[data-theme="cherry"] .theme-btn-alt { background-color:#6e2e28 !important; border-color:#a17d43 !important; color:#fff9ed !important; }
+        body[data-theme="cherry"] table tr { color:#efe6d2 !important; border-color:#51452d !important; }
         body[data-theme="royal"] .theme-card, body[data-theme="royal"] .theme-header { background-color:#172554 !important; border-color:#1d4ed8 !important; }
         body[data-theme="royal"] .theme-input { background-color:#1e3a8a !important; border-color:#2563eb !important; color:#eff6ff !important; }
         body[data-theme="mono"] .theme-card, body[data-theme="mono"] .theme-header { background-color:#171717 !important; border-color:#525252 !important; }
@@ -307,6 +341,95 @@ button:not(:disabled):active { transform: translateY(1px); }
         #section-history .theme-card { max-width: 100%; }
     }
 </style>
+<style id="light-mode-compat">
+body#app-body[data-theme-mode="light"] { background:#f8fafc !important; color:#0f172a !important; }
+body#app-body[data-theme-mode="light"] .theme-card, body#app-body[data-theme-mode="light"] .theme-header, body#app-body[data-theme-mode="light"] .theme-nav, body#app-body[data-theme-mode="light"] .theme-subbar, body#app-body[data-theme-mode="light"] .theme-category, body#app-body[data-theme-mode="light"] .theme-summary, body#app-body[data-theme-mode="light"] .theme-table-header { background-color:#ffffff !important; color:#0f172a !important; border-color:#cbd5e1 !important; box-shadow:0 3px 10px rgba(15,23,42,.06) !important; }
+body#app-body[data-theme-mode="light"] .theme-input { background-color:#ffffff !important; color:#0f172a !important; border-color:#cbd5e1 !important; }
+body#app-body[data-theme-mode="light"] #auth-screen { background-color:rgba(241,245,249,.96) !important; }
+body#app-body[data-theme-mode="light"] #section-settings #system-users-table tr, body#app-body[data-theme-mode="light"] #section-settings #system-users-table td { background-color:#ffffff !important; color:#0f172a !important; border-color:#cbd5e1 !important; }
+body#app-body[data-theme-mode="light"] #section-settings #system-users-table tr:hover { background-color:#f1f5f9 !important; }
+body#app-body[data-theme-mode="light"] .bg-slate-950, body#app-body[data-theme-mode="light"] .bg-slate-900, body#app-body[data-theme-mode="light"] .bg-slate-800, body#app-body[data-theme-mode="light"] .bg-slate-700, body#app-body[data-theme-mode="light"] .bg-slate-600, body#app-body[data-theme-mode="light"] .bg-gray-950, body#app-body[data-theme-mode="light"] .bg-gray-900, body#app-body[data-theme-mode="light"] .bg-gray-800, body#app-body[data-theme-mode="light"] .bg-zinc-950, body#app-body[data-theme-mode="light"] .bg-zinc-900, body#app-body[data-theme-mode="light"] .bg-neutral-950, body#app-body[data-theme-mode="light"] .bg-neutral-900 { background-color:#f1f5f9 !important; color:#334155 !important; }
+body#app-body[data-theme-mode="light"] .text-slate-50, body#app-body[data-theme-mode="light"] .text-slate-100, body#app-body[data-theme-mode="light"] .text-slate-200, body#app-body[data-theme-mode="light"] .text-slate-300, body#app-body[data-theme-mode="light"] .text-gray-100, body#app-body[data-theme-mode="light"] .text-gray-200, body#app-body[data-theme-mode="light"] .text-gray-300 { color:#334155 !important; }
+body#app-body[data-theme-mode="light"] .text-slate-400, body#app-body[data-theme-mode="light"] .text-gray-400 { color:#64748b !important; }
+body#app-body[data-theme-mode="light"] .border-slate-700, body#app-body[data-theme-mode="light"] .border-slate-800, body#app-body[data-theme-mode="light"] .border-gray-700, body#app-body[data-theme-mode="light"] .border-gray-800 { border-color:#cbd5e1 !important; }
+body#app-body[data-theme-mode="light"] h1.text-white, body#app-body[data-theme-mode="light"] h2.text-white, body#app-body[data-theme-mode="light"] h3.text-white, body#app-body[data-theme-mode="light"] h4.text-white { color:#0f172a !important; }
+body#app-body[data-theme-mode="light"] #products-grid .sales-product-card { background:var(--lm-panel,#f1f5f9) !important; color:var(--lm-ink,#0f172a) !important; border-color:var(--lm-border,#cbd5e1) !important; box-shadow:0 3px 10px rgba(15,23,42,.10) !important; }
+body#app-body[data-theme-mode="light"] #products-grid .sales-product-card:not(.opacity-40) { border-color:#94a3b8 !important; box-shadow:0 3px 12px rgba(15,23,42,.14), inset 0 1px rgba(255,255,255,.8) !important; }
+body#app-body:not([data-theme-mode="light"]) #products-grid .sales-product-card:not(.opacity-40) { background:#172338 !important; color:#f1f5f9 !important; border-color:#475569 !important; box-shadow:0 3px 12px rgba(0,0,0,.24), inset 0 1px rgba(255,255,255,.04) !important; }
+body#app-body:not([data-theme-mode="light"]) #products-grid .sales-product-card:not(.opacity-40) .sales-product-price { background:#334155 !important; color:#d1fae5 !important; border-color:#64748b !important; }
+body#app-body[data-theme-mode="light"] #products-grid .sales-product-card:hover { background:var(--lm-accent-soft,#d1fae5) !important; border-color:var(--lm-accent,#059669) !important; }
+body#app-body[data-theme-mode="light"] #products-grid .sales-product-card.opacity-40 { opacity:.78 !important; background:#fee2e2 !important; border-color:#ef4444 !important; }
+body#app-body[data-theme-mode="light"] #products-grid .sales-product-card.opacity-40 .sales-product-price { background:#fff7f7 !important; color:#b91c1c !important; border-color:#fca5a5 !important; }
+body#app-body:not([data-theme-mode="light"]) #products-grid .sales-product-card.opacity-40 { opacity:.9 !important; background:#450a0a !important; border-color:#ef4444 !important; box-shadow:0 0 0 1px rgba(239,68,68,.28),0 4px 12px rgba(127,29,29,.25) !important; }
+body#app-body:not([data-theme-mode="light"]) #products-grid .sales-product-card.opacity-40 .sales-product-price { background:#7f1d1d !important; color:#fee2e2 !important; border-color:#ef4444 !important; }
+body#app-body[data-theme-mode="light"] #products-grid .sales-product-card.opacity-40 { opacity:.92 !important; box-shadow:0 0 0 1px rgba(239,68,68,.18),0 3px 10px rgba(127,29,29,.12) !important; }
+body#app-body[data-theme-mode="light"] #products-grid .sales-product-barcode { background:var(--lm-card,#fff) !important; color:var(--lm-ink,#0f172a) !important; border-color:var(--lm-border,#cbd5e1) !important; }
+body#app-body[data-theme-mode="light"] #products-grid .sales-product-price { background:var(--lm-card,#fff) !important; color:var(--lm-accent,#059669) !important; border-color:var(--lm-border,#cbd5e1) !important; }
+body#app-body[data-theme-mode="light"] #products-grid .sales-product-meta { color:var(--lm-muted,#64748b) !important; opacity:1 !important; }
+body#app-body[data-theme-mode="light"] #section-settings #system-users-table tr, body#app-body[data-theme-mode="light"] #section-settings #system-users-table td { background-color:#ffffff !important; color:#0f172a !important; border-color:#cbd5e1 !important; }
+body#app-body[data-theme-mode="light"] #section-settings #system-users-table tr:hover { background-color:#f1f5f9 !important; }
+body#app-body[data-theme-mode="light"] table th, body#app-body[data-theme-mode="light"] table td { border-color:#cbd5e1 !important; }
+body#app-body[data-theme-mode="light"] table tr { color:#1e293b !important; }
+body#app-body[data-theme-mode="light"] table tbody tr, body#app-body[data-theme-mode="light"] table tfoot tr { background-color:#ffffff !important; }
+body#app-body[data-theme-mode="light"] table tbody tr:hover { background-color:#f1f5f9 !important; }
+body#app-body[data-theme-mode="light"] input::placeholder, body#app-body[data-theme-mode="light"] textarea::placeholder { color:#64748b !important; opacity:1; }
+body#app-body[data-theme-mode="light"] select option { background:#ffffff !important; color:#0f172a !important; }
+body#app-body[data-theme-mode="light"] .theme-card { border-radius:10px !important; }
+body#app-body[data-theme-mode="light"] .theme-btn-alt { background:#ffffff !important; color:#334155 !important; border-color:#cbd5e1 !important; box-shadow:0 1px 2px rgba(15,23,42,.08) !important; }
+body#app-body[data-theme-mode="light"] button:focus-visible, body#app-body[data-theme-mode="light"] select:focus-visible, body#app-body[data-theme-mode="light"] input:focus-visible { outline:3px solid #0ea5e9 !important; outline-offset:2px; }
+body#app-body[data-theme-mode="light"] input[type="checkbox"], body#app-body[data-theme-mode="light"] input[type="radio"] { accent-color:#059669; }
+body#app-body[data-theme-mode="light"] input.peer:checked + div { background-color:#059669 !important; box-shadow:0 0 0 2px rgba(5,150,105,.2) !important; }
+body#app-body[data-theme-mode="light"] #setting-firebase-toggle.peer:checked + div { background-color:#7c3aed !important; box-shadow:0 0 0 2px rgba(124,58,237,.2) !important; }
+body#app-body[data-theme-mode="light"] #setting-dark-mode-toggle { accent-color:#4f46e5; width:18px; height:18px; }
+body#app-body[data-theme-mode="light"] #app-nav button.bg-emerald-600, body#app-body[data-theme-mode="light"] #category-container button.bg-emerald-600 { box-shadow:0 0 0 2px #a7f3d0, 0 4px 10px rgba(5,150,105,.22) !important; font-weight:800 !important; }
+body#app-body[data-theme-mode="light"] #category-container button:not(.bg-emerald-600) { border-width:1px !important; box-shadow:0 1px 3px rgba(15,23,42,.1) !important; }
+body#app-body[data-theme-mode="light"] .theme-input:focus, body#app-body[data-theme-mode="light"] select:focus { border-color:#0284c7 !important; box-shadow:0 0 0 3px rgba(14,165,233,.18) !important; }
+body#app-body[data-theme-mode="light"] .theme-table-header { background:linear-gradient(135deg,#e0f2fe,#f8fafc) !important; }
+body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"] h2, body#app-body[data-theme-mode="light"] h3, body#app-body[data-theme-mode="light"] h4, body#app-body[data-theme-mode="light"] h5, body#app-body[data-theme-mode="light"] h6 { color:#0f172a !important; text-shadow:none !important; }
+body#app-body[data-theme-mode="light"] table thead, body#app-body[data-theme-mode="light"] .theme-table-header { background:linear-gradient(135deg,#dbeafe,#f8fafc) !important; }
+body#app-body[data-theme-mode="light"] table thead th, body#app-body[data-theme-mode="light"] table thead td, body#app-body[data-theme-mode="light"] .theme-table-header th, body#app-body[data-theme-mode="light"] .theme-table-header td, body#app-body[data-theme-mode="light"] .theme-table-header * { color:#0f172a !important; text-shadow:none !important; }
+body#app-body[data-theme-mode="light"] #section-settings #system-users-table tr { border-bottom:1px solid #e2e8f0 !important; }body#app-body[data-theme-mode="light"] section[id^="section-"] h1,
+body#app-body[data-theme-mode="light"] section[id^="section-"] h2,
+body#app-body[data-theme-mode="light"] section[id^="section-"] h3,
+body#app-body[data-theme-mode="light"] section[id^="section-"] h4 { color:#0f172a !important; text-shadow:none !important; }/* Her renk temasinin acik mod paleti */
+body#app-body[data-theme="dark"][data-theme-mode="light"] { --lm-canvas:#f1f5f9; --lm-card:#ffffff; --lm-panel:#e2e8f0; --lm-input:#ffffff; --lm-border:#cbd5e1; --lm-ink:#0f172a; --lm-muted:#475569; --lm-accent:#059669; --lm-accent-soft:#d1fae5; }
+body#app-body[data-theme="light"][data-theme-mode="light"] { --lm-canvas:#f8fafc; --lm-card:#ffffff; --lm-panel:#f1f5f9; --lm-input:#ffffff; --lm-border:#cbd5e1; --lm-ink:#0f172a; --lm-muted:#475569; --lm-accent:#059669; --lm-accent-soft:#d1fae5; }
+body#app-body[data-theme="midnight"][data-theme-mode="light"] { --lm-canvas:#eff6ff; --lm-card:#ffffff; --lm-panel:#dbeafe; --lm-input:#f8fbff; --lm-border:#93c5fd; --lm-ink:#1e3a8a; --lm-muted:#475569; --lm-accent:#1d4ed8; --lm-accent-soft:#bfdbfe; }
+body#app-body[data-theme="emerald"][data-theme-mode="light"] { --lm-canvas:#ecfdf5; --lm-card:#ffffff; --lm-panel:#d1fae5; --lm-input:#f7fefb; --lm-border:#86efac; --lm-ink:#064e3b; --lm-muted:#3f6257; --lm-accent:#047857; --lm-accent-soft:#a7f3d0; }
+body#app-body[data-theme="purple"][data-theme-mode="light"] { --lm-canvas:#faf5ff; --lm-card:#ffffff; --lm-panel:#f3e8ff; --lm-input:#fdfaff; --lm-border:#d8b4fe; --lm-ink:#3b0764; --lm-muted:#62516f; --lm-accent:#7e22ce; --lm-accent-soft:#e9d5ff; }
+body#app-body[data-theme="sunset"][data-theme-mode="light"] { --lm-canvas:#fff7ed; --lm-card:#ffffff; --lm-panel:#ffedd5; --lm-input:#fffaf5; --lm-border:#fdba74; --lm-ink:#7c2d12; --lm-muted:#755b4a; --lm-accent:#c2410c; --lm-accent-soft:#fed7aa; }
+body#app-body[data-theme="cyberpunk"][data-theme-mode="light"] { --lm-canvas:#fefce8; --lm-card:#ffffff; --lm-panel:#fef9c3; --lm-input:#fffef5; --lm-border:#fde047; --lm-ink:#422006; --lm-muted:#6b5c32; --lm-accent:#a16207; --lm-accent-soft:#fef08a; }
+body#app-body[data-theme="crimson"][data-theme-mode="light"] { --lm-canvas:#fff1f2; --lm-card:#ffffff; --lm-panel:#ffe4e6; --lm-input:#fff9fa; --lm-border:#fda4af; --lm-ink:#4c0519; --lm-muted:#76545d; --lm-accent:#be123c; --lm-accent-soft:#fecdd3; }
+body#app-body[data-theme="arctic"][data-theme-mode="light"] { --lm-canvas:#f0f9ff; --lm-card:#ffffff; --lm-panel:#e0f2fe; --lm-input:#f8fdff; --lm-border:#7dd3fc; --lm-ink:#082f49; --lm-muted:#486273; --lm-accent:#0284c7; --lm-accent-soft:#bae6fd; }
+body#app-body[data-theme="coffee"][data-theme-mode="light"] { --lm-canvas:#fafaf9; --lm-card:#ffffff; --lm-panel:#e7e5e4; --lm-input:#fffefd; --lm-border:#a8a29e; --lm-ink:#292524; --lm-muted:#5b5551; --lm-accent:#92400e; --lm-accent-soft:#fed7aa; }
+body#app-body[data-theme="ocean"][data-theme-mode="light"] { --lm-canvas:#ecfeff; --lm-card:#ffffff; --lm-panel:#cffafe; --lm-input:#f6feff; --lm-border:#67e8f9; --lm-ink:#164e63; --lm-muted:#46636b; --lm-accent:#0e7490; --lm-accent-soft:#a5f3fc; }
+body#app-body[data-theme="forest"][data-theme-mode="light"] { --lm-canvas:#f0fdf4; --lm-card:#ffffff; --lm-panel:#dcfce7; --lm-input:#f8fef9; --lm-border:#86efac; --lm-ink:#14532d; --lm-muted:#4d6856; --lm-accent:#15803d; --lm-accent-soft:#bbf7d0; }
+body#app-body[data-theme="rose"][data-theme-mode="light"] { --lm-canvas:#f4f1ef; --lm-card:#fffdfa; --lm-panel:#e8e2df; --lm-input:#fffdfc; --lm-border:#b7aaa4; --lm-ink:#302522; --lm-muted:#635550; --lm-accent:#762f31; --lm-accent-soft:#d9c6bd; }
+body#app-body[data-theme="lavender"][data-theme-mode="light"] { --lm-canvas:#f2f4f8; --lm-card:#fcfcfd; --lm-panel:#e0e5ef; --lm-input:#ffffff; --lm-border:#aab4c8; --lm-ink:#20283a; --lm-muted:#546174; --lm-accent:#455a85; --lm-accent-soft:#cbd5e1; }
+body#app-body[data-theme="sand"][data-theme-mode="light"] { --lm-canvas:#fffbeb; --lm-card:#ffffff; --lm-panel:#fef3c7; --lm-input:#fffdf5; --lm-border:#fcd34d; --lm-ink:#78350f; --lm-muted:#74614a; --lm-accent:#b45309; --lm-accent-soft:#fde68a; }
+body#app-body[data-theme="slate"][data-theme-mode="light"] { --lm-canvas:#f8fafc; --lm-card:#ffffff; --lm-panel:#e2e8f0; --lm-input:#ffffff; --lm-border:#cbd5e1; --lm-ink:#334155; --lm-muted:#526174; --lm-accent:#475569; --lm-accent-soft:#cbd5e1; }
+body#app-body[data-theme="mint"][data-theme-mode="light"] { --lm-canvas:#ecfdf5; --lm-card:#ffffff; --lm-panel:#d1fae5; --lm-input:#f7fefb; --lm-border:#6ee7b7; --lm-ink:#064e3b; --lm-muted:#3f6257; --lm-accent:#059669; --lm-accent-soft:#a7f3d0; }
+body#app-body[data-theme="cherry"][data-theme-mode="light"] { --lm-canvas:#f5f2eb; --lm-card:#fffdf7; --lm-panel:#e9e1ce; --lm-input:#fffdf7; --lm-border:#b7a376; --lm-ink:#30291d; --lm-muted:#625942; --lm-accent:#7b2d2d; --lm-accent-soft:#d8c6a5; }
+body#app-body[data-theme="royal"][data-theme-mode="light"] { --lm-canvas:#eff6ff; --lm-card:#ffffff; --lm-panel:#dbeafe; --lm-input:#f8fbff; --lm-border:#93c5fd; --lm-ink:#1e3a8a; --lm-muted:#475569; --lm-accent:#1d4ed8; --lm-accent-soft:#bfdbfe; }
+body#app-body[data-theme="mono"][data-theme-mode="light"] { --lm-canvas:#f5f5f5; --lm-card:#ffffff; --lm-panel:#e5e5e5; --lm-input:#ffffff; --lm-border:#a3a3a3; --lm-ink:#262626; --lm-muted:#525252; --lm-accent:#525252; --lm-accent-soft:#d4d4d4; }
+body#app-body[data-theme-mode="light"] { background:var(--lm-canvas,#f8fafc) !important; color:var(--lm-ink,#0f172a) !important; }
+body#app-body[data-theme-mode="light"] .theme-card { background:var(--lm-card,#fff) !important; color:var(--lm-ink,#0f172a) !important; border-color:var(--lm-border,#cbd5e1) !important; }
+body#app-body[data-theme-mode="light"] .theme-header, body#app-body[data-theme-mode="light"] .theme-nav, body#app-body[data-theme-mode="light"] .theme-subbar, body#app-body[data-theme-mode="light"] .theme-category, body#app-body[data-theme-mode="light"] .theme-summary, body#app-body[data-theme-mode="light"] .theme-table-header { background:var(--lm-panel,#f1f5f9) !important; color:var(--lm-ink,#0f172a) !important; border-color:var(--lm-border,#cbd5e1) !important; }
+body#app-body[data-theme-mode="light"] .theme-input { background:var(--lm-input,#fff) !important; color:var(--lm-ink,#0f172a) !important; border-color:var(--lm-border,#cbd5e1) !important; }
+body#app-body[data-theme-mode="light"] .bg-slate-950, body#app-body[data-theme-mode="light"] .bg-slate-900, body#app-body[data-theme-mode="light"] .bg-slate-800, body#app-body[data-theme-mode="light"] .bg-slate-700, body#app-body[data-theme-mode="light"] .bg-slate-600, body#app-body[data-theme-mode="light"] .bg-gray-950, body#app-body[data-theme-mode="light"] .bg-gray-900, body#app-body[data-theme-mode="light"] .bg-gray-800, body#app-body[data-theme-mode="light"] .bg-zinc-950, body#app-body[data-theme-mode="light"] .bg-zinc-900, body#app-body[data-theme-mode="light"] .bg-neutral-950, body#app-body[data-theme-mode="light"] .bg-neutral-900 { background:var(--lm-panel,#f1f5f9) !important; color:var(--lm-ink,#0f172a) !important; }
+body#app-body[data-theme-mode="light"] .theme-card.bg-slate-900, body#app-body[data-theme-mode="light"] .theme-card.bg-slate-800 { background:var(--lm-card,#fff) !important; }
+body#app-body[data-theme-mode="light"] .text-slate-400, body#app-body[data-theme-mode="light"] .text-gray-400 { color:var(--lm-muted,#64748b) !important; }
+body#app-body[data-theme-mode="light"] .theme-btn-alt { background:var(--lm-panel,#f1f5f9) !important; color:var(--lm-ink,#0f172a) !important; border-color:var(--lm-border,#cbd5e1) !important; }
+body#app-body[data-theme-mode="light"] .theme-table-header, body#app-body[data-theme-mode="light"] table thead { background:var(--lm-panel,#e2e8f0) !important; color:var(--lm-ink,#0f172a) !important; }
+body#app-body[data-theme-mode="light"] .theme-table-header *, body#app-body[data-theme-mode="light"] table thead th, body#app-body[data-theme-mode="light"] table thead td { color:var(--lm-ink,#0f172a) !important; }
+body#app-body[data-theme-mode="light"] table tr { background:var(--lm-card,#fff) !important; color:var(--lm-ink,#1e293b) !important; }
+body#app-body[data-theme-mode="light"] table tbody tr:hover { background:var(--lm-panel,#f1f5f9) !important; }
+body#app-body[data-theme-mode="light"] #app-nav button.bg-emerald-600, body#app-body[data-theme-mode="light"] #category-container button.bg-emerald-600, body#app-body[data-theme-mode="light"] #section-cash button.bg-emerald-600, body#app-body[data-theme-mode="light"] .device-view-button.bg-emerald-600 { background:var(--lm-accent,#059669) !important; border-color:var(--lm-accent,#059669) !important; color:#ffffff !important; box-shadow:0 0 0 2px var(--lm-accent-soft,#d1fae5),0 4px 10px rgba(15,23,42,.16) !important; }
+body#app-body[data-theme-mode="light"] input[type="checkbox"], body#app-body[data-theme-mode="light"] input[type="radio"] { accent-color:var(--lm-accent,#059669) !important; }
+body#app-body[data-theme-mode="light"] input.peer:checked + div { background:var(--lm-accent,#059669) !important; box-shadow:0 0 0 2px var(--lm-accent-soft,#d1fae5) !important; }
+body#app-body[data-theme-mode="light"] #setting-dark-mode-toggle { accent-color:var(--lm-accent,#059669) !important; }
+body#app-body[data-theme-mode="light"] .theme-input:focus, body#app-body[data-theme-mode="light"] select:focus { border-color:var(--lm-accent,#059669) !important; box-shadow:0 0 0 3px var(--lm-accent-soft,#d1fae5) !important; }
+body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"] h2, body#app-body[data-theme-mode="light"] h3, body#app-body[data-theme-mode="light"] h4, body#app-body[data-theme-mode="light"] h5, body#app-body[data-theme-mode="light"] h6 { color:var(--lm-ink,#0f172a) !important; }</style>
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans h-full flex flex-col overflow-hidden select-none transition-colors duration-300" id="app-body">
 <!-- LİSANS / GİRİŞ EKRANI -->
@@ -379,12 +502,12 @@ button:not(:disabled):active { transform: translateY(1px); }
 <i class="fa-solid fa-cart-shopping"></i>
 <span>Satış</span>
 </button>
-<button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap" id="tab-kitchen" onclick="sekmeyiDegistir('kitchen')">
+<button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap hidden" id="tab-kitchen" onclick="sekmeyiDegistir('kitchen')">
 <i class="fa-solid fa-fire-burner"></i>
 <span>Mutfak <span class="ml-1 rounded-full bg-red-600 text-white px-1.5" id="kitchen-nav-count">0</span></span>
 </button>
-<button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap" id="tab-adisyon" onclick="sekmeyiDegistir('adisyon')"><i class="fa-solid fa-clipboard-list"></i><span>Adisyon <span id="adisyon-nav-count" class="ml-1 rounded-full bg-amber-600 text-white px-1.5">0</span></span></button>
-<button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap" id="tab-customerorders" onclick="sekmeyiDegistir('customerorders')"><i class="fa-solid fa-bell-concierge"></i><span>Müşteri Siparişleri <span id="customer-order-nav-count" class="ml-1 rounded-full bg-red-600 text-white px-1.5">0</span></span></button>
+<button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap hidden" id="tab-adisyon" onclick="sekmeyiDegistir('adisyon')"><i class="fa-solid fa-clipboard-list"></i><span>Adisyon <span id="adisyon-nav-count" class="ml-1 rounded-full bg-amber-600 text-white px-1.5">0</span></span></button>
+<button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap hidden" id="tab-customerorders" onclick="sekmeyiDegistir('customerorders')"><i class="fa-solid fa-bell-concierge"></i><span>Müşteri Siparişleri <span id="customer-order-nav-count" class="ml-1 rounded-full bg-red-600 text-white px-1.5">0</span></span></button>
 <button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap" id="tab-products" onclick="sekmeyiDegistir('products')">
 <i class="fa-solid fa-boxes-stacked"></i>
 <span>Ürünler</span>
@@ -411,6 +534,7 @@ button:not(:disabled):active { transform: translateY(1px); }
 </button>
 </nav>
 <div class="flex items-center space-x-2 text-xs">
+<button id="install-app-button" type="button" onclick="uygulamayiYukle()" class="rounded-md bg-emerald-700 hover:bg-emerald-600 px-2 py-1.5 text-white text-[10px] md:text-xs font-bold whitespace-nowrap" title="Uygulamayı yükle"><i class="fa-solid fa-download mr-1"></i><span class="hidden sm:inline">Uygulamayı Yükle</span><span class="sm:hidden">Yükle</span></button>
 <button class="text-slate-400 hover:text-red-500 p-1.5 transition" onclick="cikisYap()" title="Çıkış Yap">
 <i class="fa-solid fa-right-from-bracket text-sm"></i>
 </button>
@@ -472,8 +596,8 @@ button:not(:disabled):active { transform: translateY(1px); }
 <div class="flex-1 overflow-y-auto p-1.5 space-y-1 min-h-0" id="cart-items"></div>
 </div>
 </div>
-<div class="theme-card bg-slate-900 rounded-lg border border-slate-800 p-2 shadow-lg shrink-0" id="cart-kitchen-note-panel">
-<div class="grid grid-cols-2 gap-2 mb-2" id="cart-waiter-fields"><div><label class="block text-[10px] font-bold text-cyan-400 mb-1" for="cart-order-type"><i class="fa-solid fa-chair mr-1"></i>Sipariş kategorisi</label><div class="flex gap-1"><select class="theme-input w-[42%] min-w-0 bg-slate-950 px-1.5 py-1.5 rounded border border-slate-800 text-xs" id="cart-order-type" onchange="siparisKategorisiDegisti()"><option value="Masa">Masa</option><option value="Paket">Paket</option></select><input class="theme-input min-w-0 flex-1 w-full bg-slate-950 px-2 py-1.5 rounded border border-slate-800 text-xs" id="cart-table-number" maxlength="30" placeholder="No / ad" type="text"/></div></div><div id="cart-waiter-field-wrapper"><label class="block text-[10px] font-bold text-cyan-400 mb-1" for="cart-waiter"><i class="fa-solid fa-user-tie mr-1"></i>Garson</label><select class="theme-input w-full bg-slate-950 px-2 py-1.5 rounded border border-slate-800 text-xs" id="cart-waiter"></select></div></div>
+<div class="theme-card bg-slate-900 rounded-lg border border-slate-800 p-2 shadow-lg shrink-0 hidden" id="cart-kitchen-note-panel">
+<div class="grid grid-cols-2 gap-2 mb-2" id="cart-waiter-fields"><div id="cart-order-type-field"><label id="cart-order-type-label" class="block text-[10px] font-bold text-cyan-400 mb-1 hidden" for="cart-order-type"><i class="fa-solid fa-chair mr-1"></i>Sipariş kategorisi</label><div class="flex gap-1"><select class="theme-input w-[42%] min-w-0 bg-slate-950 px-1.5 py-1.5 rounded border border-slate-800 text-xs hidden" id="cart-order-type" onchange="siparisKategorisiDegisti()"><option value="Masa">Masa</option><option value="Paket">Paket</option></select><input class="theme-input min-w-0 flex-1 w-full bg-slate-950 px-2 py-1.5 rounded border border-slate-800 text-xs" id="cart-table-number" maxlength="30" placeholder="No / ad" type="text"/></div></div><div id="cart-waiter-field-wrapper" class="hidden"><label class="block text-[10px] font-bold text-cyan-400 mb-1" for="cart-waiter"><i class="fa-solid fa-user-tie mr-1"></i>Garson</label><select class="theme-input w-full bg-slate-950 px-2 py-1.5 rounded border border-slate-800 text-xs" id="cart-waiter"></select></div></div>
 <div id="cart-kitchen-note-fields"><label class="block text-[10px] font-bold text-amber-400 mb-1" for="cart-kitchen-note"><i class="fa-solid fa-note-sticky mr-1"></i>Mutfak / sipariş notu (isteğe bağlı)</label>
 <input class="theme-input w-full bg-slate-950 px-2 py-1.5 rounded border border-slate-800 text-xs focus:outline-none focus:border-amber-500" id="cart-kitchen-note" maxlength="240" placeholder="Örn. soğansız, az pişmiş, masa 4..." type="text"/></div>
 </div>
@@ -496,7 +620,7 @@ button:not(:disabled):active { transform: translateY(1px); }
 <span class="font-mono" id="cart-total">₺0.00</span>
 </div>
 </div>
-<button class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-3 rounded text-xs flex items-center justify-center gap-2" onclick="adisyonuKaydet()" type="button"><i class="fa-solid fa-clipboard-list"></i><span id="adisyon-save-label">ADİSYON AÇ / KAYDET</span></button>
+<button class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-3 rounded text-xs flex items-center justify-center gap-2" id="cart-adisyon-save-button" onclick="adisyonuKaydet()" type="button"><i class="fa-solid fa-clipboard-list"></i><span id="adisyon-save-label">ADİSYON AÇ / KAYDET</span></button>
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
 <button class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-1 rounded transition flex flex-col items-center justify-center shadow active:scale-95 border border-emerald-500/30 cursor-pointer" id="sales-cash-button" onclick="odemeYap('Nakit')" type="button">
 <i class="fa-solid fa-money-bill-wave text-xs mb-0.5"></i>
@@ -518,7 +642,7 @@ button:not(:disabled):active { transform: translateY(1px); }
 <div><h2 class="text-xl font-black"><i class="fa-solid fa-fire-burner text-orange-400 mr-2"></i>Mutfak Siparişleri</h2><p class="text-xs text-slate-400 mt-1">Yeni siparişleri alın, hazırlama durumunu güncelleyin ve mutfak fişlerini yazdırın.</p></div>
 <div class="flex gap-2"><button class="px-3 py-2 rounded bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold" onclick="mutfakSesiniAc()"><i class="fa-solid fa-volume-high mr-1"></i>Sesli uyarıyı aç</button><button class="px-3 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold" onclick="mutfakEkraniniGuncelle()"><i class="fa-solid fa-rotate mr-1"></i>Yenile</button><button class="px-3 py-2 rounded bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold" onclick="mutfakBekleyenleriYazdir()"><i class="fa-solid fa-print mr-1"></i>Bekleyen fişleri yazdır</button></div>
 </div>
-<div class="theme-card rounded-lg border border-slate-700 p-3 flex flex-wrap items-center gap-2" id="kitchen-alert-sound-panel"><label class="text-xs text-slate-300 font-semibold" for="kitchen-alert-tone">Bildirim sesi</label><select id="kitchen-alert-tone" class="theme-input bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-xs" onchange="mutfakSesiTercihiniKaydet()"><option value="classic">Klasik zil</option><option value="double">Çift uyarı</option><option value="urgent">Acil uyarı</option><option value="soft">Yumuşak uyarı</option><option value="uploaded">Yüklenen ses</option></select><button type="button" class="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold" onclick="mutfakUyariSesiTestEt()"><i class="fa-solid fa-play mr-1"></i>Dinle</button><label for="kitchen-alert-file" class="px-3 py-1.5 rounded bg-violet-700 hover:bg-violet-600 text-white text-xs font-bold cursor-pointer"><i class="fa-solid fa-upload mr-1"></i>Ses dosyası yükle</label><input id="kitchen-alert-file" type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a" class="hidden" onchange="mutfakSesiDosyasiYukle(this)"/><span id="kitchen-alert-file-name" class="text-[11px] text-slate-400">Yerleşik seslerden birini seçin veya ses dosyası yükleyin.</span></div>
+<div class="theme-card rounded-lg border border-slate-700 p-3 flex flex-wrap items-center gap-2" id="kitchen-alert-sound-panel"><label class="text-xs text-slate-300 font-semibold" for="kitchen-alert-tone">Bildirim sesi</label><select id="kitchen-alert-tone" class="theme-input bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-xs" onchange="mutfakSesiTercihiniKaydet()"><option value="classic">Klasik zil</option><option value="double">Çift uyarı</option><option value="urgent">Acil uyarı</option><option value="soft">Yumuşak uyarı</option><option value="uploaded">Yüklenen ses</option></select><button type="button" class="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold" onclick="mutfakUyariSesiTestEt()"><i class="fa-solid fa-play mr-1"></i>Dinle</button><label for="kitchen-alert-file" class="px-3 py-1.5 rounded bg-violet-700 hover:bg-violet-600 text-white text-xs font-bold cursor-pointer"><i class="fa-solid fa-upload mr-1"></i>Ses dosyası yükle</label><input id="kitchen-alert-file" type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a" class="hidden" onchange="mutfakSesiDosyasiYukle(this)"/><span id="kitchen-alert-file-name" class="text-[11px] text-slate-400">Yerleşik seslerden birini seçin veya ses dosyası yükleyin.</span><label class="ml-auto inline-flex items-center gap-2 rounded border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-bold"><input id="kitchen-auto-print" type="checkbox" class="h-4 w-4 accent-emerald-500" onchange="mutfakOtomatikYazdirDegistir(this.checked)"/><span>Yeni sipariş fişlerini otomatik yazdır</span></label></div>
 <div class="grid grid-cols-3 gap-2">
 <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Yeni</div><div class="text-2xl font-black text-red-400" id="kitchen-count-new">0</div></div>
 <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Hazırlanıyor</div><div class="text-2xl font-black text-amber-400" id="kitchen-count-preparing">0</div></div>
@@ -533,7 +657,7 @@ button:not(:disabled):active { transform: translateY(1px); }
     <div><h2 class="text-lg font-black text-amber-400"><i class="fa-solid fa-clipboard-list mr-2"></i>Adisyon Takibi</h2><p class="text-xs text-slate-400 mt-1">Açık masa hesaplarını yönetin, siparişe devam edin veya hesabı satışa dönüştürün.</p></div>
     <div class="flex gap-2"><button class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded px-3 py-2 text-xs" onclick="adisyonlariGoster()"><i class="fa-solid fa-rotate mr-1"></i>Yenile</button><button class="bg-amber-600 hover:bg-amber-500 text-white font-bold rounded px-3 py-2 text-xs" onclick="sekmeyiDegistir('sales')"><i class="fa-solid fa-plus mr-1"></i>Yeni Adisyon</button></div>
   </div>
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3"><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Açık adisyon</div><div id="adisyon-count-open" class="text-2xl font-black text-amber-400">0</div></div><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Açık hesap toplamı</div><div id="adisyon-total-open" class="text-2xl font-black text-emerald-400">₺0,00</div></div><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Masa sayısı</div><div id="adisyon-count-tables" class="text-2xl font-black text-cyan-400">0</div></div></div>
+  <div class="grid grid-cols-2 lg:grid-cols-5 gap-3"><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Açık adisyon</div><div id="adisyon-count-open" class="text-2xl font-black text-amber-400">0</div></div><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Hazırlanıyor</div><div id="adisyon-count-preparing" class="text-2xl font-black text-amber-400">0</div></div><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Hazır</div><div id="adisyon-count-ready" class="text-2xl font-black text-emerald-400">0</div></div><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Açık hesap toplamı</div><div id="adisyon-total-open" class="text-2xl font-black text-emerald-400">₺0,00</div></div><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Masa sayısı</div><div id="adisyon-count-tables" class="text-2xl font-black text-cyan-400">0</div></div></div>
   <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" id="adisyon-list"><div class="text-sm text-slate-400">Açık adisyon bulunmuyor.</div></div>
 </section>
 <!-- MÜŞTERİDEN GELEN MASA SİPARİŞLERİ -->
@@ -616,7 +740,7 @@ button:not(:disabled):active { transform: translateY(1px); }
 <p class="text-xs text-slate-400 mt-0.5">Nakit, kredi kartı ve tahsilat durumu.</p>
 </div>
 </div>
-<div class="flex flex-wrap gap-2 rounded-lg border border-slate-800 bg-slate-950/70 p-2">
+<div class="theme-subbar flex flex-wrap gap-2 rounded-lg border border-slate-800 bg-slate-950/70 p-2">
 <button class="px-3 py-2 rounded-md text-xs font-bold bg-emerald-600 text-white" id="cash-tab-sales" onclick="kasaAltBolumunuDegistir('sales')" type="button"><i class="fa-solid fa-cash-register mr-1"></i> Satış Kasası</button>
 <button class="px-3 py-2 rounded-md text-xs font-bold text-slate-400 hover:text-emerald-400" id="cash-tab-manual" onclick="kasaAltBolumunuDegistir('manual')" type="button"><i class="fa-solid fa-wallet mr-1"></i> Kasa (Manuel)</button>
 </div>
@@ -873,7 +997,7 @@ button:not(:disabled):active { transform: translateY(1px); }
 <div class="space-y-3">
 <div>
 <label class="block text-xs text-slate-400 mb-1 font-medium">Sistem Teması Seçin (20 Farklı Tema)</label>
-<select class="theme-input w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-xs md:text-sm focus:outline-none focus:border-amber-500 transition cursor-pointer" id="setting-theme-select" onchange="temaSecimindenDegistir(this)">
+<label class="flex items-center justify-between rounded border border-slate-800 bg-slate-950 p-3 text-xs font-semibold"><span><i class="fa-solid fa-moon mr-2 text-indigo-400"></i>Karanlık Mod</span><input id="setting-dark-mode-toggle" type="checkbox" class="w-4 h-4 accent-indigo-500" onchange="karanlikModuDegistir(this.checked)"/></label><select class="theme-input w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-xs md:text-sm focus:outline-none focus:border-amber-500 transition cursor-pointer" id="setting-theme-select" onchange="temaSecimindenDegistir(this)">
 <option value="dark">Koyu / Modern (Koyu Gri)</option>
 <option value="light">Açık / Ferah (Beyaz / Gri)</option>
 <option value="midnight">Gece Mavisi (Derin Mavi)</option>
@@ -886,12 +1010,12 @@ button:not(:disabled):active { transform: translateY(1px); }
 <option value="coffee">Kahve Diyarı (Espresso / Toprak)</option>
 <option value="ocean">Okyanus Esintisi (Lacivert / Turkuaz)</option>
 <option value="forest">Orman (Yeşil / Kömür)</option>
-<option value="rose">Gül Bahçesi (Pembe / Bordo)</option>
-<option value="lavender">Lavanta (Mor / Lila)</option>
+<option value="rose">Bordo &amp; Füme (Modern)</option>
+<option value="lavender">İndigo &amp; Füme (Asil)</option>
 <option value="sand">Kum Beji (Bej / Kahve)</option>
 <option value="slate">Kurşun Gri (Gri / Füme)</option>
 <option value="mint">Nane Ferahlığı (Açık Yeşil)</option>
-<option value="cherry">Kiraz (Koyu Kırmızı / Pembe)</option>
+<option value="cherry">Bordo &amp; Altın (Klasik)</option>
 <option value="royal">Kraliyet Mavisi (Mavi / Altın)</option>
 <option value="mono">Siyah-Beyaz (Monokrom)</option>
 </select>
@@ -976,14 +1100,25 @@ button:not(:disabled):active { transform: translateY(1px); }
 <button class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-2 rounded" onclick="donemEkle()" type="button"><i class="fa-solid fa-plus mr-1"></i>Dönem Ekle</button>
 </div>
 <div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="theme-table-header"><tr><th class="p-2">Dönem</th><th class="p-2">Durum</th><th class="p-2 text-right">İşlem</th></tr></thead><tbody id="periods-table"></tbody></table></div>
-</div><div class="grid grid-cols-1 lg:grid-cols-2 gap-3.5 items-stretch">
+</div><div class="grid grid-cols-1 gap-3.5 items-stretch">
 <div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
 <h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2"><i class="fa-solid fa-fire-burner text-orange-400"></i> Mutfak Sistemi</h3>
-<div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold">Mutfak özelliğini etkinleştir</div><p class="text-xs text-slate-400 mt-1">Mutfak kapatılırsa mutfakla bağlantılı adisyon ve müşteri siparişleri de gizlenir.</p></div><label class="inline-flex items-center gap-2 text-xs font-bold"><input checked class="w-4 h-4 accent-emerald-500" id="setting-kitchen-enabled" onchange="mutfakSisteminiDegistir(this.checked)" type="checkbox"/> Açık</label></div>
-<div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold">Adisyon özelliğini etkinleştir</div><p class="text-xs text-slate-400 mt-1">Masa adisyonlarını açar veya gizler.</p></div><label class="inline-flex items-center gap-2 text-xs font-bold"><input checked class="w-4 h-4 accent-emerald-500" id="setting-adisyon-enabled" onchange="bagliOzelligiDegistir('adisyon',this.checked)" type="checkbox"/> Açık</label></div>
-<div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold">Müşteri siparişleri özelliğini etkinleştir</div><p class="text-xs text-slate-400 mt-1">QR menüden gelen siparişlerin takibini açar veya gizler.</p></div><label class="inline-flex items-center gap-2 text-xs font-bold"><input checked class="w-4 h-4 accent-emerald-500" id="setting-customerorders-enabled" onchange="bagliOzelligiDegistir('customerorders',this.checked)" type="checkbox"/> Açık</label></div>
+<div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold">Mutfak özelliğini etkinleştir</div><p class="text-xs text-slate-400 mt-1">Kapatıldığında yalnızca mutfak ekranı, sipariş kategorisi ve mutfak notu gizlenir.</p></div><label class="inline-flex items-center gap-2 text-xs font-bold"><input class="w-4 h-4 accent-emerald-500" id="setting-kitchen-enabled" onchange="mutfakSisteminiDegistir(this.checked)" type="checkbox"/> Açık</label></div>
+<div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold">Adisyon özelliğini etkinleştir</div><p class="text-xs text-slate-400 mt-1">Masa adisyonlarını açar veya gizler.</p></div><label class="inline-flex items-center gap-2 text-xs font-bold"><input class="w-4 h-4 accent-emerald-500" id="setting-adisyon-enabled" onchange="bagliOzelligiDegistir('adisyon',this.checked)" type="checkbox"/> Açık</label></div>
+<div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold">Müşteri siparişleri özelliğini etkinleştir</div><p class="text-xs text-slate-400 mt-1">QR menüden gelen siparişlerin takibini açar veya gizler.</p></div><label class="inline-flex items-center gap-2 text-xs font-bold"><input class="w-4 h-4 accent-emerald-500" id="setting-customerorders-enabled" onchange="bagliOzelligiDegistir('customerorders',this.checked)" type="checkbox"/> Açık</label></div>
 </div>
-<div class="theme-card bg-slate-900 p-4 rounded-lg border border-cyan-800 space-y-3 shadow-lg" id="customer-qr-settings"><h3 class="text-sm font-bold text-cyan-400"><i class="fa-solid fa-qrcode mr-2"></i>Masa QR Menü ve Sipariş</h3><p class="text-xs text-slate-400">Müşteriler telefon kamerasıyla QR kodu okutarak ürünleri görebilir ve masadan sipariş verebilir. Cihazlar arası canlı sipariş için Firebase açık olmalı ve program HTTPS adresinde yayınlanmalıdır.</p><div class="flex flex-wrap gap-2"><label class="text-xs text-slate-300 flex items-center gap-2">Masa numarası <input id="customer-qr-table" class="theme-input w-24 bg-slate-950 border border-slate-700 rounded p-2" value="1" maxlength="20"/></label><label class="text-xs text-slate-300 flex items-center gap-2">Sorumlu garson <select id="customer-qr-waiter" class="theme-input bg-slate-950 border border-slate-700 rounded p-2"><option value="">Otomatik / ilk müsait</option></select></label><button type="button" onclick="musteriQrOlustur()" class="bg-cyan-700 hover:bg-cyan-600 text-white rounded px-3 py-2 text-xs font-bold"><i class="fa-solid fa-qrcode mr-1"></i>QR Oluştur</button></div><div class="flex flex-wrap items-center gap-4"><div id="customer-qr-code" class="bg-white p-2 rounded min-w-2 min-h-2"></div><div class="min-w-0 flex-1"><p id="customer-qr-status" class="text-xs text-slate-400">QR kod oluşturulmadı.</p><textarea id="customer-qr-link" readonly class="theme-input mt-2 w-full min-h-20 bg-slate-950 border border-slate-700 rounded p-2 text-[10px]" placeholder="Müşteri bağlantısı burada görünecek"></textarea><button type="button" onclick="musteriQrLinkiniKopyala()" class="mt-2 bg-slate-700 hover:bg-slate-600 text-white rounded px-3 py-2 text-xs font-bold">Bağlantıyı kopyala</button></div></div></div>
+<div class="theme-card bg-slate-900 p-4 rounded-lg border border-cyan-800 space-y-3 shadow-lg w-full min-w-0" id="customer-qr-settings">
+<h3 class="text-sm font-bold text-cyan-400"><i class="fa-solid fa-qrcode mr-2"></i>QR Menü ve Sipariş</h3>
+<p class="text-xs text-slate-400">Müşteriler QR kodu okutarak menüyü görüntüler ve sipariş verir. QR kodların çalışması için Firebase ve HTTPS gereklidir.</p>
+<div class="flex flex-wrap items-end gap-2">
+<label class="text-xs text-slate-300 flex flex-col gap-1">Sipariş türü<select id="customer-qr-type" onchange="musteriQrTurunuAyarla()" class="theme-input bg-slate-950 border border-slate-700 rounded p-2"><option value="masa">Masa</option><option value="paket">Paket Servis</option></select></label>
+<label id="customer-qr-table-field" class="text-xs text-slate-300 flex items-center gap-2">Masa numarası <input id="customer-qr-table" class="theme-input w-24 bg-slate-950 border border-slate-700 rounded p-2" value="1" maxlength="20"/></label>
+<label class="text-xs text-slate-300 flex items-center gap-2">Sorumlu garson <select id="customer-qr-waiter" class="theme-input bg-slate-950 border border-slate-700 rounded p-2"><option value="">Otomatik / ilk müsait</option></select></label>
+<button type="button" onclick="musteriQrOlustur()" class="bg-cyan-700 hover:bg-cyan-600 text-white rounded px-3 py-2 text-xs font-bold"><i class="fa-solid fa-qrcode mr-1"></i>QR Oluştur</button>
+</div>
+<div class="flex flex-wrap items-center gap-4 border-t border-slate-700 pt-3"><div id="customer-qr-code" class="bg-white p-2 rounded min-w-2 min-h-2"></div><div class="min-w-0 flex-1"><p id="customer-qr-status" class="text-xs text-slate-400">QR kod oluşturulmadı.</p><textarea id="customer-qr-link" readonly class="theme-input mt-2 w-full min-h-20 bg-slate-950 border border-slate-700 rounded p-2 text-[10px]" placeholder="Müşteri bağlantısı burada görünecek"></textarea><button type="button" onclick="musteriQrLinkiniKopyala()" class="mt-2 bg-slate-700 hover:bg-slate-600 text-white rounded px-3 py-2 text-xs font-bold">Bağlantıyı kopyala</button></div></div>
+<div class="border-t border-slate-700 pt-3"><h4 class="text-sm font-bold mb-2">Oluşturulan QR Kodlar</h4><div id="customer-qr-list" class="grid grid-cols-1 md:grid-cols-2 gap-3"><p class="text-xs text-slate-400">Henüz QR kod oluşturulmadı.</p></div></div>
+</div>
 </div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
 
 <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
@@ -1592,10 +1727,16 @@ button:not(:disabled):active { transform: translateY(1px); }
             tema: 'dark',
             satisYaziBoyutu: 14,
             firebaseAktif: false,
+            mutfakAktif: false,
+            ozellikler: { adisyon: false, customerorders: false },
             kokDugum: '',
             firebaseConfig: bosFirebaseConfig
         });
         // Kullanıcının son kaydettiği Firebase şalteri ve ayarları korunur.
+        if (typeof sistemAyarlari.mutfakAktif !== 'boolean') sistemAyarlari.mutfakAktif = false;
+        if (!sistemAyarlari.ozellikler || typeof sistemAyarlari.ozellikler !== 'object') sistemAyarlari.ozellikler = {};
+        if (typeof sistemAyarlari.ozellikler.adisyon !== 'boolean') sistemAyarlari.ozellikler.adisyon = false;
+        if (typeof sistemAyarlari.ozellikler.customerorders !== 'boolean') sistemAyarlari.ozellikler.customerorders = false;
 
         if (!sistemAyarlari.fisAlanlari || typeof sistemAyarlari.fisAlanlari !== 'object') sistemAyarlari.fisAlanlari = {};
         ['sirket','fisNo','tarih','urunler','araToplam','iskonto','toplam','odeme','tesekkur'].forEach(k => { if (typeof sistemAyarlari.fisAlanlari[k] !== 'boolean') sistemAyarlari.fisAlanlari[k] = true; });
@@ -1603,6 +1744,7 @@ button:not(:disabled):active { transform: translateY(1px); }
             sistemAyarlari.firebaseConfig = bosFirebaseConfig;
         }
         if (!Array.isArray(sistemAyarlari.firebaseKayitlari)) sistemAyarlari.firebaseKayitlari = [];
+        if (!Array.isArray(sistemAyarlari.customerQrLinks)) sistemAyarlari.customerQrLinks = [];
         // Eski sürümlerde biriken kayıtları tek forma indir; mevcut bağlantı ayarı varsa formu kayıttan yeniden oluştur.
         if (sistemAyarlari.firebaseKayitlari.length > 1) sistemAyarlari.firebaseKayitlari = sistemAyarlari.firebaseKayitlari.slice(0, 1);
         if (!sistemAyarlari.firebaseKayitlari.length && sistemAyarlari.firebaseConfig && sistemAyarlari.firebaseConfig.databaseURL) {
@@ -1985,7 +2127,7 @@ button:not(:disabled):active { transform: translateY(1px); }
             if (!container) return;
             const kullanicilar = kullanicilariDiziyeCevir(sistemKullanicilari);
             const tema = sistemAyarlari.tema || 'dark';
-            const isLight = ['light', 'arctic', 'sand', 'mint'].includes(tema);
+            const isLight = sistemAyarlari.temaModu === 'light' || (sistemAyarlari.temaModu !== 'dark' && ['light', 'arctic', 'sand', 'mint'].includes(tema));
 
             if (!kullanicilar.length) {
                 container.innerHTML = '<div class="px-2.5 py-3 text-xs text-center opacity-70">Kayıtlı kullanıcı bulunamadı.</div>';
@@ -2033,6 +2175,7 @@ button:not(:disabled):active { transform: translateY(1px); }
             document.getElementById('confirm-message').innerText = mesaj;
             const yesBtn = document.getElementById('confirm-yes-btn');
             const noBtn = document.getElementById('confirm-no-btn');
+            if (noBtn) { noBtn.style.display = 'block'; noBtn.innerText = 'Hayır'; noBtn.onclick = onayModaliniKapat; noBtn.className = 'theme-btn-alt flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded text-xs transition border border-slate-700'; }
             
             const yeniYesBtn = yesBtn.cloneNode(true);
             yesBtn.parentNode.replaceChild(yeniYesBtn, yesBtn);
@@ -2289,7 +2432,7 @@ button:not(:disabled):active { transform: translateY(1px); }
             }
             const listContainer = document.getElementById('suspended-carts-list');
             const tema = sistemAyarlari.tema || 'dark';
-            const isLight = ['light', 'arctic', 'sand', 'mint'].includes(tema);
+            const isLight = sistemAyarlari.temaModu === 'light' || (sistemAyarlari.temaModu !== 'dark' && ['light', 'arctic', 'sand', 'mint'].includes(tema));
 
             listContainer.innerHTML = bekleyenSepetler.map((cart, idx) => {
                 const toplamTutar = cart.items.reduce((acc, i) => acc + (i.product.price * i.qty), 0);
@@ -2435,12 +2578,22 @@ button:not(:disabled):active { transform: translateY(1px); }
             temaUygula();
         }
 
+        function karanlikModuDegistir(aktif) {
+            sistemAyarlari.temaModu = aktif ? 'dark' : 'light';
+            sistemAyarlariKaydet();
+            temaUygula();
+        }
+
         function temaUygula() {
             const body = document.getElementById('app-body');
             const themeSelect = document.getElementById('setting-theme-select');
+            const darkToggle = document.getElementById('setting-dark-mode-toggle');
             const secilenTema = sistemAyarlari.tema || 'dark';
+            const temaAcikMi = ['light','arctic','sand','mint'].includes(secilenTema);
+            const gorunumModu = sistemAyarlari.temaModu || (temaAcikMi ? 'light' : 'dark');
 
             if(themeSelect) themeSelect.value = secilenTema;
+            if(darkToggle) darkToggle.checked = gorunumModu === 'dark';
 
             if (secilenTema === 'light') {
                 body.className = "bg-slate-100 text-slate-800 font-sans h-full flex flex-col overflow-hidden select-none transition-colors duration-300";
@@ -2465,9 +2618,9 @@ button:not(:disabled):active { transform: translateY(1px); }
             } else if (secilenTema === 'forest') {
                 body.className = "bg-green-950 text-green-50 font-sans h-full flex flex-col overflow-hidden select-none transition-colors duration-300";
             } else if (secilenTema === 'rose') {
-                body.className = "bg-rose-950 text-rose-50 font-sans h-full flex flex-col overflow-hidden select-none transition-colors duration-300";
+                body.className = "bg-stone-950 text-stone-100 font-sans h-full flex flex-col overflow-hidden select-none transition-colors duration-300";
             } else if (secilenTema === 'lavender') {
-                body.className = "bg-violet-950 text-violet-50 font-sans h-full flex flex-col overflow-hidden select-none transition-colors duration-300";
+                body.className = "bg-slate-950 text-slate-100 font-sans h-full flex flex-col overflow-hidden select-none transition-colors duration-300";
             } else if (secilenTema === 'sand') {
                 body.className = "bg-amber-100 text-stone-900 font-sans h-full flex flex-col overflow-hidden select-none transition-colors duration-300";
             } else if (secilenTema === 'slate') {
@@ -2475,7 +2628,7 @@ button:not(:disabled):active { transform: translateY(1px); }
             } else if (secilenTema === 'mint') {
                 body.className = "bg-emerald-50 text-emerald-950 font-sans h-full flex flex-col overflow-hidden select-none transition-colors duration-300";
             } else if (secilenTema === 'cherry') {
-                body.className = "bg-red-950 text-pink-50 font-sans h-full flex flex-col overflow-hidden select-none transition-colors duration-300";
+                body.className = "bg-stone-950 text-amber-50 font-sans h-full flex flex-col overflow-hidden select-none transition-colors duration-300";
             } else if (secilenTema === 'royal') {
                 body.className = "bg-blue-950 text-blue-50 font-sans h-full flex flex-col overflow-hidden select-none transition-colors duration-300";
             } else if (secilenTema === 'mono') {
@@ -2484,6 +2637,7 @@ button:not(:disabled):active { transform: translateY(1px); }
                 body.className = "bg-slate-950 text-slate-100 font-sans h-full flex flex-col overflow-hidden select-none transition-colors duration-300";
             }
             body.setAttribute('data-theme', secilenTema);
+            body.setAttribute('data-theme-mode', gorunumModu);
 
             kategorileriOlustur();
             urunleriGoster();
@@ -3174,10 +3328,10 @@ button:not(:disabled):active { transform: translateY(1px); }
             sistemAyarlariKaydet();
             const nav = document.getElementById(ad === 'adisyon' ? 'tab-adisyon' : 'tab-customerorders');
             const panel = document.getElementById(ad === 'adisyon' ? 'section-adisyon' : 'section-customerorders');
-            const kitchenOn = sistemAyarlari.mutfakAktif !== false;
-            if (nav) nav.classList.toggle('hidden', !kitchenOn || !aktif);
-            if ((!kitchenOn || !aktif) && panel) { panel.classList.add('hidden'); panel.classList.remove('flex'); }
-            if ((!kitchenOn || !aktif) && secilenSekme === ad) sekmeyiDegistir('sales');
+            if (nav) nav.classList.toggle('hidden', !aktif);
+            if (!aktif && panel) { panel.classList.add('hidden'); panel.classList.remove('flex'); }
+            if (!aktif && secilenSekme === ad) sekmeyiDegistir('sales');
+            mutfakArayuzunuUygula();
         }
 
         function mutfakSisteminiDegistir(aktif) {
@@ -3188,21 +3342,27 @@ button:not(:disabled):active { transform: translateY(1px); }
             // Ayar değişikliği sessizce kaydedilir; tekrar eden bildirim gösterilmez.
         }
         function mutfakArayuzunuUygula() {
-            const aktif = sistemAyarlari.mutfakAktif !== false;
+            const aktif = sistemAyarlari.mutfakAktif === true;
             const tab = document.getElementById('tab-kitchen'); if (tab) tab.classList.toggle('hidden', !aktif || !kullaniciYetkisiVar('kitchen'));
+            const orderPanel = document.getElementById('cart-kitchen-note-panel'); if (orderPanel) orderPanel.classList.toggle('hidden', !aktif);
+            const orderField = document.getElementById('cart-order-type-field'); if (orderField) orderField.classList.toggle('hidden', !aktif);
+            const categoryLabel = document.getElementById('cart-order-type-label'); if (categoryLabel) categoryLabel.classList.toggle('hidden', !aktif);
+            const orderType = document.getElementById('cart-order-type'); if (orderType) orderType.classList.toggle('hidden', !aktif);
             const noteFields = document.getElementById('cart-kitchen-note-fields'); if (noteFields) noteFields.classList.toggle('hidden', !aktif);
-            const note = document.getElementById('cart-kitchen-note-panel'); if (note) note.classList.toggle('hidden', !aktif);
-            // Mutfak kapatıldığında mutfakla bağlantılı takip bölümleri de gizlenir.
+            const adisyonSave = document.getElementById('cart-adisyon-save-button'); if (adisyonSave) adisyonSave.classList.toggle('hidden', !aktif);
+            const waiterField = document.getElementById('cart-waiter-field-wrapper'); if (waiterField) waiterField.classList.toggle('hidden', !aktif || sistemAyarlari.garsonAktif === false);
+            const waiterTab = document.getElementById('tab-waiter'); if (waiterTab) waiterTab.classList.toggle('hidden', !aktif || sistemAyarlari.garsonAktif === false || !kullaniciYetkisiVar('waiter'));
+            const waiterSection = document.getElementById('section-waiter'); if (!aktif && waiterSection) { waiterSection.classList.add('hidden'); waiterSection.classList.remove('flex'); }
             ['adisyon','customerorders'].forEach(name => {
-                const enabled = !sistemAyarlari.ozellikler || sistemAyarlari.ozellikler[name] !== false;
+                const enabled = sistemAyarlari.ozellikler?.[name] === true;
                 const nav = document.getElementById(name === 'adisyon' ? 'tab-adisyon' : 'tab-customerorders');
                 const panel = document.getElementById(name === 'adisyon' ? 'section-adisyon' : 'section-customerorders');
-                if (nav) nav.classList.toggle('hidden', !aktif || !enabled);
-                if ((!aktif || !enabled) && panel) { panel.classList.add('hidden'); panel.classList.remove('flex'); }
+                if (nav) nav.classList.toggle('hidden', !enabled || !kullaniciYetkisiVar(name));
+                if (!enabled && panel) { panel.classList.add('hidden'); panel.classList.remove('flex'); }
             });
             const section = document.getElementById('section-kitchen');
             if (!aktif && section) { section.classList.add('hidden'); section.classList.remove('flex'); }
-            if (!aktif && ['adisyon','customerorders'].includes(secilenSekme)) sekmeyiDegistir('sales');
+            if (!aktif && ['kitchen','waiter'].includes(secilenSekme)) sekmeyiDegistir('sales');
         }
 
         function garsonSisteminiDegistir(aktif) {
@@ -3212,10 +3372,10 @@ button:not(:disabled):active { transform: translateY(1px); }
         }
         function garsonArayuzunuUygula() {
             const aktif = sistemAyarlari.garsonAktif !== false;
-            const tab = document.getElementById('tab-waiter'); if (tab) tab.classList.toggle('hidden', !aktif || !kullaniciYetkisiVar('waiter'));
-            const waiterField = document.getElementById('cart-waiter-field-wrapper'); if (waiterField) waiterField.classList.toggle('hidden', !aktif);
-            const panel = document.getElementById('cart-kitchen-note-panel'); if (panel) panel.classList.toggle('hidden', !aktif && sistemAyarlari.mutfakAktif === false);
-            const section = document.getElementById('section-waiter'); if (!aktif && section) { section.classList.add('hidden'); section.classList.remove('flex'); }
+            const kitchenEnabled = sistemAyarlari.mutfakAktif === true;
+            const waiterField = document.getElementById('cart-waiter-field-wrapper'); if (waiterField) waiterField.classList.toggle('hidden', !aktif || !kitchenEnabled);
+            const tab = document.getElementById('tab-waiter'); if (tab) tab.classList.toggle('hidden', !aktif || !kitchenEnabled || !kullaniciYetkisiVar('waiter'));
+            const section = document.getElementById('section-waiter'); if ((!aktif || !kitchenEnabled) && section) { section.classList.add('hidden'); section.classList.remove('flex'); }
         }
         function garsonSecenekleriniGuncelle() {
             const select = document.getElementById('cart-waiter'); if (!select) return;
@@ -3253,7 +3413,7 @@ button:not(:disabled):active { transform: translateY(1px); }
             const u = aktifKullaniciKaydi();
             if (kullaniciYoneticiMi()) return true;
             if (sekme === 'settings') return false;
-            if (sekme === 'kitchen' && sistemAyarlari.mutfakAktif === false) return false;
+            if (sekme === 'kitchen' && sistemAyarlari.mutfakAktif !== true) return false;
             if (sekme === 'waiter' && sistemAyarlari.garsonAktif === false) return false;
             if (!u || !Array.isArray(u.permissions)) return true; // eski kullanıcı kayıtlarıyla uyumluluk
             return u.permissions.includes(sekme);
@@ -3318,32 +3478,40 @@ button:not(:disabled):active { transform: translateY(1px); }
         function musteriSiparisleriniGoster() {
             const list = document.getElementById('customer-order-list'); if (!list) return;
             const active = customerOrderRecords.filter(o => !['served','cancelled'].includes(o.status));
+            const served = customerOrderRecords.filter(o => o.status === 'served');
+            const cancelled = customerOrderRecords.filter(o => o.status === 'cancelled');
             const fresh = active.filter(o => o.status === 'new');
             const count = document.getElementById('customer-order-nav-count'); if (count) count.textContent = fresh.length;
             const n = document.getElementById('customer-order-new-count'); if(n)n.textContent=fresh.length;
             const a = document.getElementById('customer-order-active-count'); if(a)a.textContent=active.filter(o=>o.status!=='new').length;
             const t = document.getElementById('customer-order-total'); if(t)t.textContent=adisyonPara(active.reduce((sum,o)=>sum+(Number(o.total)||0),0));
-            if (!customerOrderRecords.length) { list.innerHTML='<div class="theme-card rounded-xl border border-slate-700 p-4 text-sm text-slate-400">Henüz müşteri siparişi yok. QR menü bağlantısını Ayarlar bölümünden oluşturabilirsiniz.</div>'; return; }
-            list.innerHTML=customerOrderRecords.map(o=>{const items=(o.items||[]).map(i=>`<div class="flex justify-between gap-2 text-xs py-1 border-b border-slate-800"><span>${htmlGuvenli(i.name||i.product?.name||'Ürün')} × ${Number(i.qty)||1}</span><span>${adisyonPara((Number(i.price??i.product?.price)||0)*(Number(i.qty)||1))}</span></div>`).join('');const statusLabels={new:'Yeni',accepted:'Garson üstlendi',preparing:'Hazırlanıyor',ready:'Hazır',served:'Servis edildi',cancelled:'İptal'};const canTrack=!['served','cancelled'].includes(o.status);return `<article class="theme-card rounded-xl border ${o.status==='new'?'border-red-500':'border-slate-700'} p-4"><div class="flex justify-between gap-2"><div><h3 class="font-black text-cyan-300">Masa ${htmlGuvenli(o.table||'-')}</h3><p class="text-[10px] text-slate-400 mt-1">${new Date(o.createdAt||Date.now()).toLocaleString('tr-TR')}</p><p class="text-xs mt-1">Garson: <b>${htmlGuvenli(o.assignedWaiter||'Henüz atanmadı')}</b></p></div><span class="h-fit text-[10px] px-2 py-1 rounded bg-slate-800">${statusLabels[o.status]||'Yeni'}</span></div><div class="my-3">${items}</div>${o.note?`<p class="text-xs text-amber-300 mb-3">Not: ${htmlGuvenli(o.note)}</p>`:''}<div class="font-black text-emerald-400 text-right mb-3">${adisyonPara(Number(o.total)||0)}</div>${canTrack?`<div class="grid grid-cols-2 gap-2"><button onclick="musteriSiparisiniUstlen('${String(o.id).replace(/'/g,'')}')" class="rounded bg-cyan-700 hover:bg-cyan-600 text-white p-2 text-xs font-bold">${o.assignedWaiter?'Garsonu değiştir / üstlen':'Bu siparişi üstlen'}</button><select class="theme-input rounded bg-slate-950 border border-slate-700 p-2 text-xs" onchange="musteriSiparisDurumunuDegistir('${String(o.id).replace(/'/g,'')}',this.value)"><option value="new" ${o.status==='new'?'selected':''}>Yeni</option><option value="accepted" ${o.status==='accepted'?'selected':''}>Garson üstlendi</option><option value="preparing" ${o.status==='preparing'?'selected':''}>Hazırlanıyor</option><option value="ready" ${o.status==='ready'?'selected':''}>Hazır</option><option value="served" ${o.status==='served'?'selected':''}>Servis edildi</option><option value="cancelled" ${o.status==='cancelled'?'selected':''}>İptal</option></select></div>`:''}</article>`;}).join('');
+            if (!customerOrderRecords.length) { list.innerHTML='<div class="theme-card rounded-xl border border-slate-700 p-4 text-sm text-slate-400 col-span-full">Henüz müşteri siparişi yok. QR menü bağlantısını Ayarlar bölümünden oluşturabilirsiniz.</div>'; return; }
+            const renderOrder = o => {const items=(o.items||[]).map(i=>`<div class="flex justify-between gap-2 text-xs py-1 border-b border-slate-800"><span>${htmlGuvenli(i.name||i.product?.name||'Ürün')} × ${Number(i.qty)||1}</span><span>${adisyonPara((Number(i.price??i.product?.price)||0)*(Number(i.qty)||1))}</span></div>`).join('');const statusLabels={new:'Yeni',accepted:'Garson üstlendi',preparing:'Hazırlanıyor',ready:'Hazır',served:'Servis edildi',cancelled:'İptal'};const canTrack=!['served','cancelled'].includes(o.status);return `<article class="theme-card rounded-xl border ${o.status==='new'?'border-red-500':'border-slate-700'} p-4"><div class="flex justify-between gap-2"><div><h3 class="font-black text-cyan-300">${o.orderType==='paket'?'Paket Servis':`Masa ${htmlGuvenli(o.table||'-')}`}</h3><p class="text-[10px] text-slate-400 mt-1">${new Date(o.createdAt||Date.now()).toLocaleString('tr-TR')}</p><p class="text-xs mt-1">Garson: <b>${htmlGuvenli(o.assignedWaiter||'Henüz atanmadı')}</b></p></div><span class="h-fit text-[10px] px-2 py-1 rounded bg-slate-800">${statusLabels[o.status]||'Yeni'}</span></div><div class="my-3">${items}</div>${o.note?`<p class="text-xs text-amber-300 mb-3">Not: ${htmlGuvenli(o.note)}</p>`:''}<div class="font-black text-emerald-400 text-right mb-3">${adisyonPara(Number(o.total)||0)}</div>${canTrack?`<div class="grid grid-cols-2 gap-2"><button onclick="musteriSiparisiniUstlen('${String(o.id).replace(/'/g,'')}')" class="rounded bg-cyan-700 hover:bg-cyan-600 text-white p-2 text-xs font-bold">${o.assignedWaiter?'Garsonu değiştir / üstlen':'Bu siparişi üstlen'}</button><select class="theme-input rounded bg-slate-950 border border-slate-700 p-2 text-xs" onchange="musteriSiparisDurumunuDegistir('${String(o.id).replace(/'/g,'')}',this.value)"><option value="new" ${o.status==='new'?'selected':''}>Yeni</option><option value="accepted" ${o.status==='accepted'?'selected':''}>Garson üstlendi</option><option value="preparing" ${o.status==='preparing'?'selected':''}>Hazırlanıyor</option><option value="ready" ${o.status==='ready'?'selected':''}>Hazır</option><option value="served" ${o.status==='served'?'selected':''}>Servis edildi</option><option value="cancelled" ${o.status==='cancelled'?'selected':''}>İptal</option></select></div>`:''}</article>`;};
+            list.innerHTML = `${active.length?'<h3 class="col-span-full text-sm font-black text-cyan-300">Aktif Siparişler</h3>': '<div class="theme-card rounded-xl border border-slate-700 p-4 text-sm text-slate-400 col-span-full">Aktif sipariş bulunmuyor.</div>'}${active.map(renderOrder).join('')}${served.length?`<details class="theme-card col-span-full rounded-xl border border-emerald-800 p-3"><summary class="cursor-pointer font-bold text-emerald-300">Servis Edilenler (${served.length})</summary><div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mt-3">${served.map(renderOrder).join('')}</div></details>`:''}${cancelled.length?`<details class="theme-card col-span-full rounded-xl border border-slate-700 p-3"><summary class="cursor-pointer font-bold text-slate-400">İptal Edilenler (${cancelled.length})</summary><div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mt-3">${cancelled.map(renderOrder).join('')}</div></details>`:''}`;
         }
         async function musteriSiparisKaydiniYaz(id, changes) {
             if (!sistemAyarlari.firebaseAktif || !window.firebaseReady || !window.database || !window.dbSet) { onayModaliniGoster('Firebase gerekli','Müşteri telefonlarından gelen siparişleri cihazlar arasında takip etmek için Ayarlar bölümünde Firebase eşitlemesini açın.',null,true); return false; }
             const path=`${kokDugumGetir()}/${aktifDonemId}/musteri_siparisleri/${id}`;
             const old=customerOrderRecords.find(o=>String(o.id)===String(id)); if(!old)return false;
-            await window.dbSet(window.dbRef(window.database,path),{...old,...changes,updatedAt:Date.now()}); return true;
+            await window.dbUpdate(window.dbRef(window.database,path),{...changes,updatedAt:Date.now()}); return true;
         }
         async function musteriSiparisiniUstlen(id) { const o=customerOrderRecords.find(x=>String(x.id)===String(id)); if(!o)return;try{await musteriSiparisKaydiniYaz(id,{assignedWaiter:aktifKullaniciAdi||'Personel',status:'accepted'});islemBildirimiGoster(`Masa ${o.table} siparişi size atandı.`);}catch(e){onayModaliniGoster('Atama yapılamadı',e.message||'Sipariş kaydedilemedi.',null,true);} }
         async function musteriSiparisDurumunuDegistir(id,status) { try {const o=customerOrderRecords.find(x=>String(x.id)===String(id));if(!o)return;const changes={status};if(!o.assignedWaiter&&status!=='new')changes.assignedWaiter=aktifKullaniciAdi||'Personel';await musteriSiparisKaydiniYaz(id,changes);islemBildirimiGoster('Müşteri sipariş durumu güncellendi.');}catch(e){onayModaliniGoster('Güncelleme başarısız',e.message||'Sipariş durumu kaydedilemedi.',null,true);} }
         function musteriSiparisleriniGuncelle(){musteriSiparisleriniDinle();musteriSiparisleriniGoster();}
         function musteriQrGarsonSecenekleriniGuncelle(){const el=document.getElementById('customer-qr-waiter');if(!el)return;const old=el.value;const names=[...new Set((Array.isArray(sistemKullanicilari)?sistemKullanicilari:[]).map(u=>u.name).filter(Boolean))];el.innerHTML='<option value="">Otomatik / ilk müsait</option>'+names.map(n=>`<option value="${htmlGuvenli(n)}">${htmlGuvenli(n)}</option>`).join('');if(names.includes(old))el.value=old;}
+        function musteriQrTurunuAyarla(){const type=document.getElementById('customer-qr-type')?.value||'masa';const field=document.getElementById('customer-qr-table-field');if(field)field.classList.toggle('hidden',type==='paket');}
+        function musteriQrListesiniGoster(){const list=document.getElementById('customer-qr-list');if(!list)return;const codes=Array.isArray(sistemAyarlari.customerQrLinks)?sistemAyarlari.customerQrLinks:[];if(!codes.length){list.innerHTML='<p class="text-xs text-slate-400">Henüz QR kod oluşturulmadı.</p>';return;}list.innerHTML=codes.map(q=>`<article class="theme-card rounded-lg border border-slate-700 p-3 flex gap-3 items-start"><div id="customer-qr-preview-${htmlGuvenli(q.id)}" class="shrink-0 rounded bg-white p-1"></div><div class="min-w-0 flex-1"><div class="font-bold text-sm">${htmlGuvenli(q.label||'Masa')} QR</div><div class="text-[10px] text-slate-400 mt-1">${new Date(q.createdAt||Date.now()).toLocaleString('tr-TR')}${q.waiter?' · Garson: '+htmlGuvenli(q.waiter):''}</div><textarea readonly class="theme-input mt-2 w-full h-14 bg-slate-950 border border-slate-700 rounded p-2 text-[10px]">${htmlGuvenli(q.link)}</textarea><div class="flex gap-2 mt-2"><button type="button" data-qr-copy="${htmlGuvenli(q.link)}" onclick="musteriQrLinkiniKopyala(this.dataset.qrCopy)" class="rounded bg-slate-700 hover:bg-slate-600 px-2 py-1.5 text-[10px] font-bold text-white">Bağlantıyı Kopyala</button><button type="button" onclick="musteriQrSil('${htmlGuvenli(q.id)}')" class="rounded bg-red-700 hover:bg-red-600 px-2 py-1.5 text-[10px] font-bold text-white">Sil</button></div></div></article>`).join('');codes.forEach(q=>{const target=document.getElementById(`customer-qr-preview-${q.id}`);if(target){target.innerHTML='';if(window.QRCode)new QRCode(target,{text:q.link,width:104,height:104});else target.textContent='QR yüklenemedi';}});}
+        function musteriQrSil(id){sistemAyarlari.customerQrLinks=(sistemAyarlari.customerQrLinks||[]).filter(q=>String(q.id)!==String(id));sistemAyarlariKaydet();musteriQrListesiniGoster();islemBildirimiGoster('QR kod listeden silindi.');}
         function musteriQrOlustur(){
             if(!sistemAyarlari.firebaseAktif||!sistemAyarlari.firebaseConfig?.databaseURL){onayModaliniGoster('Firebase gerekli','Müşteri QR siparişi için önce Ayarlar bölümünde Firebase eşitlemesini etkinleştirin.',null,true);return;}
             if(location.protocol==='file:'){onayModaliniGoster('Programı internette yayınlayın','Müşteri telefonlarının QR bağlantısını açabilmesi için bu HTML dosyasını HTTPS destekli bir web adresinde yayınlamak gerekir. Dosya yolu diğer telefonlardan açılamaz.',null,true);return;}
-            const table=(document.getElementById('customer-qr-table')?.value||'1').trim()||'1';const base=location.href.split('?')[0].split('#')[0];const cfg= btoa(unescape(encodeURIComponent(JSON.stringify(sistemAyarlari.firebaseConfig)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');const waiter=(document.getElementById('customer-qr-waiter')?.value||'').trim();const params=new URLSearchParams({musteriSiparis:'1',masa:table,root:kokDugumGetir(),period:String(aktifDonemId),cfg});if(waiter)params.set('garson',waiter);const link=base+'?'+params.toString();const field=document.getElementById('customer-qr-link');if(field)field.value=link;const box=document.getElementById('customer-qr-code');if(box){box.innerHTML='';if(window.QRCode)new QRCode(box,{text:link,width:180,height:180});else box.textContent='QR kütüphanesi yüklenemedi.';}const status=document.getElementById('customer-qr-status');if(status)status.textContent=`Masa ${table} için QR hazır. Programın HTTPS adresinde yayınlandığından emin olun.`;
+            const type=document.getElementById('customer-qr-type')?.value||'masa';const table=type==='paket'?'Paket Servis':((document.getElementById('customer-qr-table')?.value||'1').trim()||'1');const base=location.href.split('?')[0].split('#')[0];const cfg=btoa(unescape(encodeURIComponent(JSON.stringify(sistemAyarlari.firebaseConfig)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');const waiter=(document.getElementById('customer-qr-waiter')?.value||'').trim();const id='qr-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);const query=new URLSearchParams({musteriSiparis:'1',masa:table,tip:type,root:kokDugumGetir(),period:String(aktifDonemId),cfg,qrid:id});if(waiter)query.set('garson',waiter);const link=base+'?'+query.toString();const field=document.getElementById('customer-qr-link');if(field)field.value=link;const box=document.getElementById('customer-qr-code');if(box){box.innerHTML='';if(window.QRCode)new QRCode(box,{text:link,width:180,height:180});else box.textContent='QR kütüphanesi yüklenemedi.';}const label=type==='paket'?'Paket Servis':`Masa ${table}`;document.getElementById('customer-qr-status').textContent=`${label} için QR hazır. HTTPS adresinde yayınlandığından emin olun.`;if(!Array.isArray(sistemAyarlari.customerQrLinks))sistemAyarlari.customerQrLinks=[];sistemAyarlari.customerQrLinks.unshift({id,type,label,waiter,link,createdAt:Date.now()});sistemAyarlariKaydet();musteriQrListesiniGoster();
         }
-        async function musteriQrLinkiniKopyala(){const value=document.getElementById('customer-qr-link')?.value||'';if(!value)return;try{await navigator.clipboard.writeText(value);islemBildirimiGoster('Müşteri bağlantısı kopyalandı.');}catch(_){const f=document.getElementById('customer-qr-link');f.select();document.execCommand('copy');islemBildirimiGoster('Bağlantı kopyalandı.');}}
+        async function musteriQrLinkiniKopyala(linkValue){const value=linkValue||document.getElementById('customer-qr-link')?.value||'';if(!value)return;try{await navigator.clipboard.writeText(value);islemBildirimiGoster('Müşteri bağlantısı kopyalandı.');}catch(_){const f=document.getElementById('customer-qr-link');f.select();document.execCommand('copy');islemBildirimiGoster('Bağlantı kopyalandı.');}}
 
         function sekmeyiDegistir(secilenSekme) {
+            if (secilenSekme === 'adisyon' && sistemAyarlari.ozellikler?.adisyon !== true) return;
+            if (secilenSekme === 'customerorders' && sistemAyarlari.ozellikler?.customerorders !== true) return;
             if (secilenSekme !== 'settings') yoneticiAyarYetkisi = false;
             if (secilenSekme === 'settings' && !yoneticiAyarYetkisi) { ayarlarKontrolluGecis(); return; }
             if (secilenSekme !== 'settings' && !kullaniciYetkisiVar(secilenSekme)) {
@@ -3373,7 +3541,7 @@ button:not(:disabled):active { transform: translateY(1px); }
             if (secilenSekme === 'reports') raporuGuncelle();
             if (secilenSekme === 'adisyon') adisyonlariGoster();
             if (secilenSekme === 'customerorders') { musteriSiparisleriniDinle(); musteriSiparisleriniGoster(); }
-            if (secilenSekme === 'settings') { sistemKullanicilariTablosunuGuncelle(); musteriQrGarsonSecenekleriniGuncelle(); firmaAyarlariniUygula(); donemSecenekleriniGuncelle(); const k=document.getElementById('setting-kitchen-enabled'); if(k) k.checked=sistemAyarlari.mutfakAktif !== false; const a=document.getElementById('setting-adisyon-enabled'); if(a) a.checked=!sistemAyarlari.ozellikler || sistemAyarlari.ozellikler.adisyon !== false; const co=document.getElementById('setting-customerorders-enabled'); if(co) co.checked=!sistemAyarlari.ozellikler || sistemAyarlari.ozellikler.customerorders !== false; }
+            if (secilenSekme === 'settings') { sistemKullanicilariTablosunuGuncelle(); musteriQrGarsonSecenekleriniGuncelle(); musteriQrListesiniGoster(); musteriQrTurunuAyarla(); firmaAyarlariniUygula(); donemSecenekleriniGuncelle(); const k=document.getElementById('setting-kitchen-enabled'); if(k) k.checked=sistemAyarlari.mutfakAktif === true; const a=document.getElementById('setting-adisyon-enabled'); if(a) a.checked=sistemAyarlari.ozellikler?.adisyon === true; const co=document.getElementById('setting-customerorders-enabled'); if(co) co.checked=sistemAyarlari.ozellikler?.customerorders === true; }
             if (secilenSekme === 'sales') { garsonSecenekleriniGuncelle(); garsonArayuzunuUygula(); kategorileriOlustur(); urunleriGoster(); satisYaziBoyutunuUygula(sistemAyarlari.satisYaziBoyutu || 14); setTimeout(() => { const barcodeInput = document.getElementById('barcode-search'); if (barcodeInput) barcodeInput.focus(); }, 100); }
         }
 
@@ -3444,7 +3612,7 @@ button:not(:disabled):active { transform: translateY(1px); }
                 const sale = (satisGecmisi || []).find(s => String(s.id) === idText); if (!sale) return;
                 sale.kitchenStatus = status; sale['kitchen'+status.charAt(0).toUpperCase()+status.slice(1)+'At'] = Date.now();
             }
-            durumuKaydet(); mutfakEkraniniGuncelle(); islemBildirimiGoster('Mutfak durumu: ' + mutfakDurumMetni(status));
+            durumuKaydet(); adisyonlariGoster(); mutfakEkraniniGuncelle(); islemBildirimiGoster('Mutfak durumu: ' + mutfakDurumMetni(status));
         }
         function mutfakFisHTML(s) {
             return `<div style="font-family:monospace;color:#000;background:#fff;width:72mm;padding:4mm;margin:0 auto"><h2 style="text-align:center;font-size:18px">MUTFAK SİPARİŞİ</h2><hr><p>Sipariş: #${htmlGuvenli(s.id)}</p><p>Saat: ${htmlGuvenli(s.date||'')}</p>${s.masa?`<p>Masa/Paket: ${htmlGuvenli(s.masa)}</p>`:''}${s.garson?`<p>Garson: ${htmlGuvenli(s.garson)}</p>`:''}${s.customerName?`<p>Müşteri: ${htmlGuvenli(s.customerName)}</p>`:''}<hr><ul>${(s.items||[]).map(i=>`<li style="padding:5px 0;font-size:14px">${htmlGuvenli(i.product?.name||i.name||'Ürün')} <b style="float:right">x ${Number(i.qty||1)}</b></li>`).join('')}</ul>${s.kitchenNote?`<hr><p><b>NOT: ${htmlGuvenli(s.kitchenNote)}</b></p>`:''}<hr><p style="text-align:center">${mutfakDurumMetni(s.kitchenStatus||'new')}</p></div>`;
@@ -3454,7 +3622,8 @@ button:not(:disabled):active { transform: translateY(1px); }
             if (!rows) { onayModaliniGoster('Sipariş yok','Yazdırılacak mutfak siparişi bulunamadı.',null,true); return; }
             const w = window.open('', '_blank', 'width=500,height=700');
             if (!w) { onayModaliniGoster('Yazdırma engellendi','Mutfak fişi için açılır pencereye izin verin.',null,true); return; }
-            w.document.write(`<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Mutfak Fişi</title><style>body{margin:0;background:#fff}@media print{body{margin:0}}</style></head><body>${rows}<script>window.onload=()=>{window.print()}<\/script>
+            w.document.write(`<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Mutfak Fişi</title><style>body{margin:0;background:#fff}@media print{body{margin:0}}</style>
+</head><body>${rows}<script>window.onload=()=>{window.print()}<\/script>
 <style id="mobile-sales-usability-fix">
 @media (max-width: 767px) {
   #section-sales { flex-direction: column !important; overflow-x: hidden !important; overflow-y: auto !important; height: 100% !important; min-height: 0 !important; padding: 6px !important; gap: 8px !important; }
@@ -3541,6 +3710,9 @@ button:not(:disabled):active { transform: translateY(1px); }
             } catch (_) {}
         }
         document.addEventListener('DOMContentLoaded', mutfakSesiAyarlariniGoster);
+        function mutfakOtomatikYazdirAyarlariniGoster(){let enabled=false;try{enabled=localStorage.getItem('pos_kitchen_auto_print_v1')==='1';}catch(_){}const toggle=document.getElementById('kitchen-auto-print');if(toggle)toggle.checked=enabled;}
+        function mutfakOtomatikYazdirDegistir(enabled){try{localStorage.setItem('pos_kitchen_auto_print_v1',enabled?'1':'0');}catch(_){}islemBildirimiGoster(enabled?'Yeni mutfak siparişleri otomatik yazdırılacak.':'Otomatik mutfak yazdırma kapatıldı.');}
+        document.addEventListener('DOMContentLoaded', mutfakOtomatikYazdirAyarlariniGoster);
 
         function mutfakSesiniAc() {
             mutfakSesAktif = !mutfakSesAktif;
@@ -3563,14 +3735,20 @@ button:not(:disabled):active { transform: translateY(1px); }
             }
         }
         document.addEventListener('DOMContentLoaded', mutfakSesDugmesiniGuncelle);
+        let mutfakSiparisBaslangiciHazir = false;
+        let mutfakOtomatikYazdirKuyrugu = [];
+        let mutfakOtomatikYazdiriyor = false;
+        function mutfakOtomatikFisYazdir(siparis){mutfakOtomatikYazdirKuyrugu.push(siparis);if(mutfakOtomatikYazdiriyor)return;const yazdirSonraki=()=>{if(!mutfakOtomatikYazdirKuyrugu.length){mutfakOtomatikYazdiriyor=false;return;}mutfakOtomatikYazdiriyor=true;const current=mutfakOtomatikYazdirKuyrugu.shift();const frame=document.createElement('iframe');frame.title='Mutfak fişi yazdırma';frame.style.cssText='position:fixed;left:-10000px;top:0;width:350px;height:700px;border:0;pointer-events:none';let finished=false;const finish=()=>{if(finished)return;finished=true;frame.remove();mutfakOtomatikYazdiriyor=false;setTimeout(yazdirSonraki,250);};frame.onload=()=>{try{frame.contentWindow.addEventListener('afterprint',finish,{once:true});setTimeout(()=>{try{frame.contentWindow.focus();frame.contentWindow.print();}catch(e){console.warn('Otomatik mutfak yazdırma başlatılamadı.',e);finish();}},180);}catch(e){finish();}};frame.srcdoc=`<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Mutfak Fişi</title><style>body{margin:0;background:#fff}@media print{body{margin:0}}</style></head><body>${mutfakFisHTML(current)}</body></html>`;document.body.appendChild(frame);setTimeout(finish,60000);};yazdirSonraki();}
+        function mutfakYeniSiparisleriOku(){const sales=(satisGecmisi||[]).filter(s=>Array.isArray(s.items)&&s.items.length);const ads=(acikAdisyonlar||[]).filter(a=>a&&a.status!=='closed'&&a.items?.length).map(a=>({id:'AD-'+a.id,date:a.updatedLabel||a.createdLabel||'',masa:a.masa,garson:a.garson,items:a.items,kitchenNote:a.note||'',kitchenStatus:a.kitchenStatus||'new',kitchenCreatedAt:a.kitchenCreatedAt||a.createdAt||0}));const qr=(customerOrderRecords||[]).filter(o=>o&&!['served','cancelled'].includes(o.status)&&Array.isArray(o.items)&&o.items.length).map(o=>({id:String(o.id),date:new Date(o.createdAt||Date.now()).toLocaleString('tr-TR'),masa:o.orderType==='paket'?'Paket Servis':'Masa '+String(o.table||''),garson:o.assignedWaiter||'',items:o.items,kitchenNote:o.note||'',kitchenStatus:({accepted:'new',preparing:'preparing',ready:'ready'})[o.status]||'new',kitchenCreatedAt:o.createdAt||0,customerName:'QR müşteri siparişi'}));return sales.concat(ads,qr);}
         function mutfakYeniSiparisKontrol() {
             if (sistemAyarlari.mutfakAktif === false) return;
-            const orders = (satisGecmisi||[]).concat((acikAdisyonlar||[]).filter(a=>a && a.status!=='closed' && a.items?.length).map(a=>({id:'AD-'+a.id,kitchenStatus:a.kitchenStatus||'new'})));
-            const fresh=orders.filter(s=>s.kitchenStatus==='new' && !mutfakBilinenSiparisler.has(String(s.id)));
+            const orders=mutfakYeniSiparisleriOku();
+            if(!mutfakSiparisBaslangiciHazir){orders.filter(s=>s.kitchenStatus==='new').forEach(s=>mutfakBilinenSiparisler.add(String(s.id)));mutfakSiparisBaslangiciHazir=true;return;}
+            const fresh=orders.filter(s=>s.kitchenStatus==='new'&&!mutfakBilinenSiparisler.has(String(s.id)));
             fresh.forEach(s=>mutfakBilinenSiparisler.add(String(s.id)));
-            if (fresh.length && mutfakSesAktif && !document.getElementById('section-kitchen')?.classList.contains('hidden')) {
-                mutfakUyariSesiCal();
-            }
+            if(fresh.length&&mutfakSesAktif&&!document.getElementById('section-kitchen')?.classList.contains('hidden'))mutfakUyariSesiCal();
+            let autoPrint=false;try{autoPrint=localStorage.getItem('pos_kitchen_auto_print_v1')==='1';}catch(_){}
+            if(autoPrint)fresh.forEach(mutfakOtomatikFisYazdir);
         }
         setInterval(() => { mutfakYeniSiparisKontrol(); if (!document.getElementById('section-kitchen')?.classList.contains('hidden')) mutfakEkraniniGuncelle(); }, 5000);
 
@@ -3725,7 +3903,7 @@ button:not(:disabled):active { transform: translateY(1px); }
         function kategoriYonetimModaliniAc() {
             const listContainer = document.getElementById('category-manager-list');
             const tema = sistemAyarlari.tema || 'dark';
-            const isLight = ['light', 'arctic', 'sand', 'mint'].includes(tema);
+            const isLight = sistemAyarlari.temaModu === 'light' || (sistemAyarlari.temaModu !== 'dark' && ['light', 'arctic', 'sand', 'mint'].includes(tema));
 
             listContainer.innerHTML = kategorilerListesi.map((cat, idx) => `
                 <div class="${isLight ? 'bg-slate-100 border-slate-200 text-slate-800' : 'bg-slate-950 border-slate-800 text-slate-200'} p-2 rounded border flex justify-between items-center text-xs">
@@ -3789,7 +3967,7 @@ button:not(:disabled):active { transform: translateY(1px); }
             if(!container) return;
             const kategoriler = ['TÜMÜ', ...kategorilerListesi];
             const tema = sistemAyarlari.tema || 'dark';
-            const isLight = ['light', 'arctic', 'sand', 'mint'].includes(tema);
+            const isLight = sistemAyarlari.temaModu === 'light' || (sistemAyarlari.temaModu !== 'dark' && ['light', 'arctic', 'sand', 'mint'].includes(tema));
             
             container.innerHTML = kategoriler.map(cat => `
                 <button onclick="kategoriSec('${cat}')" type="button" class="px-3 py-1 rounded text-xs font-semibold whitespace-nowrap transition border ${
@@ -3834,7 +4012,7 @@ button:not(:disabled):active { transform: translateY(1px); }
             const grid = document.getElementById('products-grid');
             if(!grid) return;
             const tema = sistemAyarlari.tema || 'dark';
-            const isLight = ['light', 'arctic', 'sand', 'mint'].includes(tema);
+            const isLight = sistemAyarlari.temaModu === 'light' || (sistemAyarlari.temaModu !== 'dark' && ['light', 'arctic', 'sand', 'mint'].includes(tema));
 
             const filtered = urunler.filter(p => {
                 const matchesCategory = secilenKategori === 'TÜMÜ' || p.category === secilenKategori;
@@ -3848,7 +4026,7 @@ button:not(:disabled):active { transform: translateY(1px); }
 
             grid.innerHTML = filtered.map(p => {
                 const kalanStok = (p.inStock || 0) - (p.outStock || 0);
-                const tukendiMi = kalanStok <= 0;
+                const tukendiMi = p.manualSoldOut === true || kalanStok <= 0;
                 
                 const cardBg = isLight ? 'bg-white hover:bg-slate-50 border-slate-300 text-slate-900 shadow-sm' : 'theme-card bg-slate-700 hover:bg-slate-600 border-slate-400 text-slate-100 shadow-md';
                 const badgeBg = isLight ? 'bg-slate-100 text-slate-700 border-slate-300' : 'bg-slate-950 text-slate-300 border-slate-800';
@@ -3873,7 +4051,7 @@ button:not(:disabled):active { transform: translateY(1px); }
                     </div>
                     <div onclick="${tukendiMi ? '' : `sepeteEkle('${safeId}')`}" class="cursor-pointer">
                         <div class="sales-product-meta flex justify-between items-center mb-0.5 px-0.5 opacity-70">
-                            <span>Stok: ${kalanStok}</span>
+                            <span class="${tukendiMi ? 'text-red-500 font-black' : ''}">${tukendiMi ? 'TÜKENDİ' : `Stok: ${kalanStok}`}</span>
                         </div>
                         <div class="sales-product-price text-center font-mono ${priceBg} rounded border">
                             ₺${p.price.toFixed(2)}
@@ -3939,7 +4117,7 @@ button:not(:disabled):active { transform: translateY(1px); }
             if(!cartContainer) return;
             
             const tema = sistemAyarlari.tema || 'dark';
-            const isLight = ['light', 'arctic', 'sand', 'mint'].includes(tema);
+            const isLight = sistemAyarlari.temaModu === 'light' || (sistemAyarlari.temaModu !== 'dark' && ['light', 'arctic', 'sand', 'mint'].includes(tema));
 
             let subtotal = 0;
             cartContainer.innerHTML = sepet.map(item => {
@@ -4003,16 +4181,24 @@ button:not(:disabled):active { transform: translateY(1px); }
             const total = document.getElementById('adisyon-total-open');
             const tables = document.getElementById('adisyon-count-tables');
             const navCount = document.getElementById('adisyon-nav-count');
+            const preparingCount = document.getElementById('adisyon-count-preparing');
+            const readyCount = document.getElementById('adisyon-count-ready');
             const active = acikAdisyonlar.filter(a => a && a.status !== 'closed');
             if (count) count.textContent = active.length;
             if (total) total.textContent = adisyonPara(active.reduce((sum, a) => sum + adisyonToplam(a), 0));
             if (tables) tables.textContent = new Set(active.map(a => (a.masa || '').trim()).filter(Boolean)).size;
+            if (preparingCount) preparingCount.textContent = active.filter(a => (a.kitchenStatus || 'new') === 'preparing').length;
+            if (readyCount) readyCount.textContent = active.filter(a => a.kitchenStatus === 'ready').length;
             if (navCount) navCount.textContent = active.length;
             if (!list) return;
             if (!active.length) { list.innerHTML = '<div class="theme-card rounded-lg border border-slate-700 p-4 text-sm text-slate-400">Açık adisyon bulunmuyor. Satış ekranından ürün ekleyip “Adisyon Aç / Kaydet” düğmesine basın.</div>'; return; }
             list.innerHTML = active.slice().sort((a,b) => (b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0)).map(a => {
                 const lines = (a.items || []).map(i => `<div class="flex justify-between gap-2 text-xs py-1 border-b border-slate-700/60"><span class="min-w-0 truncate">${htmlGuvenli(i.product?.name || 'Ürün')} × ${Number(i.qty)||0}</span><span class="whitespace-nowrap">${adisyonPara((Number(i.product?.price)||0)*(Number(i.qty)||0))}</span></div>`).join('');
-                return `<article class="theme-card rounded-xl border border-slate-700 p-4 shadow-lg"><div class="flex justify-between items-start gap-2 mb-2"><div><h3 class="font-black text-amber-400 text-base">${htmlGuvenli(a.masa || 'Masa belirtilmedi')}</h3><p class="text-[10px] text-slate-400 mt-1">${htmlGuvenli(a.garson || 'Garson belirtilmedi')} · ${htmlGuvenli(a.updatedLabel || a.createdLabel || '')}</p></div><span class="text-[10px] rounded bg-amber-900/50 text-amber-300 px-2 py-1">AÇIK</span></div><div class="space-y-0 mb-3">${lines || '<p class="text-xs text-slate-400">Ürün yok</p>'}</div><div class="flex justify-between font-bold border-t border-slate-700 pt-2 mb-3"><span>Toplam</span><span class="text-emerald-400">${adisyonPara(adisyonToplam(a))}</span></div>${a.note ? `<p class="text-xs text-slate-400 mb-3"><i class="fa-solid fa-note-sticky mr-1"></i>${htmlGuvenli(a.note)}</p>` : ''}<div class="grid grid-cols-2 gap-2"><button class="bg-cyan-700 hover:bg-cyan-600 text-white rounded p-2 text-xs font-bold" onclick="adisyonuAc('${String(a.id).replace(/'/g, '')}')"><i class="fa-solid fa-pen mr-1"></i>Düzenle / Öde</button><button class="bg-slate-700 hover:bg-slate-600 text-white rounded p-2 text-xs font-bold" onclick="adisyonFisYazdir('${String(a.id).replace(/'/g, '')}')"><i class="fa-solid fa-print mr-1"></i>Adisyon Yazdır</button><button class="col-span-2 bg-rose-800 hover:bg-rose-700 text-white rounded p-2 text-xs font-bold" onclick="adisyonuIptalEt('${String(a.id).replace(/'/g, '')}')"><i class="fa-solid fa-trash mr-1"></i>Adisyonu İptal Et</button></div></article>`;
+                const kitchenStatus = a.kitchenStatus || 'new';
+                const kitchenStatusClass = ({new:'bg-red-500/15 text-red-300 border-red-500/30',preparing:'bg-amber-500/15 text-amber-300 border-amber-500/30',ready:'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',completed:'bg-slate-700 text-slate-300 border-slate-600'})[kitchenStatus] || 'bg-red-500/15 text-red-300 border-red-500/30';
+                const kitchenStatusAt = a['kitchen'+kitchenStatus.charAt(0).toUpperCase()+kitchenStatus.slice(1)+'At'] || a.kitchenCreatedAt;
+                const kitchenTime = kitchenStatusAt ? new Date(Number(kitchenStatusAt)).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : '';
+                return `<article class="theme-card rounded-xl border border-slate-700 p-4 shadow-lg"><div class="flex justify-between items-start gap-2 mb-2"><div><h3 class="font-black text-amber-400 text-base">${htmlGuvenli(a.masa || 'Masa belirtilmedi')}</h3><p class="text-[10px] text-slate-400 mt-1">${htmlGuvenli(a.garson || 'Garson belirtilmedi')} · ${htmlGuvenli(a.updatedLabel || a.createdLabel || '')}</p></div><div class="flex flex-col items-end gap-1"><span class="text-[10px] rounded bg-amber-900/50 text-amber-300 px-2 py-1">AÇIK</span><span class="text-[10px] rounded border px-2 py-1 font-bold ${kitchenStatusClass}">${mutfakDurumMetni(kitchenStatus)}</span></div></div>${kitchenTime?`<p class="text-[10px] text-slate-400 mb-2">Hazırlık durumu güncellendi: ${kitchenTime}</p>`:''}<div class="space-y-0 mb-3">${lines || '<p class="text-xs text-slate-400">Ürün yok</p>'}</div><div class="flex justify-between font-bold border-t border-slate-700 pt-2 mb-3"><span>Toplam</span><span class="text-emerald-400">${adisyonPara(adisyonToplam(a))}</span></div>${a.note ? `<p class="text-xs text-slate-400 mb-3"><i class="fa-solid fa-note-sticky mr-1"></i>${htmlGuvenli(a.note)}</p>` : ''}<div class="grid grid-cols-2 gap-2"><button class="bg-cyan-700 hover:bg-cyan-600 text-white rounded p-2 text-xs font-bold" onclick="adisyonuAc('${String(a.id).replace(/'/g, '')}')"><i class="fa-solid fa-pen mr-1"></i>Düzenle / Öde</button><button class="bg-slate-700 hover:bg-slate-600 text-white rounded p-2 text-xs font-bold" onclick="adisyonFisYazdir('${String(a.id).replace(/'/g, '')}')"><i class="fa-solid fa-print mr-1"></i>Adisyon Yazdır</button><button class="col-span-2 bg-rose-800 hover:bg-rose-700 text-white rounded p-2 text-xs font-bold" onclick="adisyonuIptalEt('${String(a.id).replace(/'/g, '')}')"><i class="fa-solid fa-trash mr-1"></i>Adisyonu İptal Et</button></div></article>`;
             }).join('');
         }
         function adisyonuKaydet() {
@@ -4060,7 +4246,8 @@ button:not(:disabled):active { transform: translateY(1px); }
             const ad = acikAdisyonlar.find(a => String(a.id) === String(id)); if (!ad) return;
             const rows = (ad.items||[]).map(i => `<tr><td style="padding:5px 0">${htmlGuvenli(i.product?.name||'Ürün')} × ${Number(i.qty)||0}</td><td style="text-align:right">${adisyonPara((Number(i.product?.price)||0)*(Number(i.qty)||0))}</td></tr>`).join('');
             const w = window.open('', '_blank', 'width=420,height=650'); if (!w) { onayModaliniGoster('Yazdırma engellendi', 'Adisyon fişi için açılır pencereye izin verin.', null, true); return; }
-            w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Adisyon ${htmlGuvenli(ad.masa||'')}</title><style>body{font:14px monospace;padding:18px}h2,p{text-align:center}table{width:100%;border-collapse:collapse}.total{border-top:1px dashed #333;padding-top:8px;text-align:right;font-weight:bold}@media print{button{display:none}}</style></head><body><h2>${htmlGuvenli(sistemAyarlari.sirketAdi||'Adisyon')}</h2><p>${htmlGuvenli(ad.masa||'Masa belirtilmedi')}</p><p>Garson: ${htmlGuvenli(ad.garson||'-')}</p><p>${htmlGuvenli(ad.updatedLabel||ad.createdLabel||'')}</p><table>${rows}</table><p class="total">TOPLAM: ${adisyonPara(adisyonToplam(ad))}</p>${ad.note?`<p>Not: ${htmlGuvenli(ad.note)}</p>`:''}<script>window.onload=()=>window.print()<\/script>
+            w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Adisyon ${htmlGuvenli(ad.masa||'')}</title><style>body{font:14px monospace;padding:18px}h2,p{text-align:center}table{width:100%;border-collapse:collapse}.total{border-top:1px dashed #333;padding-top:8px;text-align:right;font-weight:bold}@media print{button{display:none}}</style>
+</head><body><h2>${htmlGuvenli(sistemAyarlari.sirketAdi||'Adisyon')}</h2><p>${htmlGuvenli(ad.masa||'Masa belirtilmedi')}</p><p>Garson: ${htmlGuvenli(ad.garson||'-')}</p><p>${htmlGuvenli(ad.updatedLabel||ad.createdLabel||'')}</p><table>${rows}</table><p class="total">TOPLAM: ${adisyonPara(adisyonToplam(ad))}</p>${ad.note?`<p>Not: ${htmlGuvenli(ad.note)}</p>`:''}<script>window.onload=()=>window.print()<\/script>
 <style id="mobile-sales-usability-fix">
 @media (max-width: 767px) {
   #section-sales { flex-direction: column !important; overflow-x: hidden !important; overflow-y: auto !important; height: 100% !important; min-height: 0 !important; padding: 6px !important; gap: 8px !important; }
@@ -4319,7 +4506,7 @@ button:not(:disabled):active { transform: translateY(1px); }
         function stokFiltresiAyarla(filterType) {
             mevcutStokFiltresi = filterType;
             const tema = sistemAyarlari.tema || 'dark';
-            const isLight = ['light', 'arctic', 'sand', 'mint'].includes(tema);
+            const isLight = sistemAyarlari.temaModu === 'light' || (sistemAyarlari.temaModu !== 'dark' && ['light', 'arctic', 'sand', 'mint'].includes(tema));
 
             ['ALL', 'IN_STOCK', 'CRITICAL', 'OUT_OF_STOCK'].forEach(f => {
                 const btn = document.getElementById(`stock-filter-${f}`);
@@ -4342,7 +4529,7 @@ button:not(:disabled):active { transform: translateY(1px); }
             if(!tbody || !searchInput) return;
             const q = searchInput.value.toLowerCase().trim();
             const tema = sistemAyarlari.tema || 'dark';
-            const isLight = ['light', 'arctic', 'sand', 'mint'].includes(tema);
+            const isLight = sistemAyarlari.temaModu === 'light' || (sistemAyarlari.temaModu !== 'dark' && ['light', 'arctic', 'sand', 'mint'].includes(tema));
 
             const sortedUrunler = [...urunler].sort((a, b) => {
                 const katKarsilastir = a.category.localeCompare(b.category, 'tr');
@@ -4607,7 +4794,7 @@ button:not(:disabled):active { transform: translateY(1px); }
             const tbody = document.getElementById('cash-movement-table');
             if(!tbody) return;
             const tema = sistemAyarlari.tema || 'dark';
-            const isLight = ['light', 'arctic', 'sand', 'mint'].includes(tema);
+            const isLight = sistemAyarlari.temaModu === 'light' || (sistemAyarlari.temaModu !== 'dark' && ['light', 'arctic', 'sand', 'mint'].includes(tema));
 
             if (!kasaHareketleri || kasaHareketleri.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center opacity-70">Kasa hareketi yok.</td></tr>`;
@@ -5023,7 +5210,7 @@ button:not(:disabled):active { transform: translateY(1px); }
             const tbody = document.getElementById('system-users-table');
             if(!tbody) return;
             const tema = sistemAyarlari.tema || 'dark';
-            const isLight = ['light', 'arctic', 'sand', 'mint'].includes(tema);
+            const isLight = sistemAyarlari.temaModu === 'light' || (sistemAyarlari.temaModu !== 'dark' && ['light', 'arctic', 'sand', 'mint'].includes(tema));
 
             if (!sistemKullanicilari || sistemKullanicilari.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center opacity-70">Kayıtlı kullanıcı yok.</td></tr>`;
@@ -5066,7 +5253,7 @@ button:not(:disabled):active { transform: translateY(1px); }
             }
             const list = document.getElementById('veresiye-customer-list');
             const tema = sistemAyarlari.tema || 'dark';
-            const isLight = ['light', 'arctic', 'sand', 'mint'].includes(tema);
+            const isLight = sistemAyarlari.temaModu === 'light' || (sistemAyarlari.temaModu !== 'dark' && ['light', 'arctic', 'sand', 'mint'].includes(tema));
             const sortedMusteriler = [...musteriler].sort((a,b) => a.name.localeCompare(b.name, 'tr'));
 
             list.innerHTML = sortedMusteriler.map(c => {
@@ -5190,7 +5377,7 @@ button:not(:disabled):active { transform: translateY(1px); }
             document.getElementById('cust-history-title').innerHTML = `<i class="fa-solid fa-clock-rotate-left"></i> ${htmlGuvenli(customer.name)} - Hesap Geçmişi`;
             const listContainer = document.getElementById('customer-history-list');
             const tema = sistemAyarlari.tema || 'dark';
-            const isLight = ['light', 'arctic', 'sand', 'mint'].includes(tema);
+            const isLight = sistemAyarlari.temaModu === 'light' || (sistemAyarlari.temaModu !== 'dark' && ['light', 'arctic', 'sand', 'mint'].includes(tema));
 
             const history = customer.history || [];
             if(history.length === 0) {
@@ -5342,7 +5529,7 @@ button:not(:disabled):active { transform: translateY(1px); }
             if(!tbody) return;
             const q = searchInput ? searchInput.value.toLowerCase().trim() : '';
             const tema = sistemAyarlari.tema || 'dark';
-            const isLight = ['light', 'arctic', 'sand', 'mint'].includes(tema);
+            const isLight = sistemAyarlari.temaModu === 'light' || (sistemAyarlari.temaModu !== 'dark' && ['light', 'arctic', 'sand', 'mint'].includes(tema));
 
             musteriler.forEach(c => { if (!Number.isFinite(Number(c.cardBalance))) c.cardBalance = 0; });
             const sortedMusteriler = [...musteriler].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
@@ -5541,7 +5728,7 @@ button:not(:disabled):active { transform: translateY(1px); }
             if(!tbody) return;
             const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
             const tema = sistemAyarlari.tema || 'dark';
-            const isLight = ['light', 'arctic', 'sand', 'mint'].includes(tema);
+            const isLight = sistemAyarlari.temaModu === 'light' || (sistemAyarlari.temaModu !== 'dark' && ['light', 'arctic', 'sand', 'mint'].includes(tema));
 
             const filtered = (satisGecmisi || []).filter(s => {
                 const idMatch = String(s.id).toLowerCase().includes(query);
@@ -5835,40 +6022,44 @@ button:not(:disabled):active { transform: translateY(1px); }
             cihazGorunumunuAyarla(cihazIlk);
         });
     
-        // Satış ürün kartlarını uzun basıp sürükleyerek sıralama (ok tuşları korunur).
+        // Satış ürününü sağ tıklayarak veya uzun basarak tükenmiş olarak işaretle.
         (() => {
-            let pressTimer = null, dragging = null, sourceId = null, targetId = null, startX = 0, startY = 0, longPress = false, suppressNextClick = false;
-            const clearPress = () => { if (pressTimer) clearTimeout(pressTimer); pressTimer = null; };
+            let pressTimer = null, pressCardId = null, pressStartX = 0, pressStartY = 0, longPressDone = false, suppressNextClick = false;
+            const stopTimer = () => { if (pressTimer) clearTimeout(pressTimer); pressTimer = null; };
+            const saveAvailability = (product, isSoldOut) => {
+                product.manualSoldOut = Boolean(isSoldOut);
+                durumuKaydet(); urunleriGoster(); urunYonetimTablosunuGuncelle();
+                islemBildirimiGoster(product.manualSoldOut ? `${product.name} — TÜKENDİ` : `${product.name}: Stok takibi devam ediyor`);
+            };
+            const markSoldOut = (id) => {
+                const product = urunler.find(p => String(p.id) === String(id));
+                if (!product) return;
+                onayModaliniGoster('Ürün Durumu', `${product.name} için satış durumunu seçin.`, () => saveAvailability(product, true), false);
+                const yesBtn = document.getElementById('confirm-yes-btn');
+                const noBtn = document.getElementById('confirm-no-btn');
+                if (yesBtn) { yesBtn.innerText = 'TÜKENDİ'; yesBtn.className = 'flex-1 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded text-xs shadow transition'; }
+                if (noBtn) { noBtn.innerText = 'MEVCUT'; noBtn.className = 'flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-xs shadow transition'; noBtn.onclick = () => { onayModaliniKapat(); saveAvailability(product, false); }; }
+            };
+            document.addEventListener('contextmenu', e => {
+                const card = e.target.closest('#products-grid .sales-product-card[data-product-id]');
+                if (!card) return;
+                e.preventDefault(); stopTimer(); pressCardId=null; markSoldOut(card.dataset.productId);
+            });
             document.addEventListener('pointerdown', e => {
                 const card = e.target.closest('#products-grid .sales-product-card[data-product-id]');
-                if (!card || !islemYetkisiVar('sales_product_order') || e.target.closest('button')) return;
-                sourceId = card.dataset.productId; targetId = sourceId; startX = e.clientX; startY = e.clientY; longPress = false;
-                clearPress();
-                pressTimer = setTimeout(() => { longPress = true; dragging = card; card.classList.add('ring-2','ring-emerald-500','opacity-70'); }, 500);
+                if (!card || e.button === 2 || e.target.closest('button')) return;
+                pressCardId = card.dataset.productId; pressStartX = e.clientX; pressStartY = e.clientY; longPressDone = false;
+                stopTimer();
+                pressTimer = setTimeout(() => { longPressDone = true; markSoldOut(pressCardId); }, 650);
             }, {passive:true});
             document.addEventListener('pointermove', e => {
-                if (!sourceId) return;
-                if (!longPress && (Math.abs(e.clientX-startX)>12 || Math.abs(e.clientY-startY)>12)) { clearPress(); return; }
-                if (!longPress) return;
-                const el = document.elementFromPoint(e.clientX,e.clientY)?.closest('#products-grid .sales-product-card[data-product-id]');
-                if (el) { targetId = el.dataset.productId; document.querySelectorAll('#products-grid .sales-product-card').forEach(c=>c.classList.remove('border-emerald-400')); el.classList.add('border-emerald-400'); }
+                if (!pressCardId || longPressDone) return;
+                if (Math.abs(e.clientX-pressStartX)>12 || Math.abs(e.clientY-pressStartY)>12) { stopTimer(); pressCardId=null; }
             }, {passive:true});
-            const finish = () => {
-                clearPress();
-                if (longPress) suppressNextClick = true;
-                if (dragging) dragging.classList.remove('ring-2','ring-emerald-500','opacity-70');
-                document.querySelectorAll('#products-grid .sales-product-card').forEach(c=>c.classList.remove('border-emerald-400'));
-                if (longPress && sourceId && targetId && sourceId !== targetId && islemYetkisiVar('sales_product_order')) {
-                    const from = urunler.findIndex(p=>String(p.id)===String(sourceId));
-                    const to = urunler.findIndex(p=>String(p.id)===String(targetId));
-                    if (from >= 0 && to >= 0) { const [item] = urunler.splice(from,1); urunler.splice(to,0,item); durumuKaydet(); urunleriGoster(); urunYonetimTablosunuGuncelle(); }
-                }
-                sourceId=null; targetId=null; dragging=null; longPress=false;
-            };
-            document.addEventListener('pointerup', finish); document.addEventListener('pointercancel', finish);
-            document.addEventListener('click', e => { if (suppressNextClick && e.target.closest('#products-grid .sales-product-card')) { suppressNextClick = false; e.preventDefault(); e.stopPropagation(); } }, true);
-        })();
-</script>
+            const finishPress = () => { stopTimer(); if (longPressDone) suppressNextClick=true; longPressDone=false; pressCardId=null; };
+            document.addEventListener('pointerup', finishPress); document.addEventListener('pointercancel', finishPress);
+            document.addEventListener('click', e => { if (suppressNextClick && e.target.closest('#products-grid .sales-product-card')) { suppressNextClick=false; e.preventDefault(); e.stopPropagation(); } }, true);
+        })();</script>
 
 <style id="mobile-sales-usability-fix">
 @media (max-width: 767px) {
@@ -5885,31 +6076,47 @@ button:not(:disabled):active { transform: translateY(1px); }
 </style>
 
 <!-- MÜŞTERİ QR MENÜSÜ: yalnızca ?musteriSiparis=1 bağlantısında gösterilir -->
-<div id="customer-order-portal" class="hidden fixed inset-0 z-[500] overflow-y-auto bg-slate-950 text-slate-100 p-3 md:p-6"><div class="max-w-4xl mx-auto space-y-4"><header class="rounded-xl border border-slate-800 bg-slate-900 p-4"><div class="text-xs text-cyan-400 font-bold">MASA <span id="customer-portal-table">1</span></div><h1 id="customer-portal-company" class="text-2xl font-black mt-1">Menümüz</h1><p class="text-xs text-slate-400 mt-1">Ürünleri seçin, siparişinizi gönderin ve durumunu takip edin.</p></header><div id="customer-portal-message" class="text-sm text-amber-300"></div><div id="customer-portal-categories" class="flex gap-2 overflow-x-auto pb-1"></div><div id="customer-portal-products" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div><section class="rounded-xl border border-slate-700 bg-slate-900 p-4 space-y-3"><h2 class="font-bold text-lg"><i class="fa-solid fa-basket-shopping text-emerald-400 mr-2"></i>Siparişiniz</h2><div id="customer-portal-cart" class="space-y-2 text-sm"><p class="text-slate-400">Henüz ürün seçilmedi.</p></div><label class="block text-xs text-slate-300">Sipariş notu <textarea id="customer-portal-note" class="theme-input mt-1 w-full bg-slate-950 border border-slate-700 rounded p-2" rows="2" placeholder="Örn. sos ayrı olsun"></textarea></label><button id="customer-portal-submit" onclick="musteriSiparisGonder()" class="w-full rounded-lg bg-emerald-600 hover:bg-emerald-500 p-3 font-bold text-sm">Siparişi Gönder</button><div id="customer-portal-status" class="text-sm text-cyan-300"></div></section></div></div>
+<div id="customer-order-portal" class="hidden fixed inset-0 z-[500] overflow-y-auto bg-slate-950 text-slate-100 p-3 md:p-6"><div class="max-w-4xl mx-auto space-y-4"><header class="rounded-xl border border-slate-800 bg-slate-900 p-4"><div class="text-xs text-cyan-400 font-bold"><span id="customer-portal-service-type">MASA</span> <span id="customer-portal-table">1</span></div><h1 id="customer-portal-company" class="text-2xl font-black mt-1">Menümüz</h1><p class="text-xs text-slate-400 mt-1">Ürünleri seçin, siparişinizi gönderin ve durumunu takip edin.</p></header><div id="customer-portal-message" class="text-sm text-amber-300"></div><div id="customer-portal-categories" class="flex gap-2 overflow-x-auto pb-1"></div><div id="customer-portal-products" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div><section class="rounded-xl border border-slate-700 bg-slate-900 p-4 space-y-3"><h2 class="font-bold text-lg"><i class="fa-solid fa-basket-shopping text-emerald-400 mr-2"></i>Sipariş Sepetim</h2><div id="customer-portal-cart" class="space-y-2 text-sm"><p class="text-slate-400">Henüz ürün seçilmedi.</p></div><label class="block text-xs text-slate-300">Sipariş notu <textarea id="customer-portal-note" class="theme-input mt-1 w-full bg-slate-950 border border-slate-700 rounded p-2" rows="2" placeholder="Örn. sos ayrı olsun"></textarea></label><button id="customer-portal-submit" onclick="musteriSiparisGonder()" class="w-full rounded-lg bg-emerald-600 hover:bg-emerald-500 p-3 font-bold text-sm">Siparişi Gönder</button><button id="customer-portal-cancel-edit" type="button" onclick="customerOrderCancelEdit()" class="hidden w-full rounded-lg bg-slate-700 hover:bg-slate-600 p-2 font-bold text-sm">Düzenlemeyi İptal Et</button><div id="customer-portal-status" class="hidden rounded-lg border border-cyan-800 bg-slate-950/70 p-3 text-sm"></div></section></div></div>
 <script>
 (function(){
  const params=new URLSearchParams(location.search); if(params.get('musteriSiparis')!=='1') return;
  document.addEventListener('DOMContentLoaded', async()=>{
    document.getElementById('auth-screen')?.classList.add('hidden'); document.getElementById('app-header')?.classList.add('hidden'); document.querySelector('main')?.classList.add('hidden'); document.getElementById('customer-qr-settings')?.classList.add('hidden');
    document.body.classList.remove('overflow-hidden'); document.getElementById('customer-order-portal').classList.remove('hidden');
-   const table=params.get('masa')||'1'; document.getElementById('customer-portal-table').textContent=table;
-   let menu=[], cats=[], category='Tümü', cart=[], lastOrderId=null, stopStatus=null;
+   const table=params.get('masa')||'1', orderType=params.get('tip')==='paket'?'paket':'masa'; document.getElementById('customer-portal-table').textContent=orderType==='paket'?'':table; document.getElementById('customer-portal-service-type').textContent=orderType==='paket'?'PAKET SERVİS':'MASA';
+   let menu=[], cats=[], category='Tümü', cart=[], lastOrderId=null, editingOrderId=null; const orderRecords=new Map(), orderUnsubscribers=new Map();
+   const scope=`${params.get('root')||'hizli_pos'}:${params.get('period')||'varsayilan'}:${params.get('masa')||'1'}`;
+   const orderStorageKey=`qr-last-order:${scope}`, orderListStorageKey=`qr-orders:${scope}`; let customerOrderIds=[];
+   try{const saved=JSON.parse(localStorage.getItem(orderListStorageKey)||'[]');if(Array.isArray(saved))customerOrderIds=saved.map(String);lastOrderId=localStorage.getItem(orderStorageKey)||null;if(lastOrderId&&!customerOrderIds.includes(lastOrderId))customerOrderIds.push(lastOrderId);}catch(_){}
    const money=n=>'₺'+(Number(n)||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});
    const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-   const msg=document.getElementById('customer-portal-message');
-   async function waitApi(){for(let i=0;i<40;i++){if(window.customerOrderApi)return window.customerOrderApi; await new Promise(r=>setTimeout(r,250));} throw new Error('Müşteri menüsü başlatılamadı.');}
-   try { const api=await waitApi(); const data=await api.loadMenu(); menu=Array.isArray(data.products)?data.products.map((value,index)=>({...value,id:value?.id??String(index)})):Object.entries(data.products||{}).map(([key,value])=>({...value,id:value?.id??key})); cats=Array.isArray(data.categories)?data.categories:Object.values(data.categories||{}).map(c=>typeof c==='string'?c:(c?.name||c?.ad||'')); document.getElementById('customer-portal-company').textContent=data.company||'Menümüz'; if(!menu.length) msg.textContent='Menü bulunamadı. İşletme yöneticisi Firebase ürün eşitlemesini kontrol etmeli.'; renderCats(); renderProducts(); renderCart(); }
+   const msg=document.getElementById('customer-portal-message'), note=document.getElementById('customer-portal-note'), submitButton=document.getElementById('customer-portal-submit'), cancelEditButton=document.getElementById('customer-portal-cancel-edit'), statusBox=document.getElementById('customer-portal-status');
+   async function waitApi(){for(let i=0;i<40;i++){if(window.customerOrderApi)return window.customerOrderApi;await new Promise(r=>setTimeout(r,250));}throw new Error('Müşteri menüsü başlatılamadı.');}
+   function saveOrderIds(){try{localStorage.setItem(orderListStorageKey,JSON.stringify(customerOrderIds));if(lastOrderId)localStorage.setItem(orderStorageKey,lastOrderId);}catch(_){}}
+   function renderOrderStatuses(){const states={new:['Onay bekliyor','Siparişiniz işletmeye ulaştı. Onaylanana kadar düzenleyebilirsiniz.','text-amber-300'],accepted:['Onaylandı','Siparişiniz onaylandı.','text-cyan-300'],preparing:['Hazırlanıyor','Siparişiniz hazırlanıyor.','text-sky-300'],ready:['Hazır','Siparişiniz hazır, servis bekliyor.','text-emerald-300'],served:['Teslim edildi','Siparişiniz servis edildi.','text-emerald-300'],cancelled:['İptal edildi','Siparişiniz iptal edildi.','text-red-300']};const ordered=customerOrderIds.map(id=>({id,order:orderRecords.get(id)})).sort((a,b)=>(b.order?.createdAt||0)-(a.order?.createdAt||0));if(!ordered.length){statusBox.classList.add('hidden');statusBox.innerHTML='';return;}statusBox.classList.remove('hidden');statusBox.innerHTML=`<h3 class="mb-3 font-black text-base">Siparişlerim (${ordered.length})</h3><div class="space-y-3">${ordered.map(({id,order})=>{if(order===undefined)return `<article class="rounded-lg border border-slate-700 bg-slate-900/70 p-3 text-sm text-slate-400">#${esc(id.slice(-8))} yükleniyor…</article>`;if(order===null)return `<article class="rounded-lg border border-slate-700 bg-slate-900/70 p-3 text-sm text-amber-300">#${esc(id.slice(-8))} sipariş kaydı bulunamadı.</article>`;const state=states[order.status]||['Güncellendi','Sipariş durumunuz güncellendi.','text-cyan-300'];const rows=(order.items||[]).map(i=>`<div class="flex justify-between gap-3 py-1 text-xs"><span>${esc(i.name||'Ürün')} × ${Number(i.qty)||1}</span><span>${money((Number(i.price)||0)*(Number(i.qty)||1))}</span></div>`).join('');const editButton=order.status==='new'?`<button type="button" onclick="window.customerOrderEdit('${esc(id)}')" class="rounded bg-amber-600 hover:bg-amber-500 px-3 py-2 text-xs font-bold text-white">${editingOrderId===id?'Düzenleniyor':'Siparişi Düzenle'}</button>`:'';return `<article class="rounded-lg border ${order.status==='new'?'border-amber-700':'border-slate-700'} bg-slate-900/70 p-3"><div class="flex flex-wrap items-center justify-between gap-2"><div><div class="text-xs text-slate-400">${esc(order.orderType==='paket'?'PAKET SERVİS':`MASA ${order.table||table}`)} · #${esc(id.slice(-8))} · ${new Date(order.createdAt||Date.now()).toLocaleString('tr-TR')}</div><div class="font-black ${state[2]}">${state[0]}</div><div class="text-xs text-slate-300">${state[1]}</div></div>${editButton}</div><div class="mt-3 border-t border-slate-700 pt-2">${rows||'<div class="text-xs text-slate-400">Sipariş listesi boş.</div>'}<div class="mt-2 border-t border-slate-700 pt-2 text-right font-black text-emerald-300">Toplam: ${money(order.total)}</div>${order.note?`<div class="mt-2 text-xs text-slate-300">Not: ${esc(order.note)}</div>`:''}</div></article>`;}).join('')}</div>`;}
+   function watchOrder(id){if(orderUnsubscribers.has(id))return;orderRecords.set(id,undefined);renderOrderStatuses();waitApi().then(api=>{const unsub=api.subscribeMyOrder(id,order=>{orderRecords.set(id,order||null);if(editingOrderId===id&&order&&order.status!=='new'){editingOrderId=null;cart=[];renderCart();note.value='';cancelEditButton.classList.add('hidden');submitButton.textContent='Siparişi Gönder';msg.textContent='Sipariş onaylandığı için düzenleme kapatıldı.';}renderOrderStatuses();});orderUnsubscribers.set(id,unsub);}).catch(()=>{orderRecords.set(id,null);renderOrderStatuses();});}
+   window.customerOrderEdit=id=>{const order=orderRecords.get(String(id));if(!order||order.status!=='new'){msg.textContent='Bu sipariş onaylandı; yalnızca listesini görüntüleyebilirsiniz.';return;}editingOrderId=String(id);cart=(order.items||[]).map(i=>({id:String(i.id??i.name),name:i.name||'Ürün',price:Number(i.price)||0,qty:Number(i.qty)||1}));note.value=order.note||'';renderCart();submitButton.textContent='Değişiklikleri Kaydet';cancelEditButton.classList.remove('hidden');msg.textContent='Sipariş onaylanana kadar ürünleri, adetleri ve notu düzenleyebilirsiniz.';renderOrderStatuses();};
+   window.customerOrderCancelEdit=()=>{editingOrderId=null;cart=[];renderCart();note.value='';submitButton.textContent='Siparişi Gönder';cancelEditButton.classList.add('hidden');msg.textContent='Düzenleme iptal edildi.';renderOrderStatuses();};
+   try{const api=await waitApi();const data=await api.loadMenu();menu=Array.isArray(data.products)?data.products.map((value,index)=>({...value,id:value?.id??String(index)})):Object.entries(data.products||{}).map(([key,value])=>({...value,id:value?.id??key}));cats=Array.isArray(data.categories)?data.categories:Object.values(data.categories||{}).map(c=>typeof c==='string'?c:(c?.name||c?.ad||''));document.getElementById('customer-portal-company').textContent=data.company||'Menümüz';if(!menu.length)msg.textContent='Menü bulunamadı. İşletme yöneticisi Firebase ürün eşitlemesini kontrol etmeli.';renderCats();renderProducts();renderCart();customerOrderIds.forEach(watchOrder);}
    catch(e){msg.textContent='Menüye bağlanılamadı. İşletmenin internet ve Firebase ayarlarını kontrol edin. '+(e.message||'');}
-   function renderCats(){let list=['Tümü',...cats.filter(Boolean)];document.getElementById('customer-portal-categories').innerHTML=list.map((c,idx)=>`<button type="button" data-category-index="${idx}" class="shrink-0 rounded-full px-3 py-2 text-xs font-bold ${c===category?'bg-cyan-600':'bg-slate-800'}">${esc(c)}</button>`).join('');}
+   function renderCats(){const list=['Tümü',...cats.filter(Boolean)];document.getElementById('customer-portal-categories').innerHTML=list.map((c,idx)=>`<button type="button" data-category-index="${idx}" class="shrink-0 rounded-full px-3 py-2 text-xs font-bold ${c===category?'bg-cyan-600':'bg-slate-800'}">${esc(c)}</button>`).join('');}
    document.getElementById('customer-portal-categories').addEventListener('click',e=>{const b=e.target.closest('button[data-category-index]');if(!b)return;const c=['Tümü',...cats.filter(Boolean)][Number(b.dataset.categoryIndex)];if(c!==undefined){category=c;renderCats();renderProducts();}});
-   function renderProducts(){let filtered=menu.filter(p=>(category==='Tümü'||(p.category||p.kategori||p.categoryName)===category)&&(p.active!==false)&&(Number(p.inStock||0)-Number(p.outStock||0)>0));document.getElementById('customer-portal-products').innerHTML=filtered.map((p,idx)=>`<article class="rounded-xl border border-slate-700 bg-slate-900 p-3 flex flex-col gap-2"><div class="font-bold text-sm break-words">${esc(p.name||p.ad||p.urunAdi||'Ürün')}</div><div class="text-emerald-400 font-black">${money(p.price??p.fiyat)}</div><button type="button" data-product-index="${idx}" class="mt-auto rounded bg-emerald-700 hover:bg-emerald-600 py-2 text-xs font-bold">Ekle +</button></article>`).join('')||'<p class="col-span-full text-sm text-slate-400">Bu kategoride ürün yok.</p>';}
-   document.getElementById('customer-portal-products').addEventListener('click',e=>{const b=e.target.closest('button[data-product-index]');if(!b)return;const filtered=menu.filter(p=>(category==='Tümü'||(p.category||p.kategori||p.categoryName)===category)&&(p.active!==false)&&(Number(p.inStock||0)-Number(p.outStock||0)>0));const p=filtered[Number(b.dataset.productIndex)];if(!p){msg.textContent='Ürün seçilemedi. Lütfen sayfayı yenileyin.';return;}const id=String(p.id??p.key??p.name??p.ad??'');const row=cart.find(x=>String(x.id)===id);if(row)row.qty++;else cart.push({id,name:p.name||p.ad||p.urunAdi||'Ürün',price:Number(p.price??p.fiyat)||0,qty:1});renderCart();msg.textContent=(p.name||p.ad||'Ürün')+' sepete eklendi.';});
+   function availableProducts(){return menu.filter(p=>(category==='Tümü'||(p.category||p.kategori||p.categoryName)===category)&&(p.active!==false)&&(p.manualSoldOut!==true)&&(Number(p.inStock||0)-Number(p.outStock||0)>0));}
+   function renderProducts(){const filtered=availableProducts();document.getElementById('customer-portal-products').innerHTML=filtered.map((p,idx)=>`<article class="rounded-xl border border-slate-700 bg-slate-900 p-3 flex flex-col gap-2"><div class="font-bold text-sm break-words">${esc(p.name||p.ad||p.urunAdi||'Ürün')}</div><div class="text-emerald-400 font-black">${money(p.price??p.fiyat)}</div><button type="button" data-product-index="${idx}" class="mt-auto rounded bg-emerald-700 hover:bg-emerald-600 py-2 text-xs font-bold">Ekle +</button></article>`).join('')||'<p class="col-span-full text-sm text-slate-400">Bu kategoride ürün yok.</p>';}
+   document.getElementById('customer-portal-products').addEventListener('click',e=>{const b=e.target.closest('button[data-product-index]');if(!b)return;const p=availableProducts()[Number(b.dataset.productIndex)];if(!p){msg.textContent='Ürün seçilemedi. Lütfen sayfayı yenileyin.';return;}const id=String(p.id??p.key??p.name??p.ad??'');const row=cart.find(x=>String(x.id)===id);if(row)row.qty++;else cart.push({id,name:p.name||p.ad||p.urunAdi||'Ürün',price:Number(p.price??p.fiyat)||0,qty:1});renderCart();msg.textContent=(p.name||p.ad||'Ürün')+' sepete eklendi.';});
    window.customerMenuQty=(id,d)=>{const row=cart.find(x=>String(x.id)===String(id));if(row){row.qty+=d;if(row.qty<=0)cart=cart.filter(x=>x!==row);}renderCart();};
    function renderCart(){const el=document.getElementById('customer-portal-cart');el.innerHTML=cart.length?cart.map((i,idx)=>`<div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-2"><div class="min-w-0"><div class="font-semibold">${esc(i.name)}</div><div class="text-xs text-slate-400">${money(i.price)} × ${i.qty}</div></div><div class="flex items-center gap-2"><button type="button" data-cart-index="${idx}" data-delta="-1" class="rounded bg-slate-700 px-2 py-1">−</button><span>${i.qty}</span><button type="button" data-cart-index="${idx}" data-delta="1" class="rounded bg-slate-700 px-2 py-1">+</button></div></div>`).join('')+`<div class="text-right font-black text-emerald-400">Toplam: ${money(cart.reduce((a,i)=>a+i.price*i.qty,0))}</div>`:'<p class="text-slate-400">Henüz ürün seçilmedi.</p>';}
    document.getElementById('customer-portal-cart').addEventListener('click',e=>{const b=e.target.closest('button[data-cart-index]');if(!b)return;const i=cart[Number(b.dataset.cartIndex)];if(i)window.customerMenuQty(i.id,Number(b.dataset.delta));});
-   window.musteriSiparisGonder=async()=>{if(!cart.length){msg.textContent='Lütfen önce ürün seçin.';return;}const button=document.getElementById('customer-portal-submit');button.disabled=true;button.textContent='Gönderiliyor…';try{const api=await waitApi();const order={items:cart.map(i=>({...i})),note:document.getElementById('customer-portal-note').value.trim(),total:cart.reduce((a,i)=>a+i.price*i.qty,0),customerName:'Masa müşterisi',source:'qr-menu'};lastOrderId=await api.placeOrder(order);cart=[];renderCart();document.getElementById('customer-portal-note').value='';document.getElementById('customer-portal-status').textContent='Siparişiniz işletmeye iletildi. Durum: Alındı.';msg.textContent='Siparişiniz gönderildi.';if(stopStatus)stopStatus();stopStatus=api.subscribeMyOrder(lastOrderId,o=>{if(!o)return;const states={new:'Sipariş alındı, garson onayı bekleniyor.',accepted:'Garson siparişinizi üstlendi.',preparing:'Siparişiniz hazırlanıyor.',ready:'Siparişiniz hazır, servis bekliyor.',served:'Siparişiniz servis edildi.',cancelled:'Siparişiniz iptal edildi.'};document.getElementById('customer-portal-status').textContent=states[o.status]||'Sipariş durumu güncellendi.';});}catch(e){msg.textContent='Sipariş gönderilemedi. Lütfen personele haber verin. '+(e.message||'');}finally{button.disabled=false;button.textContent='Siparişi Gönder';}};
+   window.musteriSiparisGonder=async()=>{if(!cart.length){msg.textContent='Lütfen önce ürün seçin.';return;}submitButton.disabled=true;submitButton.textContent=editingOrderId?'Kaydediliyor…':'Gönderiliyor…';try{const api=await waitApi();const order={items:cart.map(i=>({...i})),note:note.value.trim(),total:cart.reduce((a,i)=>a+i.price*i.qty,0)};if(editingOrderId){const targetId=editingOrderId;const saved=await api.updateMyOrder(targetId,order);if(!saved){editingOrderId=null;cart=[];renderCart();note.value='';cancelEditButton.classList.add('hidden');msg.textContent='Sipariş bu sırada onaylanmış. Artık yalnızca sipariş listenizi görebilirsiniz.';renderOrderStatuses();return;}editingOrderId=null;cart=[];renderCart();note.value='';cancelEditButton.classList.add('hidden');msg.textContent='Siparişiniz güncellendi.';}else{const id=await api.placeOrder({...order,customerName:'Masa müşterisi',source:'qr-menu',orderType});lastOrderId=id;if(!customerOrderIds.includes(id))customerOrderIds.push(id);saveOrderIds();watchOrder(id);cart=[];renderCart();note.value='';msg.textContent='Siparişiniz gönderildi. Siparişlerim bölümünden tüm siparişlerinizi ve durumlarını takip edebilirsiniz.';}}catch(e){msg.textContent='Sipariş kaydedilemedi. Lütfen tekrar deneyin. '+(e.message||'');}finally{submitButton.disabled=false;submitButton.textContent=editingOrderId?'Değişiklikleri Kaydet':'Siparişi Gönder';}};
  });
 })();
+</script>
+<script>
+let deferredPwaInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredPwaInstallPrompt=event;const button=document.getElementById('install-app-button');if(button)button.title='Uygulamayı cihazınıza yükleyin';});
+window.addEventListener('appinstalled',()=>{deferredPwaInstallPrompt=null;const button=document.getElementById('install-app-button');if(button)button.classList.add('hidden');if(typeof islemBildirimiGoster==='function')islemBildirimiGoster('Uygulama cihaza yüklendi.');});
+async function uygulamayiYukle(){if(location.protocol==='file:'){onayModaliniGoster('Uygulama olarak yüklemek için HTTPS gerekli','Bu dosyayı HTTPS destekli web adresinde açın. Ardından Chrome veya Edge menüsündeki “Uygulamayı yükle” seçeneğini ya da bu düğmeyi kullanabilirsiniz.',null,true);return;}if(deferredPwaInstallPrompt){deferredPwaInstallPrompt.prompt();const result=await deferredPwaInstallPrompt.userChoice;deferredPwaInstallPrompt=null;if(result?.outcome==='accepted')islemBildirimiGoster('Uygulama yükleme başlatıldı.');return;}const standalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;if(standalone){islemBildirimiGoster('Uygulama zaten yüklenmiş.');return;}const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);const message=ios?'Safari paylaşım menüsünü açıp “Ana Ekrana Ekle” seçeneğini kullanın.':'Chrome veya Edge menüsünden “Uygulamayı yükle” ya da “Ana ekrana ekle” seçeneğini seçin. Kurulum seçeneği görünmüyorsa sayfanın HTTPS adresinde açıldığını kontrol edin.';onayModaliniGoster('Uygulamayı yükle',message,null,true);}
+if('serviceWorker' in navigator&&location.protocol!=='file:'){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(error=>console.warn('Uygulama çevrimdışı desteği başlatılamadı.',error)));}
 </script>
 </body>
 </html>
