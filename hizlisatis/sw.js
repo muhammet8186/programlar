@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hizli-pos-shell-v1';
+const CACHE_NAME = 'hizli-pos-shell-v2';
 const APP_BASE = new URL('./', self.registration.scope);
 const INDEX_URL = new URL('index.html', APP_BASE).href;
 const SHELL_URLS = [APP_BASE.href, INDEX_URL, new URL('manifest.webmanifest', APP_BASE).href, new URL('app-icon-192.png', APP_BASE).href, new URL('app-icon-512.png', APP_BASE).href];
