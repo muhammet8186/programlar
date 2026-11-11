@@ -1344,7 +1344,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <button class="text-slate-400 hover:text-red-500" onclick="kameraModaliniKapat()"><i class="fa-solid fa-xmark text-base"></i></button>
 </h3>
 <div class="w-full rounded overflow-hidden border border-slate-800 bg-slate-950" id="reader"></div>
-<p class="text-[10px] text-slate-400 text-center">Barkodu kamera hizasına tutun, otomatik algılanacaktır.</p>
+<p class="text-[10px] text-slate-400 text-center">Kamera izni sorulunca “İzin ver” seçin. Barkodu kameraya tutun; otomatik algılanacaktır.</p>
 </div>
 </div>
 <!-- FİŞ YAZDIRMA MODALI -->
@@ -3768,62 +3768,68 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             barkodEtiketleriniCokluYazdir([urun]);
         }
 
-        function kameraModaliniAc(mod = 'sales') {
+        async function kameraModaliniAc(mod = 'sales') {
             aktifTaramaModu = mod;
             const titleEl = document.getElementById('scanner-modal-title');
-            if (titleEl) {
-                if (mod === 'products') titleEl.innerText = 'Kamera ile Ürün Ara';
-                else if (mod === 'product_form') titleEl.innerText = 'Ürün Formu İçin Barkod Oku';
-                else titleEl.innerText = 'Kamera ile Barkod Okut';
+            if (titleEl) titleEl.innerText = mod === 'products' ? 'Kamera ile Ürün Ara' : mod === 'product_form' ? 'Ürün Formu İçin Barkod Oku' : 'Kamera ile Barkod Okut';
+            if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+                onayModaliniGoster('Kamera için HTTPS gerekli', 'Kamera izni, uygulama HTTPS adresinde veya localhost üzerinde açıldığında kullanılabilir. Sayfayı güvenli web adresinden yeniden açın.', null, true);
+                return;
             }
-
+            if (typeof Html5Qrcode === 'undefined') {
+                onayModaliniGoster('Barkod tarayıcı yüklenemedi', 'Kamera tarayıcı bileşeni açılamadı. İnternet bağlantısını kontrol edip sayfayı yenileyin.', null, true);
+                return;
+            }
             const modal = document.getElementById('modal-scanner');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
-
-            setTimeout(() => {
-                try {
-                    html5QrCode = new Html5Qrcode("reader");
-                    html5QrCode.start(
-                        { facingMode: "environment" },
-                        { fps: 15, qrbox: { width: 250, height: 150 } },
-                        (decodedText) => {
-                            if (aktifTaramaModu === 'products') {
-                                const searchInput = document.getElementById('manage-product-search');
-                                if (searchInput) searchInput.value = decodedText;
-                                urunYonetimTablosunuGuncelle();
-                                kameraModaliniKapat();
-                            } else if (aktifTaramaModu === 'product_form') {
-                                const barcodeInput = document.getElementById('prod-barcode');
-                                if (barcodeInput) barcodeInput.value = decodedText;
+            let permissionStream = null;
+            try {
+                permissionStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+                permissionStream.getTracks().forEach(track => track.stop());
+                permissionStream = null;
+                if (modal.classList.contains('hidden')) return;
+                html5QrCode = new Html5Qrcode('reader');
+                await html5QrCode.start(
+                    { facingMode: 'environment' },
+                    { fps: 15, qrbox: { width: 250, height: 150 } },
+                    decodedText => {
+                        if (aktifTaramaModu === 'products') {
+                            const searchInput = document.getElementById('manage-product-search');
+                            if (searchInput) searchInput.value = decodedText;
+                            urunYonetimTablosunuGuncelle();
+                            kameraModaliniKapat();
+                        } else if (aktifTaramaModu === 'product_form') {
+                            const barcodeInput = document.getElementById('prod-barcode');
+                            if (barcodeInput) barcodeInput.value = decodedText;
+                            kameraModaliniKapat();
+                        } else {
+                            const barcodeInput = document.getElementById('barcode-search');
+                            if (barcodeInput) barcodeInput.value = decodedText;
+                            const found = urunler.find(p => String(p.barcode).trim() === String(decodedText).trim());
+                            if (found) {
+                                sepeteEkle(found.id);
                                 kameraModaliniKapat();
                             } else {
-                                const barcodeInput = document.getElementById('barcode-search');
-                                if (barcodeInput) barcodeInput.value = decodedText;
-
-                                const found = urunler.find(p => String(p.barcode).trim() === String(decodedText).trim());
-                                if (found) {
-                                    sepeteEkle(found.id);
-                                    kameraModaliniKapat();
-                                } else {
-                                    onayModaliniGoster('Uyarı', `"${decodedText}" barkoduna ait ürün bulunamadı!`, null, true);
-                                    kameraModaliniKapat();
-                                }
+                                onayModaliniGoster('Uyarı', `"${decodedText}" barkoduna ait ürün bulunamadı!`, null, true);
+                                kameraModaliniKapat();
                             }
-                        },
-                        (errorMessage) => {}
-                    ).catch(err => {
-                        console.error("Kamera başlatılamadı:", err);
-                        onayModaliniGoster('Kamera Hatası', 'Kamera izni verilmedi veya desteklenmiyor.', null, true);
-                        kameraModaliniKapat();
-                    });
-                } catch(e) {
-                    console.error("QR Code init error:", e);
-                }
-            }, 200);
-        }
-
-        function kameraModaliniKapat() {
+                        }
+                    },
+                    () => {}
+                );
+            } catch (error) {
+                permissionStream?.getTracks().forEach(track => track.stop());
+                console.error('Kamera başlatılamadı:', error);
+                const message = ['NotAllowedError','PermissionDeniedError'].includes(error?.name)
+                    ? 'Tarayıcı kamera izni engellendi. Adres çubuğundaki kilit veya kamera simgesini açıp Kamera iznini “İzin ver” yapın, ardından tekrar deneyin.'
+                    : error?.name === 'NotFoundError'
+                        ? 'Bu cihazda kullanılabilir kamera bulunamadı.'
+                        : 'Kamera açılamadı. Başka bir uygulamanın kamerayı kullanmadığını ve site kamera izninin açık olduğunu kontrol edin.';
+                kameraModaliniKapat();
+                onayModaliniGoster('Kamera izni gerekli', message, null, true);
+            }
+        }        function kameraModaliniKapat() {
             if (html5QrCode) {
                 html5QrCode.stop().then(() => { 
                     html5QrCode.clear(); 
