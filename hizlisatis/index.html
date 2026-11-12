@@ -1242,6 +1242,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <div class="flex items-center justify-between border-b border-slate-800 pb-2"><h3 class="text-sm font-bold"><i class="fa-solid fa-circle-plus text-emerald-500 mr-1"></i> Kasa (Manuel) — Hareket Kaydı</h3><button class="text-slate-400" onclick="modalKapat('modal-cash-add')" type="button"><i class="fa-solid fa-xmark"></i></button></div>
 <form class="space-y-3" id="cash-manual-form" onsubmit="manuelKasaHareketiEkle(event)">
 <div><label class="block text-xs text-slate-400 mb-1" for="cash-manual-type">Hareket Türü</label><select class="theme-input w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-emerald-500" id="cash-manual-type" required=""><option value="Gelir">Gelir</option><option value="Gider">Gider</option><option value="Borç">Borç (Ödenecek)</option><option value="Alacak">Alacak (Tahsil Edilecek)</option></select></div>
+<div><label class="block text-xs text-slate-400 mb-1" for="cash-manual-date">İşlem Tarihi</label><input class="theme-input w-full bg-slate-950 border border-slate-700 rounded-md p-2.5 text-xs" id="cash-manual-date" required="" type="date"/><p class="text-[10px] text-slate-500 mt-1">Saat, kaydı eklediğiniz anda otomatik eklenir.</p></div>
 <div><label class="block text-xs text-slate-400 mb-1" for="cash-manual-amount">Tutar (₺)</label><input class="theme-input w-full bg-slate-950 border border-slate-700 rounded-md p-2.5 text-xs" id="cash-manual-amount" min="0.01" placeholder="0,00" required="" step="0.01" type="number"/></div>
 <div><label class="block text-xs text-slate-400 mb-1" for="cash-manual-note">Açıklama</label><input class="theme-input w-full bg-slate-950 border border-slate-700 rounded-md p-2.5 text-xs" id="cash-manual-note" maxlength="180" placeholder="Açıklama girin..." required=""/></div>
 <p class="text-[10px] text-slate-500">Gelir kasayı artırır, gider azaltır. Borç ve alacak kayıtları takip amaçlıdır.</p>
@@ -4124,7 +4125,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                 const yenidenSiralaYetkisi = islemYetkisiVar('sales_product_order');
 
                 return `
-                <div data-product-id="${safeId}" draggable="${yenidenSiralaYetkisi ? 'true' : 'false'}" class="${cardBg} sales-product-card border rounded flex flex-col justify-between transition group select-none ${yenidenSiralaYetkisi ? 'sales-product-reorderable' : ''} ${tukendiMi ? 'opacity-40' : ''}">
+                <div data-product-id="${safeId}" class="${cardBg} sales-product-card border rounded flex flex-col justify-between transition group select-none ${yenidenSiralaYetkisi ? 'sales-product-reorderable' : ''} ${tukendiMi ? 'opacity-40' : ''}">
                     <div>
                         <div class="flex items-start justify-between">
                             <span class="sales-product-barcode ${badgeBg} px-1 py-0.2 rounded border font-mono">${htmlGuvenli(p.barcode || '')}</span>
@@ -4745,6 +4746,11 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 
         function manuelKasaKayitModaliniAc() {
             document.getElementById('cash-manual-form')?.reset();
+            const tarihAlani = document.getElementById('cash-manual-date');
+            if (tarihAlani) {
+                const bugun = new Date();
+                tarihAlani.value = `${bugun.getFullYear()}-${String(bugun.getMonth() + 1).padStart(2, '0')}-${String(bugun.getDate()).padStart(2, '0')}`;
+            }
             const modal = document.getElementById('modal-cash-add');
             if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
         }
@@ -4754,8 +4760,13 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             const type = document.getElementById('cash-manual-type')?.value || 'Gelir';
             const amount = Number(document.getElementById('cash-manual-amount')?.value);
             const note = (document.getElementById('cash-manual-note')?.value || '').trim();
-            if (!Number.isFinite(amount) || amount <= 0 || !note) { onayModaliniGoster('Eksik bilgi', 'Geçerli bir tutar ve açıklama girin.', null, true); return; }
-            kasaHareketleri.unshift({ id: `KM-${Date.now()}`, date: new Date().toLocaleString('tr-TR'), type, amount: Math.round(amount * 100) / 100, note, user: aktifKullaniciAdi || 'Bilinmiyor', periodId: aktifDonemId, movementKind: 'manual' });
+            const tarihDegeri = document.getElementById('cash-manual-date')?.value || '';
+            if (!Number.isFinite(amount) || amount <= 0 || !note || !tarihDegeri) { onayModaliniGoster('Eksik bilgi', 'Geçerli bir tarih, tutar ve açıklama girin.', null, true); return; }
+            const [yil, ay, gun] = tarihDegeri.split('-').map(Number);
+            const simdi = new Date();
+            const hareketTarihi = new Date(yil, ay - 1, gun, simdi.getHours(), simdi.getMinutes(), simdi.getSeconds(), simdi.getMilliseconds());
+            if (!Number.isFinite(hareketTarihi.getTime())) { onayModaliniGoster('Geçersiz tarih', 'Lütfen geçerli bir işlem tarihi seçin.', null, true); return; }
+            kasaHareketleri.unshift({ id: `KM-${Date.now()}`, date: hareketTarihi.toLocaleString('tr-TR'), timestamp: hareketTarihi.getTime(), type, amount: Math.round(amount * 100) / 100, note, user: aktifKullaniciAdi || 'Bilinmiyor', periodId: aktifDonemId, movementKind: 'manual' });
             durumuKaydet();
             document.getElementById('cash-manual-form')?.reset();
             modalKapat('modal-cash-add');
@@ -6115,7 +6126,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
         // Satış ürününü sağ tıklayarak veya uzun basarak tükenmiş olarak işaretle.
         (() => {
             let pressTimer = null, pressCardId = null, pressStartX = 0, pressStartY = 0, longPressDone = false, suppressNextClick = false;
-            let mouseDraggedProductId = null, touchDrag = null;
+            let productDrag = null;
             const stopTimer = () => { if (pressTimer) clearTimeout(pressTimer); pressTimer = null; };
             const tiklamayiOnle = () => { suppressNextClick = true; setTimeout(() => { suppressNextClick = false; }, 700); };
             const getProductCardAt = (x, y) => document.elementFromPoint(x, y)?.closest('#products-grid .sales-product-card[data-product-id]') || null;
@@ -6124,72 +6135,38 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                 const rect = card.getBoundingClientRect();
                 return y > rect.top + rect.height / 2 || (Math.abs(y - (rect.top + rect.height / 2)) < 4 && x > rect.left + rect.width / 2);
             };
-            document.addEventListener('dragstart', e => {
-                const card = e.target.closest('#products-grid .sales-product-card[data-product-id]');
-                if (!card) return;
-                if (!islemYetkisiVar('sales_product_order') || (e.target.closest('button') && !e.target.closest('.product-drag-handle'))) { e.preventDefault(); return; }
-                mouseDraggedProductId = card.dataset.productId;
-                card.classList.add('is-dragging');
-                if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', mouseDraggedProductId); }
-            });
-            document.addEventListener('dragover', e => {
-                if (!mouseDraggedProductId) return;
-                const target = e.target.closest('#products-grid .sales-product-card[data-product-id]');
-                if (!target || target.dataset.productId === mouseDraggedProductId) return;
-                e.preventDefault();
-                document.querySelectorAll('#products-grid .sales-product-card.is-drop-target').forEach(card => card.classList.remove('is-drop-target'));
-                target.classList.add('is-drop-target');
-                if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-            });
-            document.addEventListener('drop', e => {
-                if (!mouseDraggedProductId) return;
-                const target = e.target.closest('#products-grid .sales-product-card[data-product-id]');
-                if (!target) return;
-                e.preventDefault();
-                const sourceId = mouseDraggedProductId;
-                const targetId = target.dataset.productId;
-                const after = dropAfterCard(target, e.clientX, e.clientY);
-                mouseDraggedProductId = null;
-                clearDragMarks();
-                tiklamayiOnle();
-                urunSirasiniHedefeTasi(sourceId, targetId, after);
-            });
-            document.addEventListener('dragend', () => { mouseDraggedProductId = null; clearDragMarks(); });
             document.addEventListener('pointerdown', e => {
                 const handle = e.target.closest('#products-grid .product-drag-handle');
-                if (!handle || e.pointerType !== 'touch' || !islemYetkisiVar('sales_product_order')) return;
+                if (!handle || (e.pointerType === 'mouse' && e.button !== 0) || !islemYetkisiVar('sales_product_order')) return;
                 const card = handle.closest('.sales-product-card[data-product-id]');
                 if (!card) return;
                 e.preventDefault();
-                touchDrag = { pointerId: e.pointerId, sourceId: card.dataset.productId, startX: e.clientX, startY: e.clientY, moved: false, targetId: null };
+                productDrag = { pointerId: e.pointerId, sourceId: card.dataset.productId, startX: e.clientX, startY: e.clientY, moved: false };
                 card.classList.add('is-dragging');
                 try { handle.setPointerCapture(e.pointerId); } catch (_) {}
             }, { passive: false });
             document.addEventListener('pointermove', e => {
-                if (!touchDrag || touchDrag.pointerId !== e.pointerId) return;
-                if (Math.abs(e.clientX - touchDrag.startX) > 8 || Math.abs(e.clientY - touchDrag.startY) > 8) touchDrag.moved = true;
-                if (!touchDrag.moved) return;
+                if (!productDrag || productDrag.pointerId !== e.pointerId) return;
+                if (Math.abs(e.clientX - productDrag.startX) > 8 || Math.abs(e.clientY - productDrag.startY) > 8) productDrag.moved = true;
+                if (!productDrag.moved) return;
                 e.preventDefault();
                 const target = getProductCardAt(e.clientX, e.clientY);
                 document.querySelectorAll('#products-grid .sales-product-card.is-drop-target').forEach(card => card.classList.remove('is-drop-target'));
-                if (target && target.dataset.productId !== touchDrag.sourceId) {
-                    touchDrag.targetId = target.dataset.productId;
-                    target.classList.add('is-drop-target');
-                } else touchDrag.targetId = null;
+                if (target && target.dataset.productId !== productDrag.sourceId) target.classList.add('is-drop-target');
             }, { passive: false });
-            const touchDragBitir = e => {
-                if (!touchDrag || (e && touchDrag.pointerId !== e.pointerId)) return;
-                const current = touchDrag;
-                const target = e ? getProductCardAt(e.clientX, e.clientY) : null;
+            const productDragBitir = e => {
+                if (!productDrag || (e && productDrag.pointerId !== e.pointerId)) return;
+                const current = productDrag;
+                const target = e && e.type !== 'pointercancel' ? getProductCardAt(e.clientX, e.clientY) : null;
                 clearDragMarks();
-                touchDrag = null;
+                productDrag = null;
                 if (current.moved && target && target.dataset.productId !== current.sourceId) {
                     tiklamayiOnle();
                     urunSirasiniHedefeTasi(current.sourceId, target.dataset.productId, dropAfterCard(target, e.clientX, e.clientY));
                 }
             };
-            document.addEventListener('pointerup', touchDragBitir);
-            document.addEventListener('pointercancel', touchDragBitir);
+            document.addEventListener('pointerup', productDragBitir);
+            document.addEventListener('pointercancel', productDragBitir);
             const saveAvailability = (product, isSoldOut) => {
                 product.manualSoldOut = Boolean(isSoldOut);
                 durumuKaydet(); urunleriGoster(); urunYonetimTablosunuGuncelle();
