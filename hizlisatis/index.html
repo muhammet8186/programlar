@@ -83,6 +83,10 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
             if (kodIciFirebaseBilgileri.databaseURL) savedSettings.firebaseConfig = { ...kodIciFirebaseBilgileri };
         }
         if (!savedSettings.kokDugum && kodIciKokBasligi) savedSettings.kokDugum = kodIciKokBasligi;
+        try {
+            const cihazFirebaseDurumu = localStorage.getItem('pos_firebase_enabled_v1');
+            if (cihazFirebaseDurumu === '1' || cihazFirebaseDurumu === '0') savedSettings.firebaseAktif = cihazFirebaseDurumu === '1';
+        } catch (_) {}
 
         // Müşteri QR bağlantısı, kendi cihazındaki yerel POS ayarlarına ihtiyaç duymadan menüyü açar.
         if (customerMode && customerFirebaseConfig && customerFirebaseConfig.databaseURL) {
@@ -1756,6 +1760,10 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             kokDugum: kodIciKokBasliginiOku || '',
             firebaseConfig: { ...kodIciFirebaseBilgileriniOku }
         });
+        try {
+            const cihazFirebaseDurumu = localStorage.getItem('pos_firebase_enabled_v1');
+            if (cihazFirebaseDurumu === '1' || cihazFirebaseDurumu === '0') sistemAyarlari.firebaseAktif = cihazFirebaseDurumu === '1';
+        } catch (_) {}
         // Kod içi bağlantı bilgileri, yalnızca kayıtlı formda geçerli bir veritabanı adresi yoksa varsayılan olur.
         if (!sistemAyarlari.firebaseConfig || !sistemAyarlari.firebaseConfig.databaseURL) {
             if (kodIciFirebaseBilgileriniOku.databaseURL) sistemAyarlari.firebaseConfig = { ...kodIciFirebaseBilgileriniOku };
@@ -1832,6 +1840,10 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                 ]);
                 if (settingsSnap.exists() && settingsSnap.val() && typeof settingsSnap.val() === 'object') {
                     const bulutAyarlari = settingsSnap.val();
+                    const yerelAyarlar = { ...sistemAyarlari };
+                    const yerelRevizyon = Number(yerelAyarlar.ayarlarGuncellemeZamani) || 0;
+                    const bulutRevizyon = Number(bulutAyarlari.ayarlarGuncellemeZamani) || 0;
+                    const yerelDahaYeni = yerelRevizyon > bulutRevizyon;
                     const yerelIlkKurulumTamam = sistemAyarlari.ozellikIlkKurulumV1Tamamlandi === true;
                     const yerelOzellikSecimleri = {
                         mutfakAktif: sistemAyarlari.mutfakAktif,
@@ -1842,10 +1854,11 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                     // Bağlantı bilgileri cihazda kalır; diğer tüm program tercihleri buluttan eşitlenir.
                     const yerelBaglanti = { firebaseConfig: sistemAyarlari.firebaseConfig, firebaseAktif: sistemAyarlari.firebaseAktif, kokDugum: sistemAyarlari.kokDugum };
                     sistemAyarlari = {
-                        ...sistemAyarlari,
-                        ...bulutAyarlari,
+                        ...(yerelDahaYeni ? { ...bulutAyarlari, ...yerelAyarlar } : { ...yerelAyarlar, ...bulutAyarlari }),
                         ...yerelBaglanti,
-                        ozellikler: { ...(sistemAyarlari.ozellikler || {}), ...(bulutAyarlari.ozellikler || {}) }
+                        ozellikler: yerelDahaYeni
+                            ? { ...(bulutAyarlari.ozellikler || {}), ...(yerelAyarlar.ozellikler || {}) }
+                            : { ...(yerelAyarlar.ozellikler || {}), ...(bulutAyarlari.ozellikler || {}) }
                     };
                     // Yerel cihaz ilk kurulumu tamamladıysa ve eski bulut kaydında geçiş işareti yoksa,
                     // çevrimdışı yapılan son kullanıcı seçimini koruyup buluta aktar.
@@ -1857,7 +1870,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                     }
                     ozellikVarsayilanlariniTamamla();
                     try { localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari)); } catch (_) {}
-                    if (yerelIlkKurulumTamam && !bulutIlkKurulumTamam) {
+                    if (yerelDahaYeni || (yerelIlkKurulumTamam && !bulutIlkKurulumTamam)) {
                         try { sistemAyarlariKaydet(); } catch (_) {}
                     }
                 }
@@ -2601,7 +2614,10 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             // Şalter değiştiğinde uyarı gösterilmez. Kapalı modda da bütün işlemler yerel kaydedilmeye devam eder.
             const aktif = Boolean(el.checked);
             sistemAyarlari.firebaseAktif = aktif;
-            try { localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari)); }
+            try {
+                localStorage.setItem('pos_firebase_enabled_v1', aktif ? '1' : '0');
+                localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari));
+            }
             catch (hata) { console.warn('Firebase şalteri yerel olarak kaydedilemedi:', hata); }
             firebasePaneliniGosterGizle(aktif);
             if (aktif) {
@@ -2903,6 +2919,20 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             cihazGorunumunuAyarla(cihaz);
         }
 
+        function firebaseAyarlariniArayuzeUygula() {
+            try {
+                firmaAyarlariniUygula();
+                temaUygula();
+                mutfakArayuzunuUygula();
+                garsonArayuzunuUygula();
+                if (secilenSekme === 'settings') {
+                    const mutfak = document.getElementById('setting-kitchen-enabled'); if (mutfak) mutfak.checked = sistemAyarlari.mutfakAktif === true;
+                    const adisyon = document.getElementById('setting-adisyon-enabled'); if (adisyon) adisyon.checked = sistemAyarlari.ozellikler?.adisyon === true;
+                    const siparisler = document.getElementById('setting-customerorders-enabled'); if (siparisler) siparisler.checked = sistemAyarlari.ozellikler?.customerorders === true;
+                }
+            } catch (hata) { console.warn('Buluttan gelen ayarlar ekrana uygulanamadı:', hata); }
+        }
+
         function firmaAyarlariniKaydet(e) {
             e.preventDefault();
             const yeniAd = document.getElementById('setting-company-name').value.trim();
@@ -3082,6 +3112,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                 sistemAyarlari.kokDugum = '';
                 sistemAyarlari.firebaseAktif = false;
                 try {
+                    localStorage.setItem('pos_firebase_enabled_v1', '0');
                     localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari));
                     window.location.reload();
                 } catch (hata) {
@@ -3220,13 +3251,26 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
         }
 
         function sistemAyarlariKaydet() {
+            sistemAyarlari.ayarlarGuncellemeZamani = Math.max(Date.now(), (Number(sistemAyarlari.ayarlarGuncellemeZamani) || 0) + 1);
             try { localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari)); }
             catch (hata) { console.warn('Ayarlar yerel olarak kaydedilemedi:', hata); }
             try {
-                if (sistemAyarlari.firebaseAktif && window.firebaseReady && window.database && window.dbSet && window.dbRef) {
+                if (sistemAyarlari.firebaseAktif && window.firebaseReady && window.database && window.dbRef && (window.dbTransaction || window.dbSet)) {
                     const yol = `${kokDugumGetir()}/ayarlar`;
-                    window.dbSet(window.dbRef(window.database, yol), bulutAyarlariniHazirla())
-                        .catch(hata => console.error('Ayarlar Firebase’e kaydedilemedi:', hata));
+                    const yeniAyarlar = bulutAyarlariniHazirla();
+                    if (window.dbTransaction) {
+                        const yeniRevizyon = Number(yeniAyarlar.ayarlarGuncellemeZamani) || 0;
+                        window.dbTransaction(window.dbRef(window.database, yol), mevcut => {
+                            const mevcutRevizyon = Number(mevcut?.ayarlarGuncellemeZamani) || 0;
+                            if (mevcutRevizyon > yeniRevizyon) return;
+                            return yeniAyarlar;
+                        }).then(sonuc => {
+                            if (!sonuc.committed) console.info('Daha yeni Firebase ayarları korundu; bu cihaz en güncel ayarları alacak.');
+                        }).catch(hata => console.error('Ayarlar Firebase’e kaydedilemedi:', hata));
+                    } else {
+                        window.dbSet(window.dbRef(window.database, yol), yeniAyarlar)
+                            .catch(hata => console.error('Ayarlar Firebase’e kaydedilemedi:', hata));
+                    }
                 }
             } catch (hata) { console.warn('Ayarlar Firebase’e gönderilemedi:', hata); }
         }
@@ -3263,6 +3307,24 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             firebaseLiveSyncStarted = true;
             const root = kokDugumGetir();
             const period = String(aktifDonemId);
+            window.dbOnValue(window.dbRef(window.database, `${root}/ayarlar`), snap => {
+                if (!snap.exists()) return;
+                const bulutAyarlari = snap.val();
+                if (!bulutAyarlari || typeof bulutAyarlari !== 'object') return;
+                const bulutRevizyon = Number(bulutAyarlari.ayarlarGuncellemeZamani) || 0;
+                const yerelRevizyon = Number(sistemAyarlari.ayarlarGuncellemeZamani) || 0;
+                if (bulutRevizyon <= yerelRevizyon) return;
+                const yerelBaglanti = { firebaseConfig: sistemAyarlari.firebaseConfig, firebaseAktif: sistemAyarlari.firebaseAktif, kokDugum: sistemAyarlari.kokDugum };
+                sistemAyarlari = {
+                    ...sistemAyarlari,
+                    ...bulutAyarlari,
+                    ...yerelBaglanti,
+                    ozellikler: { ...(sistemAyarlari.ozellikler || {}), ...(bulutAyarlari.ozellikler || {}) }
+                };
+                ozellikVarsayilanlariniTamamla();
+                try { localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari)); } catch (_) {}
+                firebaseAyarlariniArayuzeUygula();
+            }, hata => console.error('Firebase ortak ayarları canlı eşitlenemedi:', hata));
             const arrayFields = [
                 ['urunler', 'urunler', 'pos_products_v4'],
                 ['kategoriler', 'kategorilerListesi', 'pos_categories_v4'],
@@ -3378,7 +3440,6 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 
             if (sistemAyarlari.firebaseAktif && window.firebaseReady && window.database) {
                 const db = window.database;
-                window.dbSet(window.dbRef(db, `${kokDugumGetir()}/ayarlar`), bulutAyarlariniHazirla()).catch(hata => console.error('Ayarlar Firebase’e kaydedilemedi:', hata));
                 window.dbSet(window.dbRef(db, `${kokDugumGetir()}/donemler`), donemler).catch(hata => console.error('Dönem listesi Firebase’e kaydedilemedi:', hata));
                 window.dbSet(window.dbRef(db, `${kokDugumGetir()}/aktif_donem_id`), aktifDonemId).catch(hata => console.error('Aktif dönem Firebase’e kaydedilemedi:', hata));
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/urunler`, urunler, 'Ürünler', 'urunler', 'urunler', 'pos_products_v4');
