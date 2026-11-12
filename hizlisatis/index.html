@@ -1763,6 +1763,14 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             if (typeof sistemAyarlari.ozellikler.adisyon !== 'boolean') sistemAyarlari.ozellikler.adisyon = false;
             if (typeof sistemAyarlari.ozellikler.customerorders !== 'boolean') sistemAyarlari.ozellikler.customerorders = false;
         }
+        function ozellikIlkKurulumunuUygula() {
+            if (sistemAyarlari.ozellikIlkKurulumV1Tamamlandi === true) return false;
+            sistemAyarlari.mutfakAktif = false;
+            sistemAyarlari.ozellikler.adisyon = false;
+            sistemAyarlari.ozellikler.customerorders = false;
+            sistemAyarlari.ozellikIlkKurulumV1Tamamlandi = true;
+            return true;
+        }
         ozellikVarsayilanlariniTamamla();
 
         if (!sistemAyarlari.fisAlanlari || typeof sistemAyarlari.fisAlanlari !== 'object') sistemAyarlari.fisAlanlari = {};
@@ -1819,11 +1827,34 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                 ]);
                 if (settingsSnap.exists() && settingsSnap.val() && typeof settingsSnap.val() === 'object') {
                     const bulutAyarlari = settingsSnap.val();
+                    const yerelIlkKurulumTamam = sistemAyarlari.ozellikIlkKurulumV1Tamamlandi === true;
+                    const yerelOzellikSecimleri = {
+                        mutfakAktif: sistemAyarlari.mutfakAktif,
+                        adisyon: sistemAyarlari.ozellikler?.adisyon,
+                        customerorders: sistemAyarlari.ozellikler?.customerorders
+                    };
+                    const bulutIlkKurulumTamam = bulutAyarlari.ozellikIlkKurulumV1Tamamlandi === true;
                     // Bağlantı bilgileri cihazda kalır; diğer tüm program tercihleri buluttan eşitlenir.
                     const yerelBaglanti = { firebaseConfig: sistemAyarlari.firebaseConfig, firebaseAktif: sistemAyarlari.firebaseAktif, kokDugum: sistemAyarlari.kokDugum };
-                    sistemAyarlari = { ...sistemAyarlari, ...bulutAyarlari, ...yerelBaglanti };
+                    sistemAyarlari = {
+                        ...sistemAyarlari,
+                        ...bulutAyarlari,
+                        ...yerelBaglanti,
+                        ozellikler: { ...(sistemAyarlari.ozellikler || {}), ...(bulutAyarlari.ozellikler || {}) }
+                    };
+                    // Yerel cihaz ilk kurulumu tamamladıysa ve eski bulut kaydında geçiş işareti yoksa,
+                    // çevrimdışı yapılan son kullanıcı seçimini koruyup buluta aktar.
+                    if (yerelIlkKurulumTamam && !bulutIlkKurulumTamam) {
+                        sistemAyarlari.mutfakAktif = yerelOzellikSecimleri.mutfakAktif;
+                        sistemAyarlari.ozellikler.adisyon = yerelOzellikSecimleri.adisyon;
+                        sistemAyarlari.ozellikler.customerorders = yerelOzellikSecimleri.customerorders;
+                        sistemAyarlari.ozellikIlkKurulumV1Tamamlandi = true;
+                    }
                     ozellikVarsayilanlariniTamamla();
-                    try { sistemAyarlariKaydet(); } catch (_) {}
+                    try { localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari)); } catch (_) {}
+                    if (yerelIlkKurulumTamam && !bulutIlkKurulumTamam) {
+                        try { sistemAyarlariKaydet(); } catch (_) {}
+                    }
                 }
                 if (periodsSnap.exists()) {
                     const bulutDonemler = periodsSnap.val();
@@ -1914,6 +1945,8 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
         window.addEventListener('DOMContentLoaded', async () => {
             // Bulut verisi varsa ilk yerel kayıt işleminden önce yükle; boş bulut yerel veriyi ezmesin.
             await firebaseVerileriniYukle();
+            // Eski cihaz/bulut kayıtlarındaki önceki açık değerleri yalnızca bir kez kapat.
+            ozellikIlkKurulumunuUygula();
             // Bozuk/eski kayıt biçimleri başlangıçta uygulamayı durdurmasın.
             if (!Array.isArray(urunler)) urunler = varsayilanUrunler.map(p => ({ ...p }));
             // Eski kayıtlardaki eksik alanları güvenli varsayılanlarla tamamla; mevcut stok miktarını değiştirme.
