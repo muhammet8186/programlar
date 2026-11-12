@@ -1783,6 +1783,28 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             sistemAyarlari.ozellikIlkKurulumV1Tamamlandi = true;
             return true;
         }
+        // Bu üç şalter cihazda saklanır; eski veya başka cihazdaki bulut ayarı yerel seçimi ezemez.
+        function ozellikYerelKaydiniUygula() {
+            try {
+                const kayit = JSON.parse(localStorage.getItem('pos_local_feature_flags_v1') || 'null');
+                if (!kayit || typeof kayit !== 'object') return false;
+                if (typeof kayit.mutfakAktif === 'boolean') sistemAyarlari.mutfakAktif = kayit.mutfakAktif;
+                if (!sistemAyarlari.ozellikler || typeof sistemAyarlari.ozellikler !== 'object') sistemAyarlari.ozellikler = {};
+                if (typeof kayit.adisyon === 'boolean') sistemAyarlari.ozellikler.adisyon = kayit.adisyon;
+                if (typeof kayit.customerorders === 'boolean') sistemAyarlari.ozellikler.customerorders = kayit.customerorders;
+                return true;
+            } catch (_) { return false; }
+        }
+        function ozellikYerelKaydiniYaz() {
+            try {
+                localStorage.setItem('pos_local_feature_flags_v1', JSON.stringify({
+                    mutfakAktif: sistemAyarlari.mutfakAktif === true,
+                    adisyon: sistemAyarlari.ozellikler?.adisyon === true,
+                    customerorders: sistemAyarlari.ozellikler?.customerorders === true
+                }));
+                return true;
+            } catch (hata) { console.warn('Özellik şalterleri yerel olarak kaydedilemedi:', hata); return false; }
+        }
         ozellikVarsayilanlariniTamamla();
 
         if (!sistemAyarlari.fisAlanlari || typeof sistemAyarlari.fisAlanlari !== 'object') sistemAyarlari.fisAlanlari = {};
@@ -1962,8 +1984,10 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
         window.addEventListener('DOMContentLoaded', async () => {
             // Bulut verisi varsa ilk yerel kayıt işleminden önce yükle; boş bulut yerel veriyi ezmesin.
             await firebaseVerileriniYukle();
+            ozellikYerelKaydiniUygula();
             // Eski cihaz/bulut kayıtlarındaki önceki açık değerleri yalnızca bir kez kapat.
             ozellikIlkKurulumunuUygula();
+            ozellikYerelKaydiniYaz();
             // Bozuk/eski kayıt biçimleri başlangıçta uygulamayı durdurmasın.
             if (!Array.isArray(urunler)) urunler = varsayilanUrunler.map(p => ({ ...p }));
             // Eski kayıtlardaki eksik alanları güvenli varsayılanlarla tamamla; mevcut stok miktarını değiştirme.
@@ -3246,6 +3270,12 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             delete kopya.firebaseConfig;
             delete kopya.firebaseAktif;
             delete kopya.kokDugum;
+            delete kopya.mutfakAktif;
+            if (kopya.ozellikler) {
+                kopya.ozellikler = { ...kopya.ozellikler };
+                delete kopya.ozellikler.adisyon;
+                delete kopya.ozellikler.customerorders;
+            }
             return kopya;
         }
 
@@ -3320,6 +3350,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                     ...yerelBaglanti,
                     ozellikler: { ...(sistemAyarlari.ozellikler || {}), ...(bulutAyarlari.ozellikler || {}) }
                 };
+                ozellikYerelKaydiniUygula();
                 ozellikVarsayilanlariniTamamla();
                 try { localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari)); } catch (_) {}
                 firebaseAyarlariniArayuzeUygula();
@@ -3455,6 +3486,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
         function bagliOzelligiDegistir(ad, aktif) {
             if (!sistemAyarlari.ozellikler) sistemAyarlari.ozellikler = {};
             sistemAyarlari.ozellikler[ad] = Boolean(aktif);
+            ozellikYerelKaydiniYaz();
             sistemAyarlariKaydet();
             const nav = document.getElementById(ad === 'adisyon' ? 'tab-adisyon' : 'tab-customerorders');
             const panel = document.getElementById(ad === 'adisyon' ? 'section-adisyon' : 'section-customerorders');
@@ -3466,6 +3498,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 
         function mutfakSisteminiDegistir(aktif) {
             sistemAyarlari.mutfakAktif = Boolean(aktif);
+            ozellikYerelKaydiniYaz();
             sistemAyarlariKaydet();
             mutfakArayuzunuUygula();
             if (!sistemAyarlari.mutfakAktif && document.getElementById('section-kitchen') && !document.getElementById('section-kitchen').classList.contains('hidden')) sekmeyiDegistir('sales');
