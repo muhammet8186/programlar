@@ -12,6 +12,23 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./app-icon-192.png"/>
 <link rel="apple-touch-icon" href="./app-icon-192.png"/>
 <title>Profesyonel Hızlı Satış &amp; Stok Yönetim Sistemi - Yerel &amp; Firebase</title>
+<!-- KOD İÇİ FIREBASE AYARLARI: Formda kayıtlı bağlantı yoksa buradaki bilgiler kullanılır. -->
+<script>
+window.KOD_ICI_FIREBASE_AYARLARI = {
+    kokBasligi: 'hizli_pos',
+    baglantiBilgileri: {
+        // Bu alan adları Firebase tarafından zorunlu tutulduğu için İngilizce yazılmalıdır.
+        apiKey: '',
+        authDomain: '',
+        databaseURL: '',
+        projectId: '',
+        storageBucket: '',
+        messagingSenderId: '',
+        appId: '',
+        measurementId: ''
+    }
+};
+</script>
 <!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -44,6 +61,9 @@
         }
         let savedSettings;
         try { savedSettings = JSON.parse(localStorage.getItem('pos_system_settings_v4')); } catch (e) { console.warn('Ayar kaydı okunamadı; varsayılan ayarlar kullanılacak.', e); }
+        const kodIciFirebaseAyarlari = window.KOD_ICI_FIREBASE_AYARLARI || {};
+        const kodIciFirebaseBilgileri = kodIciFirebaseAyarlari.baglantiBilgileri || {};
+        const kodIciKokBasligi = String(kodIciFirebaseAyarlari.kokBasligi || '').trim();
         savedSettings = savedSettings || {
             sirketAdi: 'Hızlı Satış Programı',
             sifre: '1234',
@@ -52,22 +72,17 @@
             fisAlanlari: { sirket:true, fisNo:true, tarih:true, urunler:true, araToplam:true, iskonto:true, toplam:true, odeme:true, tesekkur:true },
             tema: 'dark',
             satisYaziBoyutu: 14,
-            mutfakAktif: true,
             firebaseAktif: false,
             mutfakAktif: false,
             ozellikler: { adisyon: false, customerorders: false },
-            kokDugum: '',
-            firebaseConfig: {
-                apiKey: "",
-                authDomain: "",
-                databaseURL: "",
-                projectId: "",
-                storageBucket: "",
-                messagingSenderId: "",
-                appId: "",
-                measurementId: ""
-            }
+            kokDugum: kodIciKokBasligi || '',
+            firebaseConfig: { ...kodIciFirebaseBilgileri }
         };
+        // Kod içi bilgiler yalnızca yerel formda geçerli bir kayıt yoksa varsayılan olarak kullanılır.
+        if (!savedSettings.firebaseConfig || !savedSettings.firebaseConfig.databaseURL) {
+            if (kodIciFirebaseBilgileri.databaseURL) savedSettings.firebaseConfig = { ...kodIciFirebaseBilgileri };
+        }
+        if (!savedSettings.kokDugum && kodIciKokBasligi) savedSettings.kokDugum = kodIciKokBasligi;
 
         // Müşteri QR bağlantısı, kendi cihazındaki yerel POS ayarlarına ihtiyaç duymadan menüyü açar.
         if (customerMode && customerFirebaseConfig && customerFirebaseConfig.databaseURL) {
@@ -96,7 +111,7 @@
         window.dbTransaction = runTransaction;
         window.database = db;
         window.firebaseReady = Boolean(db);
-        window.getRootNode = () => savedSettings.kokDugum ? savedSettings.kokDugum : 'hizli_pos';
+        window.getRootNode = () => savedSettings.kokDugum ? savedSettings.kokDugum : (kodIciKokBasligi || 'hizli_pos');
         window.customerMode = customerMode;
         window.customerTable = customerParams.get('masa') || '1';
         window.customerOrderType = customerParams.get('tip') === 'paket' ? 'paket' : 'masa';
@@ -1135,7 +1150,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <form class="space-y-3" onsubmit="firebaseAyarlariniKaydet(event)">
 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
 <div>
-<label class="block text-xs text-slate-400 mb-1 font-medium">Firebase Kök Düğüm (Root Node)</label>
+<label class="block text-xs text-slate-400 mb-1 font-medium">Firebase Kök Başlığı</label>
 <input class="theme-input w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-xs font-mono focus:outline-none focus:border-purple-500 transition" id="setting-root-node" placeholder="örn: hizli_satis_data" type="text"/>
 </div>
 <div>
@@ -1146,8 +1161,8 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 </div>
 </div>
 <div>
-<label class="block text-xs text-slate-400 mb-1 font-medium">Firebase Yapılandırma Nesnesi ({...})</label>
-<p class="text-[10px] text-slate-400 mb-1">Firebase konsolundaki değerleri aşağıdaki JavaScript nesnesi biçiminde girin. Alan adları Firebase tarafından belirlendiği için İngilizce kalmalıdır.</p>
+<label class="block text-xs text-slate-400 mb-1 font-medium">Firebase Yapılandırması</label>
+<p class="text-[10px] text-slate-400 mb-1">Bilgileri buraya girebilir veya index.html dosyasının başındaki “Kod İçi Firebase Ayarları” bölümüne ekleyebilirsiniz. Firebase'in zorunlu alan adları (apiKey, databaseURL vb.) İngilizce kalmalıdır. Kayıtlı form bilgileri önceliklidir.</p>
 <textarea class="theme-input w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-xs font-mono focus:outline-none focus:border-purple-500 transition" id="setting-firebase-config" placeholder='{
   apiKey: "",
   authDomain: "",
@@ -1296,9 +1311,10 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <h3 class="text-sm font-bold tracking-tight" id="confirm-title">Onay İşlemi</h3>
 <p class="text-xs text-slate-400 mt-1" id="confirm-message">Bu işlemi gerçekleştirmek istediğinize emin misiniz?</p>
 </div>
-<div class="flex space-x-2 pt-1" id="confirm-buttons-area">
+<div class="flex flex-wrap gap-2 pt-1" id="confirm-buttons-area">
+<button class="hidden theme-btn-alt flex-1 min-w-[80px] py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded text-xs transition border border-slate-700" id="confirm-cancel-btn" onclick="onayModaliniKapat()" type="button">İptal</button>
 <button class="theme-btn-alt flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded text-xs transition border border-slate-700" id="confirm-no-btn" onclick="onayModaliniKapat()" type="button">Hayır</button>
-<button class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-xs shadow transition" id="confirm-yes-btn" type="button">Evet</button>
+<button class="flex-1 min-w-[80px] py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-xs shadow transition" id="confirm-yes-btn" type="button">Evet</button>
 </div>
 </div>
 </div>
@@ -1548,7 +1564,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 </div>
 <!-- Sistem Kullanıcısı Ekle/Düzenle Modal -->
 <div class="fixed inset-0 bg-black/75 backdrop-blur-md hidden items-center justify-center p-4 z-50" id="modal-system-user">
-<div class="theme-card bg-slate-900 border border-slate-700 w-full max-w-md rounded-lg p-5 space-y-3 shadow-2xl">
+<div class="theme-card bg-slate-900 border border-slate-700 w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto overscroll-contain rounded-lg p-5 space-y-3 shadow-2xl">
 <h3 class="text-sm md:text-base font-bold border-b border-slate-800 pb-2.5 tracking-tight" id="modal-sysuser-title">Yeni Sistem Kullanıcısı</h3>
 <form class="space-y-3" id="form-sysuser" onsubmit="sistemKullaniciKaydetOnay(event)">
 <input id="sysuser-id" type="hidden"/>
@@ -1719,6 +1735,9 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             measurementId: ""
         };
 
+        const kodIciFirebaseAyarlariniOku = window.KOD_ICI_FIREBASE_AYARLARI || {};
+        const kodIciFirebaseBilgileriniOku = kodIciFirebaseAyarlariniOku.baglantiBilgileri || {};
+        const kodIciKokBasliginiOku = String(kodIciFirebaseAyarlariniOku.kokBasligi || '').trim();
         let sistemAyarlari = yerelKayitOku('pos_system_settings_v4', {
             sirketAdi: 'Hızlı Satış Programı',
             logoDataUrl: '',
@@ -1729,20 +1748,26 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             firebaseAktif: false,
             mutfakAktif: false,
             ozellikler: { adisyon: false, customerorders: false },
-            kokDugum: '',
-            firebaseConfig: bosFirebaseConfig
+            kokDugum: kodIciKokBasliginiOku || '',
+            firebaseConfig: { ...kodIciFirebaseBilgileriniOku }
         });
-        // Kullanıcının son kaydettiği Firebase şalteri ve ayarları korunur.
-        if (typeof sistemAyarlari.mutfakAktif !== 'boolean') sistemAyarlari.mutfakAktif = false;
-        if (!sistemAyarlari.ozellikler || typeof sistemAyarlari.ozellikler !== 'object') sistemAyarlari.ozellikler = {};
-        if (typeof sistemAyarlari.ozellikler.adisyon !== 'boolean') sistemAyarlari.ozellikler.adisyon = false;
-        if (typeof sistemAyarlari.ozellikler.customerorders !== 'boolean') sistemAyarlari.ozellikler.customerorders = false;
+        // Kod içi bağlantı bilgileri, yalnızca kayıtlı formda geçerli bir veritabanı adresi yoksa varsayılan olur.
+        if (!sistemAyarlari.firebaseConfig || !sistemAyarlari.firebaseConfig.databaseURL) {
+            if (kodIciFirebaseBilgileriniOku.databaseURL) sistemAyarlari.firebaseConfig = { ...kodIciFirebaseBilgileriniOku };
+        }
+        if (!sistemAyarlari.kokDugum && kodIciKokBasliginiOku) sistemAyarlari.kokDugum = kodIciKokBasliginiOku;
+        // İlk kurulumda üç özellik kapalıdır; açık/kapalı şeklindeki kullanıcı seçimleri korunur.
+        function ozellikVarsayilanlariniTamamla() {
+            if (typeof sistemAyarlari.mutfakAktif !== 'boolean') sistemAyarlari.mutfakAktif = false;
+            if (!sistemAyarlari.ozellikler || typeof sistemAyarlari.ozellikler !== 'object' || Array.isArray(sistemAyarlari.ozellikler)) sistemAyarlari.ozellikler = {};
+            if (typeof sistemAyarlari.ozellikler.adisyon !== 'boolean') sistemAyarlari.ozellikler.adisyon = false;
+            if (typeof sistemAyarlari.ozellikler.customerorders !== 'boolean') sistemAyarlari.ozellikler.customerorders = false;
+        }
+        ozellikVarsayilanlariniTamamla();
 
         if (!sistemAyarlari.fisAlanlari || typeof sistemAyarlari.fisAlanlari !== 'object') sistemAyarlari.fisAlanlari = {};
         ['sirket','fisNo','tarih','urunler','araToplam','iskonto','toplam','odeme','tesekkur'].forEach(k => { if (typeof sistemAyarlari.fisAlanlari[k] !== 'boolean') sistemAyarlari.fisAlanlari[k] = true; });
-        if(!sistemAyarlari.firebaseConfig) {
-            sistemAyarlari.firebaseConfig = bosFirebaseConfig;
-        }
+        if(!sistemAyarlari.firebaseConfig) sistemAyarlari.firebaseConfig = { ...kodIciFirebaseBilgileriniOku };
         if (!Array.isArray(sistemAyarlari.firebaseKayitlari)) sistemAyarlari.firebaseKayitlari = [];
         if (!Array.isArray(sistemAyarlari.customerQrLinks)) sistemAyarlari.customerQrLinks = [];
         // Eski sürümlerde biriken kayıtları tek forma indir; mevcut bağlantı ayarı varsa formu kayıttan yeniden oluştur.
@@ -1797,6 +1822,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                     // Bağlantı bilgileri cihazda kalır; diğer tüm program tercihleri buluttan eşitlenir.
                     const yerelBaglanti = { firebaseConfig: sistemAyarlari.firebaseConfig, firebaseAktif: sistemAyarlari.firebaseAktif, kokDugum: sistemAyarlari.kokDugum };
                     sistemAyarlari = { ...sistemAyarlari, ...bulutAyarlari, ...yerelBaglanti };
+                    ozellikVarsayilanlariniTamamla();
                     try { sistemAyarlariKaydet(); } catch (_) {}
                 }
                 if (periodsSnap.exists()) {
@@ -2175,7 +2201,9 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             document.getElementById('confirm-message').innerText = mesaj;
             const yesBtn = document.getElementById('confirm-yes-btn');
             const noBtn = document.getElementById('confirm-no-btn');
+            const cancelBtn = document.getElementById('confirm-cancel-btn');
             if (noBtn) { noBtn.style.display = 'block'; noBtn.innerText = 'Hayır'; noBtn.onclick = onayModaliniKapat; noBtn.className = 'theme-btn-alt flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded text-xs transition border border-slate-700'; }
+            if (cancelBtn) { cancelBtn.style.display = 'none'; cancelBtn.classList.add('hidden'); cancelBtn.onclick = onayModaliniKapat; }
             
             const yeniYesBtn = yesBtn.cloneNode(true);
             yesBtn.parentNode.replaceChild(yeniYesBtn, yesBtn);
@@ -3024,7 +3052,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                 }
             };
             onayModaliniGoster('Firebase formunu sil',
-                'Evet: Firebase’deki ' + eskiKok + ' kökünün ALTINDAKİ TÜM VERİLER kalıcı olarak silinir ve program yeniden başlar. Hayır: yalnızca bu cihazdaki Firebase form/bağlantı bilgileri silinir, program yerel modda yeniden başlar. Bulut verilerini silmek geri alınamaz.',
+                'Bulut verilerini silmek, Firebase’deki ' + eskiKok + ' kökünün altındaki tüm kayıtları kalıcı olarak siler. Yalnızca cihazdaki formu silmek bulut kayıtlarına dokunmaz. İptal seçeneği hiçbir değişiklik yapmaz.',
                 async () => {
                     const hayirDugmesi = document.getElementById('confirm-no-btn');
                     if (hayirDugmesi) hayirDugmesi.onclick = onayModaliniKapat;
@@ -3039,8 +3067,12 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                         onayModaliniGoster('Bulut verileri silinemedi', (hata && hata.message) || 'Firebase verileri silinemedi. Bağlantıyı ve silme izinlerini kontrol edin.', null, true);
                     }
                 }, false);
+            const iptalDugmesi = document.getElementById('confirm-cancel-btn');
+            if (iptalDugmesi) { iptalDugmesi.style.display = 'block'; iptalDugmesi.classList.remove('hidden'); iptalDugmesi.innerText = 'İptal'; }
             const hayirBtn = document.getElementById('confirm-no-btn');
-            if (hayirBtn) hayirBtn.onclick = () => { onayModaliniKapat(); hayirBtn.onclick = onayModaliniKapat; yerelFormuTemizle(); };
+            if (hayirBtn) { hayirBtn.innerText = 'Yalnızca cihazdan sil'; hayirBtn.className = 'theme-btn-alt flex-1 min-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded text-xs transition border border-slate-600'; hayirBtn.onclick = () => { onayModaliniKapat(); hayirBtn.onclick = onayModaliniKapat; yerelFormuTemizle(); }; }
+            const evetDugmesi = document.getElementById('confirm-yes-btn');
+            if (evetDugmesi) { evetDugmesi.innerText = 'Bulutu da sil'; evetDugmesi.className = 'flex-1 min-w-[80px] py-2.5 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded text-xs shadow transition'; }
         }
 
         function firebaseNesnesiniCoz(metin) {
