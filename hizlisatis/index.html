@@ -195,6 +195,10 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
         #products-grid-wrapper { min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y pan-x; scrollbar-width: auto; }
         #products-grid .sales-product-reorderable { touch-action: pan-y pan-x; }
         #products-grid .sales-product-card { -webkit-user-select: none; user-select: none; }
+        #products-grid .sales-product-card.is-dragging { opacity: .4; transform: scale(.97); }
+        #products-grid .sales-product-card.is-drop-target { outline: 2px dashed var(--lm-accent, #10b981); outline-offset: 2px; }
+        #products-grid .product-drag-handle { touch-action: none; cursor: grab; }
+        #products-grid .product-drag-handle:active { cursor: grabbing; }
         #products-grid .sales-product-card { min-width: 0; min-height: calc(var(--sales-font-size) * 5.7); padding: clamp(4px, calc(var(--sales-font-size) * .38), 9px); }
         #products-grid .sales-product-name { font-size: var(--product-name-size) !important; line-height: 1.2; overflow-wrap: anywhere; word-break: normal; }
         #products-grid .sales-product-price { font-size: calc(var(--sales-font-size) * .72) !important; padding: clamp(2px, calc(var(--sales-font-size) * .16), 4px); }
@@ -4079,6 +4083,20 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             urunYonetimTablosunuGuncelle();
         }
 
+        function urunSirasiniHedefeTasi(kaynakId, hedefId, hedefSonrasi) {
+            if (!islemYetkisiGerekli('sales_product_order', 'Satış panelinde ürünlerin yerini değiştirme yetkiniz yok.')) return;
+            const kaynakIndex = urunler.findIndex(p => String(p.id) === String(kaynakId));
+            if (kaynakIndex < 0 || String(kaynakId) === String(hedefId)) return;
+            const [tasInanUrun] = urunler.splice(kaynakIndex, 1);
+            let hedefIndex = urunler.findIndex(p => String(p.id) === String(hedefId));
+            if (hedefIndex < 0) { urunler.splice(kaynakIndex, 0, tasInanUrun); return; }
+            if (hedefSonrasi) hedefIndex += 1;
+            urunler.splice(hedefIndex, 0, tasInanUrun);
+            durumuKaydet();
+            urunleriGoster();
+            urunYonetimTablosunuGuncelle();
+        }
+
         function urunleriGoster() {
             const grid = document.getElementById('products-grid');
             if(!grid) return;
@@ -4103,14 +4121,15 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                 const badgeBg = isLight ? 'bg-slate-100 text-slate-700 border-slate-300' : 'bg-slate-950 text-slate-300 border-slate-800';
                 const priceBg = isLight ? 'bg-slate-50 border-slate-300 text-emerald-700 font-bold' : 'bg-slate-500/80 border-slate-400 text-emerald-100 font-bold';
                 const safeId = String(p.id);
+                const yenidenSiralaYetkisi = islemYetkisiVar('sales_product_order');
 
                 return `
-                <div data-product-id="${safeId}" class="${cardBg} sales-product-card border rounded flex flex-col justify-between transition group select-none ${islemYetkisiVar('sales_product_order') ? 'sales-product-reorderable' : ''} ${tukendiMi ? 'opacity-40' : ''}">
+                <div data-product-id="${safeId}" draggable="${yenidenSiralaYetkisi ? 'true' : 'false'}" class="${cardBg} sales-product-card border rounded flex flex-col justify-between transition group select-none ${yenidenSiralaYetkisi ? 'sales-product-reorderable' : ''} ${tukendiMi ? 'opacity-40' : ''}">
                     <div>
                         <div class="flex items-start justify-between">
                             <span class="sales-product-barcode ${badgeBg} px-1 py-0.2 rounded border font-mono">${htmlGuvenli(p.barcode || '')}</span>
                             <div class="flex items-center space-x-0.5">
-                                ${islemYetkisiVar('sales_product_order') ? `<button onclick="urunSirasiDegistir('${safeId}', -1)" type="button" class="opacity-70 hover:opacity-100 hover:text-emerald-500 p-0.5 text-[9px]" title="Sırayı Sola / Üste Taşı"><i class="fa-solid fa-chevron-left"></i></button><button onclick="urunSirasiDegistir('${safeId}', 1)" type="button" class="opacity-70 hover:opacity-100 hover:text-emerald-500 p-0.5 text-[9px]" title="Sırayı Sağa / Alta Taşı"><i class="fa-solid fa-chevron-right"></i></button>` : ''}
+                                ${yenidenSiralaYetkisi ? `<button onclick="urunSirasiDegistir('${safeId}', -1)" type="button" class="opacity-70 hover:opacity-100 hover:text-emerald-500 p-0.5 text-[9px]" title="Sırayı Sola / Üste Taşı"><i class="fa-solid fa-chevron-left"></i></button><button onclick="urunSirasiDegistir('${safeId}', 1)" type="button" class="opacity-70 hover:opacity-100 hover:text-emerald-500 p-0.5 text-[9px]" title="Sırayı Sağa / Alta Taşı"><i class="fa-solid fa-chevron-right"></i></button><button type="button" class="product-drag-handle opacity-70 hover:opacity-100 hover:text-cyan-500 px-1 py-0.5 text-[10px]" title="Tut ve sürükleyerek taşı" aria-label="Ürünü sürükleyerek taşı"><i class="fa-solid fa-grip-vertical"></i></button>` : ''}
                             </div>
                         </div>
                         <div onclick="${tukendiMi ? '' : `sepeteEkle('${safeId}')`}" class="my-1 flex items-center space-x-1 cursor-pointer">
@@ -6096,7 +6115,81 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
         // Satış ürününü sağ tıklayarak veya uzun basarak tükenmiş olarak işaretle.
         (() => {
             let pressTimer = null, pressCardId = null, pressStartX = 0, pressStartY = 0, longPressDone = false, suppressNextClick = false;
+            let mouseDraggedProductId = null, touchDrag = null;
             const stopTimer = () => { if (pressTimer) clearTimeout(pressTimer); pressTimer = null; };
+            const tiklamayiOnle = () => { suppressNextClick = true; setTimeout(() => { suppressNextClick = false; }, 700); };
+            const getProductCardAt = (x, y) => document.elementFromPoint(x, y)?.closest('#products-grid .sales-product-card[data-product-id]') || null;
+            const clearDragMarks = () => document.querySelectorAll('#products-grid .sales-product-card.is-dragging, #products-grid .sales-product-card.is-drop-target').forEach(card => card.classList.remove('is-dragging', 'is-drop-target'));
+            const dropAfterCard = (card, x, y) => {
+                const rect = card.getBoundingClientRect();
+                return y > rect.top + rect.height / 2 || (Math.abs(y - (rect.top + rect.height / 2)) < 4 && x > rect.left + rect.width / 2);
+            };
+            document.addEventListener('dragstart', e => {
+                const card = e.target.closest('#products-grid .sales-product-card[data-product-id]');
+                if (!card) return;
+                if (!islemYetkisiVar('sales_product_order') || (e.target.closest('button') && !e.target.closest('.product-drag-handle'))) { e.preventDefault(); return; }
+                mouseDraggedProductId = card.dataset.productId;
+                card.classList.add('is-dragging');
+                if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', mouseDraggedProductId); }
+            });
+            document.addEventListener('dragover', e => {
+                if (!mouseDraggedProductId) return;
+                const target = e.target.closest('#products-grid .sales-product-card[data-product-id]');
+                if (!target || target.dataset.productId === mouseDraggedProductId) return;
+                e.preventDefault();
+                document.querySelectorAll('#products-grid .sales-product-card.is-drop-target').forEach(card => card.classList.remove('is-drop-target'));
+                target.classList.add('is-drop-target');
+                if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+            });
+            document.addEventListener('drop', e => {
+                if (!mouseDraggedProductId) return;
+                const target = e.target.closest('#products-grid .sales-product-card[data-product-id]');
+                if (!target) return;
+                e.preventDefault();
+                const sourceId = mouseDraggedProductId;
+                const targetId = target.dataset.productId;
+                const after = dropAfterCard(target, e.clientX, e.clientY);
+                mouseDraggedProductId = null;
+                clearDragMarks();
+                tiklamayiOnle();
+                urunSirasiniHedefeTasi(sourceId, targetId, after);
+            });
+            document.addEventListener('dragend', () => { mouseDraggedProductId = null; clearDragMarks(); });
+            document.addEventListener('pointerdown', e => {
+                const handle = e.target.closest('#products-grid .product-drag-handle');
+                if (!handle || e.pointerType !== 'touch' || !islemYetkisiVar('sales_product_order')) return;
+                const card = handle.closest('.sales-product-card[data-product-id]');
+                if (!card) return;
+                e.preventDefault();
+                touchDrag = { pointerId: e.pointerId, sourceId: card.dataset.productId, startX: e.clientX, startY: e.clientY, moved: false, targetId: null };
+                card.classList.add('is-dragging');
+                try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+            }, { passive: false });
+            document.addEventListener('pointermove', e => {
+                if (!touchDrag || touchDrag.pointerId !== e.pointerId) return;
+                if (Math.abs(e.clientX - touchDrag.startX) > 8 || Math.abs(e.clientY - touchDrag.startY) > 8) touchDrag.moved = true;
+                if (!touchDrag.moved) return;
+                e.preventDefault();
+                const target = getProductCardAt(e.clientX, e.clientY);
+                document.querySelectorAll('#products-grid .sales-product-card.is-drop-target').forEach(card => card.classList.remove('is-drop-target'));
+                if (target && target.dataset.productId !== touchDrag.sourceId) {
+                    touchDrag.targetId = target.dataset.productId;
+                    target.classList.add('is-drop-target');
+                } else touchDrag.targetId = null;
+            }, { passive: false });
+            const touchDragBitir = e => {
+                if (!touchDrag || (e && touchDrag.pointerId !== e.pointerId)) return;
+                const current = touchDrag;
+                const target = e ? getProductCardAt(e.clientX, e.clientY) : null;
+                clearDragMarks();
+                touchDrag = null;
+                if (current.moved && target && target.dataset.productId !== current.sourceId) {
+                    tiklamayiOnle();
+                    urunSirasiniHedefeTasi(current.sourceId, target.dataset.productId, dropAfterCard(target, e.clientX, e.clientY));
+                }
+            };
+            document.addEventListener('pointerup', touchDragBitir);
+            document.addEventListener('pointercancel', touchDragBitir);
             const saveAvailability = (product, isSoldOut) => {
                 product.manualSoldOut = Boolean(isSoldOut);
                 durumuKaydet(); urunleriGoster(); urunYonetimTablosunuGuncelle();
