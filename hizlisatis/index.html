@@ -1805,6 +1805,22 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                 return true;
             } catch (hata) { console.warn('Özellik şalterleri yerel olarak kaydedilemedi:', hata); return false; }
         }
+        // Bulut yedekleme şalteri yalnızca bu tarayıcı/cihaz için tutulur.
+        function firebaseDurumunuYerelKaydaUygula() {
+            try {
+                const kayit = localStorage.getItem('pos_firebase_enabled_v1');
+                if (kayit === '1' || kayit === '0') sistemAyarlari.firebaseAktif = kayit === '1';
+                else localStorage.setItem('pos_firebase_enabled_v1', sistemAyarlari.firebaseAktif === true ? '1' : '0');
+                return true;
+            } catch (hata) { console.warn('Firebase şalteri yerel kayıttan okunamadı:', hata); return false; }
+        }
+        function firebaseDurumunuYerelKaydaYaz() {
+            try {
+                localStorage.setItem('pos_firebase_enabled_v1', sistemAyarlari.firebaseAktif === true ? '1' : '0');
+                return true;
+            } catch (hata) { console.warn('Firebase şalteri yerel olarak kaydedilemedi:', hata); return false; }
+        }
+        firebaseDurumunuYerelKaydaUygula();
         ozellikVarsayilanlariniTamamla();
 
         if (!sistemAyarlari.fisAlanlari || typeof sistemAyarlari.fisAlanlari !== 'object') sistemAyarlari.fisAlanlari = {};
@@ -2641,6 +2657,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             // Şalter değiştiğinde uyarı gösterilmez. Kapalı modda da bütün işlemler yerel kaydedilmeye devam eder.
             const aktif = Boolean(el.checked);
             sistemAyarlari.firebaseAktif = aktif;
+            firebaseDurumunuYerelKaydaYaz();
             try {
                 localStorage.setItem('pos_firebase_enabled_v1', aktif ? '1' : '0');
                 localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari));
@@ -3285,6 +3302,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 
         function sistemAyarlariKaydet() {
             sistemAyarlari.ayarlarGuncellemeZamani = Math.max(Date.now(), (Number(sistemAyarlari.ayarlarGuncellemeZamani) || 0) + 1);
+            firebaseDurumunuYerelKaydaYaz();
             try { localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari)); }
             catch (hata) { console.warn('Ayarlar yerel olarak kaydedilemedi:', hata); }
             try {
