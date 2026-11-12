@@ -72,7 +72,7 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
             fisAlanlari: { sirket:true, fisNo:true, tarih:true, urunler:true, araToplam:true, iskonto:true, toplam:true, odeme:true, tesekkur:true },
             tema: 'dark',
             satisYaziBoyutu: 14,
-            firebaseAktif: false,
+            firebaseAktif: true,
             mutfakAktif: false,
             ozellikler: { adisyon: false, customerorders: false },
             kokDugum: kodIciKokBasligi || '',
@@ -86,6 +86,7 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
         try {
             const cihazFirebaseDurumu = localStorage.getItem('pos_firebase_enabled_v1');
             if (cihazFirebaseDurumu === '1' || cihazFirebaseDurumu === '0') savedSettings.firebaseAktif = cihazFirebaseDurumu === '1';
+            else savedSettings.firebaseAktif = true;
         } catch (_) {}
 
         // Müşteri QR bağlantısı, kendi cihazındaki yerel POS ayarlarına ihtiyaç duymadan menüyü açar.
@@ -1753,7 +1754,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             fisYazdirmaModu: 'toplu',
             tema: 'dark',
             satisYaziBoyutu: 14,
-            firebaseAktif: false,
+            firebaseAktif: true,
             mutfakAktif: false,
             ozellikler: { adisyon: false, customerorders: false },
             kokDugum: kodIciKokBasliginiOku || '',
@@ -1762,6 +1763,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
         try {
             const cihazFirebaseDurumu = localStorage.getItem('pos_firebase_enabled_v1');
             if (cihazFirebaseDurumu === '1' || cihazFirebaseDurumu === '0') sistemAyarlari.firebaseAktif = cihazFirebaseDurumu === '1';
+            else sistemAyarlari.firebaseAktif = true;
         } catch (_) {}
         // Kod içi bağlantı bilgileri, yalnızca kayıtlı formda geçerli bir veritabanı adresi yoksa varsayılan olur.
         if (!sistemAyarlari.firebaseConfig || !sistemAyarlari.firebaseConfig.databaseURL) {
@@ -1788,7 +1790,10 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             try {
                 const kayit = localStorage.getItem('pos_firebase_enabled_v1');
                 if (kayit === '1' || kayit === '0') sistemAyarlari.firebaseAktif = kayit === '1';
-                else localStorage.setItem('pos_firebase_enabled_v1', sistemAyarlari.firebaseAktif === true ? '1' : '0');
+                else {
+                    sistemAyarlari.firebaseAktif = true;
+                    localStorage.setItem('pos_firebase_enabled_v1', '1');
+                }
                 return true;
             } catch (hata) { console.warn('Firebase şalteri yerel kayıttan okunamadı:', hata); return false; }
         }
