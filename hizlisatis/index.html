@@ -1347,7 +1347,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <div class="bg-white text-slate-900 w-full max-w-xs rounded-lg p-4 space-y-3 shadow-2xl font-mono text-center">
 <div class="bg-white grid grid-cols-1 gap-2" id="label-print-area">
 <div class="label-item p-2.5 space-y-1.5 text-center">
-<h4 class="lbl-company text-[11px] font-bold uppercase tracking-wider text-slate-700">HIZLI POS PRO</h4>
+<h4 id="lbl-company" class="lbl-company text-[11px] font-bold uppercase tracking-wider text-slate-700">HIZLI POS PRO</h4>
 <div class="lbl-name text-xs font-bold text-slate-900 leading-tight">Ürün Adı</div>
 <div class="py-1 flex justify-center"><svg class="lbl-barcode-svg"></svg></div>
 <div class="lbl-price text-base font-bold text-emerald-600">₺0.00</div>
@@ -2811,7 +2811,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             const girilenSifre = document.getElementById('auth-password').value.trim();
             
             if (!girilenKullaniciAdi || !girilenSifre) {
-                onayModaliniGoster('Uyarı', 'Lütfen önce listeden kullanıcı seçin ve şifrenizi girin.', null, true);
+                // Kullanıcı veya şifre girilmediyse uyarı penceresi açmadan giriş işlemini durdur.
                 return;
             }
 
@@ -3093,10 +3093,24 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             await Promise.all(yazmalar);
         }
 
+        // Firebase ayarı kayıtlıyken başlık ve yapılandırma alanları kilitlenir.
+        // Kullanıcı yalnızca "Forma Yükle" ile düzenleme modunu açabilir.
+        function firebaseFormAlanlariniKilitle(kilitli) {
+            const kokAlani = document.getElementById('setting-root-node');
+            const configAlani = document.getElementById('setting-firebase-config');
+            [kokAlani, configAlani].forEach(alan => {
+                if (!alan) return;
+                alan.disabled = Boolean(kilitli);
+                alan.classList.toggle('opacity-60', Boolean(kilitli));
+                alan.classList.toggle('cursor-not-allowed', Boolean(kilitli));
+            });
+        }
+
         function firebaseKayitlariniCiz() {
             const liste = document.getElementById('firebase-saved-records');
             if (!liste) return;
             const kayitlar = Array.isArray(sistemAyarlari.firebaseKayitlari) ? sistemAyarlari.firebaseKayitlari : [];
+            firebaseFormAlanlariniKilitle(kayitlar.length > 0);
             if (!kayitlar.length) {
                 liste.innerHTML = '<div class="text-xs text-slate-500 p-3 rounded border border-slate-800">Henüz kayıt yok.</div>';
                 return;
@@ -3123,7 +3137,8 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             if (!kayit) return;
             document.getElementById('setting-root-node').value = kayit.kokDugum || '';
             document.getElementById('setting-firebase-config').value = JSON.stringify(kayit.firebaseConfig || {}, null, 2);
-            onayModaliniGoster('Kayıt forma yüklendi', 'Bilgileri düzenleyebilir ve tekrar kaydedebilirsiniz.', null, true);
+            firebaseFormAlanlariniKilitle(false);
+            onayModaliniGoster('Kayıt forma yüklendi', 'Başlık ve yapılandırma alanları düzenlemeye açıldı.', null, true);
         }
 
         function firebaseKaydiniSil(id) {
@@ -3651,7 +3666,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             const a = document.getElementById('customer-order-active-count'); if(a)a.textContent=active.filter(o=>o.status!=='new').length;
             const t = document.getElementById('customer-order-total'); if(t)t.textContent=adisyonPara(active.reduce((sum,o)=>sum+(Number(o.total)||0),0));
             if (!customerOrderRecords.length) { list.innerHTML='<div class="theme-card rounded-xl border border-slate-700 p-4 text-sm text-slate-400 col-span-full">Henüz müşteri siparişi yok. QR menü bağlantısını Ayarlar bölümünden oluşturabilirsiniz.</div>'; return; }
-            const renderOrder = o => {const items=(o.items||[]).map(i=>`<div class="flex justify-between gap-2 text-xs py-1 border-b border-slate-800"><span>${htmlGuvenli(i.name||i.product?.name||'Ürün')} × ${Number(i.qty)||1}</span><span>${adisyonPara((Number(i.price??i.product?.price)||0)*(Number(i.qty)||1))}</span></div>`).join('');const statusLabels={new:'Yeni',accepted:'Garson üstlendi',preparing:'Hazırlanıyor',ready:'Hazır',served:'Servis edildi',cancelled:'İptal'};const canTrack=!['served','cancelled'].includes(o.status);return `<article class="theme-card rounded-xl border ${o.status==='new'?'border-red-500':'border-slate-700'} p-4"><div class="flex justify-between gap-2"><div><h3 class="font-black text-cyan-300">${o.orderType==='paket'?'Paket Servis':`Masa ${htmlGuvenli(o.table||'-')}`}</h3><p class="text-[10px] text-slate-400 mt-1">${new Date(o.createdAt||Date.now()).toLocaleString('tr-TR')}</p><p class="text-xs mt-1">Garson: <b>${htmlGuvenli(o.assignedWaiter||'Henüz atanmadı')}</b></p></div><span class="h-fit text-[10px] px-2 py-1 rounded bg-slate-800">${statusLabels[o.status]||'Yeni'}</span></div><div class="my-3">${items}</div>${o.note?`<p class="text-xs text-amber-300 mb-3">Not: ${htmlGuvenli(o.note)}</p>`:''}<div class="font-black text-emerald-400 text-right mb-3">${adisyonPara(Number(o.total)||0)}</div>${canTrack?`<div class="grid grid-cols-2 gap-2"><button onclick="musteriSiparisiniUstlen('${String(o.id).replace(/'/g,'')}')" class="rounded bg-cyan-700 hover:bg-cyan-600 text-white p-2 text-xs font-bold">${o.assignedWaiter?'Garsonu değiştir / üstlen':'Bu siparişi üstlen'}</button><select class="theme-input rounded bg-slate-950 border border-slate-700 p-2 text-xs" onchange="musteriSiparisDurumunuDegistir('${String(o.id).replace(/'/g,'')}',this.value)"><option value="new" ${o.status==='new'?'selected':''}>Yeni</option><option value="accepted" ${o.status==='accepted'?'selected':''}>Garson üstlendi</option><option value="preparing" ${o.status==='preparing'?'selected':''}>Hazırlanıyor</option><option value="ready" ${o.status==='ready'?'selected':''}>Hazır</option><option value="served" ${o.status==='served'?'selected':''}>Servis edildi</option><option value="cancelled" ${o.status==='cancelled'?'selected':''}>İptal</option></select></div>`:''}</article>`;};
+            const renderOrder = o => {const items=(o.items||[]).map(i=>`<div class="flex justify-between gap-2 text-xs py-1 border-b border-slate-800/40"><span>${htmlGuvenli(i.name||i.product?.name||'Ürün')} × ${Number(i.qty)||1}</span><span>${adisyonPara((Number(i.price??i.product?.price)||0)*(Number(i.qty)||1))}</span></div>`).join('');const statusLabels={new:'Yeni',accepted:'Garson üstlendi',preparing:'Hazırlanıyor',ready:'Hazır',served:'Servis edildi',cancelled:'İptal'};const canTrack=!['served','cancelled'].includes(o.status);return `<article class="theme-card rounded-xl border p-4 shadow-lg"><div class="flex justify-between gap-2"><div><h3 class="font-black text-cyan-300">${o.orderType==='paket'?'Paket Servis':`Masa ${htmlGuvenli(o.table||'-')}`}</h3><p class="text-[10px] text-slate-400 mt-1">${new Date(o.createdAt||Date.now()).toLocaleString('tr-TR')}</p><p class="text-xs mt-1">Garson: <b>${htmlGuvenli(o.assignedWaiter||'Henüz atanmadı')}</b></p></div><span class="h-fit text-[10px] px-2 py-1 rounded bg-slate-800">${statusLabels[o.status]||'Yeni'}</span></div><div class="my-3 rounded-lg p-3 ${siparisDurumListeSinifi(o.status)}">${items || '<p class="text-xs opacity-70">Ürün yok</p>'}</div>${o.note?`<p class="text-xs text-amber-300 mb-3">Not: ${htmlGuvenli(o.note)}</p>`:''}<div class="font-black text-emerald-400 text-right mb-3">${adisyonPara(Number(o.total)||0)}</div>${canTrack?`<div class="grid grid-cols-2 gap-2"><button onclick="musteriSiparisiniUstlen('${String(o.id).replace(/'/g,'')}')" class="rounded bg-cyan-700 hover:bg-cyan-600 text-white p-2 text-xs font-bold">${o.assignedWaiter?'Garsonu değiştir / üstlen':'Bu siparişi üstlen'}</button><select class="theme-input rounded bg-slate-950 border border-slate-700 p-2 text-xs" onchange="musteriSiparisDurumunuDegistir('${String(o.id).replace(/'/g,'')}',this.value)"><option value="new" ${o.status==='new'?'selected':''}>Yeni</option><option value="accepted" ${o.status==='accepted'?'selected':''}>Garson üstlendi</option><option value="preparing" ${o.status==='preparing'?'selected':''}>Hazırlanıyor</option><option value="ready" ${o.status==='ready'?'selected':''}>Hazır</option><option value="served" ${o.status==='served'?'selected':''}>Servis edildi</option><option value="cancelled" ${o.status==='cancelled'?'selected':''}>İptal</option></select></div>`:''}</article>`;};
             list.innerHTML = `${active.length?'<h3 class="col-span-full text-sm font-black text-cyan-300">Aktif Siparişler</h3>': '<div class="theme-card rounded-xl border border-slate-700 p-4 text-sm text-slate-400 col-span-full">Aktif sipariş bulunmuyor.</div>'}${active.map(renderOrder).join('')}${served.length?`<details class="theme-card col-span-full rounded-xl border border-emerald-800 p-3"><summary class="cursor-pointer font-bold text-emerald-300">Servis Edilenler (${served.length})</summary><div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mt-3">${served.map(renderOrder).join('')}</div></details>`:''}${cancelled.length?`<details class="theme-card col-span-full rounded-xl border border-slate-700 p-3"><summary class="cursor-pointer font-bold text-slate-400">İptal Edilenler (${cancelled.length})</summary><div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mt-3">${cancelled.map(renderOrder).join('')}</div></details>`:''}`;
         }
         async function musteriSiparisKaydiniYaz(id, changes) {
@@ -3717,6 +3732,30 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
         function mutfakDurumMetni(status) {
             return ({new:'Yeni', preparing:'Hazırlanıyor', ready:'Hazır', completed:'Tamamlandı'})[status] || 'Yeni';
         }
+        // Sipariş kartlarının arka planı ve çerçevesi, durumuna göre ortak renklendirilir.
+        function siparisDurumKartSinifi(status) {
+            return ({
+                new: 'bg-red-500/10 border-red-500/70 shadow-red-950/20',
+                accepted: 'bg-cyan-500/10 border-cyan-500/70 shadow-cyan-950/20',
+                preparing: 'bg-amber-500/10 border-amber-500/70 shadow-amber-950/20',
+                ready: 'bg-emerald-500/10 border-emerald-500/70 shadow-emerald-950/20',
+                served: 'bg-slate-500/10 border-slate-500/60',
+                completed: 'bg-slate-500/10 border-slate-500/60',
+                cancelled: 'bg-rose-950/30 border-rose-700/70'
+            })[status] || 'bg-red-500/10 border-red-500/70';
+        }
+        // Renk yalnızca sipariş ürün listesinin kutusuna uygulanır; ana sipariş kartı nötr kalır.
+        function siparisDurumListeSinifi(status) {
+            return ({
+                new: 'bg-red-500/10 border border-red-500/40',
+                accepted: 'bg-cyan-500/10 border border-cyan-500/40',
+                preparing: 'bg-amber-500/10 border border-amber-500/40',
+                ready: 'bg-emerald-500/10 border border-emerald-500/40',
+                served: 'bg-slate-500/10 border border-slate-500/30',
+                completed: 'bg-slate-500/10 border border-slate-500/30',
+                cancelled: 'bg-rose-500/10 border border-rose-500/40'
+            })[status] || 'bg-red-500/10 border border-red-500/40';
+        }
         function mutfakDurumRengi(status) {
             return ({new:'border-red-500', preparing:'border-amber-500', ready:'border-emerald-500', completed:'border-slate-600'})[status] || 'border-red-500';
         }
@@ -3750,12 +3789,12 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             if (!list.length) { host.innerHTML = '<div class="theme-card rounded-lg border border-slate-700 p-8 text-center text-slate-400 md:col-span-2 xl:col-span-3"><i class="fa-solid fa-check-circle text-3xl text-emerald-500 mb-2"></i><p>Gösterilecek sipariş yok.</p></div>'; return; }
             host.innerHTML = list.map(s => {
                 const status = s.kitchenStatus || 'new';
-                const items = (s.items || []).map(i => `<li class="flex justify-between gap-3 py-1 border-b border-slate-700/60"><span>${htmlGuvenli(i.product?.name || i.name || 'Ürün')}</span><strong class="whitespace-nowrap">× ${Number(i.qty || 1)}</strong></li>`).join('');
+                const items = (s.items || []).map(i => `<li class="flex justify-between gap-3 py-2 border-b border-current/10 last:border-b-0"><span>${htmlGuvenli(i.product?.name || i.name || 'Ürün')}</span><strong class="whitespace-nowrap">× ${Number(i.qty || 1)}</strong></li>`).join('');
                 const note = s.kitchenNote ? `<div class="mt-3 p-2 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs"><i class="fa-solid fa-note-sticky mr-1"></i>${htmlGuvenli(s.kitchenNote)}</div>` : '';
                 const time = htmlGuvenli(s.date || '');
                 const customer = s.customerName ? `<span class="text-slate-400"> · ${htmlGuvenli(s.customerName)}</span>` : '';
                 const buttons = `<div class="grid grid-cols-2 gap-2 mt-4">${status==='new'?`<button onclick="mutfakDurumunuDegistir('${htmlGuvenli(s.id)}','preparing')" class="rounded bg-amber-600 hover:bg-amber-500 text-white p-2 text-xs font-bold">Hazırlamaya başla</button>`:''}${status==='preparing'?`<button onclick="mutfakDurumunuDegistir('${htmlGuvenli(s.id)}','ready')" class="rounded bg-emerald-600 hover:bg-emerald-500 text-white p-2 text-xs font-bold">Hazır</button>`:''}${status==='ready'?`<button onclick="mutfakDurumunuDegistir('${htmlGuvenli(s.id)}','completed')" class="rounded bg-slate-600 hover:bg-slate-500 text-white p-2 text-xs font-bold">Teslim edildi / tamamla</button>`:''}<button onclick="mutfakTekFisYazdir('${htmlGuvenli(s.id)}')" class="rounded bg-sky-700 hover:bg-sky-600 text-white p-2 text-xs font-bold"><i class="fa-solid fa-print mr-1"></i>Fiş yazdır</button></div>`;
-                return `<article class="theme-card rounded-xl border-l-4 ${mutfakDurumRengi(status)} border-y border-r border-slate-700 p-4 shadow-lg"><div class="flex items-start justify-between gap-2"><div><div class="text-xs text-slate-400">${time}${customer}</div><h3 class="text-lg font-black mt-1">Sipariş #${htmlGuvenli(s.id)}</h3></div><span class="px-2 py-1 rounded text-[10px] font-black ${status==='new'?'bg-red-500/20 text-red-300':status==='preparing'?'bg-amber-500/20 text-amber-300':status==='ready'?'bg-emerald-500/20 text-emerald-300':'bg-slate-700 text-slate-300'}">${mutfakDurumMetni(status)}</span></div><ul class="mt-3 text-sm">${items}</ul>${note}${buttons}</article>`;
+                return `<article class="theme-card rounded-xl border-l-4 ${mutfakDurumRengi(status)} border-y border-r p-4 shadow-lg"><div class="flex items-start justify-between gap-2"><div><div class="text-xs text-slate-400">${time}${customer}</div><h3 class="text-lg font-black mt-1">Sipariş #${htmlGuvenli(s.id)}</h3></div><span class="px-2 py-1 rounded text-[10px] font-black ${status==='new'?'bg-red-500/20 text-red-300':status==='preparing'?'bg-amber-500/20 text-amber-300':status==='ready'?'bg-emerald-500/20 text-emerald-300':'bg-slate-700 text-slate-300'}">${mutfakDurumMetni(status)}</span></div><ul class="mt-3 text-sm rounded-lg p-3 ${siparisDurumListeSinifi(status)}">${items || '<li class="text-xs opacity-70">Ürün yok</li>'}</ul>${note}${buttons}</article>`;
             }).join('');
         }
         function mutfakFiltresiAyarla(filtre) {
@@ -4384,7 +4423,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                 const kitchenStatusClass = ({new:'bg-red-500/15 text-red-300 border-red-500/30',preparing:'bg-amber-500/15 text-amber-300 border-amber-500/30',ready:'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',completed:'bg-slate-700 text-slate-300 border-slate-600'})[kitchenStatus] || 'bg-red-500/15 text-red-300 border-red-500/30';
                 const kitchenStatusAt = a['kitchen'+kitchenStatus.charAt(0).toUpperCase()+kitchenStatus.slice(1)+'At'] || a.kitchenCreatedAt;
                 const kitchenTime = kitchenStatusAt ? new Date(Number(kitchenStatusAt)).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : '';
-                return `<article class="theme-card rounded-xl border border-slate-700 p-4 shadow-lg"><div class="flex justify-between items-start gap-2 mb-2"><div><h3 class="font-black text-amber-400 text-base">${htmlGuvenli(a.masa || 'Masa belirtilmedi')}</h3><p class="text-[10px] text-slate-400 mt-1">${htmlGuvenli(a.garson || 'Garson belirtilmedi')} · ${htmlGuvenli(a.updatedLabel || a.createdLabel || '')}</p></div><div class="flex flex-col items-end gap-1"><span class="text-[10px] rounded bg-amber-900/50 text-amber-300 px-2 py-1">AÇIK</span><span class="text-[10px] rounded border px-2 py-1 font-bold ${kitchenStatusClass}">${mutfakDurumMetni(kitchenStatus)}</span></div></div>${kitchenTime?`<p class="text-[10px] text-slate-400 mb-2">Hazırlık durumu güncellendi: ${kitchenTime}</p>`:''}<div class="space-y-0 mb-3">${lines || '<p class="text-xs text-slate-400">Ürün yok</p>'}</div><div class="flex justify-between font-bold border-t border-slate-700 pt-2 mb-3"><span>Toplam</span><span class="text-emerald-400">${adisyonPara(adisyonToplam(a))}</span></div>${a.note ? `<p class="text-xs text-slate-400 mb-3"><i class="fa-solid fa-note-sticky mr-1"></i>${htmlGuvenli(a.note)}</p>` : ''}<div class="grid grid-cols-2 gap-2"><button class="bg-cyan-700 hover:bg-cyan-600 text-white rounded p-2 text-xs font-bold" onclick="adisyonuAc('${String(a.id).replace(/'/g, '')}')"><i class="fa-solid fa-pen mr-1"></i>Düzenle / Öde</button><button class="bg-slate-700 hover:bg-slate-600 text-white rounded p-2 text-xs font-bold" onclick="adisyonFisYazdir('${String(a.id).replace(/'/g, '')}')"><i class="fa-solid fa-print mr-1"></i>Adisyon Yazdır</button><button class="col-span-2 bg-rose-800 hover:bg-rose-700 text-white rounded p-2 text-xs font-bold" onclick="adisyonuIptalEt('${String(a.id).replace(/'/g, '')}')"><i class="fa-solid fa-trash mr-1"></i>Adisyonu İptal Et</button></div></article>`;
+                return `<article class="theme-card rounded-xl border p-4 shadow-lg"><div class="flex justify-between items-start gap-2 mb-2"><div><h3 class="font-black text-amber-400 text-base">${htmlGuvenli(a.masa || 'Masa belirtilmedi')}</h3><p class="text-[10px] text-slate-400 mt-1">${htmlGuvenli(a.garson || 'Garson belirtilmedi')} · ${htmlGuvenli(a.updatedLabel || a.createdLabel || '')}</p></div><div class="flex flex-col items-end gap-1"><span class="text-[10px] rounded bg-amber-900/50 text-amber-300 px-2 py-1">AÇIK</span><span class="text-[10px] rounded border px-2 py-1 font-bold ${kitchenStatusClass}">${mutfakDurumMetni(kitchenStatus)}</span></div></div>${kitchenTime?`<p class="text-[10px] text-slate-400 mb-2">Hazırlık durumu güncellendi: ${kitchenTime}</p>`:''}<div class="space-y-0 mb-3 rounded-lg p-3 ${siparisDurumListeSinifi(kitchenStatus)}">${lines || '<p class="text-xs text-slate-400">Ürün yok</p>'}</div><div class="flex justify-between font-bold border-t border-slate-700 pt-2 mb-3"><span>Toplam</span><span class="text-emerald-400">${adisyonPara(adisyonToplam(a))}</span></div>${a.note ? `<p class="text-xs text-slate-400 mb-3"><i class="fa-solid fa-note-sticky mr-1"></i>${htmlGuvenli(a.note)}</p>` : ''}<div class="grid grid-cols-2 gap-2"><button class="bg-cyan-700 hover:bg-cyan-600 text-white rounded p-2 text-xs font-bold" onclick="adisyonuAc('${String(a.id).replace(/'/g, '')}')"><i class="fa-solid fa-pen mr-1"></i>Düzenle / Öde</button><button class="bg-slate-700 hover:bg-slate-600 text-white rounded p-2 text-xs font-bold" onclick="adisyonFisYazdir('${String(a.id).replace(/'/g, '')}')"><i class="fa-solid fa-print mr-1"></i>Adisyon Yazdır</button><button class="col-span-2 bg-rose-800 hover:bg-rose-700 text-white rounded p-2 text-xs font-bold" onclick="adisyonuIptalEt('${String(a.id).replace(/'/g, '')}')"><i class="fa-solid fa-trash mr-1"></i>Adisyonu İptal Et</button></div></article>`;
             }).join('');
         }
         function adisyonuKaydet() {
