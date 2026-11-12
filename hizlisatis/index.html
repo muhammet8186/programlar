@@ -2810,6 +2810,17 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                     girisDropdownKullanicilariniGoster();
                     return true;
                 }
+                // Firebase'de henüz kullanıcı yoksa yerel kullanıcı listesini (Yönetici dahil)
+                // ilk kez buluta aktar. Böylece yönetici hesabı diğer cihazlarda da görünür.
+                const yerelKullanicilar = kullanicilariDiziyeCevir(sistemKullanicilari);
+                if (yerelKullanicilar.length && window.dbSet) {
+                    await window.dbSet(window.dbRef(window.database, `${kok}/sistem_kullanicilari`), yerelKullanicilar);
+                    sistemKullanicilari = yerelKullanicilar;
+                    try { localStorage.setItem('pos_system_users_v4', JSON.stringify(sistemKullanicilari)); } catch (_) {}
+                    girisDropdownKullanicilariniGoster();
+                    console.info('Yerel kullanıcılar (Yönetici dahil) Firebase’e ilk kez kaydedildi.');
+                    return true;
+                }
             } catch (err) { console.warn('Bulut kullanıcıları okunamadı; yerel kullanıcılar kullanılacak:', err); }
             return false;
         }
