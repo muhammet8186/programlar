@@ -192,6 +192,18 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
             }
         };
         window.dispatchEvent(new Event('firebase-ready'));
+
+        // Sayfa açılışında kayıtlı ayarı uygula; checkbox değişince de son görünürlük kontrolünü yap.
+        document.addEventListener('DOMContentLoaded', function() {
+            const ayar = document.getElementById('setting-adisyon-enabled');
+            if (ayar) {
+                ayar.addEventListener('change', function() {
+                    window.adisyonButonGorunurlugunuUygula(this.checked);
+                });
+            }
+            const kayitliAktif = sistemAyarlari?.ozellikler?.adisyon === true;
+            window.adisyonButonGorunurlugunuUygula(kayitliAktif);
+        });
     </script>
 <style>
         /* Satış ekranı yazı boyutuna göre ürün kartları ve isimleri birlikte büyür. */
@@ -302,6 +314,16 @@ button:not(:disabled):active { transform: translateY(1px); }
 body#app-body[data-theme-mode="light"] #modal-modern-payment > div > div:first-child > div:first-child { color:#1e3a8a !important; opacity:1 !important; }
 body#app-body[data-theme-mode="dark"] #modal-modern-payment > div > div:first-child > div:first-child,
 body#app-body:not([data-theme-mode="light"]) #modal-modern-payment > div > div:first-child > div:first-child { color:#c7d2fe !important; opacity:1 !important; }
+
+/* Adisyon butonu: ayar açıkken satış ekranında görünür. */
+body#app-body[data-adisyon-enabled="true"] #sales-cart-summary-panel > #cart-adisyon-save-button {
+    display: flex !important; visibility: visible !important; opacity: 1 !important;
+    pointer-events: auto !important; position: relative !important;
+}
+body#app-body[data-adisyon-enabled="false"] #sales-cart-summary-panel > #cart-adisyon-save-button {
+    display: none !important; visibility: hidden !important; opacity: 0 !important;
+    pointer-events: none !important;
+}
 </style>
 <meta content="dark light" name="color-scheme"/>
 <style id="compact-panel-layout">
@@ -567,6 +589,9 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 <i class="fa-solid fa-fire-burner"></i>
 <span>Mutfak <span class="ml-1 rounded-full bg-red-600 text-white px-1.5" id="kitchen-nav-count">0</span></span>
 </button>
+<button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap hidden" id="tab-waiter" style="display:none!important" aria-hidden="true" onclick="sekmeyiDegistir('waiter')" type="button">
+<i class="fa-solid fa-user-tie"></i> <span>Garson</span>
+</button>
 <button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap hidden" id="tab-adisyon" onclick="sekmeyiDegistir('adisyon')"><i class="fa-solid fa-clipboard-list"></i><span>Adisyon <span class="ml-1 rounded-full bg-amber-600 text-white px-1.5" id="adisyon-nav-count">0</span></span></button>
 <button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap hidden" id="tab-customerorders" onclick="sekmeyiDegistir('customerorders')"><i class="fa-solid fa-bell-concierge"></i><span>Müşteri Siparişleri <span class="ml-1 rounded-full bg-red-600 text-white px-1.5" id="customer-order-nav-count">0</span></span></button>
 <button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap" id="tab-products" onclick="sekmeyiDegistir('products')">
@@ -680,7 +705,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 <span class="font-mono" id="cart-total">₺0.00</span>
 </div>
 </div>
-<button class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-3 rounded text-xs flex items-center justify-center gap-2" id="cart-adisyon-save-button" onclick="adisyonuKaydet()" type="button"><i class="fa-solid fa-clipboard-list"></i><span id="adisyon-save-label">ADİSYON AÇ / KAYDET</span></button>
+<button class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-3 rounded text-xs flex items-center justify-center gap-2" id="cart-adisyon-save-button" style="display:none" hidden aria-hidden="true" onclick="adisyonuKaydet()" type="button"><i class="fa-solid fa-clipboard-list"></i><span id="adisyon-save-label">ADİSYON AÇ / KAYDET</span></button>
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
 <button class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-1 rounded transition flex flex-col items-center justify-center shadow active:scale-95 border border-emerald-500/30 cursor-pointer" id="sales-cash-button" onclick="odemeButonundanBaslat('Nakit')" type="button">
 <i class="fa-solid fa-money-bill-wave text-xs mb-0.5"></i>
@@ -711,6 +736,21 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 </div>
 <div class="flex flex-wrap gap-2"><button class="px-3 py-1.5 rounded text-xs font-bold bg-emerald-600 text-white" id="kitchen-filter-active" onclick="mutfakFiltresiAyarla('active')">Aktif siparişler</button><button class="px-3 py-1.5 rounded text-xs font-bold bg-slate-800 text-slate-300" id="kitchen-filter-all" onclick="mutfakFiltresiAyarla('all')">Tüm siparişler</button></div>
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" id="kitchen-orders"><div class="text-sm text-slate-400">Siparişler yükleniyor…</div></div>
+</section>
+<!-- GARSON PERFORMANS / SİPARİŞ EKRANI -->
+<section class="absolute inset-0 p-3 md:p-5 hidden flex-col gap-3 overflow-y-auto" id="section-waiter">
+  <div class="theme-card rounded-lg border border-slate-700 p-4 flex flex-wrap items-center justify-between gap-3">
+    <div><h2 class="text-xl font-black"><i class="fa-solid fa-user-tie text-cyan-400 mr-2"></i>Garson Paneli</h2><p class="text-xs text-slate-400 mt-1">Garsonlara göre satışları, masa siparişlerini ve toplam tutarları görüntüleyin.</p></div>
+    <div class="flex items-center gap-2"><label class="text-xs font-semibold text-slate-300" for="waiter-filter">Garson</label><select id="waiter-filter" class="theme-input rounded border border-slate-700 bg-slate-950 px-3 py-2 text-xs" onchange="garsonEkraniniGuncelle()"><option value="all">Tüm garsonlar</option></select><button type="button" class="rounded bg-emerald-600 px-3 py-2 text-xs font-bold text-white" onclick="garsonEkraniniGuncelle()"><i class="fa-solid fa-rotate mr-1"></i>Yenile</button></div>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+    <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Filtredeki sipariş</div><div class="text-2xl font-black text-cyan-400" id="waiter-count-total">0</div></div>
+    <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Bugünkü sipariş</div><div class="text-2xl font-black text-cyan-400" id="waiter-count-today">0</div></div>
+    <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Masa / paket kaydı</div><div class="text-2xl font-black text-amber-400" id="waiter-count-tables">0</div></div>
+    <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Toplam satış</div><div class="text-2xl font-black text-emerald-400" id="waiter-total">₺0,00</div></div>
+    <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Ortalama sipariş tutarı</div><div class="text-2xl font-black text-violet-400" id="waiter-average">₺0,00</div></div>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" id="waiter-orders"><div class="text-sm text-slate-400">Siparişler yükleniyor…</div></div>
 </section>
 <!-- AÇIK ADİSYONLAR -->
 <section class="absolute inset-0 p-3 md:p-5 hidden flex-col gap-3 overflow-y-auto" id="section-adisyon">
@@ -1158,8 +1198,9 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 </div>
 </div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
 <h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2">Mutfak Sistemi</h3>
-<div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold">Mutfak özelliğini etkinleştir</div><p class="text-xs text-slate-400 mt-1">Kapatıldığında yalnızca mutfak ekranı, sipariş kategorisi ve mutfak notu gizlenir.</p></div><label class="inline-flex items-center gap-2 text-xs font-bold"><input class="w-4 h-4 accent-emerald-500" id="setting-kitchen-enabled" onchange="mutfakSisteminiDegistir(this.checked)" type="checkbox"/> Açık</label></div>
-<div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold">Adisyon özelliğini etkinleştir</div><p class="text-xs text-slate-400 mt-1">Masa adisyonlarını açar veya gizler.</p></div><label class="inline-flex items-center gap-2 text-xs font-bold"><input class="w-4 h-4 accent-emerald-500" id="setting-adisyon-enabled" onchange="bagliOzelligiDegistir('adisyon',this.checked)" type="checkbox"/> Açık</label></div>
+<div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold">Mutfak özelliğini etkinleştir</div><p class="text-xs text-slate-400 mt-1">Mutfak sipariş takip ekranını ve mutfak kuyruğunu açar veya kapatır. Satış ekranındaki masa, paket ve sipariş alanları Adisyon ayarından yönetilir. Kapatıldığında kayıtlı siparişler silinmez.</p></div><label class="inline-flex items-center gap-2 text-xs font-bold"><input class="w-4 h-4 accent-emerald-500" id="setting-kitchen-enabled" onchange="mutfakSisteminiDegistir(this.checked)" type="checkbox"/> Açık</label></div>
+<div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold">Adisyon özelliğini etkinleştir</div><p class="text-xs text-slate-400 mt-1">Satış ekranındaki masa/paket seçimi, sipariş notu, garson alanı ve Adisyon Aç / Kaydet butonunu gösterir. Kapatıldığında bu alanlar gizlenir; kayıtlı adisyonlar silinmez.</p></div><label class="inline-flex items-center gap-2 text-xs font-bold"><input class="w-4 h-4 accent-emerald-500" id="setting-adisyon-enabled" onchange="window.adisyonSisteminiDegistir(this.checked)" type="checkbox"/> Açık</label></div>
+<div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold">Garson sistemini etkinleştir</div><p class="text-xs text-slate-400 mt-1">Garson panelini ve satış ekranındaki garson atamasını açar veya kapatır. Kapatıldığında geçmiş sipariş ve garson kayıtları silinmez. Adisyon ayarından bağımsızdır.</p></div><label class="inline-flex items-center gap-2 text-xs font-bold"><input class="w-4 h-4 accent-emerald-500" id="setting-waiter-enabled" onchange="garsonSisteminiDegistir(this.checked)" type="checkbox"/> Açık</label></div>
 <div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold">Müşteri siparişleri özelliğini etkinleştir</div><p class="text-xs text-slate-400 mt-1">QR menüden gelen siparişlerin takibini açar veya gizler.</p></div><label class="inline-flex items-center gap-2 text-xs font-bold"><input class="w-4 h-4 accent-emerald-500" id="setting-customerorders-enabled" onchange="bagliOzelligiDegistir('customerorders',this.checked)" type="checkbox"/> Açık</label></div>
 </div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-cyan-800 space-y-3 shadow-lg w-full min-w-0" id="customer-qr-settings">
 <h3 class="text-sm font-bold text-cyan-400">QR Menü ve Sipariş</h3>
@@ -1301,7 +1342,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 </div>
 <div>
 <h3 class="text-sm font-bold tracking-tight">Yönetici Girişi Gerekli</h3>
-<p class="text-xs text-slate-400 mt-1">Ayarlar bölümüne yalnızca Yönetici rolündeki kullanıcılar girebilir.</p>
+<p class="text-xs text-slate-400 mt-1">Ana Admin şifresiz girer. Diğer yöneticiler kullanıcı adı ve şifreyle giriş yapar.</p>
 </div>
 <form class="space-y-3 pt-1" onsubmit="ayarlarSifreDogrula(event)">
 <div class="relative text-left">
@@ -1622,6 +1663,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 <div class="grid grid-cols-2 gap-2 text-xs">
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="sales"/> Satış bölümüne erişim</label>
 <label class="flex items-center gap-2"><input class="sysuser-permission" type="checkbox" value="kitchen"/> Mutfak bölümüne erişim</label>
+<label class="flex items-center gap-2"><input class="sysuser-permission" type="checkbox" value="waiter"/> Garson bölümüne erişim</label>
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="adisyon"/> Adisyon bölümüne erişim</label>
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="customerorders"/> Müşteri siparişlerini takip etme</label>
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="products"/> Ürünler bölümüne erişim</label>
@@ -1782,6 +1824,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             satisYaziBoyutu: 14,
             firebaseAktif: true,
             mutfakAktif: false,
+            garsonAktif: false,
             ozellikler: { adisyon: false, customerorders: false },
             kokDugum: kodIciKokBasliginiOku || '',
             firebaseConfig: { ...kodIciFirebaseBilgileriniOku }
@@ -1799,6 +1842,8 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         // İlk kurulumda üç özellik kapalıdır; açık/kapalı şeklindeki kullanıcı seçimleri korunur.
         function ozellikVarsayilanlariniTamamla() {
             if (typeof sistemAyarlari.mutfakAktif !== 'boolean') sistemAyarlari.mutfakAktif = false;
+            // Garson sekmesi ilk kurulumda kapalı başlar; kullanıcının sonraki tercihi korunur.
+            if (typeof sistemAyarlari.garsonAktif !== 'boolean') sistemAyarlari.garsonAktif = false;
             if (!sistemAyarlari.ozellikler || typeof sistemAyarlari.ozellikler !== 'object' || Array.isArray(sistemAyarlari.ozellikler)) sistemAyarlari.ozellikler = {};
             if (typeof sistemAyarlari.ozellikler.adisyon !== 'boolean') sistemAyarlari.ozellikler.adisyon = false;
             if (typeof sistemAyarlari.ozellikler.customerorders !== 'boolean') sistemAyarlari.ozellikler.customerorders = false;
@@ -1831,6 +1876,19 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         }
         firebaseDurumunuYerelKaydaUygula();
         ozellikVarsayilanlariniTamamla();
+
+        // Bu sürüme geçişte eski cihazlarda açık kalmış Garson ayarını bir kez kapat.
+        // Sonrasında kullanıcının Ayarlar bölümünden yaptığı açma/kapama tercihi korunur.
+        try {
+            if (localStorage.getItem('pos_waiter_default_off_v1') !== '1') {
+                sistemAyarlari.garsonAktif = false;
+                localStorage.setItem('pos_waiter_default_off_v1', '1');
+                localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari));
+            }
+        } catch (hata) {
+            sistemAyarlari.garsonAktif = false;
+            console.warn('Garson ilk kurulum ayarı uygulanamadı:', hata);
+        }
 
         if (!sistemAyarlari.fisAlanlari || typeof sistemAyarlari.fisAlanlari !== 'object') sistemAyarlari.fisAlanlari = {};
         ['sirket','fisNo','tarih','urunler','araToplam','iskonto','toplam','odeme','tesekkur'].forEach(k => { if (typeof sistemAyarlari.fisAlanlari[k] !== 'boolean') sistemAyarlari.fisAlanlari[k] = true; });
@@ -1911,9 +1969,12 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             }
         }
 
-        async function firebaseVerileriniYukle() {
+        async function firebaseVerileriniYukle(options = {}) {
+            window.firebaseLastLoadOk = false;
+            firebaseWriteBlocked = true;
             if (!(window.firebaseReady && window.database && window.dbGet && window.dbRef)) return false;
             const db = window.database;
+            let temelOkumaBasarili = true;
             const kok = kokDugumGetir();
             // Ortak ayarlar ve dönem listesi önce yüklenir; böylece başka bilgisayarda aynı görünüm açılır.
             try {
@@ -1948,7 +2009,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                         try { localStorage.setItem('pos_periods_v1', JSON.stringify(donemler)); } catch (_) {}
                     }
                 }
-                if (activePeriodSnap.exists()) {
+                if (!options.preserveActivePeriod && activePeriodSnap.exists()) {
                     const bulutAktifDonem = String(activePeriodSnap.val() || '');
                     if (donemler.some(d => String(d.id) === bulutAktifDonem)) {
                         aktifDonemId = bulutAktifDonem;
@@ -1956,8 +2017,9 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                     }
                 }
                 // Şalter kapalıysa ortak ayarları yükle, satış verilerini buluttan alma.
-                if (sistemAyarlari.firebaseAktif !== true) return false;
+                if (sistemAyarlari.firebaseAktif !== true) { firebaseWriteBlocked = false; window.firebaseLastLoadOk = true; return false; }
             } catch (ayarHatasi) {
+                temelOkumaBasarili = false;
                 console.warn('Bulut ayarları/dönem listesi okunamadı; yerel ayarlar korunuyor:', ayarHatasi);
             }
             // Yeni kayıt başlıkları Türkçe. Eski İngilizce anahtarlar geriye uyumluluk için okunur.
@@ -1987,6 +2049,10 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                     return { alan, veri: snap.exists() ? snap.val() : null };
                 }));
                 sonuclar.forEach(({alan, veri}) => {
+                    if (alan.tip === 'array') {
+                        const bulutDizisi = Array.isArray(veri) ? veri : (veri && typeof veri === 'object' ? Object.values(veri) : []);
+                        firebaseSyncBaseline[alan.anahtar] = JSON.parse(JSON.stringify(bulutDizisi));
+                    }
                     if (veri === null || veri === undefined) return;
                     if (alan.degisken === 'sistemKullanicilari') {
                         const kullaniciListesi = kullanicilariDiziyeCevir(veri);
@@ -2006,6 +2072,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                     }
                 });
             } catch (hata) {
+                temelOkumaBasarili = false;
                 console.error('Firebase verileri okunamadı; yerel veriler korunuyor:', hata);
             }
             // Adisyonlar ve QR müşteri siparişleri de aynı dönem altında yerel önbellekle eşitlenir.
@@ -2027,6 +2094,8 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 }
             } catch (extraLoadError) { console.warn('Adisyon/müşteri siparişleri buluttan okunamadı:', extraLoadError); }
             try { localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari)); } catch (_) {}
+            window.firebaseLastLoadOk = temelOkumaBasarili;
+            firebaseWriteBlocked = !temelOkumaBasarili;
             return buluttanVeriAlindi;
         }
 
@@ -2036,6 +2105,32 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             // Eski cihaz/bulut kayıtlarındaki önceki açık değerleri yalnızca bir kez kapat.
             const ilkOzellikKurulumu = ozellikIlkKurulumunuUygula();
             if (ilkOzellikKurulumu) await sistemAyarlariKaydet(true);
+
+            // Bu sürümün ilk açılışında Garson ve Adisyon ayarlarını bir kez kapat.
+            // v2 anahtarları, önceki sürümde oluşmuş işaretleri aşarak eski cihazlarda da düzeltme yapar.
+            try {
+                const garsonIlkKapama = localStorage.getItem('pos_waiter_default_off_v2') !== '1';
+                const adisyonIlkKapama = localStorage.getItem('pos_adisyon_default_off_v2') !== '1';
+                if (garsonIlkKapama) {
+                    sistemAyarlari.garsonAktif = false;
+                    localStorage.setItem('pos_waiter_default_off_v2', '1');
+                }
+                if (adisyonIlkKapama) {
+                    if (!sistemAyarlari.ozellikler || typeof sistemAyarlari.ozellikler !== 'object') sistemAyarlari.ozellikler = {};
+                    sistemAyarlari.ozellikler.adisyon = false;
+                    localStorage.setItem('pos_adisyon_default_off_v2', '1');
+                }
+                if (garsonIlkKapama || adisyonIlkKapama) {
+                    try { localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari)); } catch (_) {}
+                    await sistemAyarlariKaydet(true);
+                }
+            } catch (hata) {
+                sistemAyarlari.garsonAktif = false;
+                if (!sistemAyarlari.ozellikler || typeof sistemAyarlari.ozellikler !== 'object') sistemAyarlari.ozellikler = {};
+                sistemAyarlari.ozellikler.adisyon = false;
+                console.warn('Garson/Adisyon ilk açılış ayarı uygulanamadı:', hata);
+            }
+
             // Bozuk/eski kayıt biçimleri başlangıçta uygulamayı durdurmasın.
             if (!Array.isArray(urunler)) urunler = varsayilanUrunler.map(p => ({ ...p }));
             // Eski kayıtlardaki eksik alanları güvenli varsayılanlarla tamamla; mevcut stok miktarını değiştirme.
@@ -2074,6 +2169,9 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             bekleyenSepetSayisiniGuncelle();
             firmaAyarlariniUygula();
             temaUygula();
+            mutfakArayuzunuUygula();
+            adisyonArayuzunuUygula();
+            garsonArayuzunuUygula();
             kategoriListesiniGuncelle();
             kategorileriOlustur();
             urunleriGoster();
@@ -2357,6 +2455,20 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         }
 
         function ayarlarKontrolluGecis() {
+            // Kurucu Admin, kendi hesabıyla oturum açmışsa Ayarlar bölümüne şifresiz girer.
+            // Sonradan eklenen Yönetici hesapları için mevcut kullanıcı adı + şifre doğrulaması sürer.
+            const aktifHesap = (sistemKullanicilari || []).find(u =>
+                String(u.name || '').trim().toLocaleLowerCase('tr-TR') ===
+                String(aktifKullaniciAdi || '').trim().toLocaleLowerCase('tr-TR')
+            );
+            if (aktifHesap && sistemKullaniciAnaAdminMi(aktifHesap) && sistemKullaniciYoneticiMi(aktifHesap)) {
+                yoneticiAyarYetkisi = true;
+                const adminGirisModal = document.getElementById('modal-settings-auth');
+                if (adminGirisModal) { adminGirisModal.classList.add('hidden'); adminGirisModal.classList.remove('flex'); }
+                sekmeyiDegistir('settings');
+                return;
+            }
+
             const modal = document.getElementById('modal-settings-auth');
             const userInput = document.getElementById('settings-auth-username');
             const passInput = document.getElementById('settings-auth-password');
@@ -2427,6 +2539,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 const varsayilanAyarlar = {
                     sirketAdi: 'Hızlı Satış Programı', logoDataUrl: '', otomatikYazdir: false,
                     fisYazdirmaModu: 'toplu', tema: 'dark', satisYaziBoyutu: 14,
+                    garsonAktif: false,
                     fisAlanlari: { sirket:true, fisNo:true, tarih:true, urunler:true, araToplam:true, iskonto:true, toplam:true, odeme:true, tesekkur:true },
                     fisEkBilgiler: [],
                     ...mevcutFirebaseAyarlari
@@ -2668,13 +2781,18 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             sepetiGuncelle();
         }
 
-        window.addEventListener('online', () => {
-            if (sistemAyarlari.firebaseAktif) {
-                if (window.firebaseReady && window.database && typeof durumuKaydet === 'function') {
-                    try { durumuKaydet(); onayModaliniGoster('İnternet bağlantısı geldi', 'Yerel veriler Firebase yedeklemesine gönderiliyor.', null, true); } catch (e) { console.warn('Firebase eşitleme başlatılamadı', e); }
-                } else {
-                    onayModaliniGoster('İnternet bağlantısı geldi', 'Firebase bağlantısını yeniden başlatmak ve yedeklemeyi sürdürmek için sayfayı yenileyip tekrar giriş yapın.', null, true);
-                }
+        window.addEventListener('online', async () => {
+            if (!sistemAyarlari.firebaseAktif) return;
+            if (window.firebaseReady && window.database && typeof durumuKaydet === 'function') {
+                try {
+                    await firebaseVerileriniYukle({ preserveActivePeriod: true });
+                    if (!window.firebaseLastLoadOk) throw new Error('Bulut verileri doğrulanamadı; yerel kayıtlar buluta gönderilmedi.');
+                    firebaseCanliEsitlemeyiBaslat(true);
+                    durumuKaydet();
+                    onayModaliniGoster('İnternet bağlantısı geldi', 'Bulut verileri kontrol edildi; yerel değişiklikler güvenli eşitlemeye alındı.', null, true);
+                } catch (e) { console.warn('Firebase eşitleme başlatılamadı', e); onayModaliniGoster('Eşitleme beklemede', e.message || 'Firebase verileri okunamadı.', null, true); }
+            } else {
+                onayModaliniGoster('İnternet bağlantısı geldi', 'Firebase bağlantısını yeniden başlatmak ve yedeklemeyi sürdürmek için sayfayı yenileyip tekrar giriş yapın.', null, true);
             }
         });
         window.addEventListener('offline', () => {
@@ -2694,6 +2812,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             // Bu ayar Firebase'e de yazılmalı; kapatma durumunu son bir kez buluta gönderir.
             await sistemAyarlariKaydet(true);
             firebasePaneliniGosterGizle(aktif);
+            if (!aktif) firebaseCanliEsitlemeyiDurdur();
             if (aktif) {
                 firebaseKayitlariniCiz();
                 const cfg = sistemAyarlari.firebaseConfig;
@@ -2703,8 +2822,9 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                     if (baglandi) {
                         try {
                             await firebaseVerileriniYukle();
+                            if (!window.firebaseLastLoadOk) throw new Error('Bulut verileri okunamadı. Yerel kayıtların bulutun üzerine yazılmasını önlemek için eşitleme durduruldu.');
                             firebaseCanliEsitlemeyiBaslat(true);
-                            // Bulutta mevcut olmayan alanlar yerelde korunur; mevcut bulut alanları Firebase'den gelen değerle başlar.
+                            // Önce bulut okuması doğrulandı; artık eksik düğümlere yerel veriler güvenle eklenebilir.
                             durumuKaydet();
                         } catch (hata) {
                             console.error('Firebase öncelikli eşitleme başarısız:', hata);
@@ -2910,7 +3030,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 aktifKullaniciAdi = eslesenKullanici.name;
                 try { if (secilenDonem) donemVerisiniYukle(secilenDonem); }
                 catch (hata) { console.warn('Dönem verisi yüklenemedi; yerel verilerle devam ediliyor:', hata); }
-                try { await firebaseVerileriniYukle(); }
+                try { await firebaseVerileriniYukle({ preserveActivePeriod: true }); }
                 catch (hata) { console.warn('Bulut verileri yüklenemedi; yerel verilerle devam ediliyor:', hata); }
                 // Canlı dinleyiciler, girişte seçilen gerçek döneme yeniden bağlanmalıdır.
                 try { firebaseCanliEsitlemeyiBaslat(true); } catch (hata) { console.warn('Firebase canlı eşitleme başlatılamadı:', hata); }
@@ -3023,6 +3143,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 firmaAyarlariniUygula();
                 temaUygula();
                 mutfakArayuzunuUygula();
+                adisyonArayuzunuUygula();
                 garsonArayuzunuUygula();
                 if (secilenSekme === 'settings') {
                     const mutfak = document.getElementById('setting-kitchen-enabled'); if (mutfak) mutfak.checked = sistemAyarlari.mutfakAktif === true;
@@ -3128,9 +3249,10 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                         try {
                             // Ayar kaydında da önce buluttaki mevcut veri okunur; eski yerel kopya doğrudan buluta yazılmaz.
                             await firebaseVerileriniYukle();
+                            if (!window.firebaseLastLoadOk) throw new Error('Yeni Firebase projesinden veriler doğrulanamadı. Eski cihaz verileri yeni projeye otomatik aktarılmadı.');
                             firebaseCanliEsitlemeyiBaslat(true);
                             durumuKaydet();
-                            bulutMesaji = 'Firebase verileri önce yüklendi, ardından yerel kayıtlar güncellendi.';
+                            bulutMesaji = 'Firebase verileri önce okundu, ardından güvenli eşitleme başlatıldı.';
                         } catch (bulutHatasi) {
                             console.error('Firebase eşitlemesi başarısız:', bulutHatasi);
                             bulutMesaji = 'Ayarlar yerel olarak kaydedildi ancak Firebase eşitlemesi başarısız oldu. Bağlantı ve yazma izinlerini kontrol edin.';
@@ -3145,8 +3267,8 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 
         // Yerel durumun tüm ana bölümlerini, yalnızca Firebase şalteri açıkken buluta yazar.
         async function firebaseYerelVerileriniBulutaYaz() {
-            if (!(sistemAyarlari.firebaseAktif && window.firebaseReady && window.database && window.dbSet && window.dbRef)) {
-                throw new Error('Firebase bağlantısı hazır değil.');
+            if (firebaseWriteBlocked || !(sistemAyarlari.firebaseAktif && window.firebaseReady && window.database && window.dbSet && window.dbRef)) {
+                throw new Error('Firebase bağlantısı hazır değil veya önce bulut verilerinin güvenli biçimde okunması gerekiyor.');
             }
             const kok = kokDugumGetir();
             const db = window.database;
@@ -3155,12 +3277,12 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 window.dbSet(window.dbRef(db, `${kok}/ayarlar`), bulutAyarlariniHazirla()),
                 window.dbSet(window.dbRef(db, `${kok}/donemler`), donemler),
                 window.dbSet(window.dbRef(db, `${kok}/aktif_donem_id`), donemId),
-                window.dbSet(window.dbRef(db, `${kok}/${donemId}/urunler`), urunler),
-                window.dbSet(window.dbRef(db, `${kok}/${donemId}/kategoriler`), kategorilerListesi),
-                window.dbSet(window.dbRef(db, `${kok}/${donemId}/musteriler`), musteriler),
-                window.dbSet(window.dbRef(db, `${kok}/${donemId}/satis_gecmisi`), satisGecmisi),
-                window.dbSet(window.dbRef(db, `${kok}/${donemId}/kasa_hareketleri`), kasaHareketleri),
-                window.dbSet(window.dbRef(db, `${kok}/${donemId}/bekleyen_sepetler`), bekleyenSepetler),
+                firebaseDizisiniGuvenliKaydet(`${kok}/${donemId}/urunler`, urunler, 'Ürünler', 'urunler', 'urunler', 'pos_products_v4'),
+                firebaseDizisiniGuvenliKaydet(`${kok}/${donemId}/kategoriler`, kategorilerListesi, 'Kategoriler', 'kategoriler', 'kategorilerListesi', 'pos_categories_v4'),
+                firebaseDizisiniGuvenliKaydet(`${kok}/${donemId}/musteriler`, musteriler, 'Müşteriler', 'musteriler', 'musteriler', 'pos_customers_v4'),
+                firebaseDizisiniGuvenliKaydet(`${kok}/${donemId}/satis_gecmisi`, satisGecmisi, 'Satış geçmişi', 'satis_gecmisi', 'satisGecmisi', 'pos_sales_v4'),
+                firebaseDizisiniGuvenliKaydet(`${kok}/${donemId}/kasa_hareketleri`, kasaHareketleri, 'Kasa hareketleri', 'kasa_hareketleri', 'kasaHareketleri', 'pos_cash_movements_v4'),
+                firebaseDizisiniGuvenliKaydet(`${kok}/${donemId}/bekleyen_sepetler`, bekleyenSepetler, 'Bekleyen sepetler', 'bekleyen_sepetler', 'bekleyenSepetler', 'pos_suspended_carts_v4'),
                 window.dbSet(window.dbRef(db, `${kok}/sistem_kullanicilari`), sistemKullanicilari)
             ];
             await Promise.all(yazmalar);
@@ -3413,6 +3535,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         }
 
         const firebaseSyncBaseline = {};
+        let firebaseWriteBlocked = false;
 
         function firebaseDizileriBirlestir(bulutDizisi, yerelDizisi, yerelOncelikli = true) {
             const sonuc = [];
@@ -3428,18 +3551,54 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             return sonuc;
         }
 
+
+        // Son ortak kopyayı baz alarak yerel ve uzak değişiklikleri üç yönlü birleştir.
+        function firebaseDizileriniUcYonluBirlestir(baseline, yerel, bulut) {
+            const toMap = arr => new Map((Array.isArray(arr) ? arr : []).map(item => [firebaseKayitAnahtari(item), item]).filter(([key]) => key !== null));
+            const bMap = toMap(baseline), lMap = toMap(yerel), rMap = toMap(bulut);
+            const keys = new Set([...bMap.keys(), ...lMap.keys(), ...rMap.keys()]);
+            const sonuc = [];
+            const zaman = item => Math.max(0, ...['updatedAt','modifiedAt','updated_at','lastUpdated','timestamp'].map(k => Number(item?.[k]) || 0));
+            for (const key of keys) {
+                const bHas = bMap.has(key), lHas = lMap.has(key), rHas = rMap.has(key);
+                const b = bMap.get(key), l = lMap.get(key), r = rMap.get(key);
+                const lChanged = lHas !== bHas || (lHas && JSON.stringify(l) !== JSON.stringify(b));
+                const rChanged = rHas !== bHas || (rHas && JSON.stringify(r) !== JSON.stringify(b));
+                let chosen;
+                if (!lChanged && !rChanged) chosen = rHas ? r : (lHas ? l : undefined);
+                else if (lChanged && !rChanged) chosen = lHas ? l : undefined;
+                else if (!lChanged && rChanged) chosen = rHas ? r : undefined;
+                else if (lHas && rHas) chosen = JSON.stringify(l) === JSON.stringify(r) ? r : (zaman(r) > zaman(l) ? r : l);
+                if (chosen !== undefined) sonuc.push(chosen);
+            }
+            return sonuc;
+        }
+
         let firebaseLiveSyncStarted = false;
         let firebaseLiveSyncUnsubscribers = [];
         let firebaseLiveSyncKey = '';
+        function firebaseCanliEsitlemeyiDurdur() {
+            firebaseLiveSyncUnsubscribers.forEach(unsubscribe => { try { if (typeof unsubscribe === 'function') unsubscribe(); } catch (_) {} });
+            firebaseLiveSyncUnsubscribers = [];
+            firebaseLiveSyncStarted = false;
+            firebaseLiveSyncKey = '';
+            customerOrderListenerBound = false;
+        }
+
         function firebaseCanliEsitlemeyiBaslat(force = false) {
+            if (sistemAyarlari.firebaseAktif !== true) { firebaseCanliEsitlemeyiDurdur(); return; }
+            if (firebaseWriteBlocked || window.firebaseLastLoadOk !== true) { console.warn('Firebase canlı eşitlemesi, bulut okuması doğrulanana kadar bekletildi.'); return; }
             if (!(window.firebaseReady && window.database && window.dbOnValue && window.dbRef)) return;
             const root = kokDugumGetir();
             const period = String(aktifDonemId);
-            const syncKey = `${root}::${period}`;
+            const projectKey = String(sistemAyarlari.firebaseConfig?.databaseURL || sistemAyarlari.firebaseConfig?.projectId || '');
+            const syncKey = `${projectKey}::${root}::${period}`;
             if (!force && firebaseLiveSyncStarted && firebaseLiveSyncKey === syncKey) return;
             // Kullanıcı giriş yaptığında veya dönem/Firebase projesi değiştiğinde eski dinleyicileri kapat.
+            const scopeChanged = firebaseLiveSyncKey !== syncKey;
             firebaseLiveSyncUnsubscribers.forEach(unsubscribe => { try { if (typeof unsubscribe === 'function') unsubscribe(); } catch (_) {} });
             firebaseLiveSyncUnsubscribers = [];
+            if (scopeChanged) Object.keys(firebaseSyncBaseline).forEach(key => delete firebaseSyncBaseline[key]);
             firebaseLiveSyncStarted = true;
             firebaseLiveSyncKey = syncKey;
             firebaseLiveSyncUnsubscribers.push(window.dbOnValue(window.dbRef(window.database, `${root}/ayarlar`), snap => {
@@ -3467,18 +3626,20 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             ];
             arrayFields.forEach(([cloudKey, variable, localKey]) => {
                 firebaseLiveSyncUnsubscribers.push(window.dbOnValue(window.dbRef(window.database, `${root}/${period}/${cloudKey}`), snap => {
-                    // Boş/henüz oluşturulmamış bir bulut düğümü, cihazdaki veriyi silmemeli.
-                    if (!snap.exists() || !Array.isArray(snap.val())) return;
-                    const value = snap.val();
-                    if (variable === 'urunler') urunler = value;
-                    else if (variable === 'kategorilerListesi') kategorilerListesi = value;
-                    else if (variable === 'musteriler') musteriler = value;
-                    else if (variable === 'satisGecmisi') satisGecmisi = value;
-                    else if (variable === 'kasaHareketleri') kasaHareketleri = value;
-                    else if (variable === 'bekleyenSepetler') bekleyenSepetler = value;
-                    else if (variable === 'acikAdisyonlar') acikAdisyonlar = value;
-                    firebaseSyncBaseline[cloudKey] = JSON.parse(JSON.stringify(value));
-                    try { localStorage.setItem(localKey, JSON.stringify(value)); } catch (_) {}
+                    const raw = snap.exists() ? snap.val() : [];
+                    const bulutDizisi = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? Object.values(raw) : []);
+                    const yerelDizi = variable === 'urunler' ? urunler : variable === 'kategorilerListesi' ? kategorilerListesi : variable === 'musteriler' ? musteriler : variable === 'satisGecmisi' ? satisGecmisi : variable === 'kasaHareketleri' ? kasaHareketleri : variable === 'bekleyenSepetler' ? bekleyenSepetler : acikAdisyonlar;
+                    const baseline = Array.isArray(firebaseSyncBaseline[cloudKey]) ? firebaseSyncBaseline[cloudKey] : [];
+                    const merged = firebaseDizileriniUcYonluBirlestir(baseline, yerelDizi, bulutDizisi);
+                    if (variable === 'urunler') urunler = merged;
+                    else if (variable === 'kategorilerListesi') kategorilerListesi = merged;
+                    else if (variable === 'musteriler') musteriler = merged;
+                    else if (variable === 'satisGecmisi') satisGecmisi = merged;
+                    else if (variable === 'kasaHareketleri') kasaHareketleri = merged;
+                    else if (variable === 'bekleyenSepetler') bekleyenSepetler = merged;
+                    else if (variable === 'acikAdisyonlar') acikAdisyonlar = merged;
+                    firebaseSyncBaseline[cloudKey] = JSON.parse(JSON.stringify(bulutDizisi));
+                    try { localStorage.setItem(localKey, JSON.stringify(merged)); } catch (_) {}
                     try {
                         const periods = yerelKayitOku('pos_period_data_v1', {});
                         if (periods && aktifDonemId) {
@@ -3486,8 +3647,15 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                             localStorage.setItem('pos_period_data_v1', JSON.stringify(periods));
                         }
                     } catch (_) {}
+                    // Yerel tarafta bulutta olmayan bir değişiklik varsa, yalnızca bu alanı işlemli biçimde gönder.
+                    if (JSON.stringify(merged) !== JSON.stringify(bulutDizisi)) {
+                        const labels = { urunler:'Ürünler', kategoriler:'Kategoriler', musteriler:'Müşteriler', satis_gecmisi:'Satış geçmişi', kasa_hareketleri:'Kasa hareketleri', bekleyen_sepetler:'Bekleyen sepetler', acik_adisyonlar:'Açık adisyonlar' };
+                        firebaseDizisiniGuvenliKaydet(`${root}/${period}/${cloudKey}`, merged, labels[cloudKey] || cloudKey, cloudKey, variable, localKey);
+                    }
                     if (variable === 'urunler' || variable === 'kategorilerListesi') { kategoriListesiniGuncelle(); kategorileriOlustur(); urunleriGoster(); }
-                    if (variable === 'satisGecmisi' || variable === 'acikAdisyonlar') { adisyonlariGoster(); mutfakEkraniniGuncelle(); }
+                    if (variable === 'musteriler') { try { borclularTablosunuGuncelle(); } catch (_) {} }
+                    if (variable === 'satisGecmisi' || variable === 'acikAdisyonlar') { try { gecmisTablosunuGuncelle(); kasaEkraniniGuncelle(); adisyonlariGoster(); mutfakEkraniniGuncelle(); } catch (_) {} }
+                    if (variable === 'kasaHareketleri') { try { kasaEkraniniGuncelle(); } catch (_) {} }
                     if (variable === 'bekleyenSepetler') bekleyenSepetSayisiniGuncelle();
                 }, error => console.error(`${cloudKey} canlı eşitleme hatası:`, error)));
             });
@@ -3510,6 +3678,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         }
 
         function firebaseDizisiniGuvenliKaydet(yol, yerelDizi, etiket, alanAnahtari, degiskenAdi, yerelAnahtar) {
+            if (firebaseWriteBlocked) return Promise.resolve(false);
             if (!(window.dbTransaction && window.database && window.dbRef)) {
                 return window.dbSet(window.dbRef(window.database, yol), yerelDizi)
                     .catch(hata => console.error(`${etiket} Firebase’e kaydedilemedi:`, hata));
@@ -3571,7 +3740,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 }
             } catch (e) { console.warn('Dönem verisi kaydedilemedi', e); }
 
-            if (sistemAyarlari.firebaseAktif && window.firebaseReady && window.database) {
+            if (!firebaseWriteBlocked && sistemAyarlari.firebaseAktif && window.firebaseReady && window.database) {
                 const db = window.database;
                 window.dbSet(window.dbRef(db, `${kokDugumGetir()}/donemler`), donemler).catch(hata => console.error('Dönem listesi Firebase’e kaydedilemedi:', hata));
                 window.dbSet(window.dbRef(db, `${kokDugumGetir()}/aktif_donem_id`), aktifDonemId).catch(hata => console.error('Aktif dönem Firebase’e kaydedilemedi:', hata));
@@ -3592,31 +3761,158 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             sistemAyarlariKaydet(true);
             const nav = document.getElementById(ad === 'adisyon' ? 'tab-adisyon' : 'tab-customerorders');
             const panel = document.getElementById(ad === 'adisyon' ? 'section-adisyon' : 'section-customerorders');
-            if (nav) nav.classList.toggle('hidden', !aktif);
+            if (nav) nav.classList.toggle('hidden', !aktif || !kullaniciYetkisiVar(ad));
             if (!aktif && panel) { panel.classList.add('hidden'); panel.classList.remove('flex'); }
             if (!aktif && secilenSekme === ad) sekmeyiDegistir('sales');
-            mutfakArayuzunuUygula();
+            if (ad === 'adisyon') adisyonArayuzunuUygula();
         }
 
+        // Adisyon butonunun tek ve merkezi görünürlük kontrolü.
+        window.adisyonButonGorunurlugunuUygula = function(aktif) {
+            aktif = aktif === true;
+            const buton = document.getElementById('cart-adisyon-save-button');
+            if (document.body) document.body.setAttribute('data-adisyon-enabled', aktif ? 'true' : 'false');
+            if (!buton) return;
+            if (aktif) {
+                buton.hidden = false;
+                buton.classList.remove('hidden');
+                buton.removeAttribute('aria-hidden');
+                buton.style.removeProperty('display');
+                buton.style.setProperty('display', 'flex', 'important');
+                buton.style.setProperty('visibility', 'visible', 'important');
+                buton.style.setProperty('opacity', '1', 'important');
+                buton.style.setProperty('pointer-events', 'auto', 'important');
+            } else {
+                buton.hidden = true;
+                buton.classList.add('hidden');
+                buton.setAttribute('aria-hidden', 'true');
+                buton.style.setProperty('display', 'none', 'important');
+                buton.style.setProperty('visibility', 'hidden', 'important');
+                buton.style.setProperty('opacity', '0', 'important');
+                buton.style.setProperty('pointer-events', 'none', 'important');
+            }
+        };
+
+        window.adisyonSisteminiDegistir = function(aktif) {
+            aktif = Boolean(aktif);
+            if (!sistemAyarlari.ozellikler) sistemAyarlari.ozellikler = {};
+            sistemAyarlari.ozellikler.adisyon = aktif;
+
+            const ayarKutusu = document.getElementById('setting-adisyon-enabled');
+            if (ayarKutusu) ayarKutusu.checked = aktif;
+
+            // Önce arayüzü güncelle; kayıt/senkron hatası görünürlüğü engellemesin.
+            window.adisyonButonGorunurlugunuUygula(aktif);
+            sistemAyarlariKaydet(true);
+
+            // Ayar değiştiği anda satış ekranındaki butonu da doğrudan güncelle.
+            window.adisyonButonGorunurlugunuUygula(aktif);
+
+            const nav = document.getElementById('tab-adisyon');
+            const panel = document.getElementById('section-adisyon');
+            if (nav) nav.classList.toggle('hidden', !aktif || !kullaniciYetkisiVar('adisyon'));
+            if (panel) {
+                if (aktif) {
+                    // Önceki kapatmada bırakılmış inline display:none değerini temizle.
+                    panel.style.removeProperty('display');
+                    panel.classList.add('hidden');
+                    panel.classList.remove('flex');
+                } else {
+                    panel.classList.add('hidden');
+                    panel.classList.remove('flex');
+                    panel.style.setProperty('display', 'none', 'important');
+                }
+            }
+            if (!aktif && secilenSekme === 'adisyon') sekmeyiDegistir('sales');
+
+            window.adisyonArayuzunuUygula();
+        };
+
+        // Satış ekranındaki adisyon alanlarını doğrudan görünürlük stiliyle yönet.
+        // Böylece başka bir sınıf veya bileşen .hidden sınıfını değiştirse bile ayar uygulanır.
+        window.adisyonArayuzunuUygula = function() {
+            const aktif = sistemAyarlari.ozellikler?.adisyon === true;
+            const garsonAktif = sistemAyarlari.garsonAktif === true;
+
+            // Adisyon durumunu body üzerinde de tut; butonun görünürlüğü bu tek duruma bağlanır.
+            if (document.body) document.body.setAttribute('data-adisyon-enabled', aktif ? 'true' : 'false');
+            const adisyonButonu = document.getElementById('cart-adisyon-save-button');
+            if (adisyonButonu) {
+                adisyonButonu.hidden = !aktif;
+                adisyonButonu.classList.toggle('hidden', !aktif);
+                adisyonButonu.setAttribute('aria-hidden', aktif ? 'false' : 'true');
+                adisyonButonu.style.setProperty('display', aktif ? 'flex' : 'none', 'important');
+                adisyonButonu.style.setProperty('visibility', aktif ? 'visible' : 'hidden', 'important');
+                adisyonButonu.style.setProperty('opacity', aktif ? '1' : '0', 'important');
+            }
+
+            const gorunurlukUygula = (id, gorunur) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.classList.toggle('hidden', !gorunur);
+                if (gorunur) {
+                    // Açık durumda gizli sınıfı ve eski inline display:none!important
+                    // tamamen kaldırılır; Adisyon düğmesi özellikle flex olarak gösterilir.
+                    el.classList.remove('hidden');
+                    el.style.setProperty('display', id === 'cart-adisyon-save-button' ? 'flex' : 'block', 'important');
+                    el.removeAttribute('aria-hidden');
+                } else {
+                    el.classList.add('hidden');
+                    el.style.setProperty('display', 'none', 'important');
+                    el.setAttribute('aria-hidden', 'true');
+                }
+            };
+
+            // Bu kapsayıcı; masa/paket, masa numarası, garson ve sipariş notunu birlikte içerir.
+            gorunurlukUygula('cart-kitchen-note-panel', aktif);
+            // Adisyon kaydetme düğmesi toplam/ödeme panelinin içinde ayrı durur.
+            gorunurlukUygula('cart-adisyon-save-button', aktif);
+            window.adisyonButonGorunurlugunuUygula(aktif);
+
+            // İç alanları da ayrıca yönet; farklı ekran düzenlerinde kapsayıcıdan bağımsız kalmasın.
+            gorunurlukUygula('cart-waiter-fields', aktif);
+            gorunurlukUygula('cart-order-type-field', aktif);
+            gorunurlukUygula('cart-order-type-label', aktif);
+            gorunurlukUygula('cart-order-type', aktif);
+            gorunurlukUygula('cart-table-number', aktif);
+            gorunurlukUygula('cart-kitchen-note-fields', aktif);
+            gorunurlukUygula('cart-kitchen-note', aktif);
+            gorunurlukUygula('cart-waiter-field-wrapper', aktif && garsonAktif);
+            // Garson panelinin sekmesi ayrı Garson ayarı ve kullanıcı izniyle yönetilir; Adisyon açık olmasa da rapor erişilebilir.
+
+            if (!garsonAktif && document.getElementById('section-waiter')) {
+                const section = document.getElementById('section-waiter');
+                section.classList.add('hidden');
+                section.classList.remove('flex');
+                section.style.setProperty('display', 'none', 'important');
+            }
+            if (!garsonAktif && secilenSekme === 'waiter') sekmeyiDegistir('sales');
+        };
+
         function mutfakSisteminiDegistir(aktif) {
+            const oncekiDurum = sistemAyarlari.mutfakAktif === true;
             sistemAyarlari.mutfakAktif = Boolean(aktif);
+            // Açık olan siparişlerin mutfak uygunluğu, ayar kapatılmadan önceki haliyle korunur.
+            // Kapatma sırasında mevcut eski kayıtlara true işareti vermek, yeni kapalı dönem
+            // satışlarıyla geçmişte mutfağa gönderilmiş siparişleri birbirinden ayırır.
+            if (oncekiDurum && !sistemAyarlari.mutfakAktif) {
+                (Array.isArray(satisGecmisi) ? satisGecmisi : []).forEach(s => {
+                    if (s && typeof s.kitchenEnabledAtCreation !== 'boolean') s.kitchenEnabledAtCreation = true;
+                });
+                (Array.isArray(acikAdisyonlar) ? acikAdisyonlar : []).forEach(a => {
+                    if (a && typeof a.kitchenEnabledAtCreation !== 'boolean') a.kitchenEnabledAtCreation = true;
+                });
+                durumuKaydet();
+            }
             sistemAyarlariKaydet(true);
             mutfakArayuzunuUygula();
             if (!sistemAyarlari.mutfakAktif && document.getElementById('section-kitchen') && !document.getElementById('section-kitchen').classList.contains('hidden')) sekmeyiDegistir('sales');
             // Ayar değişikliği sessizce kaydedilir; tekrar eden bildirim gösterilmez.
         }
         function mutfakArayuzunuUygula() {
-            const aktif = sistemAyarlari.mutfakAktif === true;
-            const tab = document.getElementById('tab-kitchen'); if (tab) tab.classList.toggle('hidden', !aktif || !kullaniciYetkisiVar('kitchen'));
-            const orderPanel = document.getElementById('cart-kitchen-note-panel'); if (orderPanel) orderPanel.classList.toggle('hidden', !aktif);
-            const orderField = document.getElementById('cart-order-type-field'); if (orderField) orderField.classList.toggle('hidden', !aktif);
-            const categoryLabel = document.getElementById('cart-order-type-label'); if (categoryLabel) categoryLabel.classList.toggle('hidden', !aktif);
-            const orderType = document.getElementById('cart-order-type'); if (orderType) orderType.classList.toggle('hidden', !aktif);
-            const noteFields = document.getElementById('cart-kitchen-note-fields'); if (noteFields) noteFields.classList.toggle('hidden', !aktif);
-            const adisyonSave = document.getElementById('cart-adisyon-save-button'); if (adisyonSave) adisyonSave.classList.toggle('hidden', !aktif);
-            const waiterField = document.getElementById('cart-waiter-field-wrapper'); if (waiterField) waiterField.classList.toggle('hidden', !aktif || sistemAyarlari.garsonAktif === false);
-            const waiterTab = document.getElementById('tab-waiter'); if (waiterTab) waiterTab.classList.toggle('hidden', !aktif || sistemAyarlari.garsonAktif === false);
-            const waiterSection = document.getElementById('section-waiter'); if (!aktif && waiterSection) { waiterSection.classList.add('hidden'); waiterSection.classList.remove('flex'); }
+            const mutfakAktif = sistemAyarlari.mutfakAktif === true;
+            // Mutfak sekmesi ve sipariş kuyruğu yalnızca Mutfak ayarına bağlıdır.
+            const tab = document.getElementById('tab-kitchen'); if (tab) tab.classList.toggle('hidden', !mutfakAktif || !kullaniciYetkisiVar('kitchen'));
             ['adisyon','customerorders'].forEach(name => {
                 const enabled = sistemAyarlari.ozellikler?.[name] === true;
                 const nav = document.getElementById(name === 'adisyon' ? 'tab-adisyon' : 'tab-customerorders');
@@ -3625,21 +3921,37 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 if (!enabled && panel) { panel.classList.add('hidden'); panel.classList.remove('flex'); }
             });
             const section = document.getElementById('section-kitchen');
-            if (!aktif && section) { section.classList.add('hidden'); section.classList.remove('flex'); }
-            if (!aktif && ['kitchen','waiter'].includes(secilenSekme)) sekmeyiDegistir('sales');
+            if (!mutfakAktif && section) { section.classList.add('hidden'); section.classList.remove('flex'); }
+            if (!mutfakAktif && secilenSekme === 'kitchen') sekmeyiDegistir('sales');
         }
 
         function garsonSisteminiDegistir(aktif) {
-            sistemAyarlari.garsonAktif = Boolean(aktif); sistemAyarlariKaydet(); garsonArayuzunuUygula();
-            if (!aktif && document.getElementById('section-waiter') && !document.getElementById('section-waiter').classList.contains('hidden')) sekmeyiDegistir('sales');
-            onayModaliniGoster('Garson Sistemi', aktif ? 'Garson sistemi açıldı.' : 'Garson sistemi kapatıldı.', null, true);
+            // Garson ayarı sessizce kaydedilir; açma/kapatma bildirimi gösterilmez.
+            sistemAyarlari.garsonAktif = Boolean(aktif);
+            sistemAyarlariKaydet();
+            garsonArayuzunuUygula();
+            if (!aktif && document.getElementById('section-waiter') && !document.getElementById('section-waiter').classList.contains('hidden')) {
+                sekmeyiDegistir('sales');
+            }
         }
         function garsonArayuzunuUygula() {
-            const aktif = sistemAyarlari.garsonAktif !== false;
-            const kitchenEnabled = sistemAyarlari.mutfakAktif === true;
-            const waiterField = document.getElementById('cart-waiter-field-wrapper'); if (waiterField) waiterField.classList.toggle('hidden', !aktif || !kitchenEnabled);
-            const tab = document.getElementById('tab-waiter'); if (tab) tab.classList.toggle('hidden', !aktif || !kitchenEnabled);
-            const section = document.getElementById('section-waiter'); if ((!aktif || !kitchenEnabled) && section) { section.classList.add('hidden'); section.classList.remove('flex'); }
+            const aktif = sistemAyarlari.garsonAktif === true;
+            const adisyonAktif = sistemAyarlari.ozellikler?.adisyon === true;
+            const waiterField = document.getElementById('cart-waiter-field-wrapper');
+            if (waiterField) waiterField.classList.toggle('hidden', !aktif || !adisyonAktif);
+            const tab = document.getElementById('tab-waiter');
+            const tabGorunur = aktif === true && kullaniciYetkisiVar('waiter');
+            if (tab) {
+                tab.classList.toggle('hidden', !tabGorunur);
+                if (tabGorunur) tab.style.removeProperty('display');
+                else tab.style.setProperty('display', 'none', 'important');
+            }
+            const section = document.getElementById('section-waiter');
+            if (section) {
+                if (!aktif) { section.classList.add('hidden'); section.classList.remove('flex'); section.style.setProperty('display', 'none', 'important'); }
+                else section.style.removeProperty('display');
+            }
+            if (!aktif && secilenSekme === 'waiter') sekmeyiDegistir('sales');
         }
         function garsonSecenekleriniGuncelle() {
             const select = document.getElementById('cart-waiter'); if (!select) return;
@@ -3662,7 +3974,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             const today = new Date().toLocaleDateString('tr-TR'); const todayList = list.filter(s => String(s.date||'').startsWith(today));
             const money = n => '₺' + (Number(n)||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});
             const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=String(v);};
-            set('waiter-count-today',todayList.length); set('waiter-count-tables',list.filter(s=>String(s.masa||'').trim()).length); set('waiter-total',money(list.reduce((sum,s)=>sum+(Number(s.total)||0),0)));
+            const totalAmount=list.reduce((sum,s)=>sum+(Number(s.total)||0),0); set('waiter-count-total',list.length); set('waiter-count-today',todayList.length); set('waiter-count-tables',list.filter(s=>String(s.masa||'').trim()).length); set('waiter-total',money(totalAmount)); set('waiter-average',money(list.length?totalAmount/list.length:0));
             if (!list.length) { host.innerHTML='<div class="theme-card rounded-lg border border-slate-700 p-8 text-center text-slate-400 md:col-span-2 xl:col-span-3">Henüz sipariş kaydı yok.</div>'; return; }
             host.innerHTML=list.slice().reverse().map(s=>`<article class="theme-card rounded-xl border border-slate-700 p-4 shadow-lg"><div class="flex justify-between gap-2"><div><div class="text-xs text-slate-400">${htmlGuvenli(s.date||'')}</div><h3 class="text-lg font-black mt-1">${htmlGuvenli(s.masa||'Paket / Masa belirtilmedi')}</h3><p class="text-xs text-cyan-300 mt-1"><i class="fa-solid fa-user-tie mr-1"></i>${htmlGuvenli(s.garson||s.kasiyer||'Garson belirtilmedi')}</p></div><strong class="text-emerald-400">${money(s.total)}</strong></div><ul class="mt-3 text-sm">${(s.items||[]).map(i=>`<li class="flex justify-between gap-2 py-1 border-b border-slate-700/50"><span>${htmlGuvenli(i.product?.name||i.name||'Ürün')}</span><b>×${Number(i.qty||1)}</b></li>`).join('')}</ul><div class="text-[10px] text-slate-500 mt-3">Sipariş #${htmlGuvenli(s.id)} · ${htmlGuvenli(s.type||'')}</div></article>`).join('');
         }
@@ -3726,6 +4038,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             if (settingsBtn) settingsBtn.classList.remove('hidden');
             kullaniciArayuzIzinleriniUygula();
             mutfakArayuzunuUygula();
+            adisyonArayuzunuUygula();
             garsonArayuzunuUygula();
         }
         let customerOrderRecords = yerelKayitOku('pos_customer_orders_cache_v1', []);
@@ -3777,6 +4090,10 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         async function musteriQrLinkiniKopyala(linkValue){const value=linkValue||'';if(!value)return;try{await navigator.clipboard.writeText(value);islemBildirimiGoster('Müşteri bağlantısı kopyalandı.');}catch(_){const f=document.createElement('textarea');f.value=value;f.style.position='fixed';f.style.opacity='0';document.body.appendChild(f);f.select();document.execCommand('copy');f.remove();islemBildirimiGoster('Bağlantı kopyalandı.');}}
 
         function sekmeyiDegistir(secilenSekme) {
+            if (secilenSekme === 'waiter' && sistemAyarlari.garsonAktif !== true) {
+                garsonArayuzunuUygula();
+                return;
+            }
             if (secilenSekme === 'adisyon' && sistemAyarlari.ozellikler?.adisyon !== true) return;
             if (secilenSekme === 'customerorders' && sistemAyarlari.ozellikler?.customerorders !== true) return;
             if (secilenSekme !== 'settings') yoneticiAyarYetkisi = false;
@@ -3785,11 +4102,12 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 onayModaliniGoster('Erişim Kısıtlı', 'Bu bölüme erişim yetkiniz yok. Yönetici Ayarlar bölümünden izin verebilir.', null, true);
                 return;
             }
-            ['sales', 'kitchen', 'adisyon', 'customerorders', 'products', 'cash', 'history', 'reports', 'debtors', 'settings'].forEach(t => {
+            ['sales', 'kitchen', 'waiter', 'adisyon', 'customerorders', 'products', 'cash', 'history', 'reports', 'debtors', 'settings'].forEach(t => {
                 const sec = document.getElementById(`section-${t}`);
                 const btn = document.getElementById(`tab-${t}`);
                 if (!sec || !btn) return;
                 if (t === secilenSekme) {
+                    sec.style.removeProperty('display');
                     sec.classList.remove('hidden'); sec.classList.add('flex');
                     // Sınıf adını baştan atama: gizli/kapalı modül sekmelerinin hidden sınıfı korunmalı.
                     btn.classList.remove('text-slate-400', 'hover:text-emerald-500');
@@ -3802,14 +4120,15 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             });
             if (secilenSekme === 'products') urunYonetimTablosunuGuncelle();
             if (secilenSekme === 'kitchen') mutfakEkraniniGuncelle();
+            if (secilenSekme === 'waiter') garsonEkraniniGuncelle();
             if (secilenSekme === 'cash') { kasaAltBolumunuDegistir(aktifKasaAltBolumu); kasaEkraniniGuncelle(); }
             if (secilenSekme === 'debtors') borclularTablosunuGuncelle();
             if (secilenSekme === 'history') gecmisTablosunuGuncelle();
             if (secilenSekme === 'reports') raporuGuncelle();
             if (secilenSekme === 'adisyon') adisyonlariGoster();
             if (secilenSekme === 'customerorders') { musteriSiparisleriniDinle(); musteriSiparisleriniGoster(); }
-            if (secilenSekme === 'settings') { sistemKullanicilariTablosunuGuncelle(); musteriQrGarsonSecenekleriniGuncelle(); musteriQrListesiniGoster(); musteriQrTurunuAyarla(); firmaAyarlariniUygula(); donemSecenekleriniGuncelle(); const k=document.getElementById('setting-kitchen-enabled'); if(k) k.checked=sistemAyarlari.mutfakAktif === true; const a=document.getElementById('setting-adisyon-enabled'); if(a) a.checked=sistemAyarlari.ozellikler?.adisyon === true; const co=document.getElementById('setting-customerorders-enabled'); if(co) co.checked=sistemAyarlari.ozellikler?.customerorders === true; }
-            if (secilenSekme === 'sales') { garsonSecenekleriniGuncelle(); garsonArayuzunuUygula(); kategorileriOlustur(); urunleriGoster(); satisYaziBoyutunuUygula(sistemAyarlari.satisYaziBoyutu || 14); setTimeout(() => { const barcodeInput = document.getElementById('barcode-search'); if (barcodeInput) barcodeInput.focus(); }, 100); }
+            if (secilenSekme === 'settings') { sistemKullanicilariTablosunuGuncelle(); musteriQrGarsonSecenekleriniGuncelle(); musteriQrListesiniGoster(); musteriQrTurunuAyarla(); firmaAyarlariniUygula(); donemSecenekleriniGuncelle(); const k=document.getElementById('setting-kitchen-enabled'); if(k) k.checked=sistemAyarlari.mutfakAktif === true; const a=document.getElementById('setting-adisyon-enabled'); if(a) a.checked=sistemAyarlari.ozellikler?.adisyon === true; const w=document.getElementById('setting-waiter-enabled'); if(w) w.checked=sistemAyarlari.garsonAktif === true; const co=document.getElementById('setting-customerorders-enabled'); if(co) co.checked=sistemAyarlari.ozellikler?.customerorders === true; }
+            if (secilenSekme === 'sales') { adisyonArayuzunuUygula(); garsonSecenekleriniGuncelle(); garsonArayuzunuUygula(); kategorileriOlustur(); urunleriGoster(); satisYaziBoyutunuUygula(sistemAyarlari.satisYaziBoyutu || 14); setTimeout(() => { const barcodeInput = document.getElementById('barcode-search'); if (barcodeInput) barcodeInput.focus(); }, 100); }
         }
 
         // Mutfak modülü: sipariş durumu satış kaydıyla birlikte yerel/Firebase kaydına yazılır.
@@ -3848,9 +4167,9 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         }
         function mutfakEkraniniGuncelle() {
             if (sistemAyarlari.mutfakAktif === false) return;
-            const salesOrders = (Array.isArray(satisGecmisi) ? satisGecmisi : []).filter(s => Array.isArray(s.items) && s.items.length);
+            const salesOrders = (Array.isArray(satisGecmisi) ? satisGecmisi : []).filter(s => s && s.kitchenEnabledAtCreation !== false && Array.isArray(s.items) && s.items.length);
             // Açık adisyonlar da mutfakta sipariş olarak görünür; AD- kimliğiyle gerçek satış kayıtlarından ayrılır.
-            const adisyonOrders = (Array.isArray(acikAdisyonlar) ? acikAdisyonlar : []).filter(a => a && a.status !== 'closed' && Array.isArray(a.items) && a.items.length).map(a => ({
+            const adisyonOrders = (Array.isArray(acikAdisyonlar) ? acikAdisyonlar : []).filter(a => a && a.kitchenEnabledAtCreation !== false && a.status !== 'closed' && Array.isArray(a.items) && a.items.length).map(a => ({
                 id: 'AD-' + a.id, adisyonId: a.id, isAdisyonOrder: true, date: a.updatedLabel || a.createdLabel || '',
                 masa: a.masa || '', garson: a.garson || '', items: a.items, kitchenNote: a.note || '',
                 kitchenStatus: a.kitchenStatus || 'new', kitchenCreatedAt: a.kitchenCreatedAt || a.updatedAt || a.createdAt || 0,
@@ -3935,7 +4254,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 </body></html>`); w.document.close();
         }
         function mutfakTekFisYazdir(id) { const key=String(id); let s=(satisGecmisi||[]).find(x=>String(x.id)===key); if(!s && key.startsWith('AD-')) { const a=(acikAdisyonlar||[]).find(x=>String(x.id)===key.slice(3)); if(a) s={id:'AD-'+a.id,date:a.updatedLabel||a.createdLabel||'',masa:a.masa,garson:a.garson,items:a.items,kitchenNote:a.note,kitchenStatus:a.kitchenStatus||'new'}; } if(s) mutfakYazdir([s]); }
-        function mutfakBekleyenleriYazdir() { const sales=(satisGecmisi||[]).filter(s=>s.kitchenStatus!=='completed'); const ads=(acikAdisyonlar||[]).filter(a=>a&&a.status!=='closed'&&a.items?.length&&(a.kitchenStatus||'new')!=='completed').map(a=>({id:'AD-'+a.id,date:a.updatedLabel||a.createdLabel||'',masa:a.masa,garson:a.garson,items:a.items,kitchenNote:a.note,kitchenStatus:a.kitchenStatus||'new'})); mutfakYazdir(sales.concat(ads)); }
+        function mutfakBekleyenleriYazdir() { const sales=(satisGecmisi||[]).filter(s=>s&&s.kitchenEnabledAtCreation!==false&&s.kitchenStatus!=='completed'); const ads=(acikAdisyonlar||[]).filter(a=>a&&a.kitchenEnabledAtCreation!==false&&a.status!=='closed'&&a.items?.length&&(a.kitchenStatus||'new')!=='completed').map(a=>({id:'AD-'+a.id,date:a.updatedLabel||a.createdLabel||'',masa:a.masa,garson:a.garson,items:a.items,kitchenNote:a.note,kitchenStatus:a.kitchenStatus||'new'})); mutfakYazdir(sales.concat(ads)); }
         function siparisMasaEtiketiOku() {
             const input = document.getElementById('cart-table-number');
             const type = document.getElementById('cart-order-type')?.value || 'Masa';
@@ -4030,7 +4349,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         let mutfakOtomatikYazdirKuyrugu = [];
         let mutfakOtomatikYazdiriyor = false;
         function mutfakOtomatikFisYazdir(siparis){mutfakOtomatikYazdirKuyrugu.push(siparis);if(mutfakOtomatikYazdiriyor)return;const yazdirSonraki=()=>{if(!mutfakOtomatikYazdirKuyrugu.length){mutfakOtomatikYazdiriyor=false;return;}mutfakOtomatikYazdiriyor=true;const current=mutfakOtomatikYazdirKuyrugu.shift();const frame=document.createElement('iframe');frame.title='Mutfak fişi yazdırma';frame.style.cssText='position:fixed;left:-10000px;top:0;width:350px;height:700px;border:0;pointer-events:none';let finished=false;const finish=()=>{if(finished)return;finished=true;frame.remove();mutfakOtomatikYazdiriyor=false;setTimeout(yazdirSonraki,250);};frame.onload=()=>{try{frame.contentWindow.addEventListener('afterprint',finish,{once:true});setTimeout(()=>{try{frame.contentWindow.focus();frame.contentWindow.print();}catch(e){console.warn('Otomatik mutfak yazdırma başlatılamadı.',e);finish();}},180);}catch(e){finish();}};frame.srcdoc=`<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Mutfak Fişi</title><style>body{margin:0;background:#fff}@media print{body{margin:0}}</style></head><body>${mutfakFisHTML(current)}</body></html>`;document.body.appendChild(frame);setTimeout(finish,60000);};yazdirSonraki();}
-        function mutfakYeniSiparisleriOku(){const sales=(satisGecmisi||[]).filter(s=>Array.isArray(s.items)&&s.items.length);const ads=(acikAdisyonlar||[]).filter(a=>a&&a.status!=='closed'&&a.items?.length).map(a=>({id:'AD-'+a.id,date:a.updatedLabel||a.createdLabel||'',masa:a.masa,garson:a.garson,items:a.items,kitchenNote:a.note||'',kitchenStatus:a.kitchenStatus||'new',kitchenCreatedAt:a.kitchenCreatedAt||a.createdAt||0}));const qr=(customerOrderRecords||[]).filter(o=>o&&!['served','cancelled'].includes(o.status)&&Array.isArray(o.items)&&o.items.length).map(o=>({id:String(o.id),date:new Date(o.createdAt||Date.now()).toLocaleString('tr-TR'),masa:o.orderType==='paket'?'Paket Servis':'Masa '+String(o.table||''),garson:o.assignedWaiter||'',items:o.items,kitchenNote:o.note||'',kitchenStatus:({accepted:'new',preparing:'preparing',ready:'ready'})[o.status]||'new',kitchenCreatedAt:o.createdAt||0,customerName:'QR müşteri siparişi'}));return sales.concat(ads,qr);}
+        function mutfakYeniSiparisleriOku(){const sales=(satisGecmisi||[]).filter(s=>s&&s.kitchenEnabledAtCreation!==false&&Array.isArray(s.items)&&s.items.length);const ads=(acikAdisyonlar||[]).filter(a=>a&&a.kitchenEnabledAtCreation!==false&&a.status!=='closed'&&a.items?.length).map(a=>({id:'AD-'+a.id,date:a.updatedLabel||a.createdLabel||'',masa:a.masa,garson:a.garson,items:a.items,kitchenNote:a.note||'',kitchenStatus:a.kitchenStatus||'new',kitchenCreatedAt:a.kitchenCreatedAt||a.createdAt||0}));const qr=(customerOrderRecords||[]).filter(o=>o&&!['served','cancelled'].includes(o.status)&&Array.isArray(o.items)&&o.items.length).map(o=>({id:String(o.id),date:new Date(o.createdAt||Date.now()).toLocaleString('tr-TR'),masa:o.orderType==='paket'?'Paket Servis':'Masa '+String(o.table||''),garson:o.assignedWaiter||'',items:o.items,kitchenNote:o.note||'',kitchenStatus:({accepted:'new',preparing:'preparing',ready:'ready'})[o.status]||'new',kitchenCreatedAt:o.createdAt||0,customerName:'QR müşteri siparişi'}));return sales.concat(ads,qr);}
         function mutfakYeniSiparisKontrol() {
             if (sistemAyarlari.mutfakAktif === false) return;
             const orders=mutfakYeniSiparisleriOku();
@@ -4525,7 +4844,10 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             ad.masa = masa; ad.garson = String(aktifKullaniciAdi || '').trim();
             ad.note = (document.getElementById('cart-kitchen-note')?.value || '').trim();
             ad.items = JSON.parse(JSON.stringify(sepet)); ad.discount = discount; ad.updatedAt = now; ad.updatedLabel = new Date(now).toLocaleString('tr-TR'); ad.kasiyer = aktifKullaniciAdi || '';
-            ad.kitchenStatus = 'new'; ad.kitchenCreatedAt = now; ad.kitchenNote = ad.note; ad.date = ad.updatedLabel; ad.orderType = document.getElementById('cart-order-type')?.value || 'Masa';
+            ad.kitchenEnabledAtCreation = old ? old.kitchenEnabledAtCreation !== false : sistemAyarlari.mutfakAktif === true;
+            if (ad.kitchenEnabledAtCreation) { ad.kitchenStatus = ad.kitchenStatus || 'new'; ad.kitchenCreatedAt = ad.kitchenCreatedAt || now; ad.kitchenNote = ad.note; }
+            else { delete ad.kitchenStatus; delete ad.kitchenCreatedAt; delete ad.kitchenNote; }
+            ad.date = ad.updatedLabel; ad.orderType = document.getElementById('cart-order-type')?.value || 'Masa';
             if (!old) acikAdisyonlar.unshift(ad);
             aktifAdisyonId = ad.id;
             durumuKaydet(); adisyonlariGoster(); mutfakEkraniniGuncelle();
@@ -4734,8 +5056,9 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 kitchenNote: (document.getElementById('cart-kitchen-note')?.value || '').trim(),
                 masa: siparisMasaEtiketiOku(),
                 garson: String(aktifKullaniciAdi || '').trim(),
-                kitchenStatus: 'new',
-                kitchenCreatedAt: Date.now(),
+                kitchenEnabledAtCreation: aktifAdisyonId ? ((acikAdisyonlar.find(a => String(a.id) === String(aktifAdisyonId))?.kitchenEnabledAtCreation) !== false) : (sistemAyarlari.mutfakAktif === true),
+                kitchenStatus: (aktifAdisyonId ? ((acikAdisyonlar.find(a => String(a.id) === String(aktifAdisyonId))?.kitchenEnabledAtCreation) !== false) : (sistemAyarlari.mutfakAktif === true)) ? 'new' : undefined,
+                kitchenCreatedAt: (aktifAdisyonId ? ((acikAdisyonlar.find(a => String(a.id) === String(aktifAdisyonId))?.kitchenEnabledAtCreation) !== false) : (sistemAyarlari.mutfakAktif === true)) ? Date.now() : undefined,
                 subtotal: subtotal,
                 discount: discount,
                 total: total,
@@ -5643,24 +5966,27 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                     document.getElementById('sysuser-name').value = u.name;
                     document.getElementById('sysuser-pass').value = u.pass;
                     document.getElementById('sysuser-role').value = u.role || 'Kasiyer';
-                    document.getElementById('modal-sysuser-title').innerText = 'Sistem Kullanıcısını Düzenle';
+                    document.getElementById('modal-sysuser-title').innerText = sistemKullaniciAnaAdminMi(u)
+                        ? 'Ana Admin Hesabını Düzenle (Rol ve Yetkiler Sabit)'
+                        : 'Sistem Kullanıcısını Düzenle';
                 }
             }
-            const temelIzinler = ['sales','products','cash','history','reports','debtors'];
-            const izinler = seciliKullanici && Array.isArray(seciliKullanici.permissions) ? [...seciliKullanici.permissions] : [...temelIzinler, ...ayrintiliIzinAnahtarlari];
-            if (seciliKullanici && !izinler.includes('sales_payment_permissions_configured') && izinler.includes('sales')) {
-                if (!izinler.includes('sales_cash')) izinler.push('sales_cash');
-                if (!izinler.includes('sales_credit_card')) izinler.push('sales_credit_card');
-            }
-            const ayrintiliVar = izinler.some(p => ayrintiliIzinAnahtarlari.includes(p));
-            const granularBolum = {
-                sales_product_order: 'sales', sales_debt: 'sales', sales_card: 'sales', sales_cash: 'sales', sales_credit_card: 'sales',
-                product_add: 'products', product_edit: 'products', product_delete: 'products', stock_add: 'products',
-                sales_cancel: 'history', debt_customer_add: 'debtors', debt_customer_edit: 'debtors',
-                debt_customer_delete: 'debtors', debt_collect: 'debtors', debt_history_delete: 'debtors'
-            };
+            // Rol yetkileri ekranı her açıldığında tüm izinler seçili başlar.
+            // Kullanıcı isterse kaydetmeden önce tek tek izinleri kaldırabilir.
             document.querySelectorAll('.sysuser-permission').forEach(ch => {
-                ch.checked = izinler.includes(ch.value) || (!ayrintiliVar && ayrintiliIzinAnahtarlari.includes(ch.value) && izinler.includes(granularBolum[ch.value]));
+                ch.checked = true;
+            });
+            // Ana Admin'in rolü ve yetkileri değiştirilemez; yalnızca hesap bilgileri düzenlenebilir.
+            const anaAdminDuzenleniyor = !!(seciliKullanici && sistemKullaniciAnaAdminMi(seciliKullanici));
+            const rolSecimi = document.getElementById('sysuser-role');
+            if (rolSecimi) {
+                rolSecimi.disabled = anaAdminDuzenleniyor;
+                rolSecimi.title = anaAdminDuzenleniyor ? 'Ana Admin rolü değiştirilemez.' : '';
+            }
+            document.querySelectorAll('.sysuser-permission').forEach(ch => {
+                ch.disabled = anaAdminDuzenleniyor;
+                if (anaAdminDuzenleniyor) ch.title = 'Ana Admin yetkileri değiştirilemez.';
+                else ch.removeAttribute('title');
             });
             const modal = document.getElementById('modal-system-user');
             modal.classList.remove('hidden');
@@ -5672,8 +5998,17 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             const id = document.getElementById('sysuser-id').value;
             const name = document.getElementById('sysuser-name').value.trim();
             const pass = document.getElementById('sysuser-pass').value.trim();
-            const role = document.getElementById('sysuser-role').value;
-            const permissions = [...Array.from(document.querySelectorAll('.sysuser-permission:checked')).map(ch => ch.value), 'sales_payment_permissions_configured'];
+            let role = document.getElementById('sysuser-role').value;
+            let permissions = [...Array.from(document.querySelectorAll('.sysuser-permission:checked')).map(ch => ch.value), 'sales_payment_permissions_configured'];
+            // Form/DOM üzerinden değiştirme denense bile Ana Admin'in rol ve yetkilerini koru.
+            const mevcutKullanici = id ? sistemKullanicilari.find(u => String(u.id) === String(id)) : null;
+            const anaAdminDuzenleniyor = !!(mevcutKullanici && sistemKullaniciAnaAdminMi(mevcutKullanici));
+            if (anaAdminDuzenleniyor) {
+                role = mevcutKullanici.role || 'Yönetici';
+                permissions = Array.isArray(mevcutKullanici.permissions)
+                    ? [...mevcutKullanici.permissions]
+                    : [...ayrintiliIzinAnahtarlari, 'sales_payment_permissions_configured'];
+            }
 
             onayModaliniGoster(
                 id ? 'Kullanıcıyı Güncelle' : 'Yeni Kullanıcı Ekle',
@@ -5698,13 +6033,33 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             );
         }
 
+        function sistemKullaniciYoneticiMi(user) {
+            const rol = String(user?.role || '').trim().toLocaleLowerCase('tr-TR');
+            return rol === 'yönetici' || rol === 'yonetici' || rol === 'admin' ||
+                rol.includes('yönetici') || rol.includes('yonetici');
+        }
+
+        // Yalnızca sistemin kurucu Admin hesabı korunur. Sonradan eklenen
+        // Yönetici hesapları, rolü Yönetici olsa da silinebilir.
+        function sistemKullaniciAnaAdminMi(user) {
+            const ad = String(user?.name || '').trim().toLocaleLowerCase('tr-TR');
+            return String(user?.id || '') === 'u1' || ad === 'admin';
+        }
+
         function sistemKullaniciSil(id) {
+            const u = sistemKullanicilari.find(user => String(user.id) === String(id));
+            if (!u) return;
+
+            // Sadece kurucu Admin hesabının silinmesine izin verilmez.
+            if (sistemKullaniciAnaAdminMi(u)) {
+                onayModaliniGoster('İşlem engellendi', 'Ana Admin hesabı silinemez. Sonradan eklenen yönetici hesaplarını silebilirsiniz.', null, true);
+                return;
+            }
+
             if (sistemKullanicilari.length <= 1) {
                 onayModaliniGoster('Uyarı', 'Sistemde en az bir kullanıcı kalmalıdır!', null, true);
                 return;
             }
-            const u = sistemKullanicilari.find(user => String(user.id) === String(id));
-            if(!u) return;
 
             onayModaliniGoster(
                 'Kullanıcıyı Sil',
@@ -5733,6 +6088,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 
             tbody.innerHTML = sistemKullanicilari.map(u => {
                 const safeId = String(u.id);
+                const anaAdminHesabi = sistemKullaniciAnaAdminMi(u);
                 return `
                 <tr class="${hoverClass} transition">
                     <td class="p-2.5 font-semibold">${htmlGuvenli(u.name)}</td>
@@ -5740,7 +6096,9 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                     <td class="p-2.5"><span class="px-2 py-0.5 rounded border text-[10px] font-medium ${u.role === 'Yönetici' ? 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'}">${htmlGuvenli(u.role || 'Kasiyer')}</span></td>
                     <td class="p-2.5 text-center space-x-1">
                         <button onclick="sistemKullaniciModaliniAc('${safeId}')" type="button" class="text-blue-700 dark:text-blue-400 hover:bg-blue-500/20 bg-blue-500/10 p-1.5 rounded border border-blue-500/20 transition" title="Düzenle"><i class="fa-solid fa-pen"></i></button>
-                        <button onclick="sistemKullaniciSil('${safeId}')" type="button" class="text-red-700 dark:text-red-400 hover:bg-red-500/20 bg-red-500/10 p-1.5 rounded border border-red-500/20 transition" title="Sil"><i class="fa-solid fa-trash"></i></button>
+                        ${anaAdminHesabi
+                            ? '<span class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-1.5 rounded border border-amber-500/20" title="Ana Admin hesabı silinemez"><i class="fa-solid fa-lock"></i><span class="text-[10px] font-semibold">Ana Admin</span></span>'
+                            : `<button onclick="sistemKullaniciSil('${safeId}')" type="button" class="text-red-700 dark:text-red-400 hover:bg-red-500/20 bg-red-500/10 p-1.5 rounded border border-red-500/20 transition" title="Sil"><i class="fa-solid fa-trash"></i></button>`}
                     </td>
                 </tr>
                 `;
@@ -6667,41 +7025,38 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 if('serviceWorker' in navigator&&location.protocol!=='file:'){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(error=>console.warn('Uygulama çevrimdışı desteği başlatılamadı.',error)));}
 </script>
 <script>document.addEventListener("DOMContentLoaded", function(){ try { odemeAyarlariniEkranaYansit(); } catch(e) { console.warn(e); } });
-        // Satış ekranı klavye kısayolları
+        // Satış ekranı F2-F6 kısayolları: giriş alanı odağındayken de çalışır.
+        // Capture aşamasında dinlenir; F5'in tarayıcı yenilemesini engeller.
         document.addEventListener('keydown', function (event) {
-            if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+            if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+
             const salesSection = document.getElementById('section-sales');
             if (!salesSection || salesSection.classList.contains('hidden')) return;
 
-            const target = event.target;
-            const tag = (target && target.tagName || '').toLowerCase();
-            const typing = target && (target.isContentEditable || ['input','textarea','select'].includes(tag));
+            // Bazı klavye/WebView ortamlarında event.key yerine keyCode kullanılabilir.
+            const keyByCode = { 113: 'F2', 114: 'F3', 115: 'F4', 116: 'F5', 117: 'F6' };
+            const pressedKey = /^F[2-6]$/.test(event.key || '') ? event.key : keyByCode[event.keyCode];
+            if (!pressedKey) return;
+
+            // Açık bir modal varken satış kısayolları arka planda işlem başlatmasın.
             const openModal = Array.from(document.querySelectorAll('[id^="modal-"]')).some(el =>
                 !el.classList.contains('hidden') && getComputedStyle(el).display !== 'none'
             );
+            if (openModal) return;
 
-            if (event.key === 'Escape') {
-                if (openModal) return; // Açık modalın kendi Escape davranışı varsa onu bozma.
-                return;
-            }
-            if (typing || openModal) return;
+            event.preventDefault();
+            event.stopPropagation();
 
             const paymentActions = {
                 F2: () => odemeButonundanBaslat('Nakit'),
                 F3: () => odemeButonundanBaslat('Kredi Kartı'),
                 F4: () => veresiyeModaliniAc(),
-                F5: () => alisverisKartiSatisModaliniAc()
+                F5: () => alisverisKartiSatisModaliniAc(),
+                F6: () => document.getElementById('barcode-search')?.focus()
             };
-            if (paymentActions[event.key]) {
-                event.preventDefault();
-                paymentActions[event.key]();
-                return;
-            }
-            if (event.key === 'F6') {
-                event.preventDefault();
-                document.getElementById('barcode-search')?.focus();
-            }
-        });
+            const action = paymentActions[pressedKey];
+            if (action) action();
+        }, true);
 </script>
 <div class="fixed inset-0 z-[190] hidden items-center justify-center bg-black/80 backdrop-blur-md p-4" id="modal-manual-settlement" onclick="if(event.target===this) modalKapat('modal-manual-settlement')">
 <div class="theme-card w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 p-5 text-white shadow-2xl">
