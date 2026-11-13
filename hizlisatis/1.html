@@ -4,13 +4,13 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<meta name="theme-color" content="#0f172a"/>
-<meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="Hızlı POS"/>
-<link rel="manifest" href="./manifest.webmanifest"/>
-<link rel="icon" type="image/png" sizes="192x192" href="./app-icon-192.png"/>
-<link rel="apple-touch-icon" href="./app-icon-192.png"/>
+<meta content="#0f172a" name="theme-color"/>
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="Hızlı POS" name="apple-mobile-web-app-title"/>
+<link href="./manifest.webmanifest" rel="manifest"/>
+<link href="./app-icon-192.png" rel="icon" sizes="192x192" type="image/png"/>
+<link href="./app-icon-192.png" rel="apple-touch-icon"/>
 <title>Profesyonel Hızlı Satış &amp; Stok Yönetim Sistemi - Yerel &amp; Firebase</title>
 <!-- KOD İÇİ FIREBASE AYARLARI: Formda kayıtlı bağlantı yoksa buradaki bilgiler kullanılır. -->
 <script>
@@ -68,6 +68,8 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
             sirketAdi: 'Hızlı Satış Programı',
             sifre: '1234',
             otomatikYazdir: false,
+            paraUstuAktif: false,
+            parcaliOdemeAktif: false,
             fisYazdirmaModu: 'toplu',
             fisAlanlari: { sirket:true, fisNo:true, tarih:true, urunler:true, araToplam:true, iskonto:true, toplam:true, odeme:true, tesekkur:true },
             tema: 'dark',
@@ -295,6 +297,11 @@ button:not(:disabled):active { transform: translateY(1px); }
         body[data-theme="royal"] .theme-input { background-color:#1e3a8a !important; border-color:#2563eb !important; color:#eff6ff !important; }
         body[data-theme="mono"] .theme-card, body[data-theme="mono"] .theme-header { background-color:#171717 !important; border-color:#525252 !important; }
         body[data-theme="mono"] .theme-input { background-color:#262626 !important; border-color:#737373 !important; color:#fafafa !important; }
+
+/* Ödeme işlemi etiketi: açık temada koyu, koyu temada açık renk */
+body#app-body[data-theme-mode="light"] #modal-modern-payment > div > div:first-child > div:first-child { color:#1e3a8a !important; opacity:1 !important; }
+body#app-body[data-theme-mode="dark"] #modal-modern-payment > div > div:first-child > div:first-child,
+body#app-body:not([data-theme-mode="light"]) #modal-modern-payment > div > div:first-child > div:first-child { color:#c7d2fe !important; opacity:1 !important; }
 </style>
 <meta content="dark light" name="color-scheme"/>
 <style id="compact-panel-layout">
@@ -453,7 +460,37 @@ body#app-body[data-theme-mode="light"] input[type="checkbox"], body#app-body[dat
 body#app-body[data-theme-mode="light"] input.peer:checked + div { background:var(--lm-accent,#059669) !important; box-shadow:0 0 0 2px var(--lm-accent-soft,#d1fae5) !important; }
 body#app-body[data-theme-mode="light"] #setting-dark-mode-toggle { accent-color:var(--lm-accent,#059669) !important; }
 body#app-body[data-theme-mode="light"] .theme-input:focus, body#app-body[data-theme-mode="light"] select:focus { border-color:var(--lm-accent,#059669) !important; box-shadow:0 0 0 3px var(--lm-accent-soft,#d1fae5) !important; }
-body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"] h2, body#app-body[data-theme-mode="light"] h3, body#app-body[data-theme-mode="light"] h4, body#app-body[data-theme-mode="light"] h5, body#app-body[data-theme-mode="light"] h6 { color:var(--lm-ink,#0f172a) !important; }</style>
+body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"] h2, body#app-body[data-theme-mode="light"] h3, body#app-body[data-theme-mode="light"] h4, body#app-body[data-theme-mode="light"] h5, body#app-body[data-theme-mode="light"] h6 { color:var(--lm-ink,#0f172a) !important; }
+/* Ödeme penceresi: açık modda yüksek kontrast */
+body#app-body[data-theme-mode="light"] #modal-modern-payment > div { background:#ffffff !important; color:#172033 !important; border-color:#cbd5e1 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment > div > div:first-child { background:linear-gradient(110deg,#e0e7ff,#f1f5f9) !important; border-color:#cbd5e1 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment #payment-modal-title { color:#111827 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment > div > div:first-child > div:first-child { color:#3730a3 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick*="modalKapat"] { color:#334155 !important; background:#e2e8f0 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment .border-indigo-400\/30 { background:#eef2ff !important; border-color:#a5b4fc !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment .text-indigo-200 { color:#3730a3 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment #payment-modal-total { color:#111827 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment label span.text-emerald-300 { color:#047857 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment label span.text-sky-300 { color:#0369a1 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment label span.text-violet-300 { color:#6d28d9 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment input { background:#ffffff !important; color:#0f172a !important; border-color:#94a3b8 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment input::placeholder { color:#64748b !important; opacity:1 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment #payment-modal-cash-summary > div { background:#f1f5f9 !important; border:1px solid #cbd5e1 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment #payment-modal-cash-summary .text-slate-400 { color:#475569 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment #payment-modal-cash-applied { color:#047857 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment #payment-modal-change { color:#0369a1 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment .border-amber-500\/30 { background:#fffbeb !important; border-color:#fbbf24 !important; }
+/* Son okunabilirlik düzeltmeleri: başlık etiketi ve kalan bakiye etiketi */
+body#app-body[data-theme-mode="light"] #modal-modern-payment > div > div:first-child > div:first-child { color:#1e3a8a !important; opacity:1 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment #payment-modal-remaining { color:#78350f !important; opacity:1 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment .border-amber-500\/30 span { color:#92400e !important; opacity:1 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment #payment-modal-customer-wrap label { color:#92400e !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment #payment-modal-customer { background:#ffffff !important; color:#0f172a !important; border-color:#d97706 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment #payment-modal-customer-wrap p { color:#475569 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment #payment-modal-warning { color:#b91c1c !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick*="modalKapat"]:not(:first-child) { color:#1e293b !important; background:#f1f5f9 !important; border-color:#94a3b8 !important; }
+body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="modernOdemeOnayla()"] { color:#ffffff !important; background:#059669 !important; }
+</style>
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans h-full flex flex-col overflow-hidden select-none transition-colors duration-300" id="app-body">
 <!-- LİSANS / GİRİŞ EKRANI -->
@@ -530,8 +567,8 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <i class="fa-solid fa-fire-burner"></i>
 <span>Mutfak <span class="ml-1 rounded-full bg-red-600 text-white px-1.5" id="kitchen-nav-count">0</span></span>
 </button>
-<button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap hidden" id="tab-adisyon" onclick="sekmeyiDegistir('adisyon')"><i class="fa-solid fa-clipboard-list"></i><span>Adisyon <span id="adisyon-nav-count" class="ml-1 rounded-full bg-amber-600 text-white px-1.5">0</span></span></button>
-<button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap hidden" id="tab-customerorders" onclick="sekmeyiDegistir('customerorders')"><i class="fa-solid fa-bell-concierge"></i><span>Müşteri Siparişleri <span id="customer-order-nav-count" class="ml-1 rounded-full bg-red-600 text-white px-1.5">0</span></span></button>
+<button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap hidden" id="tab-adisyon" onclick="sekmeyiDegistir('adisyon')"><i class="fa-solid fa-clipboard-list"></i><span>Adisyon <span class="ml-1 rounded-full bg-amber-600 text-white px-1.5" id="adisyon-nav-count">0</span></span></button>
+<button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap hidden" id="tab-customerorders" onclick="sekmeyiDegistir('customerorders')"><i class="fa-solid fa-bell-concierge"></i><span>Müşteri Siparişleri <span class="ml-1 rounded-full bg-red-600 text-white px-1.5" id="customer-order-nav-count">0</span></span></button>
 <button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap" id="tab-products" onclick="sekmeyiDegistir('products')">
 <i class="fa-solid fa-boxes-stacked"></i>
 <span>Ürünler</span>
@@ -558,13 +595,12 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 </button>
 </nav>
 <div class="flex items-center space-x-2 text-xs">
-
 <button class="text-slate-400 hover:text-red-500 p-1.5 transition" onclick="cikisYap()" title="Çıkış Yap">
 <i class="fa-solid fa-right-from-bracket text-sm"></i>
 </button>
 </div>
 </header>
-<div id="action-toast" role="status" aria-live="polite" class="fixed top-16 left-1/2 -translate-x-1/2 z-[250] hidden max-w-[92vw] rounded-lg border border-emerald-500/40 bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-2xl"></div>
+<div aria-live="polite" class="fixed top-16 left-1/2 -translate-x-1/2 z-[250] hidden max-w-[92vw] rounded-lg border border-emerald-500/40 bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-2xl" id="action-toast" role="status"></div>
 <!-- Ana İçerik Alanı -->
 <main class="flex-1 relative overflow-hidden transition-colors duration-300">
 <!-- 1. SATIŞ EKRANI -->
@@ -585,7 +621,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 </div>
 <!-- BÖLÜM 2: ÜRÜNLERİN OLDUĞU BÖLÜM -->
 <div class="theme-card flex-1 flex flex-col bg-slate-900 rounded-lg border border-slate-800 overflow-hidden shadow-lg min-h-0 transition-all duration-300" id="sales-products-panel">
-<div class="theme-category px-2 py-2 border-b border-slate-800/80 bg-slate-900/50 flex items-center gap-2 shrink-0" id="category-bar"><button type="button" onclick="kategoriKaydir(-1)" class="shrink-0 rounded border border-slate-600 bg-slate-800 px-2 py-1 text-slate-200 hover:bg-slate-700" aria-label="Kategorileri sola kaydır" title="Sola kaydır"><i class="fa-solid fa-chevron-left"></i></button><div class="flex-1 min-w-0 flex space-x-1.5 overflow-x-auto" id="category-container"></div><button type="button" onclick="kategoriKaydir(1)" class="shrink-0 rounded border border-slate-600 bg-slate-800 px-2 py-1 text-slate-200 hover:bg-slate-700" aria-label="Kategorileri sağa kaydır" title="Sağa kaydır"><i class="fa-solid fa-chevron-right"></i></button></div>
+<div class="theme-category px-2 py-2 border-b border-slate-800/80 bg-slate-900/50 flex items-center gap-2 shrink-0" id="category-bar"><button aria-label="Kategorileri sola kaydır" class="shrink-0 rounded border border-slate-600 bg-slate-800 px-2 py-1 text-slate-200 hover:bg-slate-700" onclick="kategoriKaydir(-1)" title="Sola kaydır" type="button"><i class="fa-solid fa-chevron-left"></i></button><div class="flex-1 min-w-0 flex space-x-1.5 overflow-x-auto" id="category-container"></div><button aria-label="Kategorileri sağa kaydır" class="shrink-0 rounded border border-slate-600 bg-slate-800 px-2 py-1 text-slate-200 hover:bg-slate-700" onclick="kategoriKaydir(1)" title="Sağa kaydır" type="button"><i class="fa-solid fa-chevron-right"></i></button></div>
 <div class="flex-1 p-2 overflow-y-auto min-h-0" id="products-grid-wrapper">
 <div class="grid gap-1.5" id="products-grid" style="grid-template-columns:repeat(auto-fill,minmax(var(--product-card-min, 92px),1fr))"></div>
 </div>
@@ -621,7 +657,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 </div>
 </div>
 <div class="theme-card bg-slate-900 rounded-lg border border-slate-800 p-2 shadow-lg shrink-0 hidden" id="cart-kitchen-note-panel">
-<div class="grid grid-cols-2 gap-2 mb-2" id="cart-waiter-fields"><div id="cart-order-type-field"><label id="cart-order-type-label" class="block text-[10px] font-bold text-cyan-400 mb-1 hidden" for="cart-order-type"><i class="fa-solid fa-chair mr-1"></i>Sipariş kategorisi</label><div class="flex gap-1"><select class="theme-input w-[42%] min-w-0 bg-slate-950 px-1.5 py-1.5 rounded border border-slate-800 text-xs hidden" id="cart-order-type" onchange="siparisKategorisiDegisti()"><option value="Masa">Masa</option><option value="Paket">Paket</option></select><input class="theme-input min-w-0 flex-1 w-full bg-slate-950 px-2 py-1.5 rounded border border-slate-800 text-xs" id="cart-table-number" maxlength="30" placeholder="No / ad" type="text"/></div></div><div id="cart-waiter-field-wrapper" class="hidden"><label class="block text-[10px] font-bold text-cyan-400 mb-1" for="cart-waiter"><i class="fa-solid fa-user-tie mr-1"></i>Garson</label><select class="theme-input w-full bg-slate-950 px-2 py-1.5 rounded border border-slate-800 text-xs" id="cart-waiter"></select></div></div>
+<div class="grid grid-cols-2 gap-2 mb-2" id="cart-waiter-fields"><div id="cart-order-type-field"><label class="block text-[10px] font-bold text-cyan-400 mb-1 hidden" for="cart-order-type" id="cart-order-type-label"><i class="fa-solid fa-chair mr-1"></i>Sipariş kategorisi</label><div class="flex gap-1"><select class="theme-input w-[42%] min-w-0 bg-slate-950 px-1.5 py-1.5 rounded border border-slate-800 text-xs hidden" id="cart-order-type" onchange="siparisKategorisiDegisti()"><option value="Masa">Masa</option><option value="Paket">Paket</option></select><input class="theme-input min-w-0 flex-1 w-full bg-slate-950 px-2 py-1.5 rounded border border-slate-800 text-xs" id="cart-table-number" maxlength="30" placeholder="No / ad" type="text"/></div></div><div class="hidden" id="cart-waiter-field-wrapper"><label class="block text-[10px] font-bold text-cyan-400 mb-1" for="cart-waiter"><i class="fa-solid fa-user-tie mr-1"></i>Garson</label><select class="theme-input w-full bg-slate-950 px-2 py-1.5 rounded border border-slate-800 text-xs" id="cart-waiter"></select></div></div>
 <div id="cart-kitchen-note-fields"><label class="block text-[10px] font-bold text-amber-400 mb-1" for="cart-kitchen-note"><i class="fa-solid fa-note-sticky mr-1"></i>Mutfak / sipariş notu (isteğe bağlı)</label>
 <input class="theme-input w-full bg-slate-950 px-2 py-1.5 rounded border border-slate-800 text-xs focus:outline-none focus:border-amber-500" id="cart-kitchen-note" maxlength="240" placeholder="Örn. soğansız, az pişmiş, masa 4..." type="text"/></div>
 </div>
@@ -646,11 +682,11 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 </div>
 <button class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-3 rounded text-xs flex items-center justify-center gap-2" id="cart-adisyon-save-button" onclick="adisyonuKaydet()" type="button"><i class="fa-solid fa-clipboard-list"></i><span id="adisyon-save-label">ADİSYON AÇ / KAYDET</span></button>
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-<button class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-1 rounded transition flex flex-col items-center justify-center shadow active:scale-95 border border-emerald-500/30 cursor-pointer" id="sales-cash-button" onclick="odemeYap('Nakit')" type="button">
+<button class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-1 rounded transition flex flex-col items-center justify-center shadow active:scale-95 border border-emerald-500/30 cursor-pointer" id="sales-cash-button" onclick="odemeButonundanBaslat('Nakit')" type="button">
 <i class="fa-solid fa-money-bill-wave text-xs mb-0.5"></i>
 <span class="text-[10px] font-semibold tracking-wide">NAKİT</span>
 </button>
-<button class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-1 rounded transition flex flex-col items-center justify-center shadow active:scale-95 border border-blue-500/30 cursor-pointer" id="sales-credit-button" onclick="odemeYap('Kredi Kartı')" type="button">
+<button class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-1 rounded transition flex flex-col items-center justify-center shadow active:scale-95 border border-blue-500/30 cursor-pointer" id="sales-credit-button" onclick="odemeButonundanBaslat('Kredi Kartı')" type="button">
 <i class="fa-solid fa-credit-card text-xs mb-0.5"></i>
 <span class="text-[10px] font-semibold tracking-wide">K.KARTI</span>
 </button>
@@ -658,6 +694,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <button class="bg-cyan-700 hover:bg-cyan-600 text-white font-bold py-2 px-1 rounded transition flex flex-col items-center justify-center shadow active:scale-95 border border-cyan-500/30 cursor-pointer" id="sales-card-button" onclick="alisverisKartiSatisModaliniAc()" type="button"><i class="fa-solid fa-id-card text-xs mb-0.5"></i><span class="text-[10px] font-semibold tracking-wide">ALIŞVERİŞ KARTI</span></button>
 </div>
 </div>
+<button class="w-full bg-violet-700 hover:bg-violet-600 text-white font-bold py-2 rounded text-xs" id="sales-partial-button" onclick="parcaliOdemeBaslat()" type="button"><i class="fa-solid fa-money-bill-transfer mr-1"></i> PARÇALI ÖDEME / AÇIK BAKİYE</button>
 </div>
 </section>
 <!-- MUTFAK / SİPARİŞ TAKİP EKRANI -->
@@ -666,7 +703,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <div><h2 class="text-xl font-black"><i class="fa-solid fa-fire-burner text-orange-400 mr-2"></i>Mutfak Siparişleri</h2><p class="text-xs text-slate-400 mt-1">Yeni siparişleri alın, hazırlama durumunu güncelleyin ve mutfak fişlerini yazdırın.</p></div>
 <div class="flex gap-2"><button class="px-3 py-2 rounded bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold" onclick="mutfakSesiniAc()"><i class="fa-solid fa-volume-high mr-1"></i>Sesli uyarıyı aç</button><button class="px-3 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold" onclick="mutfakEkraniniGuncelle()"><i class="fa-solid fa-rotate mr-1"></i>Yenile</button><button class="px-3 py-2 rounded bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold" onclick="mutfakBekleyenleriYazdir()"><i class="fa-solid fa-print mr-1"></i>Bekleyen fişleri yazdır</button></div>
 </div>
-<div class="theme-card rounded-lg border border-slate-700 p-3 flex flex-wrap items-center gap-2" id="kitchen-alert-sound-panel"><label class="text-xs text-slate-300 font-semibold" for="kitchen-alert-tone">Bildirim sesi</label><select id="kitchen-alert-tone" class="theme-input bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-xs" onchange="mutfakSesiTercihiniKaydet()"><option value="classic">Klasik zil</option><option value="double">Çift uyarı</option><option value="urgent">Acil uyarı</option><option value="soft">Yumuşak uyarı</option><option value="uploaded">Yüklenen ses</option></select><button type="button" class="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold" onclick="mutfakUyariSesiTestEt()"><i class="fa-solid fa-play mr-1"></i>Dinle</button><label for="kitchen-alert-file" class="px-3 py-1.5 rounded bg-violet-700 hover:bg-violet-600 text-white text-xs font-bold cursor-pointer"><i class="fa-solid fa-upload mr-1"></i>Ses dosyası yükle</label><input id="kitchen-alert-file" type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a" class="hidden" onchange="mutfakSesiDosyasiYukle(this)"/><span id="kitchen-alert-file-name" class="text-[11px] text-slate-400">Yerleşik seslerden birini seçin veya ses dosyası yükleyin.</span><label class="ml-auto inline-flex items-center gap-2 rounded border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-bold"><input id="kitchen-auto-print" type="checkbox" class="h-4 w-4 accent-emerald-500" onchange="mutfakOtomatikYazdirDegistir(this.checked)"/><span>Yeni sipariş fişlerini otomatik yazdır</span></label></div>
+<div class="theme-card rounded-lg border border-slate-700 p-3 flex flex-wrap items-center gap-2" id="kitchen-alert-sound-panel"><label class="text-xs text-slate-300 font-semibold" for="kitchen-alert-tone">Bildirim sesi</label><select class="theme-input bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-xs" id="kitchen-alert-tone" onchange="mutfakSesiTercihiniKaydet()"><option value="classic">Klasik zil</option><option value="double">Çift uyarı</option><option value="urgent">Acil uyarı</option><option value="soft">Yumuşak uyarı</option><option value="uploaded">Yüklenen ses</option></select><button class="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold" onclick="mutfakUyariSesiTestEt()" type="button"><i class="fa-solid fa-play mr-1"></i>Dinle</button><label class="px-3 py-1.5 rounded bg-violet-700 hover:bg-violet-600 text-white text-xs font-bold cursor-pointer" for="kitchen-alert-file"><i class="fa-solid fa-upload mr-1"></i>Ses dosyası yükle</label><input accept="audio/*,.mp3,.wav,.ogg,.m4a" class="hidden" id="kitchen-alert-file" onchange="mutfakSesiDosyasiYukle(this)" type="file"/><span class="text-[11px] text-slate-400" id="kitchen-alert-file-name">Yerleşik seslerden birini seçin veya ses dosyası yükleyin.</span><label class="ml-auto inline-flex items-center gap-2 rounded border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-bold"><input class="h-4 w-4 accent-emerald-500" id="kitchen-auto-print" onchange="mutfakOtomatikYazdirDegistir(this.checked)" type="checkbox"/><span>Yeni sipariş fişlerini otomatik yazdır</span></label></div>
 <div class="grid grid-cols-3 gap-2">
 <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Yeni</div><div class="text-2xl font-black text-red-400" id="kitchen-count-new">0</div></div>
 <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Hazırlanıyor</div><div class="text-2xl font-black text-amber-400" id="kitchen-count-preparing">0</div></div>
@@ -677,18 +714,18 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 </section>
 <!-- AÇIK ADİSYONLAR -->
 <section class="absolute inset-0 p-3 md:p-5 hidden flex-col gap-3 overflow-y-auto" id="section-adisyon">
-  <div class="theme-card rounded-xl border border-slate-700 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-    <div><h2 class="text-lg font-black text-amber-400"><i class="fa-solid fa-clipboard-list mr-2"></i>Adisyon Takibi</h2><p class="text-xs text-slate-400 mt-1">Açık masa hesaplarını yönetin, siparişe devam edin veya hesabı satışa dönüştürün.</p></div>
-    <div class="flex gap-2"><button class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded px-3 py-2 text-xs" onclick="adisyonlariGoster()"><i class="fa-solid fa-rotate mr-1"></i>Yenile</button><button class="bg-amber-600 hover:bg-amber-500 text-white font-bold rounded px-3 py-2 text-xs" onclick="sekmeyiDegistir('sales')"><i class="fa-solid fa-plus mr-1"></i>Yeni Adisyon</button></div>
-  </div>
-  <div class="grid grid-cols-2 lg:grid-cols-5 gap-3"><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Açık adisyon</div><div id="adisyon-count-open" class="text-2xl font-black text-amber-400">0</div></div><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Hazırlanıyor</div><div id="adisyon-count-preparing" class="text-2xl font-black text-amber-400">0</div></div><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Hazır</div><div id="adisyon-count-ready" class="text-2xl font-black text-emerald-400">0</div></div><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Açık hesap toplamı</div><div id="adisyon-total-open" class="text-2xl font-black text-emerald-400">₺0,00</div></div><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Masa sayısı</div><div id="adisyon-count-tables" class="text-2xl font-black text-cyan-400">0</div></div></div>
-  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" id="adisyon-list"><div class="text-sm text-slate-400">Açık adisyon bulunmuyor.</div></div>
+<div class="theme-card rounded-xl border border-slate-700 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+<div><h2 class="text-lg font-black text-amber-400"><i class="fa-solid fa-clipboard-list mr-2"></i>Adisyon Takibi</h2><p class="text-xs text-slate-400 mt-1">Açık masa hesaplarını yönetin, siparişe devam edin veya hesabı satışa dönüştürün.</p></div>
+<div class="flex gap-2"><button class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded px-3 py-2 text-xs" onclick="adisyonlariGoster()"><i class="fa-solid fa-rotate mr-1"></i>Yenile</button><button class="bg-amber-600 hover:bg-amber-500 text-white font-bold rounded px-3 py-2 text-xs" onclick="sekmeyiDegistir('sales')"><i class="fa-solid fa-plus mr-1"></i>Yeni Adisyon</button></div>
+</div>
+<div class="grid grid-cols-2 lg:grid-cols-5 gap-3"><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Açık adisyon</div><div class="text-2xl font-black text-amber-400" id="adisyon-count-open">0</div></div><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Hazırlanıyor</div><div class="text-2xl font-black text-amber-400" id="adisyon-count-preparing">0</div></div><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Hazır</div><div class="text-2xl font-black text-emerald-400" id="adisyon-count-ready">0</div></div><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Açık hesap toplamı</div><div class="text-2xl font-black text-emerald-400" id="adisyon-total-open">₺0,00</div></div><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Masa sayısı</div><div class="text-2xl font-black text-cyan-400" id="adisyon-count-tables">0</div></div></div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" id="adisyon-list"><div class="text-sm text-slate-400">Açık adisyon bulunmuyor.</div></div>
 </section>
 <!-- MÜŞTERİDEN GELEN MASA SİPARİŞLERİ -->
 <section class="absolute inset-0 p-3 md:p-5 hidden flex-col gap-3 overflow-y-auto" id="section-customerorders">
-  <div class="theme-card rounded-xl border border-slate-700 p-4 flex flex-wrap items-center justify-between gap-3"><div><h2 class="text-lg font-black text-cyan-400"><i class="fa-solid fa-bell-concierge mr-2"></i>Müşteri Siparişleri</h2><p class="text-xs text-slate-400 mt-1">Masalardan QR menüyle gelen siparişleri üstlenin, mutfağa gönderin ve servis durumunu takip edin.</p></div><button onclick="musteriSiparisleriniGuncelle()" class="bg-emerald-600 hover:bg-emerald-500 text-white rounded px-3 py-2 text-xs font-bold"><i class="fa-solid fa-rotate mr-1"></i>Yenile</button></div>
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3"><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Yeni siparişler</div><div id="customer-order-new-count" class="text-2xl font-black text-red-400">0</div></div><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Üstlenilen / hazırlanıyor</div><div id="customer-order-active-count" class="text-2xl font-black text-amber-400">0</div></div><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Sipariş toplamı</div><div id="customer-order-total" class="text-2xl font-black text-emerald-400">₺0,00</div></div></div>
-  <div id="customer-order-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"><div class="text-sm text-slate-400">Siparişler yükleniyor…</div></div>
+<div class="theme-card rounded-xl border border-slate-700 p-4 flex flex-wrap items-center justify-between gap-3"><div><h2 class="text-lg font-black text-cyan-400"><i class="fa-solid fa-bell-concierge mr-2"></i>Müşteri Siparişleri</h2><p class="text-xs text-slate-400 mt-1">Masalardan QR menüyle gelen siparişleri üstlenin, mutfağa gönderin ve servis durumunu takip edin.</p></div><button class="bg-emerald-600 hover:bg-emerald-500 text-white rounded px-3 py-2 text-xs font-bold" onclick="musteriSiparisleriniGuncelle()"><i class="fa-solid fa-rotate mr-1"></i>Yenile</button></div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-3"><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Yeni siparişler</div><div class="text-2xl font-black text-red-400" id="customer-order-new-count">0</div></div><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Üstlenilen / hazırlanıyor</div><div class="text-2xl font-black text-amber-400" id="customer-order-active-count">0</div></div><div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Sipariş toplamı</div><div class="text-2xl font-black text-emerald-400" id="customer-order-total">₺0,00</div></div></div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" id="customer-order-list"><div class="text-sm text-slate-400">Siparişler yükleniyor…</div></div>
 </section>
 <!-- 2. ÜRÜN YÖNETİMİ & STOK TAKİBİ -->
 <section class="absolute inset-0 p-3.5 md:p-5 hidden flex-col space-y-3.5 md:space-y-4 overflow-y-auto" id="section-products">
@@ -965,26 +1002,11 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <i class="fa-solid fa-gear"></i> Sistem Ayarları &amp; Yönetim Paneli
                     </h2>
 <p class="text-xs text-slate-400 mt-0.5">Firma bilgileri, fiş yazdırma tercihi, kullanıcılar ve Firebase eşitleme.</p>
-<p class="text-[11px] text-emerald-400 mt-1">Ayarlar, ürün sıralaması ve dönemler Firebase etkin olduğunda diğer cihazlarla eşitlenir.</p>
+<p class="text-[11px] text-emerald-400 mt-1">Firma bilgisi, logo, fiş tercihleri, kullanıcılar, dönemler ve mutfak / müşteri sipariş ayarları Firebase ile eşitlenir. Diğer tercihler bu cihazda saklanır.</p>
 </div>
 </div>
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-
-
-
-
-
-
-
-
-
-
-
-
-<div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
-<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2 tracking-tight">
-<i class="fa-solid fa-building text-emerald-500"></i> 1. Firma Bilgisi
-                    </h3>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5"><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
+<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2 tracking-tight">Firma Bilgisi</h3>
 <form class="space-y-3" onsubmit="firmaAyarlariniKaydet(event)">
 <div>
 <label class="block text-xs text-slate-400 mb-1 font-medium">Firma / Mağaza Adı</label>
@@ -995,33 +1017,59 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                         </button>
 </form>
 </div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
-<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2 tracking-tight"><i class="fa-solid fa-image text-emerald-500"></i> Firma Logosu</h3>
+<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2 tracking-tight">Firma Logosu</h3>
 <p class="text-xs text-slate-400">Logo giriş ekranında ve üst başlıkta gösterilir. PNG, JPG veya WebP kullanın (en fazla 500 KB).</p>
 <div class="flex items-center gap-3">
 <img alt="Logo önizleme" class="hidden w-16 h-16 object-contain bg-white rounded-lg p-1" id="setting-logo-preview"/>
 <span class="text-xs text-slate-500" id="setting-logo-empty">Henüz logo seçilmedi.</span>
 </div>
-<input accept="image/png,image/jpeg,image/webp,image/gif" class="theme-input w-full text-xs bg-slate-950 border border-slate-800 rounded p-2" id="setting-logo-file" onchange="firmaLogosuSecildi(this)" type="file">
+<input accept="image/png,image/jpeg,image/webp,image/gif" class="theme-input w-full text-xs bg-slate-950 border border-slate-800 rounded p-2" id="setting-logo-file" onchange="firmaLogosuSecildi(this)" type="file"/>
 <div class="flex gap-2">
 <button class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded text-xs" onclick="firmaLogosunuKaydet()" type="button">Logoyu Kaydet</button>
 <button class="bg-red-700 hover:bg-red-600 text-white font-bold px-3 py-2 rounded text-xs" onclick="firmaLogosunuKaldir()" type="button">Kaldır</button>
 </div>
-</input></div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
-<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2 tracking-tight"><i class="fa-solid fa-text-height text-cyan-400"></i> Satış Ekranı Yazı Boyutu</h3>
-<p class="text-xs text-slate-400">Satış ekranındaki ürün, sepet ve ödeme yazılarının boyutunu ayarlayın.</p>
-<div class="flex items-center gap-3">
-<input class="w-full accent-emerald-500" id="setting-sales-font-size" max="20" min="11" oninput="satisYaziBoyutunuDegistir(this.value)" step="1" type="range" value="14"/>
-<span class="text-sm font-bold text-emerald-400 min-w-[3.5rem] text-right" id="setting-sales-font-size-value">14 px</span>
-</div>
-<div class="flex gap-2"><button class="theme-btn-alt flex-1 text-xs border border-slate-700 rounded py-2" onclick="satisYaziBoyutunuDegistir(12)" type="button">Küçük</button><button class="theme-btn-alt flex-1 text-xs border border-slate-700 rounded py-2" onclick="satisYaziBoyutunuDegistir(14)" type="button">Normal</button><button class="theme-btn-alt flex-1 text-xs border border-slate-700 rounded py-2" onclick="satisYaziBoyutunuDegistir(17)" type="button">Büyük</button></div>
 </div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
-<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2 tracking-tight">
-<i class="fa-solid fa-palette text-amber-500"></i> 2. Görsel Tema Tercihi
-                    </h3>
+<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2">Çalışma Dönemi</h3>
+<p class="text-[10px] text-slate-400">Her dönem ürün, müşteri, satış, kasa ve bekleyen sepet kayıtlarını ayrı tutar. Dönem değiştirmek için çıkış yapıp giriş ekranından dönem seçin.</p>
+<div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+<input class="theme-input w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-xs focus:outline-none focus:border-emerald-500" id="new-period-name" maxlength="60" placeholder="Yeni dönem adı (örn. 2027 veya 2026-2027)" type="text"/>
+<button class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-2 rounded" onclick="donemEkle()" type="button"><i class="fa-solid fa-plus mr-1"></i>Dönem Ekle</button>
+</div>
+<div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="theme-table-header"><tr><th class="p-2">Dönem</th><th class="p-2">Durum</th><th class="p-2 text-right">İşlem</th></tr></thead><tbody id="periods-table"></tbody></table></div>
+</div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
+<div class="flex justify-between items-center border-b border-slate-800 pb-2.5">
+<h3 class="text-xs md:text-sm font-bold flex items-center gap-2 tracking-tight">Sistem Kullanıcıları Yönetimi (Yetkili / Kasiyer)</h3>
+<button class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-3 py-1.5 rounded transition shadow" onclick="sistemKullaniciModaliniAc()" type="button">
+<i class="fa-solid fa-user-plus mr-1"></i> Yeni Kullanıcı Ekle
+                        </button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left text-xs">
+<thead class="theme-table-header bg-slate-950 uppercase text-[10px] font-semibold">
+<tr>
+<th class="p-2.5">Kullanıcı Adı</th>
+<th class="p-2.5">Şifre</th>
+<th class="p-2.5">Rol / Yetki</th>
+<th class="p-2.5 text-center">İşlemler</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-800" id="system-users-table"></tbody>
+</table>
+</div>
+</div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
+<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2">Cihaz Görünümü</h3>
+<p class="text-[10px] text-slate-400">Arayüzü bilgisayar, tablet veya telefon genişliğinde önizleyin. Seçiminiz bu tarayıcıda saklanır.</p>
+<div class="grid grid-cols-3 gap-2">
+<button class="device-view-button bg-slate-800 hover:bg-emerald-700 border border-slate-700 rounded-lg px-2 py-3 text-xs font-semibold" data-device-view="bilgisayar" onclick="cihazGorunumunuAyarla('bilgisayar')" type="button"><i class="fa-solid fa-desktop block text-lg mb-1"></i>Bilgisayar</button>
+<button class="device-view-button bg-slate-800 hover:bg-emerald-700 border border-slate-700 rounded-lg px-2 py-3 text-xs font-semibold" data-device-view="tablet" onclick="cihazGorunumunuAyarla('tablet')" type="button"><i class="fa-solid fa-tablet-screen-button block text-lg mb-1"></i>Tablet</button>
+<button class="device-view-button bg-slate-800 hover:bg-emerald-700 border border-slate-700 rounded-lg px-2 py-3 text-xs font-semibold" data-device-view="telefon" onclick="cihazGorunumunuAyarla('telefon')" type="button"><i class="fa-solid fa-mobile-screen-button block text-lg mb-1"></i>Telefon</button>
+</div>
+</div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
+<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2 tracking-tight">Görsel Tema Tercihi</h3>
 <div class="space-y-3">
 <div>
 <label class="block text-xs text-slate-400 mb-1 font-medium">Sistem Teması Seçin (20 Farklı Tema)</label>
-<label class="flex items-center justify-between rounded border border-slate-800 bg-slate-950 p-3 text-xs font-semibold"><span><i class="fa-solid fa-moon mr-2 text-indigo-400"></i>Karanlık Mod</span><input id="setting-dark-mode-toggle" type="checkbox" class="w-4 h-4 accent-indigo-500" onchange="karanlikModuDegistir(this.checked)"/></label><select class="theme-input w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-xs md:text-sm focus:outline-none focus:border-amber-500 transition cursor-pointer" id="setting-theme-select" onchange="temaSecimindenDegistir(this)">
+<label class="flex items-center justify-between rounded border border-slate-800 bg-slate-950 p-3 text-xs font-semibold"><span><i class="fa-solid fa-moon mr-2 text-indigo-400"></i>Karanlık Mod</span><input class="w-4 h-4 accent-indigo-500" id="setting-dark-mode-toggle" onchange="karanlikModuDegistir(this.checked)" type="checkbox"/></label><select class="theme-input w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-xs md:text-sm focus:outline-none focus:border-amber-500 transition cursor-pointer" id="setting-theme-select" onchange="temaSecimindenDegistir(this)">
 <option value="dark">Koyu / Modern (Koyu Gri)</option>
 <option value="light">Açık / Ferah (Beyaz / Gri)</option>
 <option value="midnight">Gece Mavisi (Derin Mavi)</option>
@@ -1046,9 +1094,31 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 </div>
 </div>
 </div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
-<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2 tracking-tight">
-<i class="fa-solid fa-print text-blue-500"></i> 3. Satış &amp; Görünüm Tercihleri
-                    </h3>
+<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2 tracking-tight">Satış Ekranı Yazı Boyutu</h3>
+<p class="text-xs text-slate-400">Satış ekranındaki ürün, sepet ve ödeme yazılarının boyutunu ayarlayın.</p>
+<div class="flex items-center gap-3">
+<input class="w-full accent-emerald-500" id="setting-sales-font-size" max="20" min="11" oninput="satisYaziBoyutunuDegistir(this.value)" step="1" type="range" value="14"/>
+<span class="text-sm font-bold text-emerald-400 min-w-[3.5rem] text-right" id="setting-sales-font-size-value">14 px</span>
+</div>
+<div class="flex gap-2"><button class="theme-btn-alt flex-1 text-xs border border-slate-700 rounded py-2" onclick="satisYaziBoyutunuDegistir(12)" type="button">Küçük</button><button class="theme-btn-alt flex-1 text-xs border border-slate-700 rounded py-2" onclick="satisYaziBoyutunuDegistir(14)" type="button">Normal</button><button class="theme-btn-alt flex-1 text-xs border border-slate-700 rounded py-2" onclick="satisYaziBoyutunuDegistir(17)" type="button">Büyük</button></div>
+</div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
+<h3 class="text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2"><i class="fa-solid fa-keyboard text-cyan-400"></i>Klavye Kısayolları</h3>
+<p class="text-xs text-slate-400">Ödeme kısayolları sabittir. Diğer yardımcı kısayollar yalnızca satış ekranında çalışır.</p>
+<div class="grid grid-cols-2 gap-2 text-xs">
+<div class="flex justify-between rounded bg-slate-950 p-2"><b>F2</b><span>Nakit</span></div>
+<div class="flex justify-between rounded bg-slate-950 p-2"><b>F3</b><span>Kredi kartı</span></div>
+<div class="flex justify-between rounded bg-slate-950 p-2"><b>F4</b><span>Veresiye</span></div>
+<div class="flex justify-between rounded bg-slate-950 p-2"><b>F5</b><span>Alışveriş kartı</span></div>
+<div class="flex justify-between rounded bg-slate-950 p-2"><b>F6</b><span>Barkod alanı</span></div>
+
+</div>
+<p class="text-[10px] text-slate-500">Metin veya tutar alanına yazarken ödeme kısayolları devre dışıdır.</p>
+</div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg sm:col-span-2">
+<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5">Ödeme Özellikleri</h3>
+<label class="flex items-center justify-between gap-3 rounded border border-slate-800 bg-slate-950 p-3 text-xs"><span><b>Para üstü hesaplama</b><small class="block text-slate-400 mt-1">Nakit ödemede alınan tutarı girip para üstünü hesaplayın.</small></span><input class="w-4 h-4 accent-emerald-500" id="setting-change-toggle" onchange="odemeOzelliginiDegistir('paraUstuAktif',this.checked)" type="checkbox"/></label>
+<label class="flex items-center justify-between gap-3 rounded border border-slate-800 bg-slate-950 p-3 text-xs"><span><b>Parçalı ödeme ve açık bakiye</b><small class="block text-slate-400 mt-1">Bir satışta nakit/kart tahsil edin, kalanı müşteriye borç yazın.</small></span><input class="w-4 h-4 accent-emerald-500" id="setting-partial-toggle" onchange="odemeOzelliginiDegistir('parcaliOdemeAktif',this.checked)" type="checkbox"/></label>
+</div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
+<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2 tracking-tight">Satış Görünüm Tercihleri</h3>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
 <div class="theme-subbar flex items-center justify-between bg-slate-950 p-3 rounded border border-slate-800">
 <div>
@@ -1072,15 +1142,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 </div>
 </div>
 </div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
-<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2"><i class="fa-solid fa-display text-cyan-500"></i> Cihaz Görünümü</h3>
-<p class="text-[10px] text-slate-400">Arayüzü bilgisayar, tablet veya telefon genişliğinde önizleyin. Seçiminiz bu tarayıcıda saklanır.</p>
-<div class="grid grid-cols-3 gap-2">
-<button class="device-view-button bg-slate-800 hover:bg-emerald-700 border border-slate-700 rounded-lg px-2 py-3 text-xs font-semibold" data-device-view="bilgisayar" onclick="cihazGorunumunuAyarla('bilgisayar')" type="button"><i class="fa-solid fa-desktop block text-lg mb-1"></i>Bilgisayar</button>
-<button class="device-view-button bg-slate-800 hover:bg-emerald-700 border border-slate-700 rounded-lg px-2 py-3 text-xs font-semibold" data-device-view="tablet" onclick="cihazGorunumunuAyarla('tablet')" type="button"><i class="fa-solid fa-tablet-screen-button block text-lg mb-1"></i>Tablet</button>
-<button class="device-view-button bg-slate-800 hover:bg-emerald-700 border border-slate-700 rounded-lg px-2 py-3 text-xs font-semibold" data-device-view="telefon" onclick="cihazGorunumunuAyarla('telefon')" type="button"><i class="fa-solid fa-mobile-screen-button block text-lg mb-1"></i>Telefon</button>
-</div>
-</div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
-<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2"><i class="fa-solid fa-receipt text-blue-500"></i> Fiş İçeriği ve Yazdırma Tercihleri</h3>
+<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2">Fiş İçeriği ve Yazdırma Tercihleri</h3>
 <p class="text-[10px] text-slate-400">Fişte görünmesini istediğiniz alanları seçin. Seçimler otomatik kaydedilir.</p>
 <div class="space-y-1.5" id="receipt-fields-list"></div>
 <p class="text-[10px] text-slate-500">Oklarla alanların fişteki sırasını değiştirin; kutucuğu kapatarak alanı gizleyebilirsiniz.</p>
@@ -1095,59 +1157,23 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <div class="space-y-2" id="receipt-extra-list"></div>
 </div>
 </div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
-<div class="flex justify-between items-center border-b border-slate-800 pb-2.5">
-<h3 class="text-xs md:text-sm font-bold flex items-center gap-2 tracking-tight">
-<i class="fa-solid fa-users-gear text-amber-500"></i> 4. Sistem Kullanıcıları Yönetimi (Yetkili / Kasiyer)
-                        </h3>
-<button class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-3 py-1.5 rounded transition shadow" onclick="sistemKullaniciModaliniAc()" type="button">
-<i class="fa-solid fa-user-plus mr-1"></i> Yeni Kullanıcı Ekle
-                        </button>
-</div>
-<div class="overflow-x-auto">
-<table class="w-full text-left text-xs">
-<thead class="theme-table-header bg-slate-950 uppercase text-[10px] font-semibold">
-<tr>
-<th class="p-2.5">Kullanıcı Adı</th>
-<th class="p-2.5">Şifre</th>
-<th class="p-2.5">Rol / Yetki</th>
-<th class="p-2.5 text-center">İşlemler</th>
-</tr>
-</thead>
-<tbody class="divide-y divide-slate-800" id="system-users-table"></tbody>
-</table>
-</div>
-</div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
-<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2"><i class="fa-solid fa-calendar-days text-emerald-500"></i> 5. Çalışma Dönemleri</h3>
-<p class="text-[10px] text-slate-400">Her dönem ürün, müşteri, satış, kasa ve bekleyen sepet kayıtlarını ayrı tutar. Dönem değiştirmek için çıkış yapıp giriş ekranından dönem seçin.</p>
-<div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
-<input class="theme-input w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-xs focus:outline-none focus:border-emerald-500" id="new-period-name" maxlength="60" placeholder="Yeni dönem adı (örn. 2027 veya 2026-2027)" type="text"/>
-<button class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-2 rounded" onclick="donemEkle()" type="button"><i class="fa-solid fa-plus mr-1"></i>Dönem Ekle</button>
-</div>
-<div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="theme-table-header"><tr><th class="p-2">Dönem</th><th class="p-2">Durum</th><th class="p-2 text-right">İşlem</th></tr></thead><tbody id="periods-table"></tbody></table></div>
-</div><div class="grid grid-cols-1 gap-3.5 items-stretch">
-<div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
-<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2"><i class="fa-solid fa-fire-burner text-orange-400"></i> Mutfak Sistemi</h3>
+<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2">Mutfak Sistemi</h3>
 <div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold">Mutfak özelliğini etkinleştir</div><p class="text-xs text-slate-400 mt-1">Kapatıldığında yalnızca mutfak ekranı, sipariş kategorisi ve mutfak notu gizlenir.</p></div><label class="inline-flex items-center gap-2 text-xs font-bold"><input class="w-4 h-4 accent-emerald-500" id="setting-kitchen-enabled" onchange="mutfakSisteminiDegistir(this.checked)" type="checkbox"/> Açık</label></div>
 <div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold">Adisyon özelliğini etkinleştir</div><p class="text-xs text-slate-400 mt-1">Masa adisyonlarını açar veya gizler.</p></div><label class="inline-flex items-center gap-2 text-xs font-bold"><input class="w-4 h-4 accent-emerald-500" id="setting-adisyon-enabled" onchange="bagliOzelligiDegistir('adisyon',this.checked)" type="checkbox"/> Açık</label></div>
 <div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold">Müşteri siparişleri özelliğini etkinleştir</div><p class="text-xs text-slate-400 mt-1">QR menüden gelen siparişlerin takibini açar veya gizler.</p></div><label class="inline-flex items-center gap-2 text-xs font-bold"><input class="w-4 h-4 accent-emerald-500" id="setting-customerorders-enabled" onchange="bagliOzelligiDegistir('customerorders',this.checked)" type="checkbox"/> Açık</label></div>
-</div>
-<div class="theme-card bg-slate-900 p-4 rounded-lg border border-cyan-800 space-y-3 shadow-lg w-full min-w-0" id="customer-qr-settings">
-<h3 class="text-sm font-bold text-cyan-400"><i class="fa-solid fa-qrcode mr-2"></i>QR Menü ve Sipariş</h3>
+</div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-cyan-800 space-y-3 shadow-lg w-full min-w-0" id="customer-qr-settings">
+<h3 class="text-sm font-bold text-cyan-400">QR Menü ve Sipariş</h3>
 <p class="text-xs text-slate-400">Müşteriler QR kodu okutarak menüyü görüntüler ve sipariş verir. QR kodların çalışması için Firebase ve HTTPS gereklidir.</p>
 <div class="flex flex-wrap items-end gap-2">
-<label class="text-xs text-slate-300 flex flex-col gap-1">Sipariş türü<select id="customer-qr-type" onchange="musteriQrTurunuAyarla()" class="theme-input bg-slate-950 border border-slate-700 rounded p-2"><option value="masa">Masa</option><option value="paket">Paket Servis</option></select></label>
-<label id="customer-qr-table-field" class="text-xs text-slate-300 flex items-center gap-2">Masa numarası <input id="customer-qr-table" class="theme-input w-24 bg-slate-950 border border-slate-700 rounded p-2" value="1" maxlength="20"/></label>
-<label class="text-xs text-slate-300 flex items-center gap-2">Sorumlu garson <select id="customer-qr-waiter" class="theme-input bg-slate-950 border border-slate-700 rounded p-2"><option value="">Otomatik / ilk müsait</option></select></label>
-<button type="button" onclick="musteriQrOlustur()" class="bg-cyan-700 hover:bg-cyan-600 text-white rounded px-3 py-2 text-xs font-bold"><i class="fa-solid fa-qrcode mr-1"></i>QR Oluştur</button>
+<label class="text-xs text-slate-300 flex flex-col gap-1">Sipariş türü<select class="theme-input bg-slate-950 border border-slate-700 rounded p-2" id="customer-qr-type" onchange="musteriQrTurunuAyarla()"><option value="masa">Masa</option><option value="paket">Paket Servis</option></select></label>
+<label class="text-xs text-slate-300 flex items-center gap-2" id="customer-qr-table-field">Masa numarası <input class="theme-input w-24 bg-slate-950 border border-slate-700 rounded p-2" id="customer-qr-table" maxlength="20" value="1"/></label>
+<label class="text-xs text-slate-300 flex items-center gap-2">Sorumlu garson <select class="theme-input bg-slate-950 border border-slate-700 rounded p-2" id="customer-qr-waiter"><option value="">Otomatik / ilk müsait</option></select></label>
+<button class="bg-cyan-700 hover:bg-cyan-600 text-white rounded px-3 py-2 text-xs font-bold" onclick="musteriQrOlustur()" type="button"><i class="fa-solid fa-qrcode mr-1"></i>QR Oluştur</button>
 </div>
-<div class="border-t border-slate-700 pt-3"><h4 class="text-sm font-bold mb-2">Oluşturulan QR Kodlar</h4><div id="customer-qr-list" class="grid grid-cols-1 md:grid-cols-2 gap-3"><p class="text-xs text-slate-400">Henüz QR kod oluşturulmadı.</p></div></div>
-</div>
+<div class="border-t border-slate-700 pt-3"><h4 class="text-sm font-bold mb-2">Oluşturulan QR Kodlar</h4><div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="customer-qr-list"><p class="text-xs text-slate-400">Henüz QR kod oluşturulmadı.</p></div></div>
 </div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
-
 <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
-<h3 class="text-xs md:text-sm font-bold flex items-center gap-2 tracking-tight">
-<i class="fa-solid fa-database text-purple-500"></i> 6. Firebase Bulut Yedekleme Ayarları
-                        </h3>
+<h3 class="text-xs md:text-sm font-bold flex items-center gap-2 tracking-tight">Firebase Bulut Yedekleme Ayarları</h3>
 <label class="relative inline-flex items-center cursor-pointer">
 <input class="sr-only peer" id="setting-firebase-toggle" onchange="firebaseToggleDegisti(this)" type="checkbox"/>
 <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
@@ -1197,9 +1223,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 </div>
 </div>
 </div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg md:col-span-2">
-<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2 tracking-tight text-amber-500">
-<i class="fa-solid fa-file-arrow-down"></i> 6. Yerel Yedekleme &amp; Geri Yükleme
-                    </h3>
+<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2 tracking-tight text-amber-500">Yerel Yedekleme &amp; Geri Yükleme</h3>
 <p class="text-xs text-slate-400">Tüm verilerinizi JSON dosyası olarak bilgisayarınıza yedekleyin ya da geri yükleyin. Logo verisi tarayıcıda yerel saklanır; Excel, kamera, barkod ve bazı görünüm kaynakları için internet gerekebilir.</p>
 <div class="flex flex-col sm:flex-row gap-3 pt-1">
 <button class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-2.5 px-3 rounded text-xs transition flex items-center justify-center gap-2" onclick="tumVerileriExcelAktar()" type="button"><i class="fa-solid fa-file-excel"></i> Tüm Verileri Excel İndir</button>
@@ -1257,7 +1281,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <!-- ALIŞVERİŞ KARTI BAKİYE YÜKLEME MODALI -->
 <div class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-[180]" id="modal-card-topup"><div class="theme-card bg-slate-900 border border-slate-700 w-full max-w-sm rounded-lg p-5 space-y-3 shadow-2xl"><h3 class="text-sm font-bold border-b border-slate-800 pb-2">Alışveriş Kartına Para Yükle</h3><form class="space-y-3" onsubmit="alisverisKartiYukle(event)"><input id="card-topup-customer-id" type="hidden"/><div class="text-xs font-semibold text-cyan-400" id="card-topup-customer-name"></div><div><label class="block text-xs text-slate-400 mb-1" for="card-topup-amount">Yüklenecek tutar (₺)</label><input class="theme-input w-full bg-slate-950 border border-slate-700 rounded p-2.5 text-xs" id="card-topup-amount" min="0.01" required="" step="0.01" type="number"/></div><div class="flex gap-2"><button class="flex-1 py-2 bg-slate-800 rounded text-xs" onclick="modalKapat('modal-card-topup')" type="button">Vazgeç</button><button class="flex-1 py-2 bg-cyan-700 text-white rounded text-xs font-bold" type="submit">Yükle</button></div></form></div></div>
 <!-- ALIŞVERİŞ KARTI İLE SATIŞ MÜŞTERİ SEÇİMİ -->
-<div class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-[180]" id="modal-card-sale"><div class="theme-card bg-slate-900 border border-slate-700 w-full max-w-md rounded-lg p-5 space-y-3 shadow-2xl"><h3 class="text-sm font-bold border-b border-slate-800 pb-2">Alışveriş Kartı ile Ödeme</h3><p class="text-xs text-slate-400">Bakiyesi yeterli müşteriyi seçin. Satış tutarı kart bakiyesinden düşülür.</p><input class="theme-input w-full bg-slate-950 border border-slate-700 rounded p-2.5 text-xs" id="card-sale-customer-search" oninput="musteriListesiAra('card-sale-customer-search','card-sale-customer-list')" placeholder="Müşteri adı veya telefon ara..." type="search"><div class="max-h-72 overflow-y-auto space-y-2" id="card-sale-customer-list"></div><div class="flex justify-end"><button class="px-3 py-2 bg-slate-800 rounded text-xs" onclick="modalKapat('modal-card-sale')" type="button">Kapat</button></div></input></div></div>
+<div class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-[180]" id="modal-card-sale"><div class="theme-card bg-slate-900 border border-slate-700 w-full max-w-md rounded-lg p-5 space-y-3 shadow-2xl"><h3 class="text-sm font-bold border-b border-slate-800 pb-2">Alışveriş Kartı ile Ödeme</h3><p class="text-xs text-slate-400">Bakiyesi yeterli müşteriyi seçin. Satış tutarı kart bakiyesinden düşülür.</p><input class="theme-input w-full bg-slate-950 border border-slate-700 rounded p-2.5 text-xs" id="card-sale-customer-search" oninput="musteriListesiAra('card-sale-customer-search','card-sale-customer-list')" placeholder="Müşteri adı veya telefon ara..." type="search"/><div class="max-h-72 overflow-y-auto space-y-2" id="card-sale-customer-list"></div><div class="flex justify-end"><button class="px-3 py-2 bg-slate-800 rounded text-xs" onclick="modalKapat('modal-card-sale')" type="button">Kapat</button></div></div></div>
 <!-- FABRİKA AYARLARI YÖNETİCİ ŞİFRE MODALI -->
 <div class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-[220]" id="modal-factory-auth">
 <div class="theme-card bg-slate-900 border border-slate-700 w-full max-w-sm rounded-lg p-5 space-y-3 shadow-2xl">
@@ -1347,7 +1371,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <div class="bg-white text-slate-900 w-full max-w-xs rounded-lg p-4 space-y-3 shadow-2xl font-mono text-center">
 <div class="bg-white grid grid-cols-1 gap-2" id="label-print-area">
 <div class="label-item p-2.5 space-y-1.5 text-center">
-<h4 id="lbl-company" class="lbl-company text-[11px] font-bold uppercase tracking-wider text-slate-700">HIZLI POS PRO</h4>
+<h4 class="lbl-company text-[11px] font-bold uppercase tracking-wider text-slate-700" id="lbl-company">HIZLI POS PRO</h4>
 <div class="lbl-name text-xs font-bold text-slate-900 leading-tight">Ürün Adı</div>
 <div class="py-1 flex justify-center"><svg class="lbl-barcode-svg"></svg></div>
 <div class="lbl-price text-base font-bold text-emerald-600">₺0.00</div>
@@ -1597,9 +1621,9 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <p class="text-[10px] text-slate-400">Kullanıcının erişebileceği bölümleri seçin. Ayarlar yalnızca yöneticiye açıktır.</p>
 <div class="grid grid-cols-2 gap-2 text-xs">
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="sales"/> Satış bölümüne erişim</label>
-<label class="flex items-center gap-2"><input class="sysuser-permission" type="checkbox" value="kitchen"/> Mutfak bölümüne erişim</label><label class="flex items-center gap-2"><input class="sysuser-permission" type="checkbox" value="waiter"/> Garson bölümüne erişim</label>
-<label class="flex items-center gap-2"><input checked class="sysuser-permission" type="checkbox" value="adisyon"/> Adisyon bölümüne erişim</label>
-<label class="flex items-center gap-2"><input checked class="sysuser-permission" type="checkbox" value="customerorders"/> Müşteri siparişlerini takip etme</label>
+<label class="flex items-center gap-2"><input class="sysuser-permission" type="checkbox" value="kitchen"/> Mutfak bölümüne erişim</label>
+<label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="adisyon"/> Adisyon bölümüne erişim</label>
+<label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="customerorders"/> Müşteri siparişlerini takip etme</label>
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="products"/> Ürünler bölümüne erişim</label>
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="cash"/> Kasa bölümüne erişim</label>
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="history"/> Satışlar bölümüne erişim</label>
@@ -1648,12 +1672,12 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <div class="fixed inset-0 bg-black/75 backdrop-blur-md hidden items-center justify-center p-4 z-50" id="modal-veresiye-select">
 <div class="theme-card bg-slate-900 border border-slate-700 w-full max-w-md rounded-lg p-5 space-y-3 shadow-2xl">
 <h3 class="text-sm md:text-base font-bold border-b border-slate-800 pb-2.5 text-amber-500 tracking-tight">Veresiye İçin Müşteri Seçin</h3>
-<input class="theme-input w-full bg-slate-950 border border-slate-700 rounded p-2.5 text-xs" id="veresiye-customer-search" oninput="musteriListesiAra('veresiye-customer-search','veresiye-customer-list')" placeholder="Müşteri adı, telefon veya açıklama ara..." type="search">
+<input class="theme-input w-full bg-slate-950 border border-slate-700 rounded p-2.5 text-xs" id="veresiye-customer-search" oninput="musteriListesiAra('veresiye-customer-search','veresiye-customer-list')" placeholder="Müşteri adı, telefon veya açıklama ara..." type="search"/>
 <div class="max-h-60 overflow-y-auto space-y-2" id="veresiye-customer-list"></div>
 <div class="flex justify-end pt-2.5 border-t border-slate-800">
 <button class="theme-btn-alt px-3.5 py-2 bg-slate-800 hover:bg-slate-700 rounded text-xs font-semibold transition" onclick="modalKapat('modal-veresiye-select')" type="button">Vazgeç</button>
 </div>
-</input></div>
+</div>
 </div>
 <!-- JAVASCRIPT KODLARI -->
 <script>
@@ -1751,6 +1775,8 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             sirketAdi: 'Hızlı Satış Programı',
             logoDataUrl: '',
             otomatikYazdir: false,
+            paraUstuAktif: false,
+            parcaliOdemeAktif: false,
             fisYazdirmaModu: 'toplu',
             tema: 'dark',
             satisYaziBoyutu: 14,
@@ -1847,6 +1873,44 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             { key:'tesekkur', label:'Teşekkür mesajı', id:'receipt-field-tesekkur', checkbox:'receipt-show-footer' }
         ];
 
+        // Firebase'e yalnızca kullanıcının ortak cihazlarda paylaşılmasını istediği ayar grupları yazılır.
+        // Tema, yazı boyutu, cihaz görünümü ve diğer kişisel tercihler yalnızca bu cihazda kalır.
+        function bulutAyarlariniHazirla() {
+            const a = sistemAyarlari || {};
+            return {
+                ayarlarGuncellemeZamani: Number(a.ayarlarGuncellemeZamani) || Date.now(),
+                sirketAdi: a.sirketAdi || '',
+                logoDataUrl: a.logoDataUrl || '',
+                fisAlanlari: { ...(a.fisAlanlari || {}) },
+                fisEkBilgiler: Array.isArray(a.fisEkBilgiler) ? a.fisEkBilgiler : [],
+                otomatikYazdir: Boolean(a.otomatikYazdir),
+                fisYazdirmaModu: a.fisYazdirmaModu || 'toplu',
+                mutfakAktif: a.mutfakAktif === true,
+                ozellikler: {
+                    adisyon: a.ozellikler?.adisyon === true,
+                    customerorders: a.ozellikler?.customerorders === true
+                },
+                customerQrLinks: Array.isArray(a.customerQrLinks) ? a.customerQrLinks : []
+            };
+        }
+
+        function bulutAyarlariniYerelAyarlarlaBirlestir(bulut) {
+            if (!bulut || typeof bulut !== 'object') return;
+            // Yalnızca izin verilen ortak alanları buluttan al; diğer tüm ayarlar cihazda kalır.
+            ['sirketAdi','logoDataUrl','fisAlanlari','fisEkBilgiler','otomatikYazdir','fisYazdirmaModu','mutfakAktif','customerQrLinks'].forEach(k => {
+                if (Object.prototype.hasOwnProperty.call(bulut, k)) sistemAyarlari[k] = bulut[k];
+            });
+            if (bulut.ozellikler && typeof bulut.ozellikler === 'object') {
+                sistemAyarlari.ozellikler = { ...(sistemAyarlari.ozellikler || {}) };
+                ['adisyon','customerorders'].forEach(k => {
+                    if (Object.prototype.hasOwnProperty.call(bulut.ozellikler, k)) sistemAyarlari.ozellikler[k] = bulut.ozellikler[k];
+                });
+            }
+            if (Object.prototype.hasOwnProperty.call(bulut, 'ayarlarGuncellemeZamani')) {
+                sistemAyarlari.ayarlarGuncellemeZamani = Number(bulut.ayarlarGuncellemeZamani) || 0;
+            }
+        }
+
         async function firebaseVerileriniYukle() {
             if (!(window.firebaseReady && window.database && window.dbGet && window.dbRef)) return false;
             const db = window.database;
@@ -1860,32 +1924,14 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                 ]);
                 if (settingsSnap.exists() && settingsSnap.val() && typeof settingsSnap.val() === 'object') {
                     const bulutAyarlari = settingsSnap.val();
-                    const yerelAyarlar = { ...sistemAyarlari };
-                    const yerelRevizyon = Number(yerelAyarlar.ayarlarGuncellemeZamani) || 0;
+                    const yerelRevizyon = Number(sistemAyarlari.ayarlarGuncellemeZamani) || 0;
                     const bulutRevizyon = Number(bulutAyarlari.ayarlarGuncellemeZamani) || 0;
                     const yerelDahaYeni = yerelRevizyon > bulutRevizyon;
                     const yerelIlkKurulumTamam = sistemAyarlari.ozellikIlkKurulumV1Tamamlandi === true;
-                    const yerelOzellikSecimleri = {
-                        mutfakAktif: sistemAyarlari.mutfakAktif,
-                        adisyon: sistemAyarlari.ozellikler?.adisyon,
-                        customerorders: sistemAyarlari.ozellikler?.customerorders
-                    };
                     const bulutIlkKurulumTamam = bulutAyarlari.ozellikIlkKurulumV1Tamamlandi === true;
-                    // Bağlantı bilgileri cihazda kalır; diğer tüm program tercihleri buluttan eşitlenir.
-                    const yerelBaglanti = { firebaseConfig: sistemAyarlari.firebaseConfig, kokDugum: sistemAyarlari.kokDugum };
-                    sistemAyarlari = {
-                        ...(yerelDahaYeni ? { ...bulutAyarlari, ...yerelAyarlar } : { ...yerelAyarlar, ...bulutAyarlari }),
-                        ...yerelBaglanti,
-                        ozellikler: yerelDahaYeni
-                            ? { ...(bulutAyarlari.ozellikler || {}), ...(yerelAyarlar.ozellikler || {}) }
-                            : { ...(yerelAyarlar.ozellikler || {}), ...(bulutAyarlari.ozellikler || {}) }
-                    };
-                    // Yerel cihaz ilk kurulumu tamamladıysa ve eski bulut kaydında geçiş işareti yoksa,
-                    // çevrimdışı yapılan son kullanıcı seçimini koruyup buluta aktar.
+                    // Yalnızca izin verilen ortak ayar grupları buluttan alınır. Diğer ayarlar yerelde kalır.
+                    if (!yerelDahaYeni) bulutAyarlariniYerelAyarlarlaBirlestir(bulutAyarlari);
                     if (yerelIlkKurulumTamam && !bulutIlkKurulumTamam) {
-                        sistemAyarlari.mutfakAktif = yerelOzellikSecimleri.mutfakAktif;
-                        sistemAyarlari.ozellikler.adisyon = yerelOzellikSecimleri.adisyon;
-                        sistemAyarlari.ozellikler.customerorders = yerelOzellikSecimleri.customerorders;
                         sistemAyarlari.ozellikIlkKurulumV1Tamamlandi = true;
                     }
                     ozellikVarsayilanlariniTamamla();
@@ -2038,7 +2084,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                 girisFormu.dataset.loginHandlerBound = 'true';
                 girisFormu.addEventListener('submit', girisKontrol);
             }
-            firebaseCanliEsitlemeyiBaslat();
+            firebaseCanliEsitlemeyiBaslat(true);
 
             document.addEventListener('click', (e) => {
                 const dropdown = document.getElementById('auth-dropdown-list');
@@ -2657,7 +2703,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                     if (baglandi) {
                         try {
                             await firebaseVerileriniYukle();
-                            firebaseCanliEsitlemeyiBaslat();
+                            firebaseCanliEsitlemeyiBaslat(true);
                             // Bulutta mevcut olmayan alanlar yerelde korunur; mevcut bulut alanları Firebase'den gelen değerle başlar.
                             durumuKaydet();
                         } catch (hata) {
@@ -2785,9 +2831,34 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                 const veri = snap.exists() ? snap.val() : null;
                 const kullaniciListesi = kullanicilariDiziyeCevir(veri);
                 if (kullaniciListesi.length) {
+                    // Bulutta kullanıcılar bulunsa bile yereldeki varsayılan Admin hesabı
+                    // bulutta yoksa listeye eklenir. Önceki sürümde bulut listesi yerel
+                    // listeyi tamamen ezdiği için Admin aktarılmadan kaybolabiliyordu.
+                    const normalizeAd = v => String(v ?? '').trim().toLocaleLowerCase('tr-TR');
+                    const yerelListe = kullanicilariDiziyeCevir(sistemKullanicilari);
+                    const yerelAdmin = yerelListe.find(u => normalizeAd(u.name) === 'admin' ||
+                        ['admin', 'yönetici', 'yonetici'].includes(normalizeAd(u.role)));
+                    const buluttaAdminVar = kullaniciListesi.some(u => normalizeAd(u.name) === 'admin' ||
+                        ['admin', 'yönetici', 'yonetici'].includes(normalizeAd(u.role)));
+                    if (yerelAdmin && !buluttaAdminVar) {
+                        kullaniciListesi.push(yerelAdmin);
+                        await window.dbSet(window.dbRef(window.database, `${kok}/sistem_kullanicilari`), kullaniciListesi);
+                        console.info('Yerel Admin hesabı Firebase kullanıcı listesine eklendi.');
+                    }
                     sistemKullanicilari = kullaniciListesi;
                     try { localStorage.setItem('pos_system_users_v4', JSON.stringify(sistemKullanicilari)); } catch (_) {}
                     girisDropdownKullanicilariniGoster();
+                    return true;
+                }
+                // Firebase'de henüz kullanıcı yoksa yerel kullanıcı listesini (Yönetici dahil)
+                // ilk kez buluta aktar. Böylece yönetici hesabı diğer cihazlarda da görünür.
+                const yerelKullanicilar = kullanicilariDiziyeCevir(sistemKullanicilari);
+                if (yerelKullanicilar.length && window.dbSet) {
+                    await window.dbSet(window.dbRef(window.database, `${kok}/sistem_kullanicilari`), yerelKullanicilar);
+                    sistemKullanicilari = yerelKullanicilar;
+                    try { localStorage.setItem('pos_system_users_v4', JSON.stringify(sistemKullanicilari)); } catch (_) {}
+                    girisDropdownKullanicilariniGoster();
+                    console.info('Yerel kullanıcılar (Yönetici dahil) Firebase’e ilk kez kaydedildi.');
                     return true;
                 }
             } catch (err) { console.warn('Bulut kullanıcıları okunamadı; yerel kullanıcılar kullanılacak:', err); }
@@ -2841,6 +2912,8 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                 catch (hata) { console.warn('Dönem verisi yüklenemedi; yerel verilerle devam ediliyor:', hata); }
                 try { await firebaseVerileriniYukle(); }
                 catch (hata) { console.warn('Bulut verileri yüklenemedi; yerel verilerle devam ediliyor:', hata); }
+                // Canlı dinleyiciler, girişte seçilen gerçek döneme yeniden bağlanmalıdır.
+                try { firebaseCanliEsitlemeyiBaslat(true); } catch (hata) { console.warn('Firebase canlı eşitleme başlatılamadı:', hata); }
                 try { firmaAyarlariniUygula(); } catch (hata) { console.warn(hata); }
                 try { temaUygula(); } catch (hata) { console.warn(hata); }
                 try { donemSecenekleriniGuncelle(); } catch (hata) { console.warn(hata); }
@@ -3055,7 +3128,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                         try {
                             // Ayar kaydında da önce buluttaki mevcut veri okunur; eski yerel kopya doğrudan buluta yazılmaz.
                             await firebaseVerileriniYukle();
-                            firebaseCanliEsitlemeyiBaslat();
+                            firebaseCanliEsitlemeyiBaslat(true);
                             durumuKaydet();
                             bulutMesaji = 'Firebase verileri önce yüklendi, ardından yerel kayıtlar güncellendi.';
                         } catch (bulutHatasi) {
@@ -3093,10 +3166,24 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             await Promise.all(yazmalar);
         }
 
+        // Firebase ayarı kayıtlıyken başlık ve yapılandırma alanları kilitlenir.
+        // Kullanıcı yalnızca "Forma Yükle" ile düzenleme modunu açabilir.
+        function firebaseFormAlanlariniKilitle(kilitli) {
+            const kokAlani = document.getElementById('setting-root-node');
+            const configAlani = document.getElementById('setting-firebase-config');
+            [kokAlani, configAlani].forEach(alan => {
+                if (!alan) return;
+                alan.disabled = Boolean(kilitli);
+                alan.classList.toggle('opacity-60', Boolean(kilitli));
+                alan.classList.toggle('cursor-not-allowed', Boolean(kilitli));
+            });
+        }
+
         function firebaseKayitlariniCiz() {
             const liste = document.getElementById('firebase-saved-records');
             if (!liste) return;
             const kayitlar = Array.isArray(sistemAyarlari.firebaseKayitlari) ? sistemAyarlari.firebaseKayitlari : [];
+            firebaseFormAlanlariniKilitle(kayitlar.length > 0);
             if (!kayitlar.length) {
                 liste.innerHTML = '<div class="text-xs text-slate-500 p-3 rounded border border-slate-800">Henüz kayıt yok.</div>';
                 return;
@@ -3123,7 +3210,8 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             if (!kayit) return;
             document.getElementById('setting-root-node').value = kayit.kokDugum || '';
             document.getElementById('setting-firebase-config').value = JSON.stringify(kayit.firebaseConfig || {}, null, 2);
-            onayModaliniGoster('Kayıt forma yüklendi', 'Bilgileri düzenleyebilir ve tekrar kaydedebilirsiniz.', null, true);
+            firebaseFormAlanlariniKilitle(false);
+            onayModaliniGoster('Kayıt forma yüklendi', 'Başlık ve yapılandırma alanları düzenlemeye açıldı.', null, true);
         }
 
         function firebaseKaydiniSil(id) {
@@ -3267,16 +3355,24 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             sistemAyarlariKaydet();
         }
 
-        function bulutAyarlariniHazirla() {
-            const kopya = { ...(sistemAyarlari || {}) };
-            // Bağlantı anahtarları cihazda kalır; yedekleme ve özellik şalterleri ortak ayarlara yazılır.
-            delete kopya.firebaseConfig;
-            delete kopya.kokDugum;
-            return kopya;
-        }
-
         function sistemAyarlariKaydet(bulutaZorla = false) {
-            sistemAyarlari.ayarlarGuncellemeZamani = Math.max(Date.now(), (Number(sistemAyarlari.ayarlarGuncellemeZamani) || 0) + 1);
+            // Revizyonu yalnızca Firebase ile paylaşılacak alanlar değiştiğinde artır.
+            // Tema, yazı boyutu ve diğer cihaz-özel tercihler bulut senkronunu tetiklemez.
+            let ortakAyarDegisti = true;
+            try {
+                const oncekiYerel = JSON.parse(localStorage.getItem('pos_system_settings_v4') || '{}');
+                const ortakAlanlar = a => ({
+                    sirketAdi:a.sirketAdi||'', logoDataUrl:a.logoDataUrl||'', fisAlanlari:a.fisAlanlari||{},
+                    fisEkBilgiler:a.fisEkBilgiler||[], otomatikYazdir:Boolean(a.otomatikYazdir),
+                    fisYazdirmaModu:a.fisYazdirmaModu||'toplu', mutfakAktif:a.mutfakAktif===true,
+                    ozellikler:{adisyon:a.ozellikler?.adisyon===true,customerorders:a.ozellikler?.customerorders===true},
+                    customerQrLinks:a.customerQrLinks||[]
+                });
+                ortakAyarDegisti = JSON.stringify(ortakAlanlar(oncekiYerel)) !== JSON.stringify(ortakAlanlar(sistemAyarlari));
+            } catch (_) {}
+            if (ortakAyarDegisti || bulutaZorla) {
+                sistemAyarlari.ayarlarGuncellemeZamani = Math.max(Date.now(), (Number(sistemAyarlari.ayarlarGuncellemeZamani) || 0) + 1);
+            }
             firebaseDurumunuYerelKaydaYaz();
             try { localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari)); }
             catch (hata) { console.warn('Ayarlar yerel olarak kaydedilemedi:', hata); }
@@ -3333,30 +3429,33 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
         }
 
         let firebaseLiveSyncStarted = false;
-        function firebaseCanliEsitlemeyiBaslat() {
-            if (firebaseLiveSyncStarted || !(window.firebaseReady && window.database && window.dbOnValue && window.dbRef)) return;
-            firebaseLiveSyncStarted = true;
+        let firebaseLiveSyncUnsubscribers = [];
+        let firebaseLiveSyncKey = '';
+        function firebaseCanliEsitlemeyiBaslat(force = false) {
+            if (!(window.firebaseReady && window.database && window.dbOnValue && window.dbRef)) return;
             const root = kokDugumGetir();
             const period = String(aktifDonemId);
-            window.dbOnValue(window.dbRef(window.database, `${root}/ayarlar`), snap => {
+            const syncKey = `${root}::${period}`;
+            if (!force && firebaseLiveSyncStarted && firebaseLiveSyncKey === syncKey) return;
+            // Kullanıcı giriş yaptığında veya dönem/Firebase projesi değiştiğinde eski dinleyicileri kapat.
+            firebaseLiveSyncUnsubscribers.forEach(unsubscribe => { try { if (typeof unsubscribe === 'function') unsubscribe(); } catch (_) {} });
+            firebaseLiveSyncUnsubscribers = [];
+            firebaseLiveSyncStarted = true;
+            firebaseLiveSyncKey = syncKey;
+            firebaseLiveSyncUnsubscribers.push(window.dbOnValue(window.dbRef(window.database, `${root}/ayarlar`), snap => {
                 if (!snap.exists()) return;
                 const bulutAyarlari = snap.val();
                 if (!bulutAyarlari || typeof bulutAyarlari !== 'object') return;
                 const bulutRevizyon = Number(bulutAyarlari.ayarlarGuncellemeZamani) || 0;
                 const yerelRevizyon = Number(sistemAyarlari.ayarlarGuncellemeZamani) || 0;
                 if (bulutRevizyon <= yerelRevizyon) return;
-                const yerelBaglanti = { firebaseConfig: sistemAyarlari.firebaseConfig, kokDugum: sistemAyarlari.kokDugum };
-                sistemAyarlari = {
-                    ...sistemAyarlari,
-                    ...bulutAyarlari,
-                    ...yerelBaglanti,
-                    ozellikler: { ...(sistemAyarlari.ozellikler || {}), ...(bulutAyarlari.ozellikler || {}) }
-                };
+                // Canlı eşitlemede de yalnızca ortak olarak seçilen ayar grupları güncellenir.
+                bulutAyarlariniYerelAyarlarlaBirlestir(bulutAyarlari);
                 ozellikVarsayilanlariniTamamla();
                 firebaseDurumunuYerelKaydaYaz();
                 try { localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari)); } catch (_) {}
                 firebaseAyarlariniArayuzeUygula();
-            }, hata => console.error('Firebase ortak ayarları canlı eşitlenemedi:', hata));
+            }, hata => console.error('Firebase ortak ayarları canlı eşitlenemedi:', hata)));
             const arrayFields = [
                 ['urunler', 'urunler', 'pos_products_v4'],
                 ['kategoriler', 'kategorilerListesi', 'pos_categories_v4'],
@@ -3367,7 +3466,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                 ['acik_adisyonlar', 'acikAdisyonlar', 'pos_open_adisyon_v1']
             ];
             arrayFields.forEach(([cloudKey, variable, localKey]) => {
-                window.dbOnValue(window.dbRef(window.database, `${root}/${period}/${cloudKey}`), snap => {
+                firebaseLiveSyncUnsubscribers.push(window.dbOnValue(window.dbRef(window.database, `${root}/${period}/${cloudKey}`), snap => {
                     // Boş/henüz oluşturulmamış bir bulut düğümü, cihazdaki veriyi silmemeli.
                     if (!snap.exists() || !Array.isArray(snap.val())) return;
                     const value = snap.val();
@@ -3390,24 +3489,24 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                     if (variable === 'urunler' || variable === 'kategorilerListesi') { kategoriListesiniGuncelle(); kategorileriOlustur(); urunleriGoster(); }
                     if (variable === 'satisGecmisi' || variable === 'acikAdisyonlar') { adisyonlariGoster(); mutfakEkraniniGuncelle(); }
                     if (variable === 'bekleyenSepetler') bekleyenSepetSayisiniGuncelle();
-                }, error => console.error(`${cloudKey} canlı eşitleme hatası:`, error));
+                }, error => console.error(`${cloudKey} canlı eşitleme hatası:`, error)));
             });
             // QR siparişleri ayrı nesne olarak gelir; hem yerel önbelleğe hem açık ekrana yazılır.
             customerOrderListenerBound = true;
-            window.dbOnValue(window.dbRef(window.database, `${root}/${period}/musteri_siparisleri`), snap => {
+            firebaseLiveSyncUnsubscribers.push(window.dbOnValue(window.dbRef(window.database, `${root}/${period}/musteri_siparisleri`), snap => {
                 const raw = snap.exists() ? snap.val() : {};
                 customerOrderRecords = Object.values(raw || {}).filter(o => o && typeof o === 'object').sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
                 try { localStorage.setItem('pos_customer_orders_cache_v1', JSON.stringify(customerOrderRecords)); } catch (_) {}
                 musteriSiparisleriniGoster();
-            }, error => console.error('Müşteri siparişleri canlı eşitleme hatası:', error));
-            window.dbOnValue(window.dbRef(window.database, `${root}/sistem_kullanicilari`), snap => {
+            }, error => console.error('Müşteri siparişleri canlı eşitleme hatası:', error)));
+            firebaseLiveSyncUnsubscribers.push(window.dbOnValue(window.dbRef(window.database, `${root}/sistem_kullanicilari`), snap => {
                 if (!snap.exists()) return;
                 const users = kullanicilariDiziyeCevir(snap.val());
                 if (!users.length) return;
                 sistemKullanicilari = users;
                 try { localStorage.setItem('pos_system_users_v4', JSON.stringify(users)); } catch (_) {}
                 try { sistemKullanicilariTablosunuGuncelle(); girisDropdownKullanicilariniGoster(); } catch (_) {}
-            }, error => console.error('Kullanıcılar canlı eşitleme hatası:', error));
+            }, error => console.error('Kullanıcılar canlı eşitleme hatası:', error)));
         }
 
         function firebaseDizisiniGuvenliKaydet(yol, yerelDizi, etiket, alanAnahtari, degiskenAdi, yerelAnahtar) {
@@ -3516,7 +3615,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             const noteFields = document.getElementById('cart-kitchen-note-fields'); if (noteFields) noteFields.classList.toggle('hidden', !aktif);
             const adisyonSave = document.getElementById('cart-adisyon-save-button'); if (adisyonSave) adisyonSave.classList.toggle('hidden', !aktif);
             const waiterField = document.getElementById('cart-waiter-field-wrapper'); if (waiterField) waiterField.classList.toggle('hidden', !aktif || sistemAyarlari.garsonAktif === false);
-            const waiterTab = document.getElementById('tab-waiter'); if (waiterTab) waiterTab.classList.toggle('hidden', !aktif || sistemAyarlari.garsonAktif === false || !kullaniciYetkisiVar('waiter'));
+            const waiterTab = document.getElementById('tab-waiter'); if (waiterTab) waiterTab.classList.toggle('hidden', !aktif || sistemAyarlari.garsonAktif === false);
             const waiterSection = document.getElementById('section-waiter'); if (!aktif && waiterSection) { waiterSection.classList.add('hidden'); waiterSection.classList.remove('flex'); }
             ['adisyon','customerorders'].forEach(name => {
                 const enabled = sistemAyarlari.ozellikler?.[name] === true;
@@ -3539,15 +3638,18 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             const aktif = sistemAyarlari.garsonAktif !== false;
             const kitchenEnabled = sistemAyarlari.mutfakAktif === true;
             const waiterField = document.getElementById('cart-waiter-field-wrapper'); if (waiterField) waiterField.classList.toggle('hidden', !aktif || !kitchenEnabled);
-            const tab = document.getElementById('tab-waiter'); if (tab) tab.classList.toggle('hidden', !aktif || !kitchenEnabled || !kullaniciYetkisiVar('waiter'));
+            const tab = document.getElementById('tab-waiter'); if (tab) tab.classList.toggle('hidden', !aktif || !kitchenEnabled);
             const section = document.getElementById('section-waiter'); if ((!aktif || !kitchenEnabled) && section) { section.classList.add('hidden'); section.classList.remove('flex'); }
         }
         function garsonSecenekleriniGuncelle() {
             const select = document.getElementById('cart-waiter'); if (!select) return;
-            const old = select.value; const users = Array.isArray(sistemKullanicilari) ? sistemKullanicilari : [];
-            const names = [...new Set([aktifKullaniciAdi, ...users.map(u => u.name)].filter(Boolean))];
-            select.innerHTML = names.map(n => `<option value="${htmlGuvenli(n)}">${htmlGuvenli(n)}</option>`).join('');
-            if (names.includes(old)) select.value = old; else if (names.includes(aktifKullaniciAdi)) select.value = aktifKullaniciAdi;
+            const currentUser = String(aktifKullaniciAdi || '').trim();
+            select.innerHTML = currentUser
+                ? `<option value="${htmlGuvenli(currentUser)}">${htmlGuvenli(currentUser)}</option>`
+                : '<option value="">Oturum açan kullanıcı</option>';
+            select.value = currentUser;
+            select.disabled = true;
+            select.title = 'Garson olarak oturum açan kullanıcı otomatik atanır.';
         }
         function garsonEkraniniGuncelle() {
             const host = document.getElementById('waiter-orders'); if (!host) return;
@@ -4249,7 +4351,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                         <div class="flex items-start justify-between">
                             <span class="sales-product-barcode ${badgeBg} px-1 py-0.2 rounded border font-mono">${htmlGuvenli(p.barcode || '')}</span>
                             <div class="flex items-center space-x-0.5">
-                                ${yenidenSiralaYetkisi ? `<button onclick="urunSirasiDegistir('${safeId}', -1)" type="button" class="opacity-70 hover:opacity-100 hover:text-emerald-500 p-0.5 text-[9px]" title="Sırayı Sola / Üste Taşı"><i class="fa-solid fa-chevron-left"></i></button><button onclick="urunSirasiDegistir('${safeId}', 1)" type="button" class="opacity-70 hover:opacity-100 hover:text-emerald-500 p-0.5 text-[9px]" title="Sırayı Sağa / Alta Taşı"><i class="fa-solid fa-chevron-right"></i></button><button type="button" class="product-drag-handle opacity-70 hover:opacity-100 hover:text-cyan-500 px-1 py-0.5 text-[10px]" title="Tut ve sürükleyerek taşı" aria-label="Ürünü sürükleyerek taşı"><i class="fa-solid fa-grip-vertical"></i></button>` : ''}
+                                ${yenidenSiralaYetkisi ? `<button type="button" class="product-drag-handle opacity-70 hover:opacity-100 hover:text-cyan-500 px-1 py-0.5 text-[10px]" title="Tut ve sürükleyerek taşı" aria-label="Ürünü sürükleyerek taşı"><i class="fa-solid fa-grip-vertical"></i></button>` : ''}
                             </div>
                         </div>
                         <div onclick="${tukendiMi ? '' : `sepeteEkle('${safeId}')`}" class="my-1 flex items-center space-x-1 cursor-pointer">
@@ -4420,7 +4522,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             const now = Date.now();
             const old = aktifAdisyonId ? acikAdisyonlar.find(a => String(a.id) === String(aktifAdisyonId) && a.status !== 'closed') : null;
             const ad = old || { id: 'A-' + now, createdAt: now, createdLabel: new Date(now).toLocaleString('tr-TR'), status: 'open' };
-            ad.masa = masa; ad.garson = (document.getElementById('cart-waiter')?.value || aktifKullaniciAdi || '').trim();
+            ad.masa = masa; ad.garson = String(aktifKullaniciAdi || '').trim();
             ad.note = (document.getElementById('cart-kitchen-note')?.value || '').trim();
             ad.items = JSON.parse(JSON.stringify(sepet)); ad.discount = discount; ad.updatedAt = now; ad.updatedLabel = new Date(now).toLocaleString('tr-TR'); ad.kasiyer = aktifKullaniciAdi || '';
             ad.kitchenStatus = 'new'; ad.kitchenCreatedAt = now; ad.kitchenNote = ad.note; ad.date = ad.updatedLabel; ad.orderType = document.getElementById('cart-order-type')?.value || 'Masa';
@@ -4475,6 +4577,118 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 </body></html>`); w.document.close();
         }
 
+        function odemeOzelliginiDegistir(alan, aktif) {
+            if (!['paraUstuAktif', 'parcaliOdemeAktif'].includes(alan)) return;
+            sistemAyarlari[alan] = Boolean(aktif);
+            sistemAyarlariKaydet();
+            const btn = document.getElementById('sales-partial-button');
+            if (btn) btn.classList.toggle('hidden', sistemAyarlari.parcaliOdemeAktif !== true);
+        }
+
+        function odemeAyarlariniEkranaYansit() {
+            const para = document.getElementById('setting-change-toggle');
+            const parcali = document.getElementById('setting-partial-toggle');
+            if (para) para.checked = sistemAyarlari.paraUstuAktif === true;
+            if (parcali) parcali.checked = sistemAyarlari.parcaliOdemeAktif === true;
+            const btn = document.getElementById('sales-partial-button');
+            if (btn) btn.classList.toggle('hidden', sistemAyarlari.parcaliOdemeAktif !== true);
+        }
+
+        function odemeButonundanBaslat(type) {
+            // Nakit butonu yalnızca nakit tahsilat ekranını açar; parçalı ödeme ayrı butondadır.
+            if (type === 'Nakit' && sistemAyarlari.paraUstuAktif === true) { nakitOdemeBaslat(); return; }
+            odemeYap(type);
+        }
+
+        function nakitOdemeBaslat() {
+            odemeModaliniAc('cash');
+        }
+
+        function parcaliOdemeBaslat() {
+            if (sistemAyarlari.parcaliOdemeAktif !== true) return;
+            odemeModaliniAc('partial');
+        }
+
+        function odemeModaliniAc(mode) {
+            if (sistemAyarlari.paraUstuAktif !== true && sistemAyarlari.parcaliOdemeAktif !== true) return;
+            if (!sepet.length) { onayModaliniGoster('Sepet boş', 'Ödeme almak için önce ürün ekleyin.', null, true); return; }
+            const subtotal = sepet.reduce((sum, i) => sum + Number(i.product.price || 0) * Number(i.qty || 0), 0);
+            const discount = Math.max(0, Number(document.getElementById('cart-discount')?.value) || 0);
+            const total = Math.max(0, subtotal - discount);
+            window.__posPaymentMode = mode || 'partial';
+            const isCashMode = window.__posPaymentMode === 'cash';
+            const title = document.getElementById('payment-modal-title');
+            if (title) title.textContent = isCashMode ? 'Nakit tahsilat' : 'Parçalı ödeme';
+            const cardWrap = document.getElementById('payment-card-wrap');
+            const otherWrap = document.getElementById('payment-other-wrap');
+            const cashSummary = document.getElementById('payment-modal-cash-summary');
+            if (cardWrap) cardWrap.classList.toggle('hidden', isCashMode);
+            if (otherWrap) otherWrap.classList.toggle('hidden', isCashMode);
+            if (cashSummary) cashSummary.classList.remove('hidden');
+            const totalEl = document.getElementById('payment-modal-total');
+            if (totalEl) totalEl.textContent = '₺' + total.toFixed(2);
+            const customerSelect = document.getElementById('payment-modal-customer');
+            if (customerSelect) customerSelect.innerHTML = '<option value="">Müşteri seçin...</option>' + [...musteriler].sort((a,b)=>a.name.localeCompare(b.name,'tr')).map(c => `<option value="${String(c.id).replace(/\"/g,'&quot;')}">${htmlGuvenli(c.name)}</option>`).join('');
+            ['payment-cash','payment-card','payment-other'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+            const modal=document.getElementById('modal-modern-payment');
+            if(modal){modal.classList.remove('hidden');modal.classList.add('flex');}
+            odemeModaliniHesapla();
+            setTimeout(()=>document.getElementById('payment-cash')?.focus(),80);
+        }
+
+        function odemeModaliniHesapla() {
+            const total = Number(String(document.getElementById('payment-modal-total')?.textContent || '').replace(/[^0-9,.-]/g,'').replace(',','.')) || 0;
+            const cashReceived = Math.max(0, Number(String(document.getElementById('payment-cash')?.value || '0').replace(',','.')) || 0);
+            const card = Math.max(0, Number(String(document.getElementById('payment-card')?.value || '0').replace(',','.')) || 0);
+            const other = Math.max(0, Number(String(document.getElementById('payment-other')?.value || '0').replace(',','.')) || 0);
+            const cashDue = Math.max(0, total-card-other);
+            const cashApplied = Math.min(cashReceived,cashDue);
+            const change = Math.max(0,cashReceived-cashApplied);
+            const remaining = Math.max(0,total-cashApplied-card-other);
+            const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent='₺'+val.toFixed(2);};
+            set('payment-modal-cash-applied',cashApplied); set('payment-modal-change',change); set('payment-modal-remaining',remaining);
+            const warn=document.getElementById('payment-modal-warning');
+            if(warn){warn.textContent=(card+other>total+0.001)?'Kart + diğer tutarı ödenecek toplamı aşamaz.':'';warn.classList.toggle('hidden',!(card+other>total+0.001));}
+            const customerWrap=document.getElementById('payment-modal-customer-wrap');
+            if(customerWrap) customerWrap.classList.toggle('hidden',remaining<=0.009);
+            const remainingLabel=document.getElementById('payment-modal-remaining');
+            if(remainingLabel) remainingLabel.classList.toggle('text-amber-400',remaining>0.009);
+            return {total,cashReceived,cashApplied,card,other,change,remaining};
+        }
+
+        function modernOdemeOnayla() {
+            const v=odemeModaliniHesapla();
+            if (window.__posPaymentMode === 'cash') {
+                if (v.cashReceived + 0.001 < v.total) { onayModaliniGoster('Eksik nakit', 'Alınan nakit ödenecek tutardan az olamaz. Eksik tutar: ₺' + Math.max(0, v.total-v.cashReceived).toFixed(2), null, true); return; }
+                if (!islemYetkisiGerekli('sales_cash','Nakit ödeme alma yetkiniz yok.')) return;
+                window.__posPartialPayment = { payments:[{type:'Nakit',amount:v.total}], paidAmount:v.total, remainingAmount:0, customer:null, cashReceived:v.cashReceived, change:Math.max(0,v.cashReceived-v.total) };
+                modalKapat('modal-modern-payment');
+                odemeYap('Nakit');
+                window.__posPaymentMode = null;
+                return;
+            }
+            if(v.card+v.other>v.total+0.001){onayModaliniGoster('Tutar kontrolü','Kredi kartı ve diğer ödeme toplamı, ödenecek tutarı aşamaz.',null,true);return;}
+            if(v.cashApplied+v.card+v.other<=0.009){onayModaliniGoster('Ödeme girilmedi','Lütfen nakit, kredi kartı veya diğer ödeme tutarlarından en az birini girin.',null,true);return;}
+            if(v.cashApplied>0&&!islemYetkisiGerekli('sales_cash','Nakit ödeme alma yetkiniz yok.'))return;
+            if(v.card>0&&!islemYetkisiGerekli('sales_credit_card','Kredi kartı ödemesi alma yetkiniz yok.'))return;
+            let customer=null;
+            if(v.remaining>0.009){
+                if(sistemAyarlari.parcaliOdemeAktif !== true){onayModaliniGoster('Açık bakiye kapalı','Açık bakiye oluşturmak için Ayarlar bölümünden parçalı ödeme ve açık bakiye özelliğini açın.',null,true);return;}
+                if(!islemYetkisiGerekli('sales_debt','Açık bakiye oluşturma yetkiniz yok.'))return;
+                const id=document.getElementById('payment-modal-customer')?.value;
+                customer=musteriler.find(c=>String(c.id)===String(id));
+                if(!customer){onayModaliniGoster('Müşteri gerekli','Kalan bakiye cariye eklenebilmesi için müşteri seçmelisiniz.',null,true);return;}
+            }
+            const payments=[];
+            if(v.cashApplied>0)payments.push({type:'Nakit',amount:v.cashApplied});
+            if(v.card>0)payments.push({type:'Kredi Kartı',amount:v.card});
+            if(v.other>0)payments.push({type:'Diğer',amount:v.other});
+            if(v.remaining>0.009)payments.push({type:'Veresiye',amount:v.remaining});
+            window.__posPartialPayment={payments,paidAmount:v.cashApplied+v.card+v.other,remainingAmount:v.remaining,customer,cashReceived:v.cashReceived,change:v.change};
+            modalKapat('modal-modern-payment');
+            odemeYap('Parçalı Ödeme',customer?customer.name:null);
+        }
+
         function odemeYap(type, musteriAdiRef = null, alisverisKartiMusteriId = null) {
             if (type === 'Nakit' && !islemYetkisiGerekli('sales_cash', 'Nakit ödeme alma yetkiniz yok.')) return;
             if (type === 'Kredi Kartı' && !islemYetkisiGerekli('sales_credit_card', 'Kredi kartı ödemesi alma yetkiniz yok.')) return;
@@ -4489,6 +4703,10 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             const discountInput = document.getElementById('cart-discount');
             const discount = discountInput ? Math.max(0, parseFloat(discountInput.value) || 0) : 0;
             const total = Math.max(0, subtotal - discount);
+            let nakitAlinan = total;
+            if (type === 'Nakit' && window.__posPartialPayment && Number.isFinite(Number(window.__posPartialPayment.cashReceived))) {
+                nakitAlinan = Number(window.__posPartialPayment.cashReceived);
+            }
             let kartMusterisi = null;
             if (type === 'Alışveriş Kartı') {
                 kartMusterisi = musteriler.find(c => String(c.id) === String(alisverisKartiMusteriId));
@@ -4515,12 +4733,18 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                 items: [...sepet],
                 kitchenNote: (document.getElementById('cart-kitchen-note')?.value || '').trim(),
                 masa: siparisMasaEtiketiOku(),
-                garson: (document.getElementById('cart-waiter')?.value || aktifKullaniciAdi || '').trim(),
+                garson: String(aktifKullaniciAdi || '').trim(),
                 kitchenStatus: 'new',
                 kitchenCreatedAt: Date.now(),
                 subtotal: subtotal,
                 discount: discount,
-                total: total
+                total: total,
+                paidAmount: type === 'Nakit' ? total : (window.__posPartialPayment ? window.__posPartialPayment.paidAmount : total),
+                remainingAmount: window.__posPartialPayment ? window.__posPartialPayment.remainingAmount : 0,
+                paymentStatus: window.__posPartialPayment ? (window.__posPartialPayment.remainingAmount > 0 ? 'partial' : 'paid') : 'paid',
+                payments: window.__posPartialPayment ? window.__posPartialPayment.payments : [{ type, amount: total }],
+                cashReceived: window.__posPartialPayment ? window.__posPartialPayment.cashReceived : (type === 'Nakit' ? nakitAlinan : undefined),
+                change: window.__posPartialPayment ? window.__posPartialPayment.change : (type === 'Nakit' ? Math.max(0, nakitAlinan - total) : 0)
             };
 
             if (!Array.isArray(satisGecmisi)) satisGecmisi = [];
@@ -4530,18 +4754,25 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                 aktifAdisyonId = null;
             }
 
-            if (type === 'Nakit' || type === 'Kredi Kartı' || type.startsWith('Veresiye')) {
+            if (type === 'Nakit' || type === 'Kredi Kartı' || type.startsWith('Veresiye') || type === 'Parçalı Ödeme') {
                 if (!Array.isArray(kasaHareketleri)) kasaHareketleri = [];
-                kasaHareketleri.unshift({
-                    saleId: sale.id,
-                    date: sale.date,
-                    type: type.startsWith('Veresiye') ? `Veresiye Satış (${musteriAdiRef || 'Müşteri'})` : `Satış (${type})`,
-                    amount: total
+                (sale.payments || []).forEach(payment => {
+                    if (payment.type === 'Veresiye') return;
+                    kasaHareketleri.unshift({ saleId: sale.id, date: sale.date, type: `Satış (${payment.type})`, amount: Number(payment.amount) || 0 });
                 });
             }
+            if (window.__posPartialPayment && window.__posPartialPayment.customer && sale.remainingAmount > 0) {
+                const cust = window.__posPartialPayment.customer;
+                cust.totalDebt = (Number(cust.totalDebt) || 0) + sale.remainingAmount;
+                if (!Array.isArray(cust.history)) cust.history = [];
+                cust.history.unshift({ id: sale.id, date: sale.date, type: 'Borç Ekleme (Parçalı Satış)', amount: sale.remainingAmount });
+                sale.customerId = cust.id; sale.customerName = cust.name; sale.associatedCustId = cust.id;
+            }
+            if (type === 'Nakit' && nakitAlinan > total) sale.cashReceived = nakitAlinan;
 
             durumuKaydet();
-            islemBildirimiGoster(type + ' işlemi tamamlandı: ₺' + total.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}));
+            islemBildirimiGoster(type + ' işlemi tamamlandı: ₺' + total.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + (type === 'Nakit' && nakitAlinan > total ? ' · Para üstü: ₺' + (nakitAlinan-total).toFixed(2) : ''));
+            window.__posPartialPayment = null;
             
             if (sistemAyarlari.otomatikYazdir === true) {
                 if ((type === 'Nakit' || type === 'Kredi Kartı') && sistemAyarlari.fisYazdirmaModu === 'coklu') {
@@ -4939,6 +5170,65 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             });
         }
 
+
+        let aktifManuelMutabakatIndex = -1;
+
+        function manuelKasaTahsilatAc(index) {
+            const m = kasaHareketleri[index];
+            if (!m || m.movementKind !== 'manual' || !['Alacak','Borç'].includes(m.type)) return;
+            const kalan = Math.max(0, (Number(m.amount)||0) - (Number(m.paidAmount)||0));
+            if (kalan <= 0.009) return;
+            aktifManuelMutabakatIndex = index;
+            const modal = document.getElementById('modal-manual-settlement');
+            const title = document.getElementById('manual-settlement-title');
+            const label = document.getElementById('manual-settlement-label');
+            const amount = document.getElementById('manual-settlement-amount');
+            const max = document.getElementById('manual-settlement-max');
+            const method = document.getElementById('manual-settlement-method');
+            if (title) title.textContent = m.type === 'Alacak' ? 'Alacak Tahsilatı' : 'Borç Ödemesi';
+            if (label) label.textContent = m.type === 'Alacak' ? 'Tahsil edilen tutar (₺)' : 'Ödenen tutar (₺)';
+            if (amount) { amount.value = kalan.toFixed(2); amount.max = kalan.toFixed(2); }
+            if (max) max.textContent = `Kalan: ₺${kalan.toFixed(2)}`;
+            if (method) method.value = 'Nakit';
+            if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+        }
+
+        function manuelKasaTahsilatiniKaydet(event) {
+            event.preventDefault();
+            const m = kasaHareketleri[aktifManuelMutabakatIndex];
+            const amount = Number(document.getElementById('manual-settlement-amount')?.value);
+            const method = document.getElementById('manual-settlement-method')?.value || 'Nakit';
+            if (!m || m.movementKind !== 'manual' || !['Alacak','Borç'].includes(m.type)) return;
+            const kalan = Math.max(0, (Number(m.amount)||0) - (Number(m.paidAmount)||0));
+            if (!Number.isFinite(amount) || amount <= 0 || amount > kalan + 0.001) {
+                onayModaliniGoster('Geçersiz tutar', `Girilen tutar kalan ₺${kalan.toFixed(2)} tutarını aşamaz.`, null, true);
+                return;
+            }
+            const tutar = Math.round(amount * 100) / 100;
+            m.paidAmount = Math.round(((Number(m.paidAmount)||0) + tutar) * 100) / 100;
+            const alacakTahsilati = m.type === 'Alacak';
+            kasaHareketleri.unshift({
+                id: `KM-${alacakTahsilati ? 'TAH' : 'ODE'}-${Date.now()}`,
+                date: new Date().toLocaleString('tr-TR'),
+                timestamp: Date.now(),
+                type: alacakTahsilati ? 'Manuel Alacak Tahsilatı' : 'Manuel Borç Ödemesi',
+                amount: tutar,
+                note: `${alacakTahsilati ? 'Alacak tahsilatı' : 'Borç ödemesi'}: ${m.note || 'Manuel kasa hareketi'} · ${method}`,
+                user: aktifKullaniciAdi || 'Bilinmiyor',
+                periodId: aktifDonemId,
+                movementKind: 'manual-settlement',
+                settlementType: m.type,
+                parentMovementId: m.id,
+                paymentMethod: method
+            });
+            durumuKaydet();
+            modalKapat('modal-manual-settlement');
+            aktifManuelMutabakatIndex = -1;
+            kasaEkraniniGuncelle();
+            onayModaliniGoster(alacakTahsilati ? 'Tahsilat kaydedildi' : 'Borç ödemesi kaydedildi',
+                `₺${tutar.toFixed(2)} işlem kaydedildi. Kalan tutar ₺${Math.max(0, kalan-tutar).toFixed(2)}.`, null, true);
+        }
+
         function kasaAltBolumunuDegistir(view) {
             aktifKasaAltBolumu = view === 'manual' ? 'manual' : 'sales';
             const salesTab = document.getElementById('cash-tab-sales');
@@ -4985,13 +5275,15 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                     if (String(m.type || '').includes('Veresiye Tahsilat')) toplamTahsilat += Number(m.amount) || 0;
                     if (m.movementKind === 'manual' && m.type === 'Gelir') manuelGelir += Number(m.amount) || 0;
                     if (m.movementKind === 'manual' && m.type === 'Gider') manuelGider += Number(m.amount) || 0;
-                    if (m.movementKind === 'manual' && m.type === 'Borç') toplamBorc += Number(m.amount) || 0;
-                    if (m.movementKind === 'manual' && m.type === 'Alacak') toplamAlacak += Number(m.amount) || 0;
+                    if (m.movementKind === 'manual' && m.type === 'Borç') toplamBorc += Math.max(0, (Number(m.amount) || 0) - (Number(m.paidAmount) || 0));
+                    if (m.movementKind === 'manual' && m.type === 'Alacak') toplamAlacak += Math.max(0, (Number(m.amount) || 0) - (Number(m.paidAmount) || 0));
+                    if (m.movementKind === 'manual-settlement' && m.settlementType === 'Alacak') toplamTahsilat += Number(m.amount) || 0;
                 });
             }
 
             const toplamKartYukleme = (kasaHareketleri || []).filter(m => m.movementKind === 'card-topup').reduce((sum,m) => sum + (Number(m.amount)||0), 0);
-            const genelToplam = toplamNakit + toplamKart + toplamTahsilat + toplamKartYukleme + manuelGelir - manuelGider;
+            const manuelBorcOdemeleri = (kasaHareketleri || []).filter(m => m.movementKind === 'manual-settlement' && m.settlementType === 'Borç').reduce((sum,m) => sum + (Number(m.amount)||0), 0);
+            const genelToplam = toplamNakit + toplamKart + toplamTahsilat + toplamKartYukleme + manuelGelir - manuelGider - manuelBorcOdemeleri;
 
             const nakitEl = document.getElementById('cash-total-nakit');
             const kartEl = document.getElementById('cash-total-kart');
@@ -5035,7 +5327,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                 m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
                 return m ? `${m[1]}-${m[2]}-${m[3]}` : '';
             };
-            const indexedMovements = kasaHareketleri.map((m, index) => ({ m, index })).filter(({m}) => aktifKasaAltBolumu === 'manual' ? m.movementKind === 'manual' : m.movementKind !== 'manual').filter(({m}) => {
+            const indexedMovements = kasaHareketleri.map((m, index) => ({ m, index })).filter(({m}) => aktifKasaAltBolumu === 'manual' ? (m.movementKind === 'manual' || m.movementKind === 'manual-settlement') : m.movementKind !== 'manual' && m.movementKind !== 'manual-settlement').filter(({m}) => {
                 const haystack = [m.date, m.type, m.note, m.user, m.saleId].map(v => String(v || '')).join(' ').toLocaleLowerCase('tr-TR');
                 const matchesText = !filterQuery || haystack.includes(filterQuery);
                 const typeText = String(m.type || '').toLocaleLowerCase('tr-TR');
@@ -5061,7 +5353,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                     <td class="p-2.5 text-xs opacity-70">${safeDate}</td>
                     <td class="p-2.5 text-xs"><span class="${badgeBg} px-2 py-0.5 rounded border font-medium">${safeType} ${detailLabel}</span>${m.user ? `<div class="text-[10px] opacity-60 mt-1">${htmlGuvenli(m.user)}</div>` : ''}</td>
                     <td class="p-2.5 text-right font-mono font-bold ${amountColor}">₺${(Number(m.amount) || 0).toFixed(2)}</td>
-                    <td class="p-2.5 text-right whitespace-nowrap">${m.movementKind === 'manual' ? `<button type="button" onclick="event.stopPropagation();kasaHareketiDuzenlemeAc(${movementIndex})" class="text-blue-400 hover:text-blue-300 px-2 py-1" title="Düzenle" aria-label="Düzenle"><i class="fa-solid fa-pen"></i></button><button type="button" onclick="event.stopPropagation();kasaHareketiniSil(${movementIndex})" class="text-red-400 hover:text-red-300 px-2 py-1" title="Sil" aria-label="Sil"><i class="fa-solid fa-trash"></i></button>` : `<span class="text-[10px] opacity-50">İşlem kaydı</span>`}</td>
+                    <td class="p-2.5 text-right whitespace-nowrap">${m.movementKind === 'manual' ? `${(['Alacak','Borç'].includes(m.type) && (Number(m.amount)||0) - (Number(m.paidAmount)||0) > 0.009 ? `<button type="button" onclick="event.stopPropagation();manuelKasaTahsilatAc(${movementIndex})" class="text-[10px] font-bold rounded bg-emerald-600 text-white px-2 py-1 mr-1">${m.type === 'Alacak' ? 'Tahsilat' : 'Ödeme'}</button>` : '')}<button type="button" onclick="event.stopPropagation();kasaHareketiDuzenlemeAc(${movementIndex})" class="text-blue-400 hover:text-blue-300 px-2 py-1" title="Düzenle" aria-label="Düzenle"><i class="fa-solid fa-pen"></i></button><button type="button" onclick="event.stopPropagation();kasaHareketiniSil(${movementIndex})" class="text-red-400 hover:text-red-300 px-2 py-1" title="Sil" aria-label="Sil"><i class="fa-solid fa-trash"></i></button>` : m.movementKind === 'manual-settlement' ? `<span class="text-[10px] opacity-60">${m.settlementType === 'Alacak' ? 'Tahsilat kaydı' : 'Borç ödeme kaydı'}</span>` : `<span class="text-[10px] opacity-50">İşlem kaydı</span>`}</td>
                 </tr>
                 `;
             }).join('');
@@ -5719,6 +6011,8 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 
             const customer = musteriler.find(c => String(c.id) === String(custId));
             if (!customer || isNaN(paidAmount) || paidAmount <= 0) return;
+            const kalanBorc = Math.max(0, (Number(customer.totalDebt)||0) - (Number(customer.paidDebt)||0));
+            if (paidAmount > kalanBorc + 0.001) { onayModaliniGoster('Tutar fazla', `Tahsilat tutarı kalan borcu (₺${kalanBorc.toFixed(2)}) aşamaz.`, null, true); return; }
 
             customer.paidDebt = (customer.paidDebt || 0) + paidAmount;
             if(!Array.isArray(customer.history)) customer.history = [];
@@ -6320,7 +6614,6 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             document.addEventListener('pointerup', finishPress); document.addEventListener('pointercancel', finishPress);
             document.addEventListener('click', e => { if (suppressNextClick && e.target.closest('#products-grid .sales-product-card')) { suppressNextClick=false; e.preventDefault(); e.stopPropagation(); } }, true);
         })();</script>
-
 <style id="mobile-sales-usability-fix">
 @media (max-width: 767px) {
   #section-sales { flex-direction: column !important; overflow-x: hidden !important; overflow-y: auto !important; height: 100% !important; min-height: 0 !important; padding: 4px !important; gap: 4px !important; }
@@ -6334,9 +6627,8 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
   #sales-cart-header-panel, #sales-right-wrapper .theme-card { min-width: 0 !important; }
 }
 </style>
-
 <!-- MÜŞTERİ QR MENÜSÜ: yalnızca ?musteriSiparis=1 bağlantısında gösterilir -->
-<div id="customer-order-portal" class="hidden fixed inset-0 z-[500] overflow-y-auto bg-slate-950 text-slate-100 p-3 md:p-6"><div class="max-w-4xl mx-auto space-y-4"><header class="rounded-xl border border-slate-800 bg-slate-900 p-4"><div class="text-xs text-cyan-400 font-bold"><span id="customer-portal-service-type">MASA</span> <span id="customer-portal-table">1</span></div><h1 id="customer-portal-company" class="text-2xl font-black mt-1">Menümüz</h1><p class="text-xs text-slate-400 mt-1">Ürünleri seçin, siparişinizi gönderin ve durumunu takip edin.</p></header><div id="customer-portal-message" class="text-sm text-amber-300"></div><div id="customer-portal-categories" class="flex gap-2 overflow-x-auto pb-1"></div><div id="customer-portal-products" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div><section class="rounded-xl border border-slate-700 bg-slate-900 p-4 space-y-3"><h2 class="font-bold text-lg"><i class="fa-solid fa-basket-shopping text-emerald-400 mr-2"></i>Sipariş Sepetim</h2><div id="customer-portal-cart" class="space-y-2 text-sm"><p class="text-slate-400">Henüz ürün seçilmedi.</p></div><label class="block text-xs text-slate-300">Sipariş notu <textarea id="customer-portal-note" class="theme-input mt-1 w-full bg-slate-950 border border-slate-700 rounded p-2" rows="2" placeholder="Örn. sos ayrı olsun"></textarea></label><button id="customer-portal-submit" onclick="musteriSiparisGonder()" class="w-full rounded-lg bg-emerald-600 hover:bg-emerald-500 p-3 font-bold text-sm">Siparişi Gönder</button><button id="customer-portal-cancel-edit" type="button" onclick="customerOrderCancelEdit()" class="hidden w-full rounded-lg bg-slate-700 hover:bg-slate-600 p-2 font-bold text-sm">Düzenlemeyi İptal Et</button><div id="customer-portal-status" class="hidden rounded-lg border border-cyan-800 bg-slate-950/70 p-3 text-sm"></div></section></div></div>
+<div class="hidden fixed inset-0 z-[500] overflow-y-auto bg-slate-950 text-slate-100 p-3 md:p-6" id="customer-order-portal"><div class="max-w-4xl mx-auto space-y-4"><header class="rounded-xl border border-slate-800 bg-slate-900 p-4"><div class="text-xs text-cyan-400 font-bold"><span id="customer-portal-service-type">MASA</span> <span id="customer-portal-table">1</span></div><h1 class="text-2xl font-black mt-1" id="customer-portal-company">Menümüz</h1><p class="text-xs text-slate-400 mt-1">Ürünleri seçin, siparişinizi gönderin ve durumunu takip edin.</p></header><div class="text-sm text-amber-300" id="customer-portal-message"></div><div class="flex gap-2 overflow-x-auto pb-1" id="customer-portal-categories"></div><div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3" id="customer-portal-products"></div><section class="rounded-xl border border-slate-700 bg-slate-900 p-4 space-y-3"><h2 class="font-bold text-lg"><i class="fa-solid fa-basket-shopping text-emerald-400 mr-2"></i>Sipariş Sepetim</h2><div class="space-y-2 text-sm" id="customer-portal-cart"><p class="text-slate-400">Henüz ürün seçilmedi.</p></div><label class="block text-xs text-slate-300">Sipariş notu <textarea class="theme-input mt-1 w-full bg-slate-950 border border-slate-700 rounded p-2" id="customer-portal-note" placeholder="Örn. sos ayrı olsun" rows="2"></textarea></label><button class="w-full rounded-lg bg-emerald-600 hover:bg-emerald-500 p-3 font-bold text-sm" id="customer-portal-submit" onclick="musteriSiparisGonder()">Siparişi Gönder</button><button class="hidden w-full rounded-lg bg-slate-700 hover:bg-slate-600 p-2 font-bold text-sm" id="customer-portal-cancel-edit" onclick="customerOrderCancelEdit()" type="button">Düzenlemeyi İptal Et</button><div class="hidden rounded-lg border border-cyan-800 bg-slate-950/70 p-3 text-sm" id="customer-portal-status"></div></section></div></div>
 <script>
 (function(){
  const params=new URLSearchParams(location.search); if(params.get('musteriSiparis')!=='1') return;
@@ -6374,5 +6666,85 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <script>
 if('serviceWorker' in navigator&&location.protocol!=='file:'){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(error=>console.warn('Uygulama çevrimdışı desteği başlatılamadı.',error)));}
 </script>
+<script>document.addEventListener("DOMContentLoaded", function(){ try { odemeAyarlariniEkranaYansit(); } catch(e) { console.warn(e); } });
+        // Satış ekranı klavye kısayolları
+        document.addEventListener('keydown', function (event) {
+            if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+            const salesSection = document.getElementById('section-sales');
+            if (!salesSection || salesSection.classList.contains('hidden')) return;
+
+            const target = event.target;
+            const tag = (target && target.tagName || '').toLowerCase();
+            const typing = target && (target.isContentEditable || ['input','textarea','select'].includes(tag));
+            const openModal = Array.from(document.querySelectorAll('[id^="modal-"]')).some(el =>
+                !el.classList.contains('hidden') && getComputedStyle(el).display !== 'none'
+            );
+
+            if (event.key === 'Escape') {
+                if (openModal) return; // Açık modalın kendi Escape davranışı varsa onu bozma.
+                return;
+            }
+            if (typing || openModal) return;
+
+            const paymentActions = {
+                F2: () => odemeButonundanBaslat('Nakit'),
+                F3: () => odemeButonundanBaslat('Kredi Kartı'),
+                F4: () => veresiyeModaliniAc(),
+                F5: () => alisverisKartiSatisModaliniAc()
+            };
+            if (paymentActions[event.key]) {
+                event.preventDefault();
+                paymentActions[event.key]();
+                return;
+            }
+            if (event.key === 'F6') {
+                event.preventDefault();
+                document.getElementById('barcode-search')?.focus();
+            }
+        });
+</script>
+<div class="fixed inset-0 z-[190] hidden items-center justify-center bg-black/80 backdrop-blur-md p-4" id="modal-manual-settlement" onclick="if(event.target===this) modalKapat('modal-manual-settlement')">
+<div class="theme-card w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 p-5 text-white shadow-2xl">
+<div class="mb-4 flex items-center justify-between border-b border-slate-700 pb-3">
+<h3 class="text-base font-bold" id="manual-settlement-title">Alacak Tahsilatı</h3>
+<button class="text-slate-300" onclick="modalKapat('modal-manual-settlement')" type="button"><i class="fa-solid fa-xmark"></i></button>
+</div>
+<form class="space-y-3" onsubmit="manuelKasaTahsilatiniKaydet(event)">
+<div><label class="mb-1 block text-xs font-bold text-slate-300" for="manual-settlement-amount" id="manual-settlement-label">Tahsil edilen tutar (₺)</label>
+<input class="theme-input w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-3 text-lg font-bold" id="manual-settlement-amount" min="0.01" required="" step="0.01" type="number"/>
+<p class="mt-1 text-xs text-amber-300" id="manual-settlement-max"></p>
+</div>
+<div><label class="mb-1 block text-xs text-slate-400" for="manual-settlement-method">İşlem yöntemi</label>
+<select class="theme-input w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-3 text-sm" id="manual-settlement-method">
+<option value="Nakit">Nakit</option><option value="Kredi Kartı">Kredi kartı</option><option value="Banka / Diğer">Banka / Diğer</option>
+</select>
+</div>
+<div class="flex gap-2 pt-2">
+<button class="flex-1 rounded-lg bg-slate-700 px-3 py-3 text-sm font-bold text-white" onclick="modalKapat('modal-manual-settlement')" type="button">Vazgeç</button>
+<button class="flex-1 rounded-lg bg-emerald-600 px-3 py-3 text-sm font-black text-white" type="submit">Kaydet</button>
+</div>
+</form>
+</div>
+</div>
+<div class="fixed inset-0 z-[120] hidden items-center justify-center bg-black/75 backdrop-blur-md p-3" id="modal-modern-payment" onclick="if(event.target===this) modalKapat('modal-modern-payment')">
+<div class="flex w-full max-w-md max-h-[calc(100dvh-1.5rem)] flex-col overflow-hidden rounded-2xl border border-slate-600 bg-slate-900 text-white shadow-2xl">
+<div class="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-slate-700 bg-gradient-to-r from-indigo-950 to-slate-900 px-5 py-4">
+<div><div class="text-[10px] font-bold uppercase tracking-[.2em] text-indigo-300">Ödeme işlemi</div><h3 class="mt-1 text-lg font-black" id="payment-modal-title">Parçalı ödeme</h3></div>
+<button class="rounded-lg bg-white/10 px-3 py-2 text-slate-300 hover:bg-white/20" onclick="modalKapat('modal-modern-payment')" type="button"><i class="fa-solid fa-xmark"></i></button>
+</div>
+<div class="min-h-0 flex-1 overflow-y-auto overscroll-contain space-y-4 p-5" style="max-height:calc(100dvh - 7rem);-webkit-overflow-scrolling:touch">
+<div class="rounded-xl border border-indigo-400/30 bg-indigo-500/10 p-4 text-center"><div class="text-xs font-semibold text-indigo-200">ÖDENECEK TUTAR</div><div class="mt-1 text-3xl font-black tracking-tight text-white" id="payment-modal-total">₺0.00</div></div>
+<div class="space-y-3">
+<label class="block"><span class="mb-1.5 flex items-center gap-2 text-xs font-bold text-emerald-300"><i class="fa-solid fa-money-bill-wave"></i> Alınan nakit (₺)</span><input class="w-full rounded-xl border border-emerald-500/40 bg-slate-950 px-4 py-3 text-lg font-bold text-white outline-none focus:border-emerald-400" id="payment-cash" inputmode="decimal" min="0" oninput="odemeModaliniHesapla()" placeholder="0,00" step="0.01" type="number"/></label>
+<label class="block" id="payment-card-wrap"><span class="mb-1.5 flex items-center gap-2 text-xs font-bold text-sky-300"><i class="fa-solid fa-credit-card"></i> Kredi kartı (₺)</span><input class="w-full rounded-xl border border-sky-500/40 bg-slate-950 px-4 py-3 text-lg font-bold text-white outline-none focus:border-sky-400" id="payment-card" inputmode="decimal" min="0" oninput="odemeModaliniHesapla()" placeholder="0,00" step="0.01" type="number"/></label>
+<label class="block" id="payment-other-wrap"><span class="mb-1.5 flex items-center gap-2 text-xs font-bold text-violet-300"><i class="fa-solid fa-wallet"></i> Diğer ödeme (₺)</span><input class="w-full rounded-xl border border-violet-500/40 bg-slate-950 px-4 py-3 text-lg font-bold text-white outline-none focus:border-violet-400" id="payment-other" inputmode="decimal" min="0" oninput="odemeModaliniHesapla()" placeholder="0,00" step="0.01" type="number"/></label>
+</div>
+<div class="grid grid-cols-2 gap-2" id="payment-modal-cash-summary"><div class="rounded-xl bg-slate-800 p-3"><div class="text-[11px] text-slate-400">Kasaya yazılacak nakit</div><div class="mt-1 font-mono text-lg font-bold text-emerald-300" id="payment-modal-cash-applied">₺0.00</div></div><div class="rounded-xl bg-slate-800 p-3"><div class="text-[11px] text-slate-400">Para üstü</div><div class="mt-1 font-mono text-lg font-bold text-cyan-300" id="payment-modal-change">₺0.00</div></div></div>
+<div class="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3"><div class="flex items-center justify-between"><span class="text-xs font-bold text-amber-200">Kalan bakiye</span><strong class="font-mono text-xl text-amber-300" id="payment-modal-remaining">₺0.00</strong></div><div class="hidden mt-2 text-xs font-semibold text-red-300" id="payment-modal-warning"></div></div>
+<div class="hidden" id="payment-modal-customer-wrap"><label class="mb-1.5 block text-xs font-bold text-amber-200">Kalan bakiye hangi cariye eklensin? <span class="text-red-400">*</span></label><select class="w-full rounded-xl border border-amber-500/40 bg-slate-950 px-3 py-3 text-sm text-white outline-none focus:border-amber-400" id="payment-modal-customer"><option value="">Müşteri seçin...</option></select><p class="mt-1 text-[10px] text-slate-400">Kalan tutar müşterinin veresiye hesabına borç olarak eklenecek.</p></div>
+<div class="flex gap-2 pt-1"><button class="flex-1 rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-sm font-bold text-slate-300" onclick="modalKapat('modal-modern-payment')" type="button">Vazgeç</button><button class="flex-[1.5] rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white shadow-lg shadow-emerald-950/40 hover:bg-emerald-500" onclick="modernOdemeOnayla()" type="button"><i class="fa-solid fa-check mr-2"></i>ÖDEMEYİ TAMAMLA</button></div>
+</div>
+</div>
+</div>
 </body>
 </html>
