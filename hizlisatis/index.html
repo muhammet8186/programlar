@@ -4164,12 +4164,26 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             const total = Number(o.total) || (o.items || []).reduce((sum,i)=>sum+(Number(i.price ?? i.product?.price)||0)*(Number(i.qty)||1),0);
             return `<div class="ticket" style="width:${content}mm;max-width:${content}mm;font-family:Arial,sans-serif;color:#000;background:#fff;font-size:12px;line-height:1.35;margin:0 auto;padding:2mm;box-sizing:border-box"><h2 style="font-size:17px;text-align:center;margin:0 0 5px">MÜŞTERİ SİPARİŞİ</h2><div style="text-align:center;font-weight:bold;font-size:14px">${orderType}</div><hr><div>Sipariş No: ${htmlGuvenli(o.id || '')}</div><div>Tarih: ${htmlGuvenli(date)}</div>${o.customerName?`<div>Müşteri: ${htmlGuvenli(o.customerName)}</div>`:''}${o.customerPhone?`<div>Telefon: ${htmlGuvenli(o.customerPhone)}</div>`:''}<hr>${items}<hr><div style="display:flex;justify-content:space-between;font-size:15px;font-weight:bold"><span>TOPLAM</span><span>${adisyonPara(total)}</span></div>${o.note?`<hr><div><b>SİPARİŞ NOTU:</b><br>${htmlGuvenli(o.note)}</div>`:''}<hr><div style="text-align:center;font-size:10px">${htmlGuvenli(o.assignedWaiter ? 'Garson: '+o.assignedWaiter : 'Yeni sipariş')}</div></div>`;
         }
+        function musteriSiparisUrunFisHTML(o, item, itemIndex) {
+            const width = Number(sistemAyarlari.fisKagitGenisligi || localStorage.getItem('pos_receipt_paper_width_v1')) === 80 ? 80 : 58;
+            const content = width === 80 ? 72 : 48;
+            const name = htmlGuvenli(item.name || item.product?.name || 'Ürün');
+            const qty = Math.max(1, Number(item.qty) || 1);
+            const price = Number(item.price ?? item.product?.price) || 0;
+            const lineTotal = price * qty;
+            const orderType = o.orderType === 'paket' ? 'PAKET SERVİS' : `MASA ${htmlGuvenli(o.table || '-')}`;
+            const date = new Date(o.createdAt || Date.now()).toLocaleString('tr-TR');
+            return `<div class="ticket" style="width:${content}mm;max-width:${content}mm;font-family:Arial,sans-serif;color:#000;background:#fff;font-size:12px;line-height:1.35;margin:0 auto;padding:2mm;box-sizing:border-box;break-after:page;page-break-after:always"><h2 style="font-size:17px;text-align:center;margin:0 0 5px">MÜŞTERİ SİPARİŞİ</h2><div style="text-align:center;font-weight:bold;font-size:14px">${orderType}</div><hr><div>Sipariş No: ${htmlGuvenli(o.id || '')}</div><div>Tarih: ${htmlGuvenli(date)}</div>${o.customerName?`<div>Müşteri: ${htmlGuvenli(o.customerName)}</div>`:''}${o.customerPhone?`<div>Telefon: ${htmlGuvenli(o.customerPhone)}</div>`:''}<hr><div class="item"><span>${name} × ${qty}</span><b>${adisyonPara(lineTotal)}</b></div><hr><div style="display:flex;justify-content:space-between;font-size:15px;font-weight:bold"><span>ÜRÜN TOPLAMI</span><span>${adisyonPara(lineTotal)}</span></div>${o.note?`<hr><div><b>SİPARİŞ NOTU:</b><br>${htmlGuvenli(o.note)}</div>`:''}<hr><div style="text-align:center;font-size:10px">${htmlGuvenli(o.assignedWaiter ? 'Garson: '+o.assignedWaiter : 'Yeni sipariş')} · Ürün ${itemIndex+1}</div></div>`;
+        }
         function musteriSiparisYazdirmaIcerigi(orders) {
             const validOrders = (orders || []).filter(Boolean);
             const printMode = sistemAyarlari.fisYazdirmaModu === 'coklu' ? 'coklu' : 'toplu';
-            // Toplu: siparişler tek, kesintisiz fiş akışında; Çoklu: her sipariş ayrı sayfa/fiş.
-            const separator = printMode === 'coklu' ? '<div style="break-after:page;page-break-after:always"></div>' : '<div style="height:5mm"></div>';
-            return validOrders.map(o => musteriSiparisFisHTML(o)).join(separator);
+            if (printMode === 'coklu') {
+                // Satış ekranındaki gibi: sipariş içindeki her farklı ürün ayrı fiş/sayfa; miktar aynı fişte gösterilir.
+                return validOrders.flatMap(o => (o.items || []).map((item, index) => musteriSiparisUrunFisHTML(o, item, index))).join('');
+            }
+            // Toplu mod: siparişin tüm ürünleri tek fişte gösterilir.
+            return validOrders.map(o => musteriSiparisFisHTML(o)).join('<div style="height:5mm"></div>');
         }
         function musteriSiparisTekPencereAc(order, width) {
             const rows = musteriSiparisYazdirmaIcerigi([order]);
@@ -4184,13 +4198,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             if (!validOrders.length) { onayModaliniGoster('Sipariş yok','Yazdırılacak müşteri siparişi bulunamadı.',null,true); return; }
             const width = fisKagitGenisliginiUygula();
             const printMode = sistemAyarlari.fisYazdirmaModu === 'coklu' ? 'coklu' : 'toplu';
-            if (printMode === 'coklu') {
-                // Çoklu: her sipariş için ayrı pencere ve ayrı yazdırma işi oluştur.
-                let opened = 0;
-                validOrders.forEach(order => { if (musteriSiparisTekPencereAc(order, width)) opened++; });
-                if (opened !== validOrders.length) onayModaliniGoster('Yazdırma engellendi', 'Bazı fişler açılamadı. Tarayıcıda bu site için açılır pencerelere izin verin.', null, true);
-                return;
-            }
+            // Her iki modda da tek yazdırma işi açılır; çoklu modda içerik ürün başına ayrı fiş/sayfa üretir.
             const rows = musteriSiparisYazdirmaIcerigi(validOrders);
             const w = window.open('', '_blank', 'width=500,height=700');
             if (!w) { onayModaliniGoster('Yazdırma engellendi','Fiş yazdırmak için açılır pencereye izin verin.',null,true); return; }
