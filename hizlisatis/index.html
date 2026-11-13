@@ -5189,6 +5189,65 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             });
         }
 
+
+        let aktifManuelMutabakatIndex = -1;
+
+        function manuelKasaTahsilatAc(index) {
+            const m = kasaHareketleri[index];
+            if (!m || m.movementKind !== 'manual' || !['Alacak','Borç'].includes(m.type)) return;
+            const kalan = Math.max(0, (Number(m.amount)||0) - (Number(m.paidAmount)||0));
+            if (kalan <= 0.009) return;
+            aktifManuelMutabakatIndex = index;
+            const modal = document.getElementById('modal-manual-settlement');
+            const title = document.getElementById('manual-settlement-title');
+            const label = document.getElementById('manual-settlement-label');
+            const amount = document.getElementById('manual-settlement-amount');
+            const max = document.getElementById('manual-settlement-max');
+            const method = document.getElementById('manual-settlement-method');
+            if (title) title.textContent = m.type === 'Alacak' ? 'Alacak Tahsilatı' : 'Borç Ödemesi';
+            if (label) label.textContent = m.type === 'Alacak' ? 'Tahsil edilen tutar (₺)' : 'Ödenen tutar (₺)';
+            if (amount) { amount.value = kalan.toFixed(2); amount.max = kalan.toFixed(2); }
+            if (max) max.textContent = `Kalan: ₺${kalan.toFixed(2)}`;
+            if (method) method.value = 'Nakit';
+            if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+        }
+
+        function manuelKasaTahsilatiniKaydet(event) {
+            event.preventDefault();
+            const m = kasaHareketleri[aktifManuelMutabakatIndex];
+            const amount = Number(document.getElementById('manual-settlement-amount')?.value);
+            const method = document.getElementById('manual-settlement-method')?.value || 'Nakit';
+            if (!m || m.movementKind !== 'manual' || !['Alacak','Borç'].includes(m.type)) return;
+            const kalan = Math.max(0, (Number(m.amount)||0) - (Number(m.paidAmount)||0));
+            if (!Number.isFinite(amount) || amount <= 0 || amount > kalan + 0.001) {
+                onayModaliniGoster('Geçersiz tutar', `Girilen tutar kalan ₺${kalan.toFixed(2)} tutarını aşamaz.`, null, true);
+                return;
+            }
+            const tutar = Math.round(amount * 100) / 100;
+            m.paidAmount = Math.round(((Number(m.paidAmount)||0) + tutar) * 100) / 100;
+            const alacakTahsilati = m.type === 'Alacak';
+            kasaHareketleri.unshift({
+                id: `KM-${alacakTahsilati ? 'TAH' : 'ODE'}-${Date.now()}`,
+                date: new Date().toLocaleString('tr-TR'),
+                timestamp: Date.now(),
+                type: alacakTahsilati ? 'Manuel Alacak Tahsilatı' : 'Manuel Borç Ödemesi',
+                amount: tutar,
+                note: `${alacakTahsilati ? 'Alacak tahsilatı' : 'Borç ödemesi'}: ${m.note || 'Manuel kasa hareketi'} · ${method}`,
+                user: aktifKullaniciAdi || 'Bilinmiyor',
+                periodId: aktifDonemId,
+                movementKind: 'manual-settlement',
+                settlementType: m.type,
+                parentMovementId: m.id,
+                paymentMethod: method
+            });
+            durumuKaydet();
+            modalKapat('modal-manual-settlement');
+            aktifManuelMutabakatIndex = -1;
+            kasaEkraniniGuncelle();
+            onayModaliniGoster(alacakTahsilati ? 'Tahsilat kaydedildi' : 'Borç ödemesi kaydedildi',
+                `₺${tutar.toFixed(2)} işlem kaydedildi. Kalan tutar ₺${Math.max(0, kalan-tutar).toFixed(2)}.`, null, true);
+        }
+
         function kasaAltBolumunuDegistir(view) {
             aktifKasaAltBolumu = view === 'manual' ? 'manual' : 'sales';
             const salesTab = document.getElementById('cash-tab-sales');
@@ -5235,13 +5294,15 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                     if (String(m.type || '').includes('Veresiye Tahsilat')) toplamTahsilat += Number(m.amount) || 0;
                     if (m.movementKind === 'manual' && m.type === 'Gelir') manuelGelir += Number(m.amount) || 0;
                     if (m.movementKind === 'manual' && m.type === 'Gider') manuelGider += Number(m.amount) || 0;
-                    if (m.movementKind === 'manual' && m.type === 'Borç') toplamBorc += Number(m.amount) || 0;
-                    if (m.movementKind === 'manual' && m.type === 'Alacak') toplamAlacak += Number(m.amount) || 0;
+                    if (m.movementKind === 'manual' && m.type === 'Borç') toplamBorc += Math.max(0, (Number(m.amount) || 0) - (Number(m.paidAmount) || 0));
+                    if (m.movementKind === 'manual' && m.type === 'Alacak') toplamAlacak += Math.max(0, (Number(m.amount) || 0) - (Number(m.paidAmount) || 0));
+                    if (m.movementKind === 'manual-settlement' && m.settlementType === 'Alacak') toplamTahsilat += Number(m.amount) || 0;
                 });
             }
 
             const toplamKartYukleme = (kasaHareketleri || []).filter(m => m.movementKind === 'card-topup').reduce((sum,m) => sum + (Number(m.amount)||0), 0);
-            const genelToplam = toplamNakit + toplamKart + toplamTahsilat + toplamKartYukleme + manuelGelir - manuelGider;
+            const manuelBorcOdemeleri = (kasaHareketleri || []).filter(m => m.movementKind === 'manual-settlement' && m.settlementType === 'Borç').reduce((sum,m) => sum + (Number(m.amount)||0), 0);
+            const genelToplam = toplamNakit + toplamKart + toplamTahsilat + toplamKartYukleme + manuelGelir - manuelGider - manuelBorcOdemeleri;
 
             const nakitEl = document.getElementById('cash-total-nakit');
             const kartEl = document.getElementById('cash-total-kart');
@@ -5285,7 +5346,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
                 return m ? `${m[1]}-${m[2]}-${m[3]}` : '';
             };
-            const indexedMovements = kasaHareketleri.map((m, index) => ({ m, index })).filter(({m}) => aktifKasaAltBolumu === 'manual' ? m.movementKind === 'manual' : m.movementKind !== 'manual').filter(({m}) => {
+            const indexedMovements = kasaHareketleri.map((m, index) => ({ m, index })).filter(({m}) => aktifKasaAltBolumu === 'manual' ? (m.movementKind === 'manual' || m.movementKind === 'manual-settlement') : m.movementKind !== 'manual' && m.movementKind !== 'manual-settlement').filter(({m}) => {
                 const haystack = [m.date, m.type, m.note, m.user, m.saleId].map(v => String(v || '')).join(' ').toLocaleLowerCase('tr-TR');
                 const matchesText = !filterQuery || haystack.includes(filterQuery);
                 const typeText = String(m.type || '').toLocaleLowerCase('tr-TR');
@@ -5311,7 +5372,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                     <td class="p-2.5 text-xs opacity-70">${safeDate}</td>
                     <td class="p-2.5 text-xs"><span class="${badgeBg} px-2 py-0.5 rounded border font-medium">${safeType} ${detailLabel}</span>${m.user ? `<div class="text-[10px] opacity-60 mt-1">${htmlGuvenli(m.user)}</div>` : ''}</td>
                     <td class="p-2.5 text-right font-mono font-bold ${amountColor}">₺${(Number(m.amount) || 0).toFixed(2)}</td>
-                    <td class="p-2.5 text-right whitespace-nowrap">${m.movementKind === 'manual' ? `<button type="button" onclick="event.stopPropagation();kasaHareketiDuzenlemeAc(${movementIndex})" class="text-blue-400 hover:text-blue-300 px-2 py-1" title="Düzenle" aria-label="Düzenle"><i class="fa-solid fa-pen"></i></button><button type="button" onclick="event.stopPropagation();kasaHareketiniSil(${movementIndex})" class="text-red-400 hover:text-red-300 px-2 py-1" title="Sil" aria-label="Sil"><i class="fa-solid fa-trash"></i></button>` : `<span class="text-[10px] opacity-50">İşlem kaydı</span>`}</td>
+                    <td class="p-2.5 text-right whitespace-nowrap">${m.movementKind === 'manual' ? `${(['Alacak','Borç'].includes(m.type) && (Number(m.amount)||0) - (Number(m.paidAmount)||0) > 0.009 ? `<button type="button" onclick="event.stopPropagation();manuelKasaTahsilatAc(${movementIndex})" class="text-[10px] font-bold rounded bg-emerald-600 text-white px-2 py-1 mr-1">${m.type === 'Alacak' ? 'Tahsilat' : 'Ödeme'}</button>` : '')}<button type="button" onclick="event.stopPropagation();kasaHareketiDuzenlemeAc(${movementIndex})" class="text-blue-400 hover:text-blue-300 px-2 py-1" title="Düzenle" aria-label="Düzenle"><i class="fa-solid fa-pen"></i></button><button type="button" onclick="event.stopPropagation();kasaHareketiniSil(${movementIndex})" class="text-red-400 hover:text-red-300 px-2 py-1" title="Sil" aria-label="Sil"><i class="fa-solid fa-trash"></i></button>` : m.movementKind === 'manual-settlement' ? `<span class="text-[10px] opacity-60">${m.settlementType === 'Alacak' ? 'Tahsilat kaydı' : 'Borç ödeme kaydı'}</span>` : `<span class="text-[10px] opacity-50">İşlem kaydı</span>`}</td>
                 </tr>
                 `;
             }).join('');
@@ -6628,13 +6689,38 @@ if('serviceWorker' in navigator&&location.protocol!=='file:'){window.addEventLis
 </script>
 <script>document.addEventListener("DOMContentLoaded", function(){ try { odemeAyarlariniEkranaYansit(); } catch(e) { console.warn(e); } });</script>
 
+
+<div id="modal-manual-settlement" class="fixed inset-0 z-[190] hidden items-center justify-center bg-black/80 backdrop-blur-md p-4" onclick="if(event.target===this) modalKapat('modal-manual-settlement')">
+  <div class="theme-card w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 p-5 text-white shadow-2xl">
+    <div class="mb-4 flex items-center justify-between border-b border-slate-700 pb-3">
+      <h3 id="manual-settlement-title" class="text-base font-bold">Alacak Tahsilatı</h3>
+      <button type="button" onclick="modalKapat('modal-manual-settlement')" class="text-slate-300"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form class="space-y-3" onsubmit="manuelKasaTahsilatiniKaydet(event)">
+      <div><label id="manual-settlement-label" for="manual-settlement-amount" class="mb-1 block text-xs font-bold text-slate-300">Tahsil edilen tutar (₺)</label>
+        <input id="manual-settlement-amount" type="number" min="0.01" step="0.01" required class="theme-input w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-3 text-lg font-bold" />
+        <p id="manual-settlement-max" class="mt-1 text-xs text-amber-300"></p>
+      </div>
+      <div><label for="manual-settlement-method" class="mb-1 block text-xs text-slate-400">İşlem yöntemi</label>
+        <select id="manual-settlement-method" class="theme-input w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-3 text-sm">
+          <option value="Nakit">Nakit</option><option value="Kredi Kartı">Kredi kartı</option><option value="Banka / Diğer">Banka / Diğer</option>
+        </select>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button type="button" onclick="modalKapat('modal-manual-settlement')" class="flex-1 rounded-lg bg-slate-700 px-3 py-3 text-sm font-bold text-white">Vazgeç</button>
+        <button type="submit" class="flex-1 rounded-lg bg-emerald-600 px-3 py-3 text-sm font-black text-white">Kaydet</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div id="modal-modern-payment" class="fixed inset-0 z-[120] hidden items-center justify-center bg-black/75 backdrop-blur-md p-3" onclick="if(event.target===this) modalKapat('modal-modern-payment')">
-  <div class="w-full max-w-md overflow-hidden rounded-2xl border border-slate-600 bg-slate-900 text-white shadow-2xl">
-    <div class="flex items-center justify-between border-b border-slate-700 bg-gradient-to-r from-indigo-950 to-slate-900 px-5 py-4">
+  <div class="flex w-full max-w-md max-h-[calc(100dvh-1.5rem)] flex-col overflow-hidden rounded-2xl border border-slate-600 bg-slate-900 text-white shadow-2xl">
+    <div class="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-slate-700 bg-gradient-to-r from-indigo-950 to-slate-900 px-5 py-4">
       <div><div class="text-[10px] font-bold uppercase tracking-[.2em] text-indigo-300">Ödeme işlemi</div><h3 id="payment-modal-title" class="mt-1 text-lg font-black">Parçalı ödeme</h3></div>
       <button type="button" class="rounded-lg bg-white/10 px-3 py-2 text-slate-300 hover:bg-white/20" onclick="modalKapat('modal-modern-payment')"><i class="fa-solid fa-xmark"></i></button>
     </div>
-    <div class="space-y-4 p-5">
+    <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain space-y-4 p-5" style="max-height:calc(100dvh - 7rem);-webkit-overflow-scrolling:touch">
       <div class="rounded-xl border border-indigo-400/30 bg-indigo-500/10 p-4 text-center"><div class="text-xs font-semibold text-indigo-200">ÖDENECEK TUTAR</div><div id="payment-modal-total" class="mt-1 text-3xl font-black tracking-tight text-white">₺0.00</div></div>
       <div class="space-y-3">
         <label class="block"><span class="mb-1.5 flex items-center gap-2 text-xs font-bold text-emerald-300"><i class="fa-solid fa-money-bill-wave"></i> Alınan nakit (₺)</span><input id="payment-cash" type="number" min="0" step="0.01" inputmode="decimal" oninput="odemeModaliniHesapla()" placeholder="0,00" class="w-full rounded-xl border border-emerald-500/40 bg-slate-950 px-4 py-3 text-lg font-bold text-white outline-none focus:border-emerald-400" /></label>
