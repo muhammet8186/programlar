@@ -68,6 +68,8 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
             sirketAdi: 'Hızlı Satış Programı',
             sifre: '1234',
             otomatikYazdir: false,
+            paraUstuAktif: false,
+            parcaliOdemeAktif: false,
             fisYazdirmaModu: 'toplu',
             fisAlanlari: { sirket:true, fisNo:true, tarih:true, urunler:true, araToplam:true, iskonto:true, toplam:true, odeme:true, tesekkur:true },
             tema: 'dark',
@@ -646,11 +648,11 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 </div>
 <button class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-3 rounded text-xs flex items-center justify-center gap-2" id="cart-adisyon-save-button" onclick="adisyonuKaydet()" type="button"><i class="fa-solid fa-clipboard-list"></i><span id="adisyon-save-label">ADİSYON AÇ / KAYDET</span></button>
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-<button class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-1 rounded transition flex flex-col items-center justify-center shadow active:scale-95 border border-emerald-500/30 cursor-pointer" id="sales-cash-button" onclick="odemeYap('Nakit')" type="button">
+<button class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-1 rounded transition flex flex-col items-center justify-center shadow active:scale-95 border border-emerald-500/30 cursor-pointer" id="sales-cash-button" onclick="odemeButonundanBaslat('Nakit')" type="button">
 <i class="fa-solid fa-money-bill-wave text-xs mb-0.5"></i>
 <span class="text-[10px] font-semibold tracking-wide">NAKİT</span>
 </button>
-<button class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-1 rounded transition flex flex-col items-center justify-center shadow active:scale-95 border border-blue-500/30 cursor-pointer" id="sales-credit-button" onclick="odemeYap('Kredi Kartı')" type="button">
+<button class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-1 rounded transition flex flex-col items-center justify-center shadow active:scale-95 border border-blue-500/30 cursor-pointer" id="sales-credit-button" onclick="odemeButonundanBaslat('Kredi Kartı')" type="button">
 <i class="fa-solid fa-credit-card text-xs mb-0.5"></i>
 <span class="text-[10px] font-semibold tracking-wide">K.KARTI</span>
 </button>
@@ -658,6 +660,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <button class="bg-cyan-700 hover:bg-cyan-600 text-white font-bold py-2 px-1 rounded transition flex flex-col items-center justify-center shadow active:scale-95 border border-cyan-500/30 cursor-pointer" id="sales-card-button" onclick="alisverisKartiSatisModaliniAc()" type="button"><i class="fa-solid fa-id-card text-xs mb-0.5"></i><span class="text-[10px] font-semibold tracking-wide">ALIŞVERİŞ KARTI</span></button>
 </div>
 </div>
+<button id="sales-partial-button" class="w-full bg-violet-700 hover:bg-violet-600 text-white font-bold py-2 rounded text-xs" onclick="parcaliOdemeBaslat()" type="button"><i class="fa-solid fa-money-bill-transfer mr-1"></i> PARÇALI ÖDEME / AÇIK BAKİYE</button>
 </div>
 </section>
 <!-- MUTFAK / SİPARİŞ TAKİP EKRANI -->
@@ -967,6 +970,11 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <p class="text-xs text-slate-400 mt-0.5">Firma bilgileri, fiş yazdırma tercihi, kullanıcılar ve Firebase eşitleme.</p>
 <p class="text-[11px] text-emerald-400 mt-1">Firma bilgisi, logo, fiş tercihleri, kullanıcılar, dönemler ve mutfak / müşteri sipariş ayarları Firebase ile eşitlenir. Diğer tercihler bu cihazda saklanır.</p>
 </div>
+</div>
+<div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
+<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5"><i class="fa-solid fa-cash-register text-emerald-500 mr-2"></i>Ödeme Özellikleri</h3>
+<label class="flex items-center justify-between gap-3 rounded border border-slate-800 bg-slate-950 p-3 text-xs"><span><b>Para üstü hesaplama</b><small class="block text-slate-400 mt-1">Nakit ödemede alınan tutarı girip para üstünü hesaplayın.</small></span><input id="setting-change-toggle" type="checkbox" class="w-4 h-4 accent-emerald-500" onchange="odemeOzelliginiDegistir('paraUstuAktif',this.checked)"></label>
+<label class="flex items-center justify-between gap-3 rounded border border-slate-800 bg-slate-950 p-3 text-xs"><span><b>Parçalı ödeme ve açık bakiye</b><small class="block text-slate-400 mt-1">Bir satışta nakit/kart tahsil edin, kalanı müşteriye borç yazın.</small></span><input id="setting-partial-toggle" type="checkbox" class="w-4 h-4 accent-emerald-500" onchange="odemeOzelliginiDegistir('parcaliOdemeAktif',this.checked)"></label>
 </div>
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
 
@@ -1751,6 +1759,8 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             sirketAdi: 'Hızlı Satış Programı',
             logoDataUrl: '',
             otomatikYazdir: false,
+            paraUstuAktif: false,
+            parcaliOdemeAktif: false,
             fisYazdirmaModu: 'toplu',
             tema: 'dark',
             satisYaziBoyutu: 14,
@@ -4541,6 +4551,118 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 </body></html>`); w.document.close();
         }
 
+        function odemeOzelliginiDegistir(alan, aktif) {
+            if (!['paraUstuAktif', 'parcaliOdemeAktif'].includes(alan)) return;
+            sistemAyarlari[alan] = Boolean(aktif);
+            sistemAyarlariKaydet();
+            const btn = document.getElementById('sales-partial-button');
+            if (btn) btn.classList.toggle('hidden', sistemAyarlari.parcaliOdemeAktif !== true);
+        }
+
+        function odemeAyarlariniEkranaYansit() {
+            const para = document.getElementById('setting-change-toggle');
+            const parcali = document.getElementById('setting-partial-toggle');
+            if (para) para.checked = sistemAyarlari.paraUstuAktif === true;
+            if (parcali) parcali.checked = sistemAyarlari.parcaliOdemeAktif === true;
+            const btn = document.getElementById('sales-partial-button');
+            if (btn) btn.classList.toggle('hidden', sistemAyarlari.parcaliOdemeAktif !== true);
+        }
+
+        function odemeButonundanBaslat(type) {
+            // Nakit butonu yalnızca nakit tahsilat ekranını açar; parçalı ödeme ayrı butondadır.
+            if (type === 'Nakit' && sistemAyarlari.paraUstuAktif === true) { nakitOdemeBaslat(); return; }
+            odemeYap(type);
+        }
+
+        function nakitOdemeBaslat() {
+            odemeModaliniAc('cash');
+        }
+
+        function parcaliOdemeBaslat() {
+            if (sistemAyarlari.parcaliOdemeAktif !== true) return;
+            odemeModaliniAc('partial');
+        }
+
+        function odemeModaliniAc(mode) {
+            if (sistemAyarlari.paraUstuAktif !== true && sistemAyarlari.parcaliOdemeAktif !== true) return;
+            if (!sepet.length) { onayModaliniGoster('Sepet boş', 'Ödeme almak için önce ürün ekleyin.', null, true); return; }
+            const subtotal = sepet.reduce((sum, i) => sum + Number(i.product.price || 0) * Number(i.qty || 0), 0);
+            const discount = Math.max(0, Number(document.getElementById('cart-discount')?.value) || 0);
+            const total = Math.max(0, subtotal - discount);
+            window.__posPaymentMode = mode || 'partial';
+            const isCashMode = window.__posPaymentMode === 'cash';
+            const title = document.getElementById('payment-modal-title');
+            if (title) title.textContent = isCashMode ? 'Nakit tahsilat' : 'Parçalı ödeme';
+            const cardWrap = document.getElementById('payment-card-wrap');
+            const otherWrap = document.getElementById('payment-other-wrap');
+            const cashSummary = document.getElementById('payment-modal-cash-summary');
+            if (cardWrap) cardWrap.classList.toggle('hidden', isCashMode);
+            if (otherWrap) otherWrap.classList.toggle('hidden', isCashMode);
+            if (cashSummary) cashSummary.classList.remove('hidden');
+            const totalEl = document.getElementById('payment-modal-total');
+            if (totalEl) totalEl.textContent = '₺' + total.toFixed(2);
+            const customerSelect = document.getElementById('payment-modal-customer');
+            if (customerSelect) customerSelect.innerHTML = '<option value="">Müşteri seçin...</option>' + [...musteriler].sort((a,b)=>a.name.localeCompare(b.name,'tr')).map(c => `<option value="${String(c.id).replace(/\"/g,'&quot;')}">${htmlGuvenli(c.name)}</option>`).join('');
+            ['payment-cash','payment-card','payment-other'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+            const modal=document.getElementById('modal-modern-payment');
+            if(modal){modal.classList.remove('hidden');modal.classList.add('flex');}
+            odemeModaliniHesapla();
+            setTimeout(()=>document.getElementById('payment-cash')?.focus(),80);
+        }
+
+        function odemeModaliniHesapla() {
+            const total = Number(String(document.getElementById('payment-modal-total')?.textContent || '').replace(/[^0-9,.-]/g,'').replace(',','.')) || 0;
+            const cashReceived = Math.max(0, Number(String(document.getElementById('payment-cash')?.value || '0').replace(',','.')) || 0);
+            const card = Math.max(0, Number(String(document.getElementById('payment-card')?.value || '0').replace(',','.')) || 0);
+            const other = Math.max(0, Number(String(document.getElementById('payment-other')?.value || '0').replace(',','.')) || 0);
+            const cashDue = Math.max(0, total-card-other);
+            const cashApplied = Math.min(cashReceived,cashDue);
+            const change = Math.max(0,cashReceived-cashApplied);
+            const remaining = Math.max(0,total-cashApplied-card-other);
+            const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent='₺'+val.toFixed(2);};
+            set('payment-modal-cash-applied',cashApplied); set('payment-modal-change',change); set('payment-modal-remaining',remaining);
+            const warn=document.getElementById('payment-modal-warning');
+            if(warn){warn.textContent=(card+other>total+0.001)?'Kart + diğer tutarı ödenecek toplamı aşamaz.':'';warn.classList.toggle('hidden',!(card+other>total+0.001));}
+            const customerWrap=document.getElementById('payment-modal-customer-wrap');
+            if(customerWrap) customerWrap.classList.toggle('hidden',window.__posPaymentMode === 'cash' || remaining<=0.009);
+            const remainingLabel=document.getElementById('payment-modal-remaining');
+            if(remainingLabel) remainingLabel.classList.toggle('text-amber-400',remaining>0.009);
+            return {total,cashReceived,cashApplied,card,other,change,remaining};
+        }
+
+        function modernOdemeOnayla() {
+            const v=odemeModaliniHesapla();
+            if (window.__posPaymentMode === 'cash') {
+                if (v.cashReceived + 0.001 < v.total) { onayModaliniGoster('Eksik nakit', 'Alınan nakit ödenecek tutardan az olamaz. Eksik tutar: ₺' + Math.max(0, v.total-v.cashReceived).toFixed(2), null, true); return; }
+                if (!islemYetkisiGerekli('sales_cash','Nakit ödeme alma yetkiniz yok.')) return;
+                window.__posPartialPayment = { payments:[{type:'Nakit',amount:v.total}], paidAmount:v.total, remainingAmount:0, customer:null, cashReceived:v.cashReceived, change:Math.max(0,v.cashReceived-v.total) };
+                modalKapat('modal-modern-payment');
+                odemeYap('Nakit');
+                window.__posPaymentMode = null;
+                return;
+            }
+            if(v.card+v.other>v.total+0.001){onayModaliniGoster('Tutar kontrolü','Kredi kartı ve diğer ödeme toplamı, ödenecek tutarı aşamaz.',null,true);return;}
+            if(v.cashApplied+v.card+v.other<=0.009){onayModaliniGoster('Ödeme girilmedi','Lütfen nakit, kredi kartı veya diğer ödeme tutarlarından en az birini girin.',null,true);return;}
+            if(v.cashApplied>0&&!islemYetkisiGerekli('sales_cash','Nakit ödeme alma yetkiniz yok.'))return;
+            if(v.card>0&&!islemYetkisiGerekli('sales_credit_card','Kredi kartı ödemesi alma yetkiniz yok.'))return;
+            let customer=null;
+            if(v.remaining>0.009){
+                if(sistemAyarlari.parcaliOdemeAktif !== true){onayModaliniGoster('Açık bakiye kapalı','Açık bakiye oluşturmak için Ayarlar bölümünden parçalı ödeme ve açık bakiye özelliğini açın.',null,true);return;}
+                if(!islemYetkisiGerekli('sales_debt','Açık bakiye oluşturma yetkiniz yok.'))return;
+                const id=document.getElementById('payment-modal-customer')?.value;
+                customer=musteriler.find(c=>String(c.id)===String(id));
+                if(!customer){onayModaliniGoster('Müşteri gerekli','Kalan bakiye cariye eklenebilmesi için müşteri seçmelisiniz.',null,true);return;}
+            }
+            const payments=[];
+            if(v.cashApplied>0)payments.push({type:'Nakit',amount:v.cashApplied});
+            if(v.card>0)payments.push({type:'Kredi Kartı',amount:v.card});
+            if(v.other>0)payments.push({type:'Diğer',amount:v.other});
+            if(v.remaining>0.009)payments.push({type:'Veresiye',amount:v.remaining});
+            window.__posPartialPayment={payments,paidAmount:v.cashApplied+v.card+v.other,remainingAmount:v.remaining,customer,cashReceived:v.cashReceived,change:v.change};
+            modalKapat('modal-modern-payment');
+            odemeYap('Parçalı Ödeme',customer?customer.name:null);
+        }
+
         function odemeYap(type, musteriAdiRef = null, alisverisKartiMusteriId = null) {
             if (type === 'Nakit' && !islemYetkisiGerekli('sales_cash', 'Nakit ödeme alma yetkiniz yok.')) return;
             if (type === 'Kredi Kartı' && !islemYetkisiGerekli('sales_credit_card', 'Kredi kartı ödemesi alma yetkiniz yok.')) return;
@@ -4555,6 +4677,10 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             const discountInput = document.getElementById('cart-discount');
             const discount = discountInput ? Math.max(0, parseFloat(discountInput.value) || 0) : 0;
             const total = Math.max(0, subtotal - discount);
+            let nakitAlinan = total;
+            if (type === 'Nakit' && window.__posPartialPayment && Number.isFinite(Number(window.__posPartialPayment.cashReceived))) {
+                nakitAlinan = Number(window.__posPartialPayment.cashReceived);
+            }
             let kartMusterisi = null;
             if (type === 'Alışveriş Kartı') {
                 kartMusterisi = musteriler.find(c => String(c.id) === String(alisverisKartiMusteriId));
@@ -4586,7 +4712,13 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                 kitchenCreatedAt: Date.now(),
                 subtotal: subtotal,
                 discount: discount,
-                total: total
+                total: total,
+                paidAmount: type === 'Nakit' ? total : (window.__posPartialPayment ? window.__posPartialPayment.paidAmount : total),
+                remainingAmount: window.__posPartialPayment ? window.__posPartialPayment.remainingAmount : 0,
+                paymentStatus: window.__posPartialPayment ? (window.__posPartialPayment.remainingAmount > 0 ? 'partial' : 'paid') : 'paid',
+                payments: window.__posPartialPayment ? window.__posPartialPayment.payments : [{ type, amount: total }],
+                cashReceived: window.__posPartialPayment ? window.__posPartialPayment.cashReceived : (type === 'Nakit' ? nakitAlinan : undefined),
+                change: window.__posPartialPayment ? window.__posPartialPayment.change : (type === 'Nakit' ? Math.max(0, nakitAlinan - total) : 0)
             };
 
             if (!Array.isArray(satisGecmisi)) satisGecmisi = [];
@@ -4596,18 +4728,25 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                 aktifAdisyonId = null;
             }
 
-            if (type === 'Nakit' || type === 'Kredi Kartı' || type.startsWith('Veresiye')) {
+            if (type === 'Nakit' || type === 'Kredi Kartı' || type.startsWith('Veresiye') || type === 'Parçalı Ödeme') {
                 if (!Array.isArray(kasaHareketleri)) kasaHareketleri = [];
-                kasaHareketleri.unshift({
-                    saleId: sale.id,
-                    date: sale.date,
-                    type: type.startsWith('Veresiye') ? `Veresiye Satış (${musteriAdiRef || 'Müşteri'})` : `Satış (${type})`,
-                    amount: total
+                (sale.payments || []).forEach(payment => {
+                    if (payment.type === 'Veresiye') return;
+                    kasaHareketleri.unshift({ saleId: sale.id, date: sale.date, type: `Satış (${payment.type})`, amount: Number(payment.amount) || 0 });
                 });
             }
+            if (window.__posPartialPayment && window.__posPartialPayment.customer && sale.remainingAmount > 0) {
+                const cust = window.__posPartialPayment.customer;
+                cust.totalDebt = (Number(cust.totalDebt) || 0) + sale.remainingAmount;
+                if (!Array.isArray(cust.history)) cust.history = [];
+                cust.history.unshift({ id: sale.id, date: sale.date, type: 'Borç Ekleme (Parçalı Satış)', amount: sale.remainingAmount });
+                sale.customerId = cust.id; sale.customerName = cust.name; sale.associatedCustId = cust.id;
+            }
+            if (type === 'Nakit' && nakitAlinan > total) sale.cashReceived = nakitAlinan;
 
             durumuKaydet();
-            islemBildirimiGoster(type + ' işlemi tamamlandı: ₺' + total.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}));
+            islemBildirimiGoster(type + ' işlemi tamamlandı: ₺' + total.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + (type === 'Nakit' && nakitAlinan > total ? ' · Para üstü: ₺' + (nakitAlinan-total).toFixed(2) : ''));
+            window.__posPartialPayment = null;
             
             if (sistemAyarlari.otomatikYazdir === true) {
                 if ((type === 'Nakit' || type === 'Kredi Kartı') && sistemAyarlari.fisYazdirmaModu === 'coklu') {
@@ -5785,6 +5924,8 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 
             const customer = musteriler.find(c => String(c.id) === String(custId));
             if (!customer || isNaN(paidAmount) || paidAmount <= 0) return;
+            const kalanBorc = Math.max(0, (Number(customer.totalDebt)||0) - (Number(customer.paidDebt)||0));
+            if (paidAmount > kalanBorc + 0.001) { onayModaliniGoster('Tutar fazla', `Tahsilat tutarı kalan borcu (₺${kalanBorc.toFixed(2)}) aşamaz.`, null, true); return; }
 
             customer.paidDebt = (customer.paidDebt || 0) + paidAmount;
             if(!Array.isArray(customer.history)) customer.history = [];
@@ -6440,5 +6581,27 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <script>
 if('serviceWorker' in navigator&&location.protocol!=='file:'){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(error=>console.warn('Uygulama çevrimdışı desteği başlatılamadı.',error)));}
 </script>
+<script>document.addEventListener("DOMContentLoaded", function(){ try { odemeAyarlariniEkranaYansit(); } catch(e) { console.warn(e); } });</script>
+
+<div id="modal-modern-payment" class="fixed inset-0 z-[120] hidden items-center justify-center bg-black/75 backdrop-blur-md p-3" onclick="if(event.target===this) modalKapat('modal-modern-payment')">
+  <div class="w-full max-w-md overflow-hidden rounded-2xl border border-slate-600 bg-slate-900 text-white shadow-2xl">
+    <div class="flex items-center justify-between border-b border-slate-700 bg-gradient-to-r from-indigo-950 to-slate-900 px-5 py-4">
+      <div><div class="text-[10px] font-bold uppercase tracking-[.2em] text-indigo-300">Ödeme işlemi</div><h3 id="payment-modal-title" class="mt-1 text-lg font-black">Parçalı ödeme</h3></div>
+      <button type="button" class="rounded-lg bg-white/10 px-3 py-2 text-slate-300 hover:bg-white/20" onclick="modalKapat('modal-modern-payment')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="space-y-4 p-5">
+      <div class="rounded-xl border border-indigo-400/30 bg-indigo-500/10 p-4 text-center"><div class="text-xs font-semibold text-indigo-200">ÖDENECEK TUTAR</div><div id="payment-modal-total" class="mt-1 text-3xl font-black tracking-tight text-white">₺0.00</div></div>
+      <div class="space-y-3">
+        <label class="block"><span class="mb-1.5 flex items-center gap-2 text-xs font-bold text-emerald-300"><i class="fa-solid fa-money-bill-wave"></i> Alınan nakit (₺)</span><input id="payment-cash" type="number" min="0" step="0.01" inputmode="decimal" oninput="odemeModaliniHesapla()" placeholder="0,00" class="w-full rounded-xl border border-emerald-500/40 bg-slate-950 px-4 py-3 text-lg font-bold text-white outline-none focus:border-emerald-400" /></label>
+        <label id="payment-card-wrap" class="block"><span class="mb-1.5 flex items-center gap-2 text-xs font-bold text-sky-300"><i class="fa-solid fa-credit-card"></i> Kredi kartı (₺)</span><input id="payment-card" type="number" min="0" step="0.01" inputmode="decimal" oninput="odemeModaliniHesapla()" placeholder="0,00" class="w-full rounded-xl border border-sky-500/40 bg-slate-950 px-4 py-3 text-lg font-bold text-white outline-none focus:border-sky-400" /></label>
+        <label id="payment-other-wrap" class="block"><span class="mb-1.5 flex items-center gap-2 text-xs font-bold text-violet-300"><i class="fa-solid fa-wallet"></i> Diğer ödeme (₺)</span><input id="payment-other" type="number" min="0" step="0.01" inputmode="decimal" oninput="odemeModaliniHesapla()" placeholder="0,00" class="w-full rounded-xl border border-violet-500/40 bg-slate-950 px-4 py-3 text-lg font-bold text-white outline-none focus:border-violet-400" /></label>
+      </div>
+      <div id="payment-modal-cash-summary" class="grid grid-cols-2 gap-2"><div class="rounded-xl bg-slate-800 p-3"><div class="text-[11px] text-slate-400">Kasaya yazılacak nakit</div><div id="payment-modal-cash-applied" class="mt-1 font-mono text-lg font-bold text-emerald-300">₺0.00</div></div><div class="rounded-xl bg-slate-800 p-3"><div class="text-[11px] text-slate-400">Para üstü</div><div id="payment-modal-change" class="mt-1 font-mono text-lg font-bold text-cyan-300">₺0.00</div></div></div>
+      <div class="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3"><div class="flex items-center justify-between"><span class="text-xs font-bold text-amber-200">Kalan bakiye</span><strong id="payment-modal-remaining" class="font-mono text-xl text-amber-300">₺0.00</strong></div><div id="payment-modal-warning" class="hidden mt-2 text-xs font-semibold text-red-300"></div></div>
+      <div id="payment-modal-customer-wrap" class="hidden"><label class="mb-1.5 block text-xs font-bold text-amber-200">Kalan bakiye hangi cariye eklensin? <span class="text-red-400">*</span></label><select id="payment-modal-customer" class="w-full rounded-xl border border-amber-500/40 bg-slate-950 px-3 py-3 text-sm text-white outline-none focus:border-amber-400"><option value="">Müşteri seçin...</option></select><p class="mt-1 text-[10px] text-slate-400">Kalan tutar müşterinin veresiye hesabına borç olarak eklenecek.</p></div>
+      <div class="flex gap-2 pt-1"><button type="button" onclick="modalKapat('modal-modern-payment')" class="flex-1 rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-sm font-bold text-slate-300">Vazgeç</button><button type="button" onclick="modernOdemeOnayla()" class="flex-[1.5] rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white shadow-lg shadow-emerald-950/40 hover:bg-emerald-500"><i class="fa-solid fa-check mr-2"></i>ÖDEMEYİ TAMAMLA</button></div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
