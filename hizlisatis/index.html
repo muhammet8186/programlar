@@ -5952,24 +5952,27 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                     document.getElementById('sysuser-name').value = u.name;
                     document.getElementById('sysuser-pass').value = u.pass;
                     document.getElementById('sysuser-role').value = u.role || 'Kasiyer';
-                    document.getElementById('modal-sysuser-title').innerText = 'Sistem Kullanıcısını Düzenle';
+                    document.getElementById('modal-sysuser-title').innerText = sistemKullaniciAnaAdminMi(u)
+                        ? 'Ana Admin Hesabını Düzenle (Rol ve Yetkiler Sabit)'
+                        : 'Sistem Kullanıcısını Düzenle';
                 }
             }
-            const temelIzinler = ['sales','products','cash','history','reports','debtors','waiter'];
-            const izinler = seciliKullanici && Array.isArray(seciliKullanici.permissions) ? [...seciliKullanici.permissions] : [...temelIzinler, ...ayrintiliIzinAnahtarlari];
-            if (seciliKullanici && !izinler.includes('sales_payment_permissions_configured') && izinler.includes('sales')) {
-                if (!izinler.includes('sales_cash')) izinler.push('sales_cash');
-                if (!izinler.includes('sales_credit_card')) izinler.push('sales_credit_card');
-            }
-            const ayrintiliVar = izinler.some(p => ayrintiliIzinAnahtarlari.includes(p));
-            const granularBolum = {
-                sales_product_order: 'sales', sales_debt: 'sales', sales_card: 'sales', sales_cash: 'sales', sales_credit_card: 'sales',
-                product_add: 'products', product_edit: 'products', product_delete: 'products', stock_add: 'products',
-                sales_cancel: 'history', debt_customer_add: 'debtors', debt_customer_edit: 'debtors',
-                debt_customer_delete: 'debtors', debt_collect: 'debtors', debt_history_delete: 'debtors'
-            };
+            // Rol yetkileri ekranı her açıldığında tüm izinler seçili başlar.
+            // Kullanıcı isterse kaydetmeden önce tek tek izinleri kaldırabilir.
             document.querySelectorAll('.sysuser-permission').forEach(ch => {
-                ch.checked = izinler.includes(ch.value) || (!ayrintiliVar && ayrintiliIzinAnahtarlari.includes(ch.value) && izinler.includes(granularBolum[ch.value]));
+                ch.checked = true;
+            });
+            // Ana Admin'in rolü ve yetkileri değiştirilemez; yalnızca hesap bilgileri düzenlenebilir.
+            const anaAdminDuzenleniyor = !!(seciliKullanici && sistemKullaniciAnaAdminMi(seciliKullanici));
+            const rolSecimi = document.getElementById('sysuser-role');
+            if (rolSecimi) {
+                rolSecimi.disabled = anaAdminDuzenleniyor;
+                rolSecimi.title = anaAdminDuzenleniyor ? 'Ana Admin rolü değiştirilemez.' : '';
+            }
+            document.querySelectorAll('.sysuser-permission').forEach(ch => {
+                ch.disabled = anaAdminDuzenleniyor;
+                if (anaAdminDuzenleniyor) ch.title = 'Ana Admin yetkileri değiştirilemez.';
+                else ch.removeAttribute('title');
             });
             const modal = document.getElementById('modal-system-user');
             modal.classList.remove('hidden');
@@ -5981,8 +5984,17 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             const id = document.getElementById('sysuser-id').value;
             const name = document.getElementById('sysuser-name').value.trim();
             const pass = document.getElementById('sysuser-pass').value.trim();
-            const role = document.getElementById('sysuser-role').value;
-            const permissions = [...Array.from(document.querySelectorAll('.sysuser-permission:checked')).map(ch => ch.value), 'sales_payment_permissions_configured'];
+            let role = document.getElementById('sysuser-role').value;
+            let permissions = [...Array.from(document.querySelectorAll('.sysuser-permission:checked')).map(ch => ch.value), 'sales_payment_permissions_configured'];
+            // Form/DOM üzerinden değiştirme denense bile Ana Admin'in rol ve yetkilerini koru.
+            const mevcutKullanici = id ? sistemKullanicilari.find(u => String(u.id) === String(id)) : null;
+            const anaAdminDuzenleniyor = !!(mevcutKullanici && sistemKullaniciAnaAdminMi(mevcutKullanici));
+            if (anaAdminDuzenleniyor) {
+                role = mevcutKullanici.role || 'Yönetici';
+                permissions = Array.isArray(mevcutKullanici.permissions)
+                    ? [...mevcutKullanici.permissions]
+                    : [...ayrintiliIzinAnahtarlari, 'sales_payment_permissions_configured'];
+            }
 
             onayModaliniGoster(
                 id ? 'Kullanıcıyı Güncelle' : 'Yeni Kullanıcı Ekle',
@@ -6007,13 +6019,33 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             );
         }
 
+        function sistemKullaniciYoneticiMi(user) {
+            const rol = String(user?.role || '').trim().toLocaleLowerCase('tr-TR');
+            return rol === 'yönetici' || rol === 'yonetici' || rol === 'admin' ||
+                rol.includes('yönetici') || rol.includes('yonetici');
+        }
+
+        // Yalnızca sistemin kurucu Admin hesabı korunur. Sonradan eklenen
+        // Yönetici hesapları, rolü Yönetici olsa da silinebilir.
+        function sistemKullaniciAnaAdminMi(user) {
+            const ad = String(user?.name || '').trim().toLocaleLowerCase('tr-TR');
+            return String(user?.id || '') === 'u1' || ad === 'admin';
+        }
+
         function sistemKullaniciSil(id) {
+            const u = sistemKullanicilari.find(user => String(user.id) === String(id));
+            if (!u) return;
+
+            // Sadece kurucu Admin hesabının silinmesine izin verilmez.
+            if (sistemKullaniciAnaAdminMi(u)) {
+                onayModaliniGoster('İşlem engellendi', 'Ana Admin hesabı silinemez. Sonradan eklenen yönetici hesaplarını silebilirsiniz.', null, true);
+                return;
+            }
+
             if (sistemKullanicilari.length <= 1) {
                 onayModaliniGoster('Uyarı', 'Sistemde en az bir kullanıcı kalmalıdır!', null, true);
                 return;
             }
-            const u = sistemKullanicilari.find(user => String(user.id) === String(id));
-            if(!u) return;
 
             onayModaliniGoster(
                 'Kullanıcıyı Sil',
@@ -6042,6 +6074,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 
             tbody.innerHTML = sistemKullanicilari.map(u => {
                 const safeId = String(u.id);
+                const anaAdminHesabi = sistemKullaniciAnaAdminMi(u);
                 return `
                 <tr class="${hoverClass} transition">
                     <td class="p-2.5 font-semibold">${htmlGuvenli(u.name)}</td>
@@ -6049,7 +6082,9 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                     <td class="p-2.5"><span class="px-2 py-0.5 rounded border text-[10px] font-medium ${u.role === 'Yönetici' ? 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'}">${htmlGuvenli(u.role || 'Kasiyer')}</span></td>
                     <td class="p-2.5 text-center space-x-1">
                         <button onclick="sistemKullaniciModaliniAc('${safeId}')" type="button" class="text-blue-700 dark:text-blue-400 hover:bg-blue-500/20 bg-blue-500/10 p-1.5 rounded border border-blue-500/20 transition" title="Düzenle"><i class="fa-solid fa-pen"></i></button>
-                        <button onclick="sistemKullaniciSil('${safeId}')" type="button" class="text-red-700 dark:text-red-400 hover:bg-red-500/20 bg-red-500/10 p-1.5 rounded border border-red-500/20 transition" title="Sil"><i class="fa-solid fa-trash"></i></button>
+                        ${anaAdminHesabi
+                            ? '<span class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-1.5 rounded border border-amber-500/20" title="Ana Admin hesabı silinemez"><i class="fa-solid fa-lock"></i><span class="text-[10px] font-semibold">Ana Admin</span></span>'
+                            : `<button onclick="sistemKullaniciSil('${safeId}')" type="button" class="text-red-700 dark:text-red-400 hover:bg-red-500/20 bg-red-500/10 p-1.5 rounded border border-red-500/20 transition" title="Sil"><i class="fa-solid fa-trash"></i></button>`}
                     </td>
                 </tr>
                 `;
