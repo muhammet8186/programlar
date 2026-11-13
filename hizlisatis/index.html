@@ -4491,7 +4491,33 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 
 </body></html>`); w.document.close();
         }
-        function mutfakTekFisYazdir(id) { const key=String(id); let s=(satisGecmisi||[]).find(x=>String(x.id)===key); if(!s && key.startsWith('AD-')) { const a=(acikAdisyonlar||[]).find(x=>String(x.id)===key.slice(3)); if(a) s={id:'AD-'+a.id,date:a.updatedLabel||a.createdLabel||'',masa:a.masa,garson:a.garson,items:a.items,kitchenNote:a.note,kitchenStatus:a.kitchenStatus||'new'}; } if(s) mutfakYazdir([s]); }
+        function mutfakTekFisYazdir(id) {
+            const key = String(id);
+            let s = (satisGecmisi || []).find(x => String(x.id) === key);
+            if (!s && key.startsWith('AD-')) {
+                const a = (acikAdisyonlar || []).find(x => String(x.id) === key.slice(3));
+                if (a) s = { id: 'AD-' + a.id, date: a.updatedLabel || a.createdLabel || '', masa: a.masa, garson: a.garson, items: a.items, kitchenNote: a.note, kitchenStatus: a.kitchenStatus || 'new' };
+            }
+            // QR müşteri siparişleri MUS- önekiyle saklanır; mutfak fişi için kaynak kaydı buradan çözülür.
+            if (!s && key.startsWith('MUS-')) {
+                const order = (customerOrderRecords || []).find(x => String(x.id) === key);
+                if (order) s = {
+                    id: order.id,
+                    date: order.createdAt ? new Date(order.createdAt).toLocaleString('tr-TR') : '',
+                    masa: order.orderType === 'paket' ? 'Paket Servis' : (order.table ? 'Masa ' + order.table : ''),
+                    garson: order.assignedWaiter || '',
+                    customerName: [order.customerName, order.customerPhone].filter(Boolean).join(' · '),
+                    items: order.items || [],
+                    kitchenNote: order.note || '',
+                    kitchenStatus: ({ accepted: 'new', preparing: 'preparing', ready: 'ready', served: 'completed' })[order.status] || 'new'
+                };
+            }
+            if (!s) {
+                onayModaliniGoster('Sipariş bulunamadı', 'Bu siparişin mutfak fişi kaydı bulunamadı. Sipariş listesini yenileyip tekrar deneyin.', null, true);
+                return;
+            }
+            mutfakYazdir([s]);
+        }
         function mutfakBekleyenleriYazdir() { const sales=(satisGecmisi||[]).filter(s=>s&&s.kitchenEnabledAtCreation!==false&&s.kitchenStatus!=='completed'); const ads=(acikAdisyonlar||[]).filter(a=>a&&a.kitchenEnabledAtCreation!==false&&a.status!=='closed'&&a.items?.length&&(a.kitchenStatus||'new')!=='completed').map(a=>({id:'AD-'+a.id,date:a.updatedLabel||a.createdLabel||'',masa:a.masa,garson:a.garson,items:a.items,kitchenNote:a.note,kitchenStatus:a.kitchenStatus||'new'})); mutfakYazdir(sales.concat(ads)); }
         function siparisMasaEtiketiOku() {
             const input = document.getElementById('cart-table-number');
