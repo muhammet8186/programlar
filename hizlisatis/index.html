@@ -971,11 +971,6 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <p class="text-[11px] text-emerald-400 mt-1">Firma bilgisi, logo, fiş tercihleri, kullanıcılar, dönemler ve mutfak / müşteri sipariş ayarları Firebase ile eşitlenir. Diğer tercihler bu cihazda saklanır.</p>
 </div>
 </div>
-<div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
-<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5"><i class="fa-solid fa-cash-register text-emerald-500 mr-2"></i>Ödeme Özellikleri</h3>
-<label class="flex items-center justify-between gap-3 rounded border border-slate-800 bg-slate-950 p-3 text-xs"><span><b>Para üstü hesaplama</b><small class="block text-slate-400 mt-1">Nakit ödemede alınan tutarı girip para üstünü hesaplayın.</small></span><input id="setting-change-toggle" type="checkbox" class="w-4 h-4 accent-emerald-500" onchange="odemeOzelliginiDegistir('paraUstuAktif',this.checked)"></label>
-<label class="flex items-center justify-between gap-3 rounded border border-slate-800 bg-slate-950 p-3 text-xs"><span><b>Parçalı ödeme ve açık bakiye</b><small class="block text-slate-400 mt-1">Bir satışta nakit/kart tahsil edin, kalanı müşteriye borç yazın.</small></span><input id="setting-partial-toggle" type="checkbox" class="w-4 h-4 accent-emerald-500" onchange="odemeOzelliginiDegistir('parcaliOdemeAktif',this.checked)"></label>
-</div>
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
 
 
@@ -1014,7 +1009,12 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <button class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded text-xs" onclick="firmaLogosunuKaydet()" type="button">Logoyu Kaydet</button>
 <button class="bg-red-700 hover:bg-red-600 text-white font-bold px-3 py-2 rounded text-xs" onclick="firmaLogosunuKaldir()" type="button">Kaldır</button>
 </div>
-</input></div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
+</input></div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg sm:col-span-2">
+<h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5"><i class="fa-solid fa-cash-register text-emerald-500 mr-2"></i>Ödeme Özellikleri</h3>
+<label class="flex items-center justify-between gap-3 rounded border border-slate-800 bg-slate-950 p-3 text-xs"><span><b>Para üstü hesaplama</b><small class="block text-slate-400 mt-1">Nakit ödemede alınan tutarı girip para üstünü hesaplayın.</small></span><input id="setting-change-toggle" type="checkbox" class="w-4 h-4 accent-emerald-500" onchange="odemeOzelliginiDegistir('paraUstuAktif',this.checked)"></label>
+<label class="flex items-center justify-between gap-3 rounded border border-slate-800 bg-slate-950 p-3 text-xs"><span><b>Parçalı ödeme ve açık bakiye</b><small class="block text-slate-400 mt-1">Bir satışta nakit/kart tahsil edin, kalanı müşteriye borç yazın.</small></span><input id="setting-partial-toggle" type="checkbox" class="w-4 h-4 accent-emerald-500" onchange="odemeOzelliginiDegistir('parcaliOdemeAktif',this.checked)"></label>
+</div>
+<div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
 <h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2 tracking-tight"><i class="fa-solid fa-text-height text-cyan-400"></i> Satış Ekranı Yazı Boyutu</h3>
 <p class="text-xs text-slate-400">Satış ekranındaki ürün, sepet ve ödeme yazılarının boyutunu ayarlayın.</p>
 <div class="flex items-center gap-3">
@@ -4624,7 +4624,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             const warn=document.getElementById('payment-modal-warning');
             if(warn){warn.textContent=(card+other>total+0.001)?'Kart + diğer tutarı ödenecek toplamı aşamaz.':'';warn.classList.toggle('hidden',!(card+other>total+0.001));}
             const customerWrap=document.getElementById('payment-modal-customer-wrap');
-            if(customerWrap) customerWrap.classList.toggle('hidden',window.__posPaymentMode === 'cash' || remaining<=0.009);
+            if(customerWrap) customerWrap.classList.toggle('hidden',remaining<=0.009);
             const remainingLabel=document.getElementById('payment-modal-remaining');
             if(remainingLabel) remainingLabel.classList.toggle('text-amber-400',remaining>0.009);
             return {total,cashReceived,cashApplied,card,other,change,remaining};
