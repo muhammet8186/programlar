@@ -7101,5 +7101,44 @@ if('serviceWorker' in navigator&&location.protocol!=='file:'){window.addEventLis
 </div>
 </div>
 </div>
+
+<script>
+// F2-F6 klavye kısayolları: Gerçek satış butonlarını tetikler.
+(function () {
+    if (window.__hizliSatisF2F6Aktif) return;
+    window.__hizliSatisF2F6Aktif = true;
+    function satisEkraniAktifMi() {
+        const auth = document.getElementById('auth-screen');
+        if (auth && !auth.classList.contains('hidden') && getComputedStyle(auth).display !== 'none') return false;
+        const sales = document.getElementById('section-sales');
+        return !!sales && !sales.classList.contains('hidden') && getComputedStyle(sales).display !== 'none';
+    }
+    function tikla(id) {
+        const el = document.getElementById(id);
+        if (!el || el.disabled) return false;
+        el.click();
+        return true;
+    }
+    document.addEventListener('keydown', function (event) {
+        const key = event.key || '';
+        const code = event.code || '';
+        const kisayol = /^F[2-6]$/.test(key) ? key : (/^F[2-6]$/.test(code) ? code : null);
+        if (!kisayol || event.altKey || event.ctrlKey || event.metaKey) return;
+        if (!satisEkraniAktifMi()) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+        if (event.repeat) return;
+        const actions = {
+            F2: () => tikla('sales-cash-button'),
+            F3: () => tikla('sales-credit-button'),
+            F4: () => tikla('sales-debt-button'),
+            F5: () => tikla('sales-card-button'),
+            F6: () => { const barcode = document.getElementById('barcode-search'); if (barcode) { barcode.focus(); barcode.select?.(); return true; } return false; }
+        };
+        actions[kisayol]?.();
+    }, true);
+})();
+</script>
 </body>
 </html>
