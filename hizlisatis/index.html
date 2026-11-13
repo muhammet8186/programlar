@@ -4472,33 +4472,20 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             durumuKaydet(); adisyonlariGoster(); mutfakEkraniniGuncelle(); islemBildirimiGoster('Mutfak durumu: ' + mutfakDurumMetni(status));
         }
         function mutfakFisHTML(s) {
-            return `<div style="font-family:monospace;color:#000;background:#fff;width:72mm;padding:4mm;margin:0 auto"><h2 style="text-align:center;font-size:18px">MUTFAK SİPARİŞİ</h2><hr><p>Sipariş: #${htmlGuvenli(s.id)}</p><p>Saat: ${htmlGuvenli(s.date||'')}</p>${s.masa?`<p>Masa/Paket: ${htmlGuvenli(s.masa)}</p>`:''}${s.garson?`<p>Garson: ${htmlGuvenli(s.garson)}</p>`:''}${s.customerName?`<p>Müşteri: ${htmlGuvenli(s.customerName)}</p>`:''}<hr><ul>${(s.items||[]).map(i=>`<li style="padding:5px 0;font-size:14px">${htmlGuvenli(i.product?.name||i.name||'Ürün')} <b style="float:right">x ${Number(i.qty||1)}</b></li>`).join('')}</ul>${s.kitchenNote?`<hr><p><b>NOT: ${htmlGuvenli(s.kitchenNote)}</b></p>`:''}<hr><p style="text-align:center">${mutfakDurumMetni(s.kitchenStatus||'new')}</p></div>`;
+            const width = Number(sistemAyarlari.fisKagitGenisligi || localStorage.getItem('pos_receipt_paper_width_v1')) === 80 ? 80 : 58;
+            const content = width === 80 ? 72 : 48;
+            const dateText = htmlGuvenli(s.date || '');
+            const items = (s.items || []).map(i => `<div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px dashed #777;font-size:16px;line-height:1.35;font-weight:700"><span style="flex:1;overflow-wrap:anywhere">${htmlGuvenli(i.product?.name || i.name || 'Ürün')}</span><b style="white-space:nowrap">× ${Number(i.qty || 1)}</b></div>`).join('');
+            return `<div class="ticket" style="width:${content}mm;max-width:${content}mm;box-sizing:border-box;padding:2mm;margin:0 auto;background:#fff;color:#000;font-family:Arial,sans-serif;font-size:14px;line-height:1.4;break-after:page;page-break-after:always"><h2 style="text-align:center;font-size:19px;font-weight:900;margin:0 0 7px">MUTFAK SİPARİŞİ</h2><hr><div style="font-size:13px;font-weight:700">Sipariş: #${htmlGuvenli(s.id || '')}</div><div style="font-size:13px">Saat: ${dateText}</div>${s.masa?`<div style="font-size:14px;font-weight:800;margin-top:3px">Masa/Paket: ${htmlGuvenli(s.masa)}</div>`:''}${s.garson?`<div style="font-size:13px">Garson: ${htmlGuvenli(s.garson)}</div>`:''}${s.customerName?`<div style="font-size:13px">Müşteri: ${htmlGuvenli(s.customerName)}</div>`:''}<hr><div style="font-size:12px;font-weight:900;letter-spacing:.5px;margin:5px 0">ÜRÜNLER</div>${items || '<div>Ürün bulunamadı</div>'}${s.kitchenNote?`<hr><div style="font-size:15px;font-weight:900;overflow-wrap:anywhere">NOT: ${htmlGuvenli(s.kitchenNote)}</div>`:''}<hr><div style="text-align:center;font-size:13px;font-weight:900">${mutfakDurumMetni(s.kitchenStatus || 'new')}</div></div>`;
         }
         function mutfakYazdir(sales) {
-            const rows = (sales||[]).map(mutfakFisHTML).join('<div style="page-break-after:always"></div>');
+            const width = fisKagitGenisliginiUygula();
+            const rows = (sales || []).map(mutfakFisHTML).join('');
             if (!rows) { onayModaliniGoster('Sipariş yok','Yazdırılacak mutfak siparişi bulunamadı.',null,true); return; }
             const w = window.open('', '_blank', 'width=500,height=700');
             if (!w) { onayModaliniGoster('Yazdırma engellendi','Mutfak fişi için açılır pencereye izin verin.',null,true); return; }
-            w.document.write(`<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Mutfak Fişi</title><style>body{margin:0;background:#fff}@media print{body{margin:0}}</style>
-</head><body>${rows}<script>window.onload=()=>{window.print()}<\/script>
-<style id="mobile-sales-usability-fix">
-@media (max-width: 767px) {
-  #section-sales { flex-direction: column !important; overflow-x: hidden !important; overflow-y: auto !important; height: 100% !important; min-height: 0 !important; padding: 6px !important; gap: 8px !important; }
-  #sales-left-wrapper, #sales-right-wrapper { width: 100% !important; min-width: 0 !important; flex: 0 0 auto !important; height: auto !important; min-height: 0 !important; overflow: visible !important; }
-  #sales-left-wrapper { min-height: 52vh !important; }
-  #sales-products-panel { min-height: 42vh !important; height: 42vh !important; flex: 0 0 42vh !important; }
-  #products-grid-wrapper { flex: 1 1 auto !important; min-height: 0 !important; overflow-y: auto !important; overflow-x: hidden !important; touch-action: pan-y !important; -webkit-overflow-scrolling: touch !important; }
-  #products-grid { grid-template-columns: repeat(auto-fill, minmax(min(28vw, 104px), 1fr)) !important; gap: 6px !important; }
-  #products-grid .sales-product-card { min-height: 76px !important; }
-  #sales-right-wrapper { min-height: 0 !important; }
-  #sales-cart-header-panel, #sales-right-wrapper .theme-card { min-width: 0 !important; }
-}
-</style>
-
-
-
-
-</body></html>`); w.document.close();
+            w.document.write(`<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Mutfak Fişi</title><style>@page{size:${width}mm auto;margin:0}html,body{margin:0;padding:0;background:#fff;color:#000}*{box-sizing:border-box}@media print{html,body{margin:0;padding:0}.ticket{break-after:page;page-break-after:always}}</style></head><body>${rows}<script>window.onload=()=>{window.focus();window.print()}<\/script></body></html>`);
+            w.document.close();
         }
         function mutfakTekFisYazdir(id) {
             const key = String(id);
@@ -5224,25 +5211,21 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         }
         function adisyonFisYazdir(id) {
             const ad = acikAdisyonlar.find(a => String(a.id) === String(id)); if (!ad) return;
-            const rows = (ad.items||[]).map(i => `<tr><td style="padding:5px 0">${htmlGuvenli(i.product?.name||'Ürün')} × ${Number(i.qty)||0}</td><td style="text-align:right">${adisyonPara((Number(i.product?.price)||0)*(Number(i.qty)||0))}</td></tr>`).join('');
-            const w = window.open('', '_blank', 'width=420,height=650'); if (!w) { onayModaliniGoster('Yazdırma engellendi', 'Adisyon fişi için açılır pencereye izin verin.', null, true); return; }
-            w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Adisyon ${htmlGuvenli(ad.masa||'')}</title><style>body{font:14px monospace;padding:18px}h2,p{text-align:center}table{width:100%;border-collapse:collapse}.total{border-top:1px dashed #333;padding-top:8px;text-align:right;font-weight:bold}@media print{button{display:none}}</style>
-</head><body><h2>${htmlGuvenli(sistemAyarlari.sirketAdi||'Adisyon')}</h2><p>${htmlGuvenli(ad.masa||'Masa belirtilmedi')}</p><p>Garson: ${htmlGuvenli(ad.garson||'-')}</p><p>${htmlGuvenli(ad.updatedLabel||ad.createdLabel||'')}</p><table>${rows}</table><p class="total">TOPLAM: ${adisyonPara(adisyonToplam(ad))}</p>${ad.note?`<p>Not: ${htmlGuvenli(ad.note)}</p>`:''}<script>window.onload=()=>window.print()<\/script>
-<style id="mobile-sales-usability-fix">
-@media (max-width: 767px) {
-  #section-sales { flex-direction: column !important; overflow-x: hidden !important; overflow-y: auto !important; height: 100% !important; min-height: 0 !important; padding: 6px !important; gap: 8px !important; }
-  #sales-left-wrapper, #sales-right-wrapper { width: 100% !important; min-width: 0 !important; flex: 0 0 auto !important; height: auto !important; min-height: 0 !important; overflow: visible !important; }
-  #sales-left-wrapper { min-height: 52vh !important; }
-  #sales-products-panel { min-height: 42vh !important; height: 42vh !important; flex: 0 0 42vh !important; }
-  #products-grid-wrapper { flex: 1 1 auto !important; min-height: 0 !important; overflow-y: auto !important; overflow-x: hidden !important; touch-action: pan-y !important; -webkit-overflow-scrolling: touch !important; }
-  #products-grid { grid-template-columns: repeat(auto-fill, minmax(min(28vw, 104px), 1fr)) !important; gap: 6px !important; }
-  #products-grid .sales-product-card { min-height: 76px !important; }
-  #sales-right-wrapper { min-height: 0 !important; }
-  #sales-cart-header-panel, #sales-right-wrapper .theme-card { min-width: 0 !important; }
-}
-</style>
-
-</body></html>`); w.document.close();
+            const width = fisKagitGenisliginiUygula();
+            const content = width === 80 ? 72 : 48;
+            const rows = (ad.items || []).map(i => {
+                const name = htmlGuvenli(i.product?.name || i.name || 'Ürün');
+                const qty = Number(i.qty) || 0;
+                const price = Number(i.product?.price ?? i.price) || 0;
+                return `<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px dashed #777;font-size:14px;line-height:1.35"><span style="flex:1;overflow-wrap:anywhere">${name} × ${qty}</span><b style="white-space:nowrap">${adisyonPara(price * qty)}</b></div>`;
+            }).join('');
+            const paid = Math.max(0, Number(ad.paidAmount) || 0);
+            const total = adisyonToplam(ad);
+            const remaining = Math.max(0, total - paid);
+            const w = window.open('', '_blank', 'width=500,height=700');
+            if (!w) { onayModaliniGoster('Yazdırma engellendi', 'Adisyon fişi için açılır pencereye izin verin.', null, true); return; }
+            w.document.write(`<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Adisyon ${htmlGuvenli(ad.masa || '')}</title><style>@page{size:${width}mm auto;margin:0}html,body{margin:0;padding:0;background:#fff;color:#000}*{box-sizing:border-box}@media print{html,body{margin:0;padding:0}}</style></head><body><div style="width:${content}mm;max-width:${content}mm;margin:0 auto;padding:2mm;font-family:Arial,sans-serif;font-size:13px;line-height:1.4;color:#000;background:#fff"><h2 style="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuvenli(sistemAyarlari.sirketAdi || 'ADİSYON')}</h2><div style="text-align:center;font-size:16px;font-weight:900">${htmlGuvenli(ad.masa || 'Masa belirtilmedi')}</div><hr><div>Garson: <b>${htmlGuvenli(ad.garson || '-')}</b></div><div>Tarih: ${htmlGuvenli(ad.updatedLabel || ad.createdLabel || '')}</div><hr><div style="font-weight:900;margin:5px 0">SİPARİŞ DETAYI</div>${rows || '<div>Ürün bulunamadı</div>'}<hr><div style="display:flex;justify-content:space-between;font-size:16px;font-weight:900"><span>TOPLAM</span><span>${adisyonPara(total)}</span></div><div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px"><span>Ödenen</span><b>${adisyonPara(paid)}</b></div><div style="display:flex;justify-content:space-between;font-size:15px;font-weight:900;margin-top:3px"><span>KALAN</span><span>${adisyonPara(remaining)}</span></div>${ad.note ? `<hr><div style="font-size:13px"><b>NOT:</b> ${htmlGuvenli(ad.note)}</div>` : ''}<hr><div style="text-align:center;font-size:11px">Afiyet olsun</div></div><script>window.onload=()=>{window.focus();window.print()}<\/script></body></html>`);
+            w.document.close();
         }
 
         function odemeOzelliginiDegistir(alan, aktif) {
