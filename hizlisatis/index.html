@@ -1215,7 +1215,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 <div class="text-[10px] text-slate-400 mt-2" id="setting-print-method-help">Normal modda yazdırma penceresi açılır. PDF kaydetmek için bu modu kullanın.</div>
 </div>
 <div class="theme-subbar bg-slate-950 p-3 rounded border border-slate-800 md:col-span-2">
-<div class="text-xs font-semibold">Bluetooth termal yazıcı</div><div class="text-[10px] text-slate-400 mt-1">Android’de normal yazdırma penceresinden eşleştirilmiş Bluetooth yazıcıyı seçin. Sessiz baskı için Windows Chrome/Brave kiosk yazdırma modu ve varsayılan yazıcı gerekir.</div>
+<div class="text-xs font-semibold">Bluetooth termal yazıcı</div><div class="text-[10px] text-slate-400 mt-1">Android’de normal yazdırma ekranından cihazınıza bağlı yazıcıyı seçin. Windows’ta sessiz baskı için aşağıdaki kurulum adımlarını uygulayın; kullanılacak yazıcı, işletim sisteminde varsayılan olarak seçilen yazıcıdır.</div>
 </div>
 </div>
 </div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
@@ -3539,7 +3539,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             const selected = mode === 'silent' ? 'silent' : 'normal';
             if (select) select.value = selected;
             if (help) help.textContent = selected === 'silent'
-                ? 'Sessiz baskı için Chrome/Brave bu bilgisayarda --kiosk-printing parametresiyle başlatılmalı ve XP-90 varsayılan yazıcı olmalıdır. Parametre yoksa yazdırma penceresi yine açılır.'
+                ? 'Kurulum (Windows): 1) Kullanacağınız yazıcıyı Windows > Ayarlar > Bluetooth ve cihazlar > Yazıcılar ve tarayıcılar bölümünden varsayılan yapın. 2) Chrome/Brave kısayoluna sağ tıklayıp Özellikler > Kısayol > Hedef alanının sonuna bir boşluk ve --kiosk-printing ekleyin. 3) Uygula > Tamam deyin; tarayıcıyı tamamen kapatıp bu kısayoldan yeniden açın. 4) Test fişi yazdırın. Sessiz baskı, Windows’ta varsayılan seçtiğiniz yazıcıya gönderilir; belirli bir yazıcı markası/modeli gerekmez. Parametre etkin değilse yazdırma penceresi açılır. PDF kaydetmek için Normal yazdırma modunu seçin.'
                 : 'Normal modda yazdırma penceresi açılır. PDF olarak kaydetmek ve yazıcı seçmek için bu modu kullanın.';
         }
         function yazdirmaYontemiAyariniYukle() {
@@ -3551,7 +3551,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             const selected = mode === 'silent' ? 'silent' : 'normal';
             try { localStorage.setItem('pos_print_method_v1', selected); } catch (_) {}
             yazdirmaYonteminiAyarlaUI(selected);
-            islemBildirimiGoster(selected === 'silent' ? 'Direkt yazdırma seçildi. Sessiz baskı için tarayıcı kiosk yazdırma modunda açılmalıdır.' : 'Normal yazdırma seçildi.');
+            islemBildirimiGoster(selected === 'silent' ? 'Direkt yazdırma seçildi. Windows’ta --kiosk-printing parametresini etkinleştirin ve istediğiniz yazıcıyı varsayılan yapın.' : 'Normal yazdırma seçildi.');
         }
         function sessizYazdirmaSeciliMi() {
             try { return localStorage.getItem('pos_print_method_v1') === 'silent'; } catch (_) { return false; }
