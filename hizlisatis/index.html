@@ -1597,7 +1597,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
 <p class="text-[10px] text-slate-400">Kullanıcının erişebileceği bölümleri seçin. Ayarlar yalnızca yöneticiye açıktır.</p>
 <div class="grid grid-cols-2 gap-2 text-xs">
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="sales"/> Satış bölümüne erişim</label>
-<label class="flex items-center gap-2"><input class="sysuser-permission" type="checkbox" value="kitchen"/> Mutfak bölümüne erişim</label><label class="flex items-center gap-2"><input class="sysuser-permission" type="checkbox" value="waiter"/> Garson bölümüne erişim</label>
+<label class="flex items-center gap-2"><input class="sysuser-permission" type="checkbox" value="kitchen"/> Mutfak bölümüne erişim</label>
 <label class="flex items-center gap-2"><input checked class="sysuser-permission" type="checkbox" value="adisyon"/> Adisyon bölümüne erişim</label>
 <label class="flex items-center gap-2"><input checked class="sysuser-permission" type="checkbox" value="customerorders"/> Müşteri siparişlerini takip etme</label>
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="products"/> Ürünler bölümüne erişim</label>
@@ -3579,7 +3579,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             const noteFields = document.getElementById('cart-kitchen-note-fields'); if (noteFields) noteFields.classList.toggle('hidden', !aktif);
             const adisyonSave = document.getElementById('cart-adisyon-save-button'); if (adisyonSave) adisyonSave.classList.toggle('hidden', !aktif);
             const waiterField = document.getElementById('cart-waiter-field-wrapper'); if (waiterField) waiterField.classList.toggle('hidden', !aktif || sistemAyarlari.garsonAktif === false);
-            const waiterTab = document.getElementById('tab-waiter'); if (waiterTab) waiterTab.classList.toggle('hidden', !aktif || sistemAyarlari.garsonAktif === false || !kullaniciYetkisiVar('waiter'));
+            const waiterTab = document.getElementById('tab-waiter'); if (waiterTab) waiterTab.classList.toggle('hidden', !aktif || sistemAyarlari.garsonAktif === false);
             const waiterSection = document.getElementById('section-waiter'); if (!aktif && waiterSection) { waiterSection.classList.add('hidden'); waiterSection.classList.remove('flex'); }
             ['adisyon','customerorders'].forEach(name => {
                 const enabled = sistemAyarlari.ozellikler?.[name] === true;
@@ -3602,15 +3602,18 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             const aktif = sistemAyarlari.garsonAktif !== false;
             const kitchenEnabled = sistemAyarlari.mutfakAktif === true;
             const waiterField = document.getElementById('cart-waiter-field-wrapper'); if (waiterField) waiterField.classList.toggle('hidden', !aktif || !kitchenEnabled);
-            const tab = document.getElementById('tab-waiter'); if (tab) tab.classList.toggle('hidden', !aktif || !kitchenEnabled || !kullaniciYetkisiVar('waiter'));
+            const tab = document.getElementById('tab-waiter'); if (tab) tab.classList.toggle('hidden', !aktif || !kitchenEnabled);
             const section = document.getElementById('section-waiter'); if ((!aktif || !kitchenEnabled) && section) { section.classList.add('hidden'); section.classList.remove('flex'); }
         }
         function garsonSecenekleriniGuncelle() {
             const select = document.getElementById('cart-waiter'); if (!select) return;
-            const old = select.value; const users = Array.isArray(sistemKullanicilari) ? sistemKullanicilari : [];
-            const names = [...new Set([aktifKullaniciAdi, ...users.map(u => u.name)].filter(Boolean))];
-            select.innerHTML = names.map(n => `<option value="${htmlGuvenli(n)}">${htmlGuvenli(n)}</option>`).join('');
-            if (names.includes(old)) select.value = old; else if (names.includes(aktifKullaniciAdi)) select.value = aktifKullaniciAdi;
+            const currentUser = String(aktifKullaniciAdi || '').trim();
+            select.innerHTML = currentUser
+                ? `<option value="${htmlGuvenli(currentUser)}">${htmlGuvenli(currentUser)}</option>`
+                : '<option value="">Oturum açan kullanıcı</option>';
+            select.value = currentUser;
+            select.disabled = true;
+            select.title = 'Garson olarak oturum açan kullanıcı otomatik atanır.';
         }
         function garsonEkraniniGuncelle() {
             const host = document.getElementById('waiter-orders'); if (!host) return;
@@ -4483,7 +4486,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
             const now = Date.now();
             const old = aktifAdisyonId ? acikAdisyonlar.find(a => String(a.id) === String(aktifAdisyonId) && a.status !== 'closed') : null;
             const ad = old || { id: 'A-' + now, createdAt: now, createdLabel: new Date(now).toLocaleString('tr-TR'), status: 'open' };
-            ad.masa = masa; ad.garson = (document.getElementById('cart-waiter')?.value || aktifKullaniciAdi || '').trim();
+            ad.masa = masa; ad.garson = String(aktifKullaniciAdi || '').trim();
             ad.note = (document.getElementById('cart-kitchen-note')?.value || '').trim();
             ad.items = JSON.parse(JSON.stringify(sepet)); ad.discount = discount; ad.updatedAt = now; ad.updatedLabel = new Date(now).toLocaleString('tr-TR'); ad.kasiyer = aktifKullaniciAdi || '';
             ad.kitchenStatus = 'new'; ad.kitchenCreatedAt = now; ad.kitchenNote = ad.note; ad.date = ad.updatedLabel; ad.orderType = document.getElementById('cart-order-type')?.value || 'Masa';
@@ -4578,7 +4581,7 @@ body#app-body[data-theme-mode="light"] h1, body#app-body[data-theme-mode="light"
                 items: [...sepet],
                 kitchenNote: (document.getElementById('cart-kitchen-note')?.value || '').trim(),
                 masa: siparisMasaEtiketiOku(),
-                garson: (document.getElementById('cart-waiter')?.value || aktifKullaniciAdi || '').trim(),
+                garson: String(aktifKullaniciAdi || '').trim(),
                 kitchenStatus: 'new',
                 kitchenCreatedAt: Date.now(),
                 subtotal: subtotal,
