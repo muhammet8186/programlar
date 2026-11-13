@@ -4171,13 +4171,30 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             const separator = printMode === 'coklu' ? '<div style="break-after:page;page-break-after:always"></div>' : '<div style="height:5mm"></div>';
             return validOrders.map(o => musteriSiparisFisHTML(o)).join(separator);
         }
+        function musteriSiparisTekPencereAc(order, width) {
+            const rows = musteriSiparisYazdirmaIcerigi([order]);
+            const w = window.open('', '_blank', 'width=500,height=700');
+            if (!w) return false;
+            w.document.write(`<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Müşteri Siparişi Fişi</title><style>@page{size:${width}mm auto;margin:0}body{margin:0;background:#fff}@media print{body{margin:0}}</style></head><body>${rows}<script>window.onload=()=>{window.focus();window.print()}<\/script></body></html>`);
+            w.document.close();
+            return true;
+        }
         function musteriSiparisYazdirmaPenceresi(orders) {
-            const rows = musteriSiparisYazdirmaIcerigi(orders);
-            if (!rows) { onayModaliniGoster('Sipariş yok','Yazdırılacak müşteri siparişi bulunamadı.',null,true); return; }
+            const validOrders = (orders || []).filter(Boolean);
+            if (!validOrders.length) { onayModaliniGoster('Sipariş yok','Yazdırılacak müşteri siparişi bulunamadı.',null,true); return; }
             const width = fisKagitGenisliginiUygula();
+            const printMode = sistemAyarlari.fisYazdirmaModu === 'coklu' ? 'coklu' : 'toplu';
+            if (printMode === 'coklu') {
+                // Çoklu: her sipariş için ayrı pencere ve ayrı yazdırma işi oluştur.
+                let opened = 0;
+                validOrders.forEach(order => { if (musteriSiparisTekPencereAc(order, width)) opened++; });
+                if (opened !== validOrders.length) onayModaliniGoster('Yazdırma engellendi', 'Bazı fişler açılamadı. Tarayıcıda bu site için açılır pencerelere izin verin.', null, true);
+                return;
+            }
+            const rows = musteriSiparisYazdirmaIcerigi(validOrders);
             const w = window.open('', '_blank', 'width=500,height=700');
             if (!w) { onayModaliniGoster('Yazdırma engellendi','Fiş yazdırmak için açılır pencereye izin verin.',null,true); return; }
-            w.document.write(`<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Müşteri Siparişi Fişi</title><style>@page{size:${width}mm auto;margin:0}body{margin:0;background:#fff}@media print{body{margin:0}}</style></head><body>${rows}<script>window.onload=()=>{window.focus();window.print()}<\/script></body></html>`);
+            w.document.write(`<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Müşteri Siparişi Fişleri</title><style>@page{size:${width}mm auto;margin:0}body{margin:0;background:#fff}@media print{body{margin:0}}</style></head><body>${rows}<script>window.onload=()=>{window.focus();window.print()}<\/script></body></html>`);
             w.document.close();
         }
         function musteriSiparisFisYazdir(id) {
@@ -4192,7 +4209,10 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         function musteriOtomatikFisYazdir(orders) {
             const batch = (Array.isArray(orders) ? orders : [orders]).filter(Boolean);
             if (!batch.length) return;
-            musteriOtoYazdirKuyrugu.push(batch);
+            const printMode = sistemAyarlari.fisYazdirmaModu === 'coklu' ? 'coklu' : 'toplu';
+            // Çoklu modda kuyruğa her siparişi ayrı iş olarak ekle; toplu modda tek iş oluştur.
+            if (printMode === 'coklu') batch.forEach(order => musteriOtoYazdirKuyrugu.push([order]));
+            else musteriOtoYazdirKuyrugu.push(batch);
             if (musteriOtoYazdirmaAktif) return;
             const next = () => {
                 if (!musteriOtoYazdirKuyrugu.length) { musteriOtoYazdirmaAktif = false; return; }
@@ -4202,7 +4222,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 const rows = musteriSiparisYazdirmaIcerigi(currentBatch);
                 const frame = document.createElement('iframe'); frame.title = 'Müşteri siparişi otomatik fiş'; frame.style.cssText = 'position:fixed;left:-10000px;top:0;width:360px;height:700px;border:0;pointer-events:none';
                 let finished = false;
-                const finish = () => { if (finished) return; finished = true; frame.remove(); musteriOtoYazdirmaAktif = false; setTimeout(next, 350); };
+                const finish = () => { if (finished) return; finished = true; frame.remove(); musteriOtoYazdirmaAktif = false; setTimeout(next, 500); };
                 frame.onload = () => { try { frame.contentWindow.addEventListener('afterprint', finish, { once: true }); setTimeout(() => { try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch (e) { console.warn('Müşteri siparişi otomatik yazdırılamadı.', e); finish(); } }, 220); } catch (_) { finish(); } };
                 frame.srcdoc = `<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Müşteri Siparişi</title><style>@page{size:${width}mm auto;margin:0}body{margin:0;background:#fff}</style></head><body>${rows}</body></html>`;
                 document.body.appendChild(frame); setTimeout(finish, 60000);
