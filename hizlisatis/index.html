@@ -86,6 +86,11 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
         }
         if (!savedSettings.kokDugum && kodIciKokBasligi) savedSettings.kokDugum = kodIciKokBasligi;
         try {
+            const savedReceiptWidth = Number(localStorage.getItem('pos_receipt_paper_width_v1'));
+            if (![58, 80].includes(Number(sistemAyarlari.fisKagitGenisligi)) && [58, 80].includes(savedReceiptWidth)) sistemAyarlari.fisKagitGenisligi = savedReceiptWidth;
+            if (![58, 80].includes(Number(sistemAyarlari.fisKagitGenisligi))) sistemAyarlari.fisKagitGenisligi = 58;
+        } catch (_) { sistemAyarlari.fisKagitGenisligi = 58; }
+        try {
             const cihazFirebaseDurumu = localStorage.getItem('pos_firebase_enabled_v1');
             if (cihazFirebaseDurumu === '1' || cihazFirebaseDurumu === '0') savedSettings.firebaseAktif = cihazFirebaseDurumu === '1';
             else savedSettings.firebaseAktif = true;
@@ -1188,6 +1193,15 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 </select>
 </div>
 </div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+<div class="theme-subbar flex items-center justify-between bg-slate-950 p-3 rounded border border-slate-800 gap-3">
+<div><div class="text-xs font-semibold">Termal fiş kâğıdı</div><div class="text-[10px] text-slate-400 mt-0.5">Yazdırma ve PDF sayfa genişliği.</div></div>
+<select class="theme-input bg-slate-900 border border-slate-700 rounded px-2 py-2 text-xs" id="setting-receipt-width" onchange="fisKagitGenisliginiDegistir(this.value)"><option value="58">58 mm</option><option value="80">80 mm</option></select>
+</div>
+<div class="theme-subbar bg-slate-950 p-3 rounded border border-slate-800">
+<div class="text-xs font-semibold">Bluetooth termal yazıcı</div><div class="text-[10px] text-slate-400 mt-1">Android’de yazdırma penceresinden eşleştirilmiş Bluetooth yazıcıyı seçin. Yazıcı, Android yazdırma hizmetiyle uyumlu olmalıdır.</div>
+</div>
+</div>
 </div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
 <h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2">Fiş İçeriği ve Yazdırma Tercihleri</h3>
 <p class="text-[10px] text-slate-400">Fişte görünmesini istediğiniz alanları seçin. Seçimler otomatik kaydedilir.</p>
@@ -1491,9 +1505,8 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 </div>
 <div class="flex space-x-2 pt-2 no-print font-sans">
 <button class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded text-xs transition" onclick="modalKapat('modal-receipt')" type="button">Kapat</button>
-<button class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-xs flex items-center justify-center gap-1.5 shadow transition" onclick="yazdirmaTetikle()" type="button">
-<i class="fa-solid fa-print"></i> Yazdır
-                </button>
+<button class="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded text-xs flex items-center justify-center gap-1.5 shadow transition" onclick="yazdirmaTetikle()" type="button"><i class="fa-solid fa-print"></i> Yazdır</button>
+<button class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-xs flex items-center justify-center gap-1.5 shadow transition" onclick="pdfFisKaydet()" type="button"><i class="fa-solid fa-file-pdf"></i> PDF Kaydet</button>
 </div>
 </div>
 </div>
@@ -3139,6 +3152,8 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             document.getElementById('setting-print-toggle').checked = sistemAyarlari.otomatikYazdir === true;
             const receiptMode = document.getElementById('setting-receipt-mode');
             if (receiptMode) receiptMode.value = sistemAyarlari.fisYazdirmaModu || 'toplu';
+            const receiptWidth = document.getElementById('setting-receipt-width');
+            if (receiptWidth) receiptWidth.value = String(sistemAyarlari.fisKagitGenisligi || 58);
             fisAlanlariListesiniCiz();
             
             const firebaseAktifMi = sistemAyarlari.firebaseAktif === true;
@@ -4383,7 +4398,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             const receipt = document.getElementById('modal-receipt');
             document.body.classList.remove('printing-label', 'printing-receipt');
             if (label && !label.classList.contains('hidden')) document.body.classList.add('printing-label');
-            else if (receipt && !receipt.classList.contains('hidden')) document.body.classList.add('printing-receipt');
+            else if (receipt && !receipt.classList.contains('hidden')) { document.body.classList.add('printing-receipt'); fisKagitGenisliginiUygula(); }
         });
         window.addEventListener('afterprint', () => document.body.classList.remove('printing-label', 'printing-receipt'));
 
@@ -5243,6 +5258,13 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             fisGoster(sale);
         }
 
+        function tekFisPdfKaydet(id) {
+            const sale = (satisGecmisi || []).find(s => String(s.id) === String(id));
+            if (!sale) { onayModaliniGoster('Fiş Bulunamadı', 'PDF olarak kaydedilecek satış kaydı bulunamadı.', null, true); return; }
+            fisGoster(sale, false);
+            setTimeout(() => pdfFisKaydet(), 250);
+        }
+
         function tumGorunenFisleriSec(sec) {
             document.querySelectorAll('#sales-history-table .receipt-select').forEach(el => { el.checked = Boolean(sec); });
         }
@@ -5277,7 +5299,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             setTimeout(() => { window.print(); area.innerHTML = old; modal.classList.add('hidden'); modal.classList.remove('flex'); }, 350);
         }
 
-        function fisGoster(sale) {
+        function fisGoster(sale, otomatikYazdir = true) {
             document.getElementById('rec-id').innerText = '#' + sale.id;
             document.getElementById('rec-date').innerText = sale.date;
             document.getElementById('rec-type').innerText = sale.type;
@@ -5314,10 +5336,38 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             modal.classList.remove('hidden');
             modal.classList.add('flex');
 
-            setTimeout(() => { yazdirmaTetikle(); }, 300);
+            if (otomatikYazdir) setTimeout(() => { yazdirmaTetikle(); }, 300);
         }
 
-        function yazdirmaTetikle() { window.print(); }
+        function fisKagitGenisliginiDegistir(genislik) {
+            const secim = Number(genislik) === 80 ? 80 : 58;
+            sistemAyarlari.fisKagitGenisligi = secim;
+            try { localStorage.setItem('pos_receipt_paper_width_v1', String(secim)); } catch (_) {}
+            sistemAyarlariKaydet();
+            islemBildirimiGoster(`Fiş kâğıdı ${secim} mm olarak ayarlandı.`);
+        }
+
+        function fisKagitGenisliginiUygula() {
+            let genislik = Number(sistemAyarlari.fisKagitGenisligi || 0);
+            if (![58, 80].includes(genislik)) {
+                try { genislik = Number(localStorage.getItem('pos_receipt_paper_width_v1')) || 58; } catch (_) { genislik = 58; }
+            }
+            genislik = genislik === 80 ? 80 : 58;
+            sistemAyarlari.fisKagitGenisligi = genislik;
+            const contentWidth = genislik === 80 ? 72 : 48;
+            let style = document.getElementById('receipt-paper-print-style');
+            if (!style) { style = document.createElement('style'); style.id = 'receipt-paper-print-style'; document.head.appendChild(style); }
+            style.textContent = `@media print { @page { size: ${genislik}mm auto; margin: 0; } body.printing-receipt #receipt-print-area { width: ${contentWidth}mm !important; max-width: ${contentWidth}mm !important; box-sizing: border-box !important; } }`;
+            return genislik;
+        }
+
+        function pdfFisKaydet() {
+            // Tarayıcı yazdırma penceresinde hedef olarak “PDF olarak kaydet” seçilir.
+            fisKagitGenisliginiUygula();
+            window.print();
+        }
+
+        function yazdirmaTetikle() { fisKagitGenisliginiUygula(); window.print(); }
 
         function stokFiltresiAyarla(filterType) {
             mevcutStokFiltresi = filterType;
@@ -6699,7 +6749,8 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                     <td class="p-3 text-xs opacity-75 max-w-xs truncate">${htmlGuvenli(itemsDesc)}</td>
                     <td class="p-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">₺${(s.total || 0).toFixed(2)}</td>
                     <td class="p-3 text-center space-x-1">
-                        <button onclick="tekFisYazdir('${safeId}')" type="button" class="text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 bg-emerald-500/10 p-1.5 rounded border border-emerald-500/20 transition" title="Tek fiş yazdır"><i class="fa-solid fa-print"></i> Fiş</button>
+                        <button onclick="tekFisYazdir('${safeId}')" type="button" class="text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 bg-emerald-500/10 p-1.5 rounded border border-emerald-500/20 transition" title="Fişi tekrar yazdır"><i class="fa-solid fa-print"></i> Tekrar</button>
+                        <button onclick="tekFisPdfKaydet('${safeId}')" type="button" class="text-red-700 dark:text-red-400 hover:bg-red-500/20 bg-red-500/10 p-1.5 rounded border border-red-500/20 transition" title="Fişi PDF olarak kaydet"><i class="fa-solid fa-file-pdf"></i> PDF</button>
                         ${islemYetkisiVar('sales_cancel') ? `<button onclick="satisIptalEtOnay('${safeId}')" type="button" class="text-red-700 dark:text-red-400 hover:bg-red-500/20 bg-red-500/10 p-1.5 rounded border border-red-500/20 transition" title="İptal Et & Stoğa İade Et"><i class="fa-solid fa-rotate-left"></i> İptal & İade</button>` : ''}
                     </td>
                 </tr>
