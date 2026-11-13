@@ -7147,13 +7147,19 @@ if('serviceWorker' in navigator&&location.protocol!=='file:'){window.addEventLis
 
             // Bazı klavye/WebView ortamlarında event.key yerine keyCode kullanılabilir.
             const keyByCode = { 113: 'F2', 114: 'F3', 115: 'F4', 116: 'F5', 117: 'F6' };
-            const pressedKey = /^F[2-6]$/.test(event.key || '') ? event.key : keyByCode[event.keyCode];
+            const pressedKey = /^F[2-6]$/.test(event.key || '')
+                ? event.key
+                : (/^F[2-6]$/.test(event.code || '') ? event.code : keyByCode[event.keyCode || event.which]);
             if (!pressedKey) return;
 
             // Açık bir modal varken satış kısayolları arka planda işlem başlatmasın.
-            const openModal = Array.from(document.querySelectorAll('[id^="modal-"]')).some(el =>
-                !el.classList.contains('hidden') && getComputedStyle(el).display !== 'none'
-            );
+            // Yalnızca gerçek modal kapsayıcılarını kontrol et.
+            // modal-product-title gibi başlık ID'leri de [id^=modal-] ile eşleştiği
+            // için eski kontrol kısayolları sürekli engelleyebiliyordu.
+            const openModal = Array.from(document.querySelectorAll('.fixed[id^="modal-"]')).some(el => {
+                const style = getComputedStyle(el);
+                return !el.classList.contains('hidden') && style.display !== 'none' && style.visibility !== 'hidden';
+            });
             if (openModal) return;
 
             event.preventDefault();
