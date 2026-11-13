@@ -192,6 +192,18 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
             }
         };
         window.dispatchEvent(new Event('firebase-ready'));
+
+        // Sayfa açılışında kayıtlı ayarı uygula; checkbox değişince de son görünürlük kontrolünü yap.
+        document.addEventListener('DOMContentLoaded', function() {
+            const ayar = document.getElementById('setting-adisyon-enabled');
+            if (ayar) {
+                ayar.addEventListener('change', function() {
+                    window.adisyonButonGorunurlugunuUygula(this.checked);
+                });
+            }
+            const kayitliAktif = sistemAyarlari?.ozellikler?.adisyon === true;
+            window.adisyonButonGorunurlugunuUygula(kayitliAktif);
+        });
     </script>
 <style>
         /* Satış ekranı yazı boyutuna göre ürün kartları ve isimleri birlikte büyür. */
@@ -302,6 +314,16 @@ button:not(:disabled):active { transform: translateY(1px); }
 body#app-body[data-theme-mode="light"] #modal-modern-payment > div > div:first-child > div:first-child { color:#1e3a8a !important; opacity:1 !important; }
 body#app-body[data-theme-mode="dark"] #modal-modern-payment > div > div:first-child > div:first-child,
 body#app-body:not([data-theme-mode="light"]) #modal-modern-payment > div > div:first-child > div:first-child { color:#c7d2fe !important; opacity:1 !important; }
+
+/* Adisyon butonu: ayar açıkken satış ekranında görünür. */
+body#app-body[data-adisyon-enabled="true"] #sales-cart-summary-panel > #cart-adisyon-save-button {
+    display: flex !important; visibility: visible !important; opacity: 1 !important;
+    pointer-events: auto !important; position: relative !important;
+}
+body#app-body[data-adisyon-enabled="false"] #sales-cart-summary-panel > #cart-adisyon-save-button {
+    display: none !important; visibility: hidden !important; opacity: 0 !important;
+    pointer-events: none !important;
+}
 </style>
 <meta content="dark light" name="color-scheme"/>
 <style id="compact-panel-layout">
@@ -567,7 +589,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 <i class="fa-solid fa-fire-burner"></i>
 <span>Mutfak <span class="ml-1 rounded-full bg-red-600 text-white px-1.5" id="kitchen-nav-count">0</span></span>
 </button>
-<button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap hidden" id="tab-waiter" onclick="sekmeyiDegistir('waiter')" type="button">
+<button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap hidden" id="tab-waiter" style="display:none!important" aria-hidden="true" onclick="sekmeyiDegistir('waiter')" type="button">
 <i class="fa-solid fa-user-tie"></i> <span>Garson</span>
 </button>
 <button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap hidden" id="tab-adisyon" onclick="sekmeyiDegistir('adisyon')"><i class="fa-solid fa-clipboard-list"></i><span>Adisyon <span class="ml-1 rounded-full bg-amber-600 text-white px-1.5" id="adisyon-nav-count">0</span></span></button>
@@ -683,7 +705,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 <span class="font-mono" id="cart-total">₺0.00</span>
 </div>
 </div>
-<button class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-3 rounded text-xs flex items-center justify-center gap-2" id="cart-adisyon-save-button" onclick="adisyonuKaydet()" type="button"><i class="fa-solid fa-clipboard-list"></i><span id="adisyon-save-label">ADİSYON AÇ / KAYDET</span></button>
+<button class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-3 rounded text-xs flex items-center justify-center gap-2" id="cart-adisyon-save-button" style="display:none" hidden aria-hidden="true" onclick="adisyonuKaydet()" type="button"><i class="fa-solid fa-clipboard-list"></i><span id="adisyon-save-label">ADİSYON AÇ / KAYDET</span></button>
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
 <button class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-1 rounded transition flex flex-col items-center justify-center shadow active:scale-95 border border-emerald-500/30 cursor-pointer" id="sales-cash-button" onclick="odemeButonundanBaslat('Nakit')" type="button">
 <i class="fa-solid fa-money-bill-wave text-xs mb-0.5"></i>
@@ -1802,6 +1824,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             satisYaziBoyutu: 14,
             firebaseAktif: true,
             mutfakAktif: false,
+            garsonAktif: false,
             ozellikler: { adisyon: false, customerorders: false },
             kokDugum: kodIciKokBasliginiOku || '',
             firebaseConfig: { ...kodIciFirebaseBilgileriniOku }
@@ -1819,6 +1842,8 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         // İlk kurulumda üç özellik kapalıdır; açık/kapalı şeklindeki kullanıcı seçimleri korunur.
         function ozellikVarsayilanlariniTamamla() {
             if (typeof sistemAyarlari.mutfakAktif !== 'boolean') sistemAyarlari.mutfakAktif = false;
+            // Garson sekmesi ilk kurulumda kapalı başlar; kullanıcının sonraki tercihi korunur.
+            if (typeof sistemAyarlari.garsonAktif !== 'boolean') sistemAyarlari.garsonAktif = false;
             if (!sistemAyarlari.ozellikler || typeof sistemAyarlari.ozellikler !== 'object' || Array.isArray(sistemAyarlari.ozellikler)) sistemAyarlari.ozellikler = {};
             if (typeof sistemAyarlari.ozellikler.adisyon !== 'boolean') sistemAyarlari.ozellikler.adisyon = false;
             if (typeof sistemAyarlari.ozellikler.customerorders !== 'boolean') sistemAyarlari.ozellikler.customerorders = false;
@@ -1851,6 +1876,19 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         }
         firebaseDurumunuYerelKaydaUygula();
         ozellikVarsayilanlariniTamamla();
+
+        // Bu sürüme geçişte eski cihazlarda açık kalmış Garson ayarını bir kez kapat.
+        // Sonrasında kullanıcının Ayarlar bölümünden yaptığı açma/kapama tercihi korunur.
+        try {
+            if (localStorage.getItem('pos_waiter_default_off_v1') !== '1') {
+                sistemAyarlari.garsonAktif = false;
+                localStorage.setItem('pos_waiter_default_off_v1', '1');
+                localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari));
+            }
+        } catch (hata) {
+            sistemAyarlari.garsonAktif = false;
+            console.warn('Garson ilk kurulum ayarı uygulanamadı:', hata);
+        }
 
         if (!sistemAyarlari.fisAlanlari || typeof sistemAyarlari.fisAlanlari !== 'object') sistemAyarlari.fisAlanlari = {};
         ['sirket','fisNo','tarih','urunler','araToplam','iskonto','toplam','odeme','tesekkur'].forEach(k => { if (typeof sistemAyarlari.fisAlanlari[k] !== 'boolean') sistemAyarlari.fisAlanlari[k] = true; });
@@ -2067,6 +2105,32 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             // Eski cihaz/bulut kayıtlarındaki önceki açık değerleri yalnızca bir kez kapat.
             const ilkOzellikKurulumu = ozellikIlkKurulumunuUygula();
             if (ilkOzellikKurulumu) await sistemAyarlariKaydet(true);
+
+            // Bu sürümün ilk açılışında Garson ve Adisyon ayarlarını bir kez kapat.
+            // v2 anahtarları, önceki sürümde oluşmuş işaretleri aşarak eski cihazlarda da düzeltme yapar.
+            try {
+                const garsonIlkKapama = localStorage.getItem('pos_waiter_default_off_v2') !== '1';
+                const adisyonIlkKapama = localStorage.getItem('pos_adisyon_default_off_v2') !== '1';
+                if (garsonIlkKapama) {
+                    sistemAyarlari.garsonAktif = false;
+                    localStorage.setItem('pos_waiter_default_off_v2', '1');
+                }
+                if (adisyonIlkKapama) {
+                    if (!sistemAyarlari.ozellikler || typeof sistemAyarlari.ozellikler !== 'object') sistemAyarlari.ozellikler = {};
+                    sistemAyarlari.ozellikler.adisyon = false;
+                    localStorage.setItem('pos_adisyon_default_off_v2', '1');
+                }
+                if (garsonIlkKapama || adisyonIlkKapama) {
+                    try { localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari)); } catch (_) {}
+                    await sistemAyarlariKaydet(true);
+                }
+            } catch (hata) {
+                sistemAyarlari.garsonAktif = false;
+                if (!sistemAyarlari.ozellikler || typeof sistemAyarlari.ozellikler !== 'object') sistemAyarlari.ozellikler = {};
+                sistemAyarlari.ozellikler.adisyon = false;
+                console.warn('Garson/Adisyon ilk açılış ayarı uygulanamadı:', hata);
+            }
+
             // Bozuk/eski kayıt biçimleri başlangıçta uygulamayı durdurmasın.
             if (!Array.isArray(urunler)) urunler = varsayilanUrunler.map(p => ({ ...p }));
             // Eski kayıtlardaki eksik alanları güvenli varsayılanlarla tamamla; mevcut stok miktarını değiştirme.
@@ -2461,6 +2525,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 const varsayilanAyarlar = {
                     sirketAdi: 'Hızlı Satış Programı', logoDataUrl: '', otomatikYazdir: false,
                     fisYazdirmaModu: 'toplu', tema: 'dark', satisYaziBoyutu: 14,
+                    garsonAktif: false,
                     fisAlanlari: { sirket:true, fisNo:true, tarih:true, urunler:true, araToplam:true, iskonto:true, toplam:true, odeme:true, tesekkur:true },
                     fisEkBilgiler: [],
                     ...mevcutFirebaseAyarlari
@@ -3688,6 +3753,32 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             if (ad === 'adisyon') adisyonArayuzunuUygula();
         }
 
+        // Adisyon butonunun tek ve merkezi görünürlük kontrolü.
+        window.adisyonButonGorunurlugunuUygula = function(aktif) {
+            aktif = aktif === true;
+            const buton = document.getElementById('cart-adisyon-save-button');
+            if (document.body) document.body.setAttribute('data-adisyon-enabled', aktif ? 'true' : 'false');
+            if (!buton) return;
+            if (aktif) {
+                buton.hidden = false;
+                buton.classList.remove('hidden');
+                buton.removeAttribute('aria-hidden');
+                buton.style.removeProperty('display');
+                buton.style.setProperty('display', 'flex', 'important');
+                buton.style.setProperty('visibility', 'visible', 'important');
+                buton.style.setProperty('opacity', '1', 'important');
+                buton.style.setProperty('pointer-events', 'auto', 'important');
+            } else {
+                buton.hidden = true;
+                buton.classList.add('hidden');
+                buton.setAttribute('aria-hidden', 'true');
+                buton.style.setProperty('display', 'none', 'important');
+                buton.style.setProperty('visibility', 'hidden', 'important');
+                buton.style.setProperty('opacity', '0', 'important');
+                buton.style.setProperty('pointer-events', 'none', 'important');
+            }
+        };
+
         window.adisyonSisteminiDegistir = function(aktif) {
             aktif = Boolean(aktif);
             if (!sistemAyarlari.ozellikler) sistemAyarlari.ozellikler = {};
@@ -3696,7 +3787,12 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             const ayarKutusu = document.getElementById('setting-adisyon-enabled');
             if (ayarKutusu) ayarKutusu.checked = aktif;
 
+            // Önce arayüzü güncelle; kayıt/senkron hatası görünürlüğü engellemesin.
+            window.adisyonButonGorunurlugunuUygula(aktif);
             sistemAyarlariKaydet(true);
+
+            // Ayar değiştiği anda satış ekranındaki butonu da doğrudan güncelle.
+            window.adisyonButonGorunurlugunuUygula(aktif);
 
             const nav = document.getElementById('tab-adisyon');
             const panel = document.getElementById('section-adisyon');
@@ -3722,16 +3818,32 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         // Böylece başka bir sınıf veya bileşen .hidden sınıfını değiştirse bile ayar uygulanır.
         window.adisyonArayuzunuUygula = function() {
             const aktif = sistemAyarlari.ozellikler?.adisyon === true;
-            const garsonAktif = sistemAyarlari.garsonAktif !== false;
+            const garsonAktif = sistemAyarlari.garsonAktif === true;
+
+            // Adisyon durumunu body üzerinde de tut; butonun görünürlüğü bu tek duruma bağlanır.
+            if (document.body) document.body.setAttribute('data-adisyon-enabled', aktif ? 'true' : 'false');
+            const adisyonButonu = document.getElementById('cart-adisyon-save-button');
+            if (adisyonButonu) {
+                adisyonButonu.hidden = !aktif;
+                adisyonButonu.classList.toggle('hidden', !aktif);
+                adisyonButonu.setAttribute('aria-hidden', aktif ? 'false' : 'true');
+                adisyonButonu.style.setProperty('display', aktif ? 'flex' : 'none', 'important');
+                adisyonButonu.style.setProperty('visibility', aktif ? 'visible' : 'hidden', 'important');
+                adisyonButonu.style.setProperty('opacity', aktif ? '1' : '0', 'important');
+            }
 
             const gorunurlukUygula = (id, gorunur) => {
                 const el = document.getElementById(id);
                 if (!el) return;
                 el.classList.toggle('hidden', !gorunur);
                 if (gorunur) {
-                    el.style.removeProperty('display');
+                    // Açık durumda gizli sınıfı ve eski inline display:none!important
+                    // tamamen kaldırılır; Adisyon düğmesi özellikle flex olarak gösterilir.
+                    el.classList.remove('hidden');
+                    el.style.setProperty('display', id === 'cart-adisyon-save-button' ? 'flex' : 'block', 'important');
                     el.removeAttribute('aria-hidden');
                 } else {
+                    el.classList.add('hidden');
                     el.style.setProperty('display', 'none', 'important');
                     el.setAttribute('aria-hidden', 'true');
                 }
@@ -3741,6 +3853,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             gorunurlukUygula('cart-kitchen-note-panel', aktif);
             // Adisyon kaydetme düğmesi toplam/ödeme panelinin içinde ayrı durur.
             gorunurlukUygula('cart-adisyon-save-button', aktif);
+            window.adisyonButonGorunurlugunuUygula(aktif);
 
             // İç alanları da ayrıca yönet; farklı ekran düzenlerinde kapsayıcıdan bağımsız kalmasın.
             gorunurlukUygula('cart-waiter-fields', aktif);
@@ -3799,19 +3912,31 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         }
 
         function garsonSisteminiDegistir(aktif) {
-            sistemAyarlari.garsonAktif = Boolean(aktif); sistemAyarlariKaydet(); garsonArayuzunuUygula();
-            if (!aktif && document.getElementById('section-waiter') && !document.getElementById('section-waiter').classList.contains('hidden')) sekmeyiDegistir('sales');
-            onayModaliniGoster('Garson Sistemi', aktif ? 'Garson sistemi açıldı.' : 'Garson sistemi kapatıldı.', null, true);
+            // Garson ayarı sessizce kaydedilir; açma/kapatma bildirimi gösterilmez.
+            sistemAyarlari.garsonAktif = Boolean(aktif);
+            sistemAyarlariKaydet();
+            garsonArayuzunuUygula();
+            if (!aktif && document.getElementById('section-waiter') && !document.getElementById('section-waiter').classList.contains('hidden')) {
+                sekmeyiDegistir('sales');
+            }
         }
         function garsonArayuzunuUygula() {
-            const aktif = sistemAyarlari.garsonAktif !== false;
+            const aktif = sistemAyarlari.garsonAktif === true;
             const adisyonAktif = sistemAyarlari.ozellikler?.adisyon === true;
             const waiterField = document.getElementById('cart-waiter-field-wrapper');
             if (waiterField) waiterField.classList.toggle('hidden', !aktif || !adisyonAktif);
             const tab = document.getElementById('tab-waiter');
-            if (tab) tab.classList.toggle('hidden', !aktif || !kullaniciYetkisiVar('waiter'));
+            const tabGorunur = aktif === true && kullaniciYetkisiVar('waiter');
+            if (tab) {
+                tab.classList.toggle('hidden', !tabGorunur);
+                if (tabGorunur) tab.style.removeProperty('display');
+                else tab.style.setProperty('display', 'none', 'important');
+            }
             const section = document.getElementById('section-waiter');
-            if (!aktif && section) { section.classList.add('hidden'); section.classList.remove('flex'); }
+            if (section) {
+                if (!aktif) { section.classList.add('hidden'); section.classList.remove('flex'); section.style.setProperty('display', 'none', 'important'); }
+                else section.style.removeProperty('display');
+            }
             if (!aktif && secilenSekme === 'waiter') sekmeyiDegistir('sales');
         }
         function garsonSecenekleriniGuncelle() {
@@ -3951,6 +4076,10 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         async function musteriQrLinkiniKopyala(linkValue){const value=linkValue||'';if(!value)return;try{await navigator.clipboard.writeText(value);islemBildirimiGoster('Müşteri bağlantısı kopyalandı.');}catch(_){const f=document.createElement('textarea');f.value=value;f.style.position='fixed';f.style.opacity='0';document.body.appendChild(f);f.select();document.execCommand('copy');f.remove();islemBildirimiGoster('Bağlantı kopyalandı.');}}
 
         function sekmeyiDegistir(secilenSekme) {
+            if (secilenSekme === 'waiter' && sistemAyarlari.garsonAktif !== true) {
+                garsonArayuzunuUygula();
+                return;
+            }
             if (secilenSekme === 'adisyon' && sistemAyarlari.ozellikler?.adisyon !== true) return;
             if (secilenSekme === 'customerorders' && sistemAyarlari.ozellikler?.customerorders !== true) return;
             if (secilenSekme !== 'settings') yoneticiAyarYetkisi = false;
@@ -3984,7 +4113,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             if (secilenSekme === 'reports') raporuGuncelle();
             if (secilenSekme === 'adisyon') adisyonlariGoster();
             if (secilenSekme === 'customerorders') { musteriSiparisleriniDinle(); musteriSiparisleriniGoster(); }
-            if (secilenSekme === 'settings') { sistemKullanicilariTablosunuGuncelle(); musteriQrGarsonSecenekleriniGuncelle(); musteriQrListesiniGoster(); musteriQrTurunuAyarla(); firmaAyarlariniUygula(); donemSecenekleriniGuncelle(); const k=document.getElementById('setting-kitchen-enabled'); if(k) k.checked=sistemAyarlari.mutfakAktif === true; const a=document.getElementById('setting-adisyon-enabled'); if(a) a.checked=sistemAyarlari.ozellikler?.adisyon === true; const w=document.getElementById('setting-waiter-enabled'); if(w) w.checked=sistemAyarlari.garsonAktif !== false; const co=document.getElementById('setting-customerorders-enabled'); if(co) co.checked=sistemAyarlari.ozellikler?.customerorders === true; }
+            if (secilenSekme === 'settings') { sistemKullanicilariTablosunuGuncelle(); musteriQrGarsonSecenekleriniGuncelle(); musteriQrListesiniGoster(); musteriQrTurunuAyarla(); firmaAyarlariniUygula(); donemSecenekleriniGuncelle(); const k=document.getElementById('setting-kitchen-enabled'); if(k) k.checked=sistemAyarlari.mutfakAktif === true; const a=document.getElementById('setting-adisyon-enabled'); if(a) a.checked=sistemAyarlari.ozellikler?.adisyon === true; const w=document.getElementById('setting-waiter-enabled'); if(w) w.checked=sistemAyarlari.garsonAktif === true; const co=document.getElementById('setting-customerorders-enabled'); if(co) co.checked=sistemAyarlari.ozellikler?.customerorders === true; }
             if (secilenSekme === 'sales') { adisyonArayuzunuUygula(); garsonSecenekleriniGuncelle(); garsonArayuzunuUygula(); kategorileriOlustur(); urunleriGoster(); satisYaziBoyutunuUygula(sistemAyarlari.satisYaziBoyutu || 14); setTimeout(() => { const barcodeInput = document.getElementById('barcode-search'); if (barcodeInput) barcodeInput.focus(); }, 100); }
         }
 
