@@ -1210,7 +1210,12 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 <select class="theme-input bg-slate-900 border border-slate-700 rounded px-2 py-2 text-xs" id="setting-receipt-width" onchange="fisKagitGenisliginiDegistir(this.value)"><option value="58">58 mm</option><option value="80">80 mm</option></select>
 </div>
 <div class="theme-subbar bg-slate-950 p-3 rounded border border-slate-800">
-<div class="text-xs font-semibold">Bluetooth termal yazıcı</div><div class="text-[10px] text-slate-400 mt-1">Android’de yazdırma penceresinden eşleştirilmiş Bluetooth yazıcıyı seçin. Yazıcı, Android yazdırma hizmetiyle uyumlu olmalıdır.</div>
+<div class="text-xs font-semibold">Yazdırma yöntemi</div>
+<select class="theme-input w-full mt-2 bg-slate-900 border border-slate-700 rounded px-2 py-2 text-xs" id="setting-print-method" onchange="yazdirmaYonteminiDegistir(this.value)"><option value="normal">Normal yazdırma (önizleme açılır)</option><option value="silent">Direkt yazdırma (sessiz baskı)</option></select>
+<div class="text-[10px] text-slate-400 mt-2" id="setting-print-method-help">Normal modda yazdırma penceresi açılır. PDF kaydetmek için bu modu kullanın.</div>
+</div>
+<div class="theme-subbar bg-slate-950 p-3 rounded border border-slate-800 md:col-span-2">
+<div class="text-xs font-semibold">Bluetooth termal yazıcı</div><div class="text-[10px] text-slate-400 mt-1">Android’de normal yazdırma penceresinden eşleştirilmiş Bluetooth yazıcıyı seçin. Sessiz baskı için Windows Chrome/Brave kiosk yazdırma modu ve varsayılan yazıcı gerekir.</div>
 </div>
 </div>
 </div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
@@ -3173,6 +3178,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             if (receiptMode) receiptMode.value = sistemAyarlari.fisYazdirmaModu || 'toplu';
             const receiptWidth = document.getElementById('setting-receipt-width');
             if (receiptWidth) receiptWidth.value = String(sistemAyarlari.fisKagitGenisligi || 58);
+            yazdirmaYontemiAyariniYukle();
             fisAlanlariListesiniCiz();
             
             const firebaseAktifMi = sistemAyarlari.firebaseAktif === true;
@@ -3524,6 +3530,31 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         function yazdirmaAyariniDegistir(el) {
             sistemAyarlari.otomatikYazdir = Boolean(el.checked);
             sistemAyarlariKaydet();
+        }
+
+        // Yazdırma yöntemi cihaz-özeldir; Firebase ile diğer cihazlara aktarılmaz.
+        function yazdirmaYonteminiAyarlaUI(mode) {
+            const select = document.getElementById('setting-print-method');
+            const help = document.getElementById('setting-print-method-help');
+            const selected = mode === 'silent' ? 'silent' : 'normal';
+            if (select) select.value = selected;
+            if (help) help.textContent = selected === 'silent'
+                ? 'Sessiz baskı için Chrome/Brave bu bilgisayarda --kiosk-printing parametresiyle başlatılmalı ve XP-90 varsayılan yazıcı olmalıdır. Parametre yoksa yazdırma penceresi yine açılır.'
+                : 'Normal modda yazdırma penceresi açılır. PDF olarak kaydetmek ve yazıcı seçmek için bu modu kullanın.';
+        }
+        function yazdirmaYontemiAyariniYukle() {
+            let mode = 'normal';
+            try { mode = localStorage.getItem('pos_print_method_v1') || 'normal'; } catch (_) {}
+            yazdirmaYonteminiAyarlaUI(mode);
+        }
+        function yazdirmaYonteminiDegistir(mode) {
+            const selected = mode === 'silent' ? 'silent' : 'normal';
+            try { localStorage.setItem('pos_print_method_v1', selected); } catch (_) {}
+            yazdirmaYonteminiAyarlaUI(selected);
+            islemBildirimiGoster(selected === 'silent' ? 'Direkt yazdırma seçildi. Sessiz baskı için tarayıcı kiosk yazdırma modunda açılmalıdır.' : 'Normal yazdırma seçildi.');
+        }
+        function sessizYazdirmaSeciliMi() {
+            try { return localStorage.getItem('pos_print_method_v1') === 'silent'; } catch (_) { return false; }
         }
 
         function sistemAyarlariKaydet(bulutaZorla = false) {
