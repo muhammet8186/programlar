@@ -1654,6 +1654,14 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 </div>
 </div>
 </div>
+<!-- ADİSYON TAHSİLAT MODALI -->
+<div class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-[60]" id="modal-adisyon-payment">
+<div class="theme-card bg-slate-900 border border-slate-700 w-full max-w-sm rounded-lg p-5 space-y-3 shadow-2xl">
+<div class="flex items-center justify-between border-b border-slate-800 pb-2.5"><h3 class="text-sm font-bold text-emerald-400"><i class="fa-solid fa-cash-register mr-2"></i>Adisyon Tahsilatı</h3><button type="button" class="text-slate-400 hover:text-red-400" onclick="modalKapat('modal-adisyon-payment')"><i class="fa-solid fa-xmark"></i></button></div>
+<input id="adisyon-payment-id" type="hidden"/>
+<div class="rounded border border-slate-800 bg-slate-950 p-3 space-y-1 text-xs"><div class="flex justify-between"><span class="text-slate-400">Masa / Adisyon</span><b id="adisyon-payment-label">-</b></div><div class="flex justify-between"><span class="text-slate-400">Toplam</span><b id="adisyon-payment-total">₺0,00</b></div><div class="flex justify-between"><span class="text-slate-400">Ödenen</span><b class="text-emerald-400" id="adisyon-payment-paid">₺0,00</b></div><div class="flex justify-between border-t border-slate-800 pt-2"><span class="text-slate-300 font-bold">Kalan</span><b class="text-amber-400" id="adisyon-payment-remaining">₺0,00</b></div></div>
+<form class="space-y-3" onsubmit="adisyonTahsilatiniOnayla(event)"><div><label class="block text-xs text-slate-400 mb-1" for="adisyon-payment-amount">Tahsil edilecek tutar (₺)</label><input id="adisyon-payment-amount" class="theme-input w-full bg-slate-950 border border-slate-700 rounded p-2.5 text-sm font-mono" type="number" min="0.01" step="0.01" required/></div><div><label class="block text-xs text-slate-400 mb-1" for="adisyon-payment-method">Ödeme yöntemi</label><select id="adisyon-payment-method" class="theme-input w-full bg-slate-950 border border-slate-700 rounded p-2.5 text-sm"><option value="Nakit">Nakit</option><option value="Kredi Kartı">Kredi Kartı</option><option value="Diğer">Diğer</option></select></div><div class="flex gap-2"><button type="button" onclick="modalKapat('modal-adisyon-payment')" class="flex-1 rounded bg-slate-700 p-2.5 text-xs font-bold">Vazgeç</button><button type="submit" id="adisyon-payment-submit" class="flex-1 rounded bg-emerald-600 hover:bg-emerald-500 p-2.5 text-xs font-bold text-white">Tahsilatı Kaydet</button></div></form>
+</div></div>
 <!-- QR MÜŞTERİ SİPARİŞİ TAHSİLAT MODALI -->
 <div class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-[60]" id="modal-customer-order-payment">
 <div class="theme-card bg-slate-900 border border-slate-700 w-full max-w-sm rounded-lg p-5 space-y-3 shadow-2xl">
@@ -1714,6 +1722,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 <label class="flex items-center gap-2"><input class="sysuser-permission" type="checkbox" value="kitchen"/> Mutfak bölümüne erişim</label>
 <label class="flex items-center gap-2"><input class="sysuser-permission" type="checkbox" value="waiter"/> Garson bölümüne erişim</label>
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="adisyon"/> Adisyon bölümüne erişim</label>
+<label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="adisyon_collect"/> Adisyon tahsilatı alma</label>
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="customerorders"/> Müşteri siparişlerini takip etme</label>
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="products"/> Ürünler bölümüne erişim</label>
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="cash"/> Kasa bölümüne erişim</label>
@@ -4063,7 +4072,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         function aktifKullaniciKaydi() {
             return (sistemKullanicilari || []).find(u => String(u.name).toLocaleLowerCase('tr-TR') === String(aktifKullaniciAdi).toLocaleLowerCase('tr-TR')) || null;
         }
-        const ayrintiliIzinAnahtarlari = ['sales_product_order','sales_debt','sales_card','sales_cash','sales_credit_card','product_add','product_edit','product_delete','stock_add','sales_cancel','debt_customer_add','debt_customer_edit','debt_customer_delete','debt_collect','debt_history_delete'];
+        const ayrintiliIzinAnahtarlari = ['sales_product_order','sales_debt','sales_card','sales_cash','sales_credit_card','product_add','product_edit','product_delete','stock_add','sales_cancel','debt_customer_add','debt_customer_edit','debt_customer_delete','debt_collect','adisyon_collect','debt_history_delete'];
         function kullaniciYoneticiMi() {
             const u = aktifKullaniciKaydi();
             const rol = String(u?.role || '').toLocaleLowerCase('tr-TR');
@@ -4091,7 +4100,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             if (!ayrintiliTanimli) {
                 const bolum = ['product_add','product_edit','product_delete','stock_add'].includes(izin) ? 'products' :
                     izin === 'sales_cancel' ? 'history' :
-                    ['debt_customer_add','debt_customer_edit','debt_customer_delete','debt_collect','debt_history_delete'].includes(izin) ? 'debtors' : 'sales';
+                    ['debt_customer_add','debt_customer_edit','debt_customer_delete','debt_collect','debt_history_delete'].includes(izin) ? 'debtors' : izin === 'adisyon_collect' ? 'adisyon' : 'sales';
                 return u.permissions.includes(bolum);
             }
             return u.permissions.includes(izin);
@@ -5127,10 +5136,12 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             list.innerHTML = active.slice().sort((a,b) => (b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0)).map(a => {
                 const lines = (a.items || []).map(i => `<div class="flex justify-between gap-2 text-xs py-1 border-b border-slate-700/60"><span class="min-w-0 truncate">${htmlGuvenli(i.product?.name || 'Ürün')} × ${Number(i.qty)||0}</span><span class="whitespace-nowrap">${adisyonPara((Number(i.product?.price)||0)*(Number(i.qty)||0))}</span></div>`).join('');
                 const kitchenStatus = a.kitchenStatus || 'new';
+                const adTotal = adisyonToplam(a), adPaid = Math.min(adTotal, Math.max(0, Number(a.paidAmount)||0)), adRemaining = Math.max(0, adTotal-adPaid);
+                const paymentLabel = adRemaining <= 0.009 ? 'Ödendi' : adPaid > 0 ? 'Kısmi ödendi' : 'Ödenmedi';
                 const kitchenStatusClass = ({new:'bg-red-500/15 text-red-300 border-red-500/30',preparing:'bg-amber-500/15 text-amber-300 border-amber-500/30',ready:'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',completed:'bg-slate-700 text-slate-300 border-slate-600'})[kitchenStatus] || 'bg-red-500/15 text-red-300 border-red-500/30';
                 const kitchenStatusAt = a['kitchen'+kitchenStatus.charAt(0).toUpperCase()+kitchenStatus.slice(1)+'At'] || a.kitchenCreatedAt;
                 const kitchenTime = kitchenStatusAt ? new Date(Number(kitchenStatusAt)).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : '';
-                return `<article class="theme-card rounded-xl border p-4 shadow-lg"><div class="flex justify-between items-start gap-2 mb-2"><div><h3 class="font-black text-amber-400 text-base">${htmlGuvenli(a.masa || 'Masa belirtilmedi')}</h3><p class="text-[10px] text-slate-400 mt-1">${htmlGuvenli(a.garson || 'Garson belirtilmedi')} · ${htmlGuvenli(a.updatedLabel || a.createdLabel || '')}</p></div><div class="flex flex-col items-end gap-1"><span class="text-[10px] rounded bg-amber-900/50 text-amber-300 px-2 py-1">AÇIK</span><span class="text-[10px] rounded border px-2 py-1 font-bold ${kitchenStatusClass}">${mutfakDurumMetni(kitchenStatus)}</span></div></div>${kitchenTime?`<p class="text-[10px] text-slate-400 mb-2">Hazırlık durumu güncellendi: ${kitchenTime}</p>`:''}<div class="space-y-0 mb-3 rounded-lg p-3 ${siparisDurumListeSinifi(kitchenStatus)}">${lines || '<p class="text-xs text-slate-400">Ürün yok</p>'}</div><div class="flex justify-between font-bold border-t border-slate-700 pt-2 mb-3"><span>Toplam</span><span class="text-emerald-400">${adisyonPara(adisyonToplam(a))}</span></div>${a.note ? `<p class="text-xs text-slate-400 mb-3"><i class="fa-solid fa-note-sticky mr-1"></i>${htmlGuvenli(a.note)}</p>` : ''}<div class="grid grid-cols-2 gap-2"><button class="bg-cyan-700 hover:bg-cyan-600 text-white rounded p-2 text-xs font-bold" onclick="adisyonuAc('${String(a.id).replace(/'/g, '')}')"><i class="fa-solid fa-pen mr-1"></i>Düzenle / Öde</button><button class="bg-slate-700 hover:bg-slate-600 text-white rounded p-2 text-xs font-bold" onclick="adisyonFisYazdir('${String(a.id).replace(/'/g, '')}')"><i class="fa-solid fa-print mr-1"></i>Adisyon Yazdır</button><button class="col-span-2 bg-rose-800 hover:bg-rose-700 text-white rounded p-2 text-xs font-bold" onclick="adisyonuIptalEt('${String(a.id).replace(/'/g, '')}')"><i class="fa-solid fa-trash mr-1"></i>Adisyonu İptal Et</button></div></article>`;
+                return `<article class="theme-card rounded-xl border p-4 shadow-lg"><div class="flex justify-between items-start gap-2 mb-2"><div><h3 class="font-black text-amber-400 text-base">${htmlGuvenli(a.masa || 'Masa belirtilmedi')}</h3><p class="text-[10px] text-slate-400 mt-1">${htmlGuvenli(a.garson || 'Garson belirtilmedi')} · ${htmlGuvenli(a.updatedLabel || a.createdLabel || '')}</p></div><div class="flex flex-col items-end gap-1"><span class="text-[10px] rounded bg-amber-900/50 text-amber-300 px-2 py-1">AÇIK</span><span class="text-[10px] rounded border px-2 py-1 font-bold ${kitchenStatusClass}">${mutfakDurumMetni(kitchenStatus)}</span></div></div>${kitchenTime?`<p class="text-[10px] text-slate-400 mb-2">Hazırlık durumu güncellendi: ${kitchenTime}</p>`:''}<div class="space-y-0 mb-3 rounded-lg p-3 ${siparisDurumListeSinifi(kitchenStatus)}">${lines || '<p class="text-xs text-slate-400">Ürün yok</p>'}</div><div class="flex justify-between font-bold border-t border-slate-700 pt-2 mb-2"><span>Toplam</span><span class="text-emerald-400">${adisyonPara(adTotal)}</span></div><div class="flex justify-between text-xs rounded bg-slate-950 border border-slate-800 p-2 mb-3"><span class="text-slate-400">Tahsilat: <b class="${adRemaining<=0.009?'text-emerald-400':adPaid>0?'text-amber-300':'text-red-400'}">${paymentLabel}</b></span><span>Kalan: <b class="text-amber-300">${adisyonPara(adRemaining)}</b></span></div>${a.note ? `<p class="text-xs text-slate-400 mb-3"><i class="fa-solid fa-note-sticky mr-1"></i>${htmlGuvenli(a.note)}</p>` : ''}<div class="grid grid-cols-2 gap-2"><button class="bg-cyan-700 hover:bg-cyan-600 text-white rounded p-2 text-xs font-bold" onclick="adisyonuAc('${String(a.id).replace(/'/g, '')}')"><i class="fa-solid fa-pen mr-1"></i>Düzenle / Öde</button><button class="bg-slate-700 hover:bg-slate-600 text-white rounded p-2 text-xs font-bold" onclick="adisyonFisYazdir('${String(a.id).replace(/'/g, '')}')"><i class="fa-solid fa-print mr-1"></i>Adisyon Yazdır</button>${adRemaining>0.009 && islemYetkisiVar('adisyon_collect')?`<button class="col-span-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded p-2 text-xs font-bold" onclick="adisyonTahsilatAc('${String(a.id).replace(/'/g, '')}')"><i class="fa-solid fa-coins mr-1"></i>Tahsilat Al</button>`:''}<button class="col-span-2 bg-rose-800 hover:bg-rose-700 text-white rounded p-2 text-xs font-bold" onclick="adisyonuIptalEt('${String(a.id).replace(/'/g, '')}')"><i class="fa-solid fa-trash mr-1"></i>Adisyonu İptal Et</button></div></article>`;
             }).join('');
         }
         function adisyonuKaydet() {
@@ -5142,11 +5153,13 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             const now = Date.now();
             const old = aktifAdisyonId ? acikAdisyonlar.find(a => String(a.id) === String(aktifAdisyonId) && a.status !== 'closed') : null;
             const ad = old || { id: 'A-' + now, createdAt: now, createdLabel: new Date(now).toLocaleString('tr-TR'), status: 'open' };
+            const nextItems = JSON.parse(JSON.stringify(sepet));
+            const kitchenContentChanged = !!old && (JSON.stringify(old.items || []) !== JSON.stringify(nextItems) || String(old.note || '') !== String((document.getElementById('cart-kitchen-note')?.value || '').trim()));
             ad.masa = masa; ad.garson = String(aktifKullaniciAdi || '').trim();
             ad.note = (document.getElementById('cart-kitchen-note')?.value || '').trim();
-            ad.items = JSON.parse(JSON.stringify(sepet)); ad.discount = discount; ad.updatedAt = now; ad.updatedLabel = new Date(now).toLocaleString('tr-TR'); ad.kasiyer = aktifKullaniciAdi || '';
+            ad.items = nextItems; ad.discount = discount; ad.updatedAt = now; ad.updatedLabel = new Date(now).toLocaleString('tr-TR'); ad.kasiyer = aktifKullaniciAdi || '';
             ad.kitchenEnabledAtCreation = old ? old.kitchenEnabledAtCreation !== false : sistemAyarlari.mutfakAktif === true;
-            if (ad.kitchenEnabledAtCreation) { ad.kitchenStatus = ad.kitchenStatus || 'new'; ad.kitchenCreatedAt = ad.kitchenCreatedAt || now; ad.kitchenNote = ad.note; }
+            if (ad.kitchenEnabledAtCreation) { if (kitchenContentChanged) { ad.kitchenStatus = 'new'; ad.kitchenCreatedAt = now; ad.kitchenNewItemsAt = now; } else ad.kitchenStatus = ad.kitchenStatus || 'new'; ad.kitchenCreatedAt = ad.kitchenCreatedAt || now; ad.kitchenNote = ad.note; }
             else { delete ad.kitchenStatus; delete ad.kitchenCreatedAt; delete ad.kitchenNote; }
             ad.date = ad.updatedLabel; ad.orderType = document.getElementById('cart-order-type')?.value || 'Masa';
             if (!old) acikAdisyonlar.unshift(ad);
@@ -5161,6 +5174,38 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             aktifAdisyonId = null;
             const label = document.getElementById('adisyon-save-label'); if (label) label.textContent = 'ADİSYON AÇ / KAYDET';
         }
+        function adisyonTahsilatAc(id) {
+            if (!islemYetkisiGerekli('adisyon_collect', 'Adisyon tahsilatı alma yetkiniz yok.')) return;
+            const ad = (acikAdisyonlar || []).find(a => String(a.id) === String(id) && a.status !== 'closed'); if (!ad) return;
+            const total=adisyonToplam(ad), paid=Math.min(total,Math.max(0,Number(ad.paidAmount)||0)), remaining=Math.max(0,total-paid);
+            if (remaining <= 0.009) { onayModaliniGoster('Tahsilat tamamlandı','Bu adisyonun ödemesi zaten tamamlanmış.',null,true); return; }
+            document.getElementById('adisyon-payment-id').value=String(ad.id);
+            document.getElementById('adisyon-payment-label').textContent=ad.masa || ad.id;
+            document.getElementById('adisyon-payment-total').textContent=adisyonPara(total);
+            document.getElementById('adisyon-payment-paid').textContent=adisyonPara(paid);
+            document.getElementById('adisyon-payment-remaining').textContent=adisyonPara(remaining);
+            const amount=document.getElementById('adisyon-payment-amount'); amount.max=remaining.toFixed(2); amount.value=remaining.toFixed(2);
+            const modal=document.getElementById('modal-adisyon-payment'); modal.classList.remove('hidden'); modal.classList.add('flex');
+        }
+        function adisyonTahsilatiniOnayla(event) {
+            event.preventDefault();
+            if (!islemYetkisiGerekli('adisyon_collect', 'Adisyon tahsilatı alma yetkiniz yok.')) return;
+            const id=document.getElementById('adisyon-payment-id').value, ad=(acikAdisyonlar||[]).find(a=>String(a.id)===String(id) && a.status!=='closed'); if(!ad)return;
+            const total=adisyonToplam(ad), oldPaid=Math.max(0,Number(ad.paidAmount)||0), remaining=Math.max(0,total-oldPaid);
+            const amount=Number(document.getElementById('adisyon-payment-amount').value), method=document.getElementById('adisyon-payment-method').value;
+            if(!Number.isFinite(amount)||amount<=0||amount>remaining+0.001){onayModaliniGoster('Geçersiz tahsilat',`Tahsilat tutarı 0 ile ${adisyonPara(remaining)} arasında olmalıdır.`,null,true);return;}
+            const button=document.getElementById('adisyon-payment-submit'); if(button)button.disabled=true;
+            const payment={id:'AD-TH-'+Date.now(),amount:Math.round(amount*100)/100,method,date:new Date().toISOString(),user:aktifKullaniciAdi||'Bilinmiyor'};
+            if(!Array.isArray(ad.paymentHistory))ad.paymentHistory=[]; ad.paymentHistory.push(payment);
+            ad.paidAmount=Math.min(total,Math.round((oldPaid+payment.amount)*100)/100);
+            ad.paymentStatus=ad.paidAmount>=total-0.009?'paid':'partial'; ad.lastPaymentAt=payment.date; ad.updatedAt=Date.now(); ad.updatedLabel=new Date().toLocaleString('tr-TR');
+            if(!Array.isArray(kasaHareketleri))kasaHareketleri=[];
+            kasaHareketleri.unshift({id:payment.id,adisyonId:String(id),date:new Date(payment.date).toLocaleString('tr-TR'),timestamp:Date.now(),type:`Adisyon Tahsilatı (${method})`,amount:payment.amount,note:`${ad.masa||'Adisyon'} · ${id}`,user:payment.user,periodId:aktifDonemId,movementKind:'adisyon-settlement'});
+            durumuKaydet(); modalKapat('modal-adisyon-payment'); adisyonlariGoster(); mutfakEkraniniGuncelle(); kasaEkraniniGuncelle();
+            islemBildirimiGoster(`Adisyon tahsilatı kaydedildi: ${adisyonPara(payment.amount)} · Kalan: ${adisyonPara(Math.max(0,total-ad.paidAmount))}`);
+            if(button)button.disabled=false;
+        }
+
         function adisyonuAc(id) {
             const ad = acikAdisyonlar.find(a => String(a.id) === String(id) && a.status !== 'closed');
             if (!ad) { onayModaliniGoster('Adisyon bulunamadı', 'Bu adisyon artık açık değil.', null, true); adisyonlariGoster(); return; }
@@ -5933,7 +5978,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             let toplamAlacak = 0;
             if (Array.isArray(kasaHareketleri)) {
                 kasaHareketleri.forEach(m => {
-                    if (String(m.type || '').includes('Veresiye Tahsilat')) toplamTahsilat += Number(m.amount) || 0;
+                    if (/Veresiye Tahsilat|Adisyon Tahsilatı|Sipariş Tahsilatı/i.test(String(m.type || ''))) toplamTahsilat += Number(m.amount) || 0;
                     if (m.movementKind === 'manual' && m.type === 'Gelir') manuelGelir += Number(m.amount) || 0;
                     if (m.movementKind === 'manual' && m.type === 'Gider') manuelGider += Number(m.amount) || 0;
                     if (m.movementKind === 'manual' && m.type === 'Borç') toplamBorc += Math.max(0, (Number(m.amount) || 0) - (Number(m.paidAmount) || 0));
