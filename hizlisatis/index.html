@@ -1342,7 +1342,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 </div>
 <div>
 <h3 class="text-sm font-bold tracking-tight">Yönetici Girişi Gerekli</h3>
-<p class="text-xs text-slate-400 mt-1">Ayarlar bölümüne yalnızca Yönetici rolündeki kullanıcılar girebilir.</p>
+<p class="text-xs text-slate-400 mt-1">Ana Admin şifresiz girer. Diğer yöneticiler kullanıcı adı ve şifreyle giriş yapar.</p>
 </div>
 <form class="space-y-3 pt-1" onsubmit="ayarlarSifreDogrula(event)">
 <div class="relative text-left">
@@ -2455,6 +2455,20 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         }
 
         function ayarlarKontrolluGecis() {
+            // Kurucu Admin, kendi hesabıyla oturum açmışsa Ayarlar bölümüne şifresiz girer.
+            // Sonradan eklenen Yönetici hesapları için mevcut kullanıcı adı + şifre doğrulaması sürer.
+            const aktifHesap = (sistemKullanicilari || []).find(u =>
+                String(u.name || '').trim().toLocaleLowerCase('tr-TR') ===
+                String(aktifKullaniciAdi || '').trim().toLocaleLowerCase('tr-TR')
+            );
+            if (aktifHesap && sistemKullaniciAnaAdminMi(aktifHesap) && sistemKullaniciYoneticiMi(aktifHesap)) {
+                yoneticiAyarYetkisi = true;
+                const adminGirisModal = document.getElementById('modal-settings-auth');
+                if (adminGirisModal) { adminGirisModal.classList.add('hidden'); adminGirisModal.classList.remove('flex'); }
+                sekmeyiDegistir('settings');
+                return;
+            }
+
             const modal = document.getElementById('modal-settings-auth');
             const userInput = document.getElementById('settings-auth-username');
             const passInput = document.getElementById('settings-auth-password');
