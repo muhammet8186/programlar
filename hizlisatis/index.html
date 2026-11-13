@@ -39,10 +39,10 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
 <!-- Font Awesome İkonları -->
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
 <!-- SheetJS, Html5-Qrcode, JsBarcode & QRCode -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script defer src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
 <!-- Firebase SDK (Modüler v10) -->
 <script type="module">
         import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -791,6 +791,13 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                     </button>
 </div>
 </div>
+<div class="theme-card bg-slate-900 rounded-lg border border-amber-500/30 p-3 shadow-lg" id="stock-alert-panel">
+<div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+<div class="font-bold text-xs md:text-sm flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-amber-400"></i> Stok Uyarıları <span class="text-[10px] text-slate-400 font-normal">Otomatik güncellenir</span></div>
+<div class="flex gap-2 text-[10px] font-bold"><span class="rounded px-2 py-1 bg-amber-500/10 text-amber-400" id="stock-alert-critical-count">Kritik: 0</span><span class="rounded px-2 py-1 bg-red-500/10 text-red-400" id="stock-alert-empty-count">Tükenen: 0</span></div>
+</div>
+<div class="text-xs text-slate-400" id="stock-alert-list">Stok durumu kontrol ediliyor…</div>
+</div>
 <div class="theme-card bg-slate-900 rounded-lg border border-slate-800 overflow-hidden shadow-lg flex-1 flex flex-col">
 <div class="theme-subbar p-3 border-b border-slate-800 bg-slate-900/90 flex flex-col md:flex-row gap-3 items-center justify-between">
 <div class="flex gap-2 flex-1 w-full items-center">
@@ -805,7 +812,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 <div class="flex items-center space-x-1 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
 <button class="px-2.5 py-1.5 text-xs font-semibold rounded border transition bg-emerald-600 text-white border-emerald-500 whitespace-nowrap shadow" id="stock-filter-ALL" onclick="stokFiltresiAyarla('ALL')" type="button">Tümü</button>
 <button class="theme-filter-btn px-2.5 py-1.5 text-xs font-semibold rounded border transition bg-slate-800 border-slate-700 whitespace-nowrap" id="stock-filter-IN_STOCK" onclick="stokFiltresiAyarla('IN_STOCK')" type="button">Stokta Var</button>
-<button class="theme-filter-btn px-2.5 py-1.5 text-xs font-semibold rounded border transition bg-slate-800 border-slate-700 whitespace-nowrap" id="stock-filter-CRITICAL" onclick="stokFiltresiAyarla('CRITICAL')" type="button">Kritik (≤5)</button>
+<button class="theme-filter-btn px-2.5 py-1.5 text-xs font-semibold rounded border transition bg-slate-800 border-slate-700 whitespace-nowrap" id="stock-filter-CRITICAL" onclick="stokFiltresiAyarla('CRITICAL')" type="button">Kritik Stok</button>
 <button class="theme-filter-btn px-2.5 py-1.5 text-xs font-semibold rounded border transition bg-slate-800 border-slate-700 whitespace-nowrap" id="stock-filter-OUT_OF_STOCK" onclick="stokFiltresiAyarla('OUT_OF_STOCK')" type="button">Tükenenler</button>
 </div>
 </div>
@@ -1527,6 +1534,11 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 <label class="block text-xs text-slate-400 mb-1 font-medium">Giriş Stok Adedi</label>
 <input class="theme-input w-full bg-slate-800 border border-slate-700 rounded p-2.5 text-xs md:text-sm focus:outline-none focus:border-emerald-500 font-mono transition" id="prod-in-stock" min="0" required="" type="number" value="0"/>
 </div>
+<div class="col-span-2">
+<label class="block text-xs text-amber-400 mb-1 font-medium">Kritik Stok Eşiği (ürüne özel)</label>
+<input class="theme-input w-full bg-slate-800 border border-amber-500/40 rounded p-2.5 text-xs md:text-sm focus:outline-none focus:border-amber-500 font-mono transition" id="prod-min-stock" min="0" required type="number" value="5"/>
+<p class="text-[10px] text-slate-500 mt-1">Kalan stok bu değere eşit veya altına düştüğünde uyarı gösterilir.</p>
+</div>
 </div>
 <div class="flex space-x-2 pt-3 border-t border-slate-800">
 <button class="theme-btn-alt flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded text-xs transition border border-slate-700" onclick="modalKapat('modal-product')" type="button">İptal</button>
@@ -2142,6 +2154,9 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 p.inStock = Number(p.inStock);
                 p.outStock = Number(p.outStock);
                 p.price = Number(p.price);
+                if (p.minStock === undefined || p.minStock === null || !Number.isFinite(Number(p.minStock))) p.minStock = 5;
+                p.minStock = Math.max(0, Number(p.minStock));
+                if (!Array.isArray(p.stockHistory)) p.stockHistory = [];
             });
             if (!Array.isArray(kategorilerListesi)) kategorilerListesi = [];
             if (!Array.isArray(musteriler)) musteriler = [];
@@ -4638,6 +4653,40 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             urunYonetimTablosunuGuncelle();
         }
 
+        // Stok hareketlerini ürün kaydında tutar; son 30 hareket korunur.
+        function stokHareketKaydi(product, type, qty, reference = '') {
+            if (!product) return;
+            if (!Array.isArray(product.stockHistory)) product.stockHistory = [];
+            const kalan = Math.max(0, Number(product.inStock || 0) - Number(product.outStock || 0));
+            product.stockHistory.unshift({
+                id: 'STK-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+                type: String(type || 'Düzeltme'), quantity: Number(qty) || 0,
+                remaining: kalan, reference: String(reference || ''),
+                date: new Date().toLocaleString('tr-TR'), user: String(aktifKullaniciAdi || 'Sistem')
+            });
+            product.stockHistory = product.stockHistory.slice(0, 30);
+            product.stockUpdatedAt = Date.now();
+        }
+
+        function stokUyarilariniGuncelle() {
+            const criticalEl = document.getElementById('stock-alert-critical-count');
+            const emptyEl = document.getElementById('stock-alert-empty-count');
+            const listEl = document.getElementById('stock-alert-list');
+            if (!criticalEl || !emptyEl || !listEl) return;
+            const empty = urunler.filter(p => Number(p.inStock || 0) - Number(p.outStock || 0) <= 0);
+            const critical = urunler.filter(p => {
+                const remaining = Number(p.inStock || 0) - Number(p.outStock || 0);
+                return remaining > 0 && remaining <= Math.max(0, Number(p.minStock ?? 5));
+            });
+            criticalEl.textContent = `Kritik: ${critical.length}`;
+            emptyEl.textContent = `Tükenen: ${empty.length}`;
+            const rows = [
+                ...empty.slice(0, 4).map(p => `<div class="flex justify-between gap-2 py-1"><span class="truncate">${htmlGuvenli(p.name)}</span><strong class="text-red-400 shrink-0">Tükendi</strong></div>`),
+                ...critical.slice(0, Math.max(0, 6 - Math.min(empty.length, 4))).map(p => `<div class="flex justify-between gap-2 py-1"><span class="truncate">${htmlGuvenli(p.name)}</span><strong class="text-amber-400 shrink-0">${Number(p.inStock || 0) - Number(p.outStock || 0)} / Eşik ${Number(p.minStock ?? 5)}</strong></div>`)
+            ];
+            listEl.innerHTML = rows.length ? rows.join('') : '<span class="text-emerald-400">Tüm ürünlerin stok seviyesi normal.</span>';
+        }
+
         function urunleriGoster() {
             const grid = document.getElementById('products-grid');
             if(!grid) return;
@@ -4651,11 +4700,13 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 
             if (filtered.length === 0) {
                 grid.innerHTML = `<div class="col-span-full py-12 text-center opacity-70 text-xs md:text-sm">Ürün bulunamadı.</div>`;
+                stokUyarilariniGuncelle();
                 return;
             }
 
             grid.innerHTML = filtered.map(p => {
                 const kalanStok = (p.inStock || 0) - (p.outStock || 0);
+                const kritikEsik = Math.max(0, Number(p.minStock ?? 5));
                 const tukendiMi = p.manualSoldOut === true || kalanStok <= 0;
                 
                 const cardBg = isLight ? 'bg-white hover:bg-slate-50 border-slate-300 text-slate-900 shadow-sm' : 'theme-card bg-slate-700 hover:bg-slate-600 border-slate-400 text-slate-100 shadow-md';
@@ -4682,7 +4733,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                     </div>
                     <div onclick="${tukendiMi ? '' : `sepeteEkle('${safeId}')`}" class="cursor-pointer">
                         <div class="sales-product-meta flex justify-between items-center mb-0.5 px-0.5 opacity-70">
-                            <span class="${tukendiMi ? 'text-red-500 font-black' : ''}">${tukendiMi ? 'TÜKENDİ' : `Stok: ${kalanStok}`}</span>
+                            <span class="${tukendiMi ? 'text-red-500 font-black' : ''}">${tukendiMi ? 'TÜKENDİ' : kalanStok <= kritikEsik ? `KRİTİK: ${kalanStok}` : `Stok: ${kalanStok}`}</span>
                         </div>
                         <div class="sales-product-price text-center font-mono ${priceBg} rounded border">
                             ₺${p.price.toFixed(2)}
@@ -4691,6 +4742,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 </div>
                 `;
             }).join('');
+            stokUyarilariniGuncelle();
         }
 
         function barkodTusuKontrol(e) {
@@ -5042,7 +5094,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 
             sepet.forEach(item => {
                 const prod = urunler.find(p => String(p.id) === String(item.product.id));
-                if (prod) prod.outStock = (prod.outStock || 0) + item.qty;
+                if (prod) { prod.outStock = (prod.outStock || 0) + item.qty; stokHareketKaydi(prod, 'Satış', item.qty, 'Satış #' + Date.now()); }
             });
 
             const sale = {
@@ -5309,8 +5361,9 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 const matchesQuery = p.name.toLowerCase().includes(q) || p.barcode.includes(q) || p.category.toLowerCase().includes(q);
 
                 let matchesStockFilter = true;
-                if (mevcutStokFiltresi === 'IN_STOCK') matchesStockFilter = remaining > 5;
-                if (mevcutStokFiltresi === 'CRITICAL') matchesStockFilter = remaining > 0 && remaining <= 5;
+                const threshold = Math.max(0, Number(p.minStock ?? 5));
+                if (mevcutStokFiltresi === 'IN_STOCK') matchesStockFilter = remaining > threshold;
+                if (mevcutStokFiltresi === 'CRITICAL') matchesStockFilter = remaining > 0 && remaining <= threshold;
                 if (mevcutStokFiltresi === 'OUT_OF_STOCK') matchesStockFilter = remaining <= 0;
 
                 return matchesQuery && matchesStockFilter;
@@ -5327,7 +5380,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 const remaining = inQty - outQty;
 
                 let statusBadge = `<span class="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">Stokta Var</span>`;
-                if (remaining <= 5 && remaining > 0) {
+                if (remaining <= Math.max(0, Number(p.minStock ?? 5)) && remaining > 0) {
                     statusBadge = `<span class="bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">Kritik</span>`;
                 } else if (remaining <= 0) {
                     statusBadge = `<span class="bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">Tükendi</span>`;
@@ -5361,6 +5414,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             }).join('');
             const selectAll = document.getElementById('products-select-all');
             if (selectAll) selectAll.checked = filtered.length > 0 && filtered.every(p => seciliUrunEtiketIdleri.has(String(p.id)));
+            stokUyarilariniGuncelle();
         }
 
         function urunEtiketSecimiDegisti(id, checked) {
@@ -5762,6 +5816,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 `${product.name} için ${addQty} adet stok eklenecek. Onaylıyor musunuz?`,
                 () => {
                     product.inStock = (product.inStock || 0) + addQty;
+                    stokHareketKaydi(product, 'Stok Girişi', addQty, 'Manuel stok ekleme');
                     durumuKaydet();
                     modalKapat('modal-stok-ekle');
                     urunYonetimTablosunuGuncelle();
@@ -5777,6 +5832,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             if(formProd) formProd.reset();
             document.getElementById('prod-id').value = '';
             document.getElementById('prod-in-stock').value = 10;
+            document.getElementById('prod-min-stock').value = 5;
             document.getElementById('modal-product-title').innerText = 'Yeni Ürün Ekle';
 
             if (id) {
@@ -5788,6 +5844,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                     document.getElementById('prod-category').value = p.category;
                     document.getElementById('prod-price').value = p.price;
                     document.getElementById('prod-in-stock').value = p.inStock || 0;
+                    document.getElementById('prod-min-stock').value = Math.max(0, Number(p.minStock ?? 5));
                     document.getElementById('modal-product-title').innerText = 'Ürünü Düzenle';
                 }
             }
@@ -5805,7 +5862,8 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             const barcode = document.getElementById('prod-barcode').value;
             const category = document.getElementById('prod-category').value;
             const price = parseFloat(document.getElementById('prod-price').value);
-            const inStock = parseInt(document.getElementById('prod-in-stock').value) || 0;
+            const inStock = Math.max(0, parseInt(document.getElementById('prod-in-stock').value) || 0);
+            const minStock = Math.max(0, parseInt(document.getElementById('prod-min-stock').value) || 0);
 
             onayModaliniGoster(
                 id ? 'Ürünü Güncelle' : 'Yeni Ürün Ekle',
@@ -5814,7 +5872,10 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                     if (id) {
                         const index = urunler.findIndex(p => String(p.id) === String(id));
                         if (index !== -1) {
-                            urunler[index] = { ...urunler[index], name, barcode, category, price, inStock };
+                            const oncekiGirisStok = Number(urunler[index].inStock || 0);
+                            urunler[index] = { ...urunler[index], name, barcode, category, price, inStock, minStock };
+                            const stokFarki = inStock - oncekiGirisStok;
+                            if (stokFarki !== 0) stokHareketKaydi(urunler[index], 'Stok düzeltme', stokFarki, 'Ürün kartından stok güncelleme');
                         }
                     } else {
                         urunler.push({ 
@@ -6302,7 +6363,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                         const saleIndex = satisGecmisi.findIndex(s => String(s.customerId) === String(customer.id) && s.type === 'Alışveriş Kartı' && Math.abs((Number(s.total)||0) - (Number(islem.amount)||0)) < 0.01);
                         if (saleIndex !== -1) {
                             const sale = satisGecmisi[saleIndex];
-                            (sale.items || []).forEach(item => { const prod = urunler.find(p => String(p.id) === String(item.product.id)); if (prod) prod.outStock = Math.max(0, (prod.outStock || 0) - item.qty); });
+                            (sale.items || []).forEach(item => { const prod = urunler.find(p => String(p.id) === String(item.product.id)); if (prod) { prod.outStock = Math.max(0, (prod.outStock || 0) - item.qty); stokHareketKaydi(prod, 'Satış iptali / iade', item.qty, 'Satış stok geri alımı'); } });
                             satisGecmisi.splice(saleIndex, 1);
                         }
                     } else if(islem.type.includes('Tahsilat')) {
@@ -6322,7 +6383,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                             if (sale.items) {
                                 sale.items.forEach(item => {
                                     const prod = urunler.find(p => String(p.id) === String(item.product.id));
-                                    if (prod) prod.outStock = Math.max(0, (prod.outStock || 0) - item.qty);
+                                    if (prod) { prod.outStock = Math.max(0, (prod.outStock || 0) - item.qty); stokHareketKaydi(prod, 'Satış iptali / iade', item.qty, 'Satış stok geri alımı'); }
                                 });
                             }
                             satisGecmisi.splice(saleIndex, 1);
@@ -6659,7 +6720,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                     if (sale.items) {
                         sale.items.forEach(item => {
                             const prod = urunler.find(p => String(p.id) === String(item.product.id));
-                            if (prod) prod.outStock = Math.max(0, (prod.outStock || 0) - item.qty);
+                            if (prod) { prod.outStock = Math.max(0, (prod.outStock || 0) - item.qty); stokHareketKaydi(prod, 'Satış iptali / iade', item.qty, 'Satış stok geri alımı'); }
                         });
                     }
 
@@ -7046,6 +7107,8 @@ if('serviceWorker' in navigator&&location.protocol!=='file:'){window.addEventLis
 
             event.preventDefault();
             event.stopPropagation();
+            if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+            if (event.repeat) return;
 
             const paymentActions = {
                 F2: () => odemeButonundanBaslat('Nakit'),
@@ -7102,43 +7165,5 @@ if('serviceWorker' in navigator&&location.protocol!=='file:'){window.addEventLis
 </div>
 </div>
 
-<script>
-// F2-F6 klavye kısayolları: Gerçek satış butonlarını tetikler.
-(function () {
-    if (window.__hizliSatisF2F6Aktif) return;
-    window.__hizliSatisF2F6Aktif = true;
-    function satisEkraniAktifMi() {
-        const auth = document.getElementById('auth-screen');
-        if (auth && !auth.classList.contains('hidden') && getComputedStyle(auth).display !== 'none') return false;
-        const sales = document.getElementById('section-sales');
-        return !!sales && !sales.classList.contains('hidden') && getComputedStyle(sales).display !== 'none';
-    }
-    function tikla(id) {
-        const el = document.getElementById(id);
-        if (!el || el.disabled) return false;
-        el.click();
-        return true;
-    }
-    document.addEventListener('keydown', function (event) {
-        const key = event.key || '';
-        const code = event.code || '';
-        const kisayol = /^F[2-6]$/.test(key) ? key : (/^F[2-6]$/.test(code) ? code : null);
-        if (!kisayol || event.altKey || event.ctrlKey || event.metaKey) return;
-        if (!satisEkraniAktifMi()) return;
-        event.preventDefault();
-        event.stopPropagation();
-        if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
-        if (event.repeat) return;
-        const actions = {
-            F2: () => tikla('sales-cash-button'),
-            F3: () => tikla('sales-credit-button'),
-            F4: () => tikla('sales-debt-button'),
-            F5: () => tikla('sales-card-button'),
-            F6: () => { const barcode = document.getElementById('barcode-search'); if (barcode) { barcode.focus(); barcode.select?.(); return true; } return false; }
-        };
-        actions[kisayol]?.();
-    }, true);
-})();
-</script>
 </body>
 </html>
