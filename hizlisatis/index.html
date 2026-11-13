@@ -7011,41 +7011,38 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 if('serviceWorker' in navigator&&location.protocol!=='file:'){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(error=>console.warn('Uygulama çevrimdışı desteği başlatılamadı.',error)));}
 </script>
 <script>document.addEventListener("DOMContentLoaded", function(){ try { odemeAyarlariniEkranaYansit(); } catch(e) { console.warn(e); } });
-        // Satış ekranı klavye kısayolları
+        // Satış ekranı F2-F6 kısayolları: giriş alanı odağındayken de çalışır.
+        // Capture aşamasında dinlenir; F5'in tarayıcı yenilemesini engeller.
         document.addEventListener('keydown', function (event) {
-            if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+            if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+
             const salesSection = document.getElementById('section-sales');
             if (!salesSection || salesSection.classList.contains('hidden')) return;
 
-            const target = event.target;
-            const tag = (target && target.tagName || '').toLowerCase();
-            const typing = target && (target.isContentEditable || ['input','textarea','select'].includes(tag));
+            // Bazı klavye/WebView ortamlarında event.key yerine keyCode kullanılabilir.
+            const keyByCode = { 113: 'F2', 114: 'F3', 115: 'F4', 116: 'F5', 117: 'F6' };
+            const pressedKey = /^F[2-6]$/.test(event.key || '') ? event.key : keyByCode[event.keyCode];
+            if (!pressedKey) return;
+
+            // Açık bir modal varken satış kısayolları arka planda işlem başlatmasın.
             const openModal = Array.from(document.querySelectorAll('[id^="modal-"]')).some(el =>
                 !el.classList.contains('hidden') && getComputedStyle(el).display !== 'none'
             );
+            if (openModal) return;
 
-            if (event.key === 'Escape') {
-                if (openModal) return; // Açık modalın kendi Escape davranışı varsa onu bozma.
-                return;
-            }
-            if (typing || openModal) return;
+            event.preventDefault();
+            event.stopPropagation();
 
             const paymentActions = {
                 F2: () => odemeButonundanBaslat('Nakit'),
                 F3: () => odemeButonundanBaslat('Kredi Kartı'),
                 F4: () => veresiyeModaliniAc(),
-                F5: () => alisverisKartiSatisModaliniAc()
+                F5: () => alisverisKartiSatisModaliniAc(),
+                F6: () => document.getElementById('barcode-search')?.focus()
             };
-            if (paymentActions[event.key]) {
-                event.preventDefault();
-                paymentActions[event.key]();
-                return;
-            }
-            if (event.key === 'F6') {
-                event.preventDefault();
-                document.getElementById('barcode-search')?.focus();
-            }
-        });
+            const action = paymentActions[pressedKey];
+            if (action) action();
+        }, true);
 </script>
 <div class="fixed inset-0 z-[190] hidden items-center justify-center bg-black/80 backdrop-blur-md p-4" id="modal-manual-settlement" onclick="if(event.target===this) modalKapat('modal-manual-settlement')">
 <div class="theme-card w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 p-5 text-white shadow-2xl">
