@@ -7060,7 +7060,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             if(!aktif.some(k=>String(k.id)===String(seciliManuelKasaId))) seciliManuelKasaId=String(aktif.find(k=>String(k.id)===ANA_NAKIT_KASA_ID)?.id || aktif[0]?.id || ANA_NAKIT_KASA_ID);
             root.innerHTML=aktif.map(k=>{const b=kasaHesapBakiyesi(k);return `<div onclick="manuelKasaSec('${String(k.id)}')" class="theme-card rounded-lg border ${String(seciliManuelKasaId)===String(k.id)?'cash-account-selected border-2 ring-2':'border-slate-700'} bg-slate-900 p-3 cursor-pointer">
               <div class="flex justify-between gap-2"><div><div class="font-bold text-sm">${htmlGuvenli(k.name)}</div><div class="text-[10px] text-slate-400">${htmlGuvenli(k.type||'Özel Kasa')}${String(k.id)===ANA_NAKIT_KASA_ID?' · Ana kasa (silinemez)':''}${String(seciliManuelKasaId)===String(k.id)?' · <span class="cash-selected-label">SEÇİLİ</span>':''}</div></div><span class="text-xs ${b<0?'text-red-400':'text-emerald-400'} font-mono font-bold">₺${b.toFixed(2)}</span></div>
-              <div class="flex flex-wrap items-center gap-2 mt-3">${String(seciliManuelKasaId)===String(k.id)?`<button class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded px-3 py-2 shadow" onclick="event.stopPropagation();manuelKasaKayitModaliniAc()"><i class="fa-solid fa-plus mr-1"></i> Hareket Ekle</button>`:''}<button class="text-xs bg-slate-700 hover:bg-slate-600 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiDuzenle('${String(k.id).replace(/'/g,"\\'")}')">Düzenle</button>${String(k.id)===ANA_NAKIT_KASA_ID?'<span class="text-[10px] text-amber-400 px-2 py-1">Ana kasa · Silinemez</span>':`<button class="text-xs bg-rose-900/70 hover:bg-rose-800 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiKapat('${String(k.id).replace(/'/g,"\\'")}')">Kapat</button>`}</div></div>`}).join('') || '<p class="text-xs text-slate-400">Henüz aktif kasa yok.</p>';
+              <div class="flex flex-wrap items-center gap-2 mt-3">${String(seciliManuelKasaId)===String(k.id)?`<button class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded px-3 py-2 shadow" onclick="event.stopPropagation();manuelKasaKayitModaliniAc()"><i class="fa-solid fa-plus mr-1"></i> Hareket Ekle</button>`:''}<button class="text-xs bg-slate-700 hover:bg-slate-600 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiDuzenle('${String(k.id).replace(/'/g,"\\'")}')">Düzenle</button>${String(k.id)===ANA_NAKIT_KASA_ID?'<span class="text-[10px] text-amber-400 px-2 py-1">Ana kasa · Silinemez</span>':`<button class="text-xs bg-rose-900/70 hover:bg-rose-800 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiKapat('${String(k.id).replace(/'/g,"\\'")}')">Sil</button>`}</div></div>`}).join('') || '<p class="text-xs text-slate-400">Henüz aktif kasa yok.</p>';
         }
         function manuelKasaSec(id) { seciliManuelKasaId=String(id); kasaHesaplariniCiz(); kasaEkraniniGuncelle(); }
         function kasaModernModalAc(baslik, govde, kaydetEtiketi, kaydetIslemi) {
@@ -7094,8 +7094,11 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                 const type=modal.querySelector('#kasa-new-type').value;
                 const opening=Number(modal.querySelector('#kasa-new-opening').value);
                 if(!name||!Number.isFinite(opening)||opening<0){onayModaliniGoster('Bilgileri kontrol edin','Kasa adı girin; açılış bakiyesi sıfır veya pozitif olmalı.',null,true);return false;}
-                kasaHesaplari.push({id:'KASA-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),name,type,openingBalance:opening,active:true});
-                durumuKaydet();kasaHesaplariniCiz();onayModaliniGoster('Kasa oluşturuldu',name+' kasası başarıyla eklendi.',null,true);
+                const yeniKasa={id:'KASA-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),name,type,openingBalance:opening,active:true};
+                kasaHesaplari.push(yeniKasa);
+                // Yerel ekranı anında güncelle; durumuKaydet kasa_hesaplari dizisini Firebase'e güvenli transaction ile eşitler.
+                seciliManuelKasaId=String(yeniKasa.id);
+                durumuKaydet();kasaHesaplariniCiz();kasaEkraniniGuncelle();
               });
         }
         function kasaHesabiDuzenle(id) {
@@ -7113,12 +7116,14 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
         function kasaHesabiKapat(id) {
             if(String(id)===ANA_NAKIT_KASA_ID){onayModaliniGoster('Ana kasa silinemez','Ana Nakit Kasa sistemin temel kasasıdır ve kapatılamaz.',null,true);return;}
             const k=kasaHesaplari.find(x=>String(x.id)===String(id));if(!k)return;
-            if(Math.abs(kasaHesapBakiyesi(k))>0.009){onayModaliniGoster('Kasa kapatılamaz','Bakiyesi sıfır olmayan kasa kapatılamaz. Önce bakiyeyi başka kasaya aktarın.',null,true);return;}
-            onayModaliniGoster('Kasayı kapat',`"${k.name}" kasasını kapatmak istediğinize emin misiniz? Kasa kayıtları korunur.`,()=>{
-                k.active=false;
+            if(Math.abs(kasaHesapBakiyesi(k))>0.009){onayModaliniGoster('Kasa silinemez','Bakiyesi sıfır olmayan kasa silinemez. Önce bakiyeyi başka kasaya aktarın.',null,true);return;}
+            const kasayaAitHareketVar=(kasaHareketleri||[]).some(h=>String(h.cashAccountId||'')===String(id));
+            if(kasayaAitHareketVar){onayModaliniGoster('Kasa silinemez','Bu kasaya bağlı hareket kayıtları bulunuyor. Muhasebe geçmişinin bozulmaması için önce bu kayıtları kontrol edin.',null,true);return;}
+            onayModaliniGoster('Kasayı sil',`"${k.name}" kasasını kalıcı olarak silmek istediğinize emin misiniz?`,()=>{
+                kasaHesaplari=kasaHesaplari.filter(x=>String(x.id)!==String(id));
                 if(String(seciliManuelKasaId)===String(id))seciliManuelKasaId=ANA_NAKIT_KASA_ID;
+                // Silinen kasa, Firebase güvenli dizi eşitlemesinde baseline farkı olarak kaldırılır.
                 durumuKaydet();kasaHesaplariniCiz();kasaEkraniniGuncelle();
-                onayModaliniGoster('Kasa kapatıldı',k.name+' pasif hale getirildi.',null,true);
             });
         }
         function kasaHesabinaHareketEkle(id,direction) {
@@ -7632,10 +7637,19 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             const remaining = cariOzet.remaining;
             const manuelKayitVar = (kasaHareketleri || []).some(m => m.movementKind === 'manual' && String(m.customerId || '') === String(cust.id) && ['Borç','Alacak'].includes(m.type));
 
-            if (total !== 0 || paid !== 0 || remaining !== 0 || manuelKayitVar) {
+            const veresiyeBorcu = Math.max(0, Number(remaining) || 0);
+            const alisverisKartiBakiyesi = Math.max(0, Number(cust.cardBalance) || 0);
+            if (veresiyeBorcu > 0.009 || alisverisKartiBakiyesi > 0.009 || total !== 0 || paid !== 0 || manuelKayitVar) {
+                const engelNedeni = veresiyeBorcu > 0.009 && alisverisKartiBakiyesi > 0.009
+                    ? `Veresiye borcu ₺${veresiyeBorcu.toFixed(2)} ve alışveriş kartı bakiyesi ₺${alisverisKartiBakiyesi.toFixed(2)} bulunduğu`
+                    : veresiyeBorcu > 0.009
+                        ? `₺${veresiyeBorcu.toFixed(2)} veresiye borcu bulunduğu`
+                        : alisverisKartiBakiyesi > 0.009
+                            ? `₺${alisverisKartiBakiyesi.toFixed(2)} alışveriş kartı bakiyesi bulunduğu`
+                            : 'hesap hareketi veya tahsilat geçmişi bulunduğu';
                 onayModaliniGoster(
                     'Silme İşlemi Engellendi',
-                    `"${cust.name}" adlı müşterinin aktif borcu veya tahsilat geçmişi bulunduğu için silinemez!`,
+                    `"${cust.name}" adlı müşteri ${engelNedeni} için silinemez!`, 
                     null,
                     true
                 );
