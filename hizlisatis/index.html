@@ -5704,10 +5704,33 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         }
 
         function yazdirmaTetikle() {
-            // Yazdırma görünümünü window.print() çağrısından önce etkinleştir.
+            // Yazdırma görünümünü etkinleştir; baskı tamamlanınca fiş penceresini kapat.
+            const modal = document.getElementById('modal-receipt');
+            let tamamlandi = false;
+            const yazdirmaSonrasiKapat = () => {
+                if (tamamlandi) return;
+                tamamlandi = true;
+                document.body.classList.remove('printing-receipt');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+                window.removeEventListener('afterprint', yazdirmaSonrasiKapat);
+            };
+            window.addEventListener('afterprint', yazdirmaSonrasiKapat, { once: true });
             document.body.classList.add('printing-receipt');
             fisKagitGenisliginiUygula();
-            requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                try {
+                    window.print();
+                    // Masaüstü tarayıcılarda print() genellikle diyalog kapandıktan sonra döner.
+                    yazdirmaSonrasiKapat();
+                } catch (err) {
+                    window.removeEventListener('afterprint', yazdirmaSonrasiKapat);
+                    document.body.classList.remove('printing-receipt');
+                    console.error('Fiş yazdırılamadı:', err);
+                }
+            }));
         }
 
         function stokFiltresiAyarla(filterType) {
