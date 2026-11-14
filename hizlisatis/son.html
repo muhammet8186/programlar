@@ -629,6 +629,38 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected {
 }
 body#app-body[data-theme-mode="dark"] .cash-account-selected *,
 body#app-body:not([data-theme-mode="light"]) .cash-account-selected * { color:#0f172a !important; }
+
+/* Seçili kasa kartındaki işlem butonları: her iki temada da yüksek kontrast */
+.cash-account-selected button {
+  color:#ffffff !important;
+  font-weight:800 !important;
+  text-shadow:none !important;
+  border:1px solid rgba(255,255,255,.28) !important;
+  opacity:1 !important;
+  filter:none !important;
+  box-shadow:0 2px 5px rgba(0,0,0,.22) !important;
+}
+.cash-account-selected button[onclick*="manuelKasaKayitModaliniAc"] {
+  background:#047857 !important;
+  color:#ffffff !important;
+}
+.cash-account-selected button[onclick*="kasaHesabiDuzenle"] {
+  background:#1d4ed8 !important;
+  color:#ffffff !important;
+}
+.cash-account-selected button[onclick*="kasaHesabiKapat"] {
+  background:#b91c1c !important;
+  color:#ffffff !important;
+}
+.cash-account-selected button:hover {
+  filter:brightness(1.13) !important;
+  transform:translateY(-1px);
+}
+.cash-account-selected button:focus-visible {
+  outline:3px solid #f59e0b !important;
+  outline-offset:2px !important;
+}
+
 </style>
 
 </head>
@@ -977,6 +1009,9 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected * { color:#0
 </div>
 <div class="hidden" id="cash-manual-panel">
 <div id="cash-accounts-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3"></div>
+</div>
+<div class="flex justify-end" data-cash-view="sales">
+<button type="button" onclick="satisKasasindanManuelKasayaTransfer()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg px-3 py-2 text-xs shadow"><i class="fa-solid fa-right-left mr-1"></i> Satış Kasasından Manuel Kasaya Transfer</button>
 </div>
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 <div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 shadow-lg space-y-1" data-cash-view="sales">
@@ -6662,6 +6697,38 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected * { color:#0
             kasaHareketleri.unshift({id:'KH-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),movementKind:'account-manual',cashAccountId:k.id,cashDirection:direction,amount:Math.round(amount*100)/100,note:note.trim(),date:new Date().toLocaleString('tr-TR'),timestamp:Date.now(),user:aktifKullaniciAdi||'Bilinmiyor',periodId:aktifDonemId});
             durumuKaydet();kasaHesaplariniCiz();kasaEkraniniGuncelle();
         }
+        function satisKasasindanManuelKasayaTransfer() {
+            const aktif=kasaHesaplari.filter(k=>k.active!==false);
+            if(!aktif.length){onayModaliniGoster('Aktif kasa yok','Önce Kasa (Manuel) bölümünde bir kasa oluşturun.',null,true);return;}
+            let satisToplami=0;
+            (satisGecmisi||[]).forEach(s=>{
+                if(Array.isArray(s.payments)&&s.payments.length){
+                    s.payments.forEach(p=>{satisToplami+=Math.max(0,Number(p.amount)||0);});
+                } else if(['Nakit','Kredi Kartı'].includes(s.type)) satisToplami+=Math.max(0,Number(s.total)||0);
+                else if(s.type==='Parçalı Ödeme') satisToplami+=Math.max(0,Number(s.paidAmount)||0);
+            });
+            const oncekiTransfer=(kasaHareketleri||[]).filter(m=>m.movementKind==='sales-transfer-out').reduce((n,m)=>n+(Number(m.amount)||0),0);
+            const kullanilabilir=Math.max(0,satisToplami-oncekiTransfer);
+            const options=aktif.map(k=>`<option value="${htmlGuvenli(String(k.id))}">${htmlGuvenli(k.name)} · ₺${kasaHesapBakiyesi(k).toFixed(2)}</option>`).join('');
+            const body=`<div class="rounded-xl bg-slate-800 border border-slate-700 p-3"><div class="text-xs text-slate-400">Satış kasasında transfer edilebilir tutar</div><div class="text-2xl font-extrabold text-emerald-400">₺${kullanilabilir.toFixed(2)}</div></div>
+              <label class="block text-xs text-slate-300">Hedef manuel kasa<select id="sales-transfer-target" class="mt-1 w-full rounded-lg border border-slate-600 bg-slate-950 text-white px-3 py-2.5 text-sm">${options}</select></label>
+              ${kasaModernAlan('Transfer tutarı (TL)','sales-transfer-amount','','number')}
+              ${kasaModernAlan('Açıklama','sales-transfer-note','Satış kasasından manuel kasaya aktarım')}`;
+            kasaModernModalAc('Satış kasasından manuel kasaya transfer',body,'Transferi tamamla',modal=>{
+                const target=aktif.find(k=>String(k.id)===modal.querySelector('#sales-transfer-target').value);
+                const amount=Number(modal.querySelector('#sales-transfer-amount').value);
+                const note=modal.querySelector('#sales-transfer-note').value.trim()||'Satış kasasından manuel kasaya aktarım';
+                if(!target||!Number.isFinite(amount)||amount<=0){onayModaliniGoster('Bilgileri kontrol edin','Hedef kasa seçin ve sıfırdan büyük geçerli bir tutar girin.',null,true);return false;}
+                const kalan=Math.max(0,kullanilabilir-amount);
+                if(amount>kullanilabilir+0.001){onayModaliniGoster('Yetersiz satış kasası bakiyesi',`En fazla ₺${kullanilabilir.toFixed(2)} transfer edebilirsiniz.`,null,true);return false;}
+                const transferId='SAT-TR-'+Date.now(),now=Date.now(),tarih=new Date(now).toLocaleString('tr-TR');
+                kasaHareketleri.unshift({id:transferId+'-OUT',transferId,movementKind:'sales-transfer-out',cashAccountId:'SALES-CASH',cashDirection:'out',type:'Manuel Kasaya Transfer',amount:Math.round(amount*100)/100,note:`${note} → ${target.name}`,date:tarih,timestamp:now,user:aktifKullaniciAdi||'Bilinmiyor',periodId:aktifDonemId});
+                kasaHareketleri.unshift({id:transferId+'-IN',transferId,movementKind:'sales-transfer-in',cashAccountId:target.id,cashDirection:'in',type:'Satış Kasasından Transfer',amount:Math.round(amount*100)/100,note:`${note} ← Satış Kasası`,date:tarih,timestamp:now,user:aktifKullaniciAdi||'Bilinmiyor',periodId:aktifDonemId});
+                durumuKaydet();kasaEkraniniGuncelle();kasaHesaplariniCiz();
+                onayModaliniGoster('Transfer tamamlandı',`₺${amount.toFixed(2)} Satış Kasasından ${target.name} hesabına aktarıldı. Kalan satış kasası tutarı: ₺${kalan.toFixed(2)}.`,null,true);
+            });
+        }
+
         function kasaTransferiYap() {
             const aktif=kasaHesaplari.filter(k=>k.active!==false);
             if(aktif.length<2){onayModaliniGoster('Yetersiz kasa','Transfer için en az iki aktif kasa gerekir.',null,true);return;}
@@ -6733,7 +6800,8 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected * { color:#0
             const toplamKartYukleme = (kasaHareketleri || []).filter(m => m.movementKind === 'card-topup').reduce((sum,m) => sum + (Number(m.amount)||0), 0);
             const manuelBorcOdemeleri = (kasaHareketleri || []).filter(m => m.movementKind === 'manual-settlement' && m.settlementType === 'Borç').reduce((sum,m) => sum + (Number(m.amount)||0), 0);
             const seciliKasa = kasaHesaplari.find(k=>String(k.id)===String(seciliManuelKasaId));
-            const genelToplam = aktifKasaAltBolumu === 'manual' && seciliKasa ? kasaHesapBakiyesi(seciliKasa) : toplamNakit + toplamKart + toplamDiger + toplamTahsilat + toplamKartYukleme + manuelGelir - manuelGider - manuelBorcOdemeleri;
+            const satisKasasiTransferleri = (kasaHareketleri || []).filter(m => m.movementKind === 'sales-transfer-out').reduce((sum,m) => sum + (Number(m.amount)||0), 0);
+            const genelToplam = aktifKasaAltBolumu === 'manual' && seciliKasa ? kasaHesapBakiyesi(seciliKasa) : Math.max(0, toplamNakit + toplamKart + toplamDiger + toplamTahsilat + toplamKartYukleme + manuelGelir - manuelGider - manuelBorcOdemeleri - satisKasasiTransferleri);
 
             const nakitEl = document.getElementById('cash-total-nakit');
             const kartEl = document.getElementById('cash-total-kart');
@@ -6779,7 +6847,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected * { color:#0
                 m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
                 return m ? `${m[1]}-${m[2]}-${m[3]}` : '';
             };
-            const indexedMovements = kasaHareketleri.map((m, index) => ({ m, index })).filter(({m}) => aktifKasaAltBolumu === 'manual' ? ((m.movementKind === 'manual' || m.movementKind === 'manual-settlement') && String(m.cashAccountId || ANA_NAKIT_KASA_ID) === String(seciliManuelKasaId)) : m.movementKind !== 'manual' && m.movementKind !== 'manual-settlement').filter(({m}) => {
+            const indexedMovements = kasaHareketleri.map((m, index) => ({ m, index })).filter(({m}) => aktifKasaAltBolumu === 'manual' ? ((m.movementKind === 'manual' || m.movementKind === 'manual-settlement' || m.movementKind === 'sales-transfer-in') && String(m.cashAccountId || ANA_NAKIT_KASA_ID) === String(seciliManuelKasaId)) : m.movementKind !== 'manual' && m.movementKind !== 'manual-settlement' && m.movementKind !== 'sales-transfer-in').filter(({m}) => {
                 const haystack = [m.date, m.type, m.note, m.user, m.saleId].map(v => String(v || '')).join(' ').toLocaleLowerCase('tr-TR');
                 const matchesText = !filterQuery || haystack.includes(filterQuery);
                 const typeText = String(m.type || '').toLocaleLowerCase('tr-TR');
@@ -6798,7 +6866,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected * { color:#0
                 const safeDate = htmlGuvenli(m.date || '');
                 const safeType = htmlGuvenli(m.type || '');
                 const detailLabel = `${m.customerName ? `· ${htmlGuvenli(m.customerName)} ` : ''}${m.note ? `— ${htmlGuvenli(m.note)}` : (m.saleId ? `(${htmlGuvenli(m.saleId)})` : '')}`;
-                const rowClick = m.movementKind === 'manual' ? '' : `onclick="kasaHareketindenSatisiBul('${encodedSaleId}', ${movementIndex})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();kasaHareketindenSatisiBul('${encodedSaleId}', ${movementIndex});}"`;
+                const rowClick = ['manual','manual-settlement','sales-transfer-in','sales-transfer-out'].includes(m.movementKind) ? '' : `onclick="kasaHareketindenSatisiBul('${encodedSaleId}', ${movementIndex})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();kasaHareketindenSatisiBul('${encodedSaleId}', ${movementIndex});}"`;
                 const amountColor = m.type === 'Gider' || m.type === 'Borç' ? 'text-red-600 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400';
                 // Borç/Alacak ana satırında ilk tutarı değil, yapılan tahsilat/ödemeler
                 // düşüldükten sonra kalan bakiyeyi göster. Ödeme ayrıca yeşil hareket olarak kalır.
