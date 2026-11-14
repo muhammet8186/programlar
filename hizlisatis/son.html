@@ -6212,37 +6212,50 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             }
             if (type === 'Nakit' && nakitAlinan > total) sale.cashReceived = nakitAlinan;
 
-            // Önce satış verisini kaydet ve sepeti temizle. Bildirim/fiş arayüzündeki
-            // olası bir hata, tamamlanmış satışın sepetini dolu bırakmamalıdır.
-            durumuKaydet();
+            // ÖNEMLİ: Satış nesnesi ve stok/kasa/cari değişiklikleri hazırlandıktan sonra
+            // önce sepeti boşalt. Firebase yazımı veya herhangi bir modal/fiş hatası
+            // sepetin dolu kalmasına ve kullanıcının aynı satışı tekrar yapmasına yol açmamalı.
             window.__posPartialPayment = null;
-            sepetiTemizle();
+            try { sepetiTemizle(); }
+            catch (hata) {
+                console.error('Satış sonrası sepet temizlenemedi:', hata);
+                sepet = [];
+                try { sepetiGuncelle(); } catch (_) {}
+            }
             const kitchenNoteInput = document.getElementById('cart-kitchen-note');
             if (kitchenNoteInput) kitchenNoteInput.value = '';
             const tableInput = document.getElementById('cart-table-number'); if (tableInput) tableInput.value = '';
             const orderTypeReset2 = document.getElementById('cart-order-type'); if (orderTypeReset2) orderTypeReset2.value = 'Masa';
 
-            islemBildirimiGoster(type + ' işlemi tamamlandı: ₺' + total.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + (type === 'Nakit' && nakitAlinan > total ? ' · Para üstü: ₺' + (nakitAlinan-total).toFixed(2) : ''));
+            // Yerel kayıt/Firebase gönderimi hata verse bile satış akışını durdurma.
+            // Firebase fonksiyonları kendi hata kayıtlarını konsola yazar.
+            try { durumuKaydet(); }
+            catch (hata) { console.error('Satış oluşturuldu; kayıt/eşitleme sırasında hata:', hata); }
+
+            // Ekran yenilemelerini birbirinden bağımsız tut: tek bir arayüz hatası
+            // başarı bildirimini engellemesin.
+            [garsonEkraniniGuncelle, urunleriGoster, mutfakEkraniniGuncelle,
+             gecmisTablosunuGuncelle, kasaEkraniniGuncelle, adisyonlariGoster].forEach(fn => {
+                try { fn(); } catch (hata) { console.error('Satış sonrası ekran yenileme hatası:', hata); }
+            });
+            if (kartMusterisi) { try { borclularTablosunuGuncelle(); } catch (hata) { console.error('Cari ekran yenileme hatası:', hata); } }
+            const adisyonLabel = document.getElementById('adisyon-save-label'); if (adisyonLabel) adisyonLabel.textContent = 'ADİSYON AÇ / KAYDET';
+
+            const basariMesaji = type + ' işlemi tamamlandı: ₺' + total.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + (type === 'Nakit' && nakitAlinan > total ? ' · Para üstü: ₺' + (nakitAlinan-total).toFixed(2) : '');
+            try { islemBildirimiGoster(basariMesaji); }
+            catch (hata) { console.error('Satış bildirimi gösterilemedi:', hata); }
 
             if (sistemAyarlari.otomatikYazdir === true) {
                 // Satış anındaki fiş, Satışlar > Tekrar Yazdır ile aynı standart şablonu kullanır.
                 try { fisGoster(sale); }
                 catch (hata) {
                     console.error('Satış kaydedildi ancak fiş gösterilemedi:', hata);
-                    onayModaliniGoster('Satış tamamlandı', 'Satış kaydedildi ve sepet temizlendi; ancak fiş penceresi açılamadı.', null, true);
+                    try { onayModaliniGoster('Satış tamamlandı', 'Satış kaydedildi ve sepet temizlendi; ancak fiş penceresi açılamadı.', null, true); } catch (_) {}
                 }
             } else {
-                onayModaliniGoster('Başarılı', `Satış işlemi başarıyla gerçekleşti! Toplam Tutar: ₺${total.toFixed(2)}`, null, true);
+                try { onayModaliniGoster('Başarılı', `Satış işlemi başarıyla gerçekleşti! Toplam Tutar: ₺${total.toFixed(2)}`, null, true); }
+                catch (hata) { console.error('Satış başarı penceresi açılamadı:', hata); }
             }
-
-            garsonEkraniniGuncelle();
-            urunleriGoster();
-            mutfakEkraniniGuncelle();
-            gecmisTablosunuGuncelle();
-            kasaEkraniniGuncelle();
-            if (kartMusterisi) borclularTablosunuGuncelle();
-            adisyonlariGoster();
-            const adisyonLabel = document.getElementById('adisyon-save-label'); if (adisyonLabel) adisyonLabel.textContent = 'ADİSYON AÇ / KAYDET';
         }
 
         function fisYazdirmaModunuDegistir(mod) {
