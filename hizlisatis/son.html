@@ -1128,9 +1128,9 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 <th class="p-3">Müşteri Adı</th>
 <th class="p-3">Telefon</th>
 <th class="p-3">Açıklama / Not</th>
-<th class="p-3 text-right">Mevcut Borç</th>
-<th class="p-3 text-right text-emerald-500">Ödenen Tutar</th>
-<th class="p-3 text-right text-amber-500 font-bold">Kalan Borç</th>
+<th class="p-3 text-right">Net Cari Tutar</th>
+<th class="p-3 text-right text-emerald-500">Net Tahsilat / Ödeme</th>
+<th class="p-3 text-right text-amber-500 font-bold">Net Bakiye</th>
 <th class="p-3 text-right text-cyan-500 font-bold">Alışveriş Kartı</th>
 <th class="p-3 text-center">İşlemler</th>
 </tr>
@@ -1432,9 +1432,10 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 <div class="theme-card bg-slate-900 border border-slate-700 w-full max-w-sm rounded-lg p-5 space-y-3 shadow-2xl">
 <div class="flex items-center justify-between border-b border-slate-800 pb-2"><h3 class="text-sm font-bold"><i class="fa-solid fa-circle-plus text-emerald-500 mr-1"></i> Kasa (Manuel) — Hareket Kaydı</h3><button class="text-slate-400" onclick="modalKapat('modal-cash-add')" type="button"><i class="fa-solid fa-xmark"></i></button></div>
 <form class="space-y-3" id="cash-manual-form" onsubmit="manuelKasaHareketiEkle(event)">
-<div><label class="block text-xs text-slate-400 mb-1" for="cash-manual-type">Hareket Türü</label><select class="theme-input w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-emerald-500" id="cash-manual-type" required=""><option value="Gelir">Gelir</option><option value="Gider">Gider</option><option value="Borç">Borç (Ödenecek)</option><option value="Alacak">Alacak (Tahsil Edilecek)</option></select></div>
+<div><label class="block text-xs text-slate-400 mb-1" for="cash-manual-type">Hareket Türü</label><select class="theme-input w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-emerald-500" id="cash-manual-type" onchange="manuelKasaCariAlaniniGuncelle()" required=""><option value="Gelir">Gelir</option><option value="Gider">Gider</option><option value="Borç">Borç (Ödenecek)</option><option value="Alacak">Alacak (Tahsil Edilecek)</option></select></div>
 <div><label class="block text-xs text-slate-400 mb-1" for="cash-manual-date">İşlem Tarihi</label><input class="theme-input w-full bg-slate-950 border border-slate-700 rounded-md p-2.5 text-xs" id="cash-manual-date" required="" type="date"/><p class="text-[10px] text-slate-500 mt-1">Saat, kaydı eklediğiniz anda otomatik eklenir.</p></div>
 <div><label class="block text-xs text-slate-400 mb-1" for="cash-manual-amount">Tutar (₺)</label><input class="theme-input w-full bg-slate-950 border border-slate-700 rounded-md p-2.5 text-xs" id="cash-manual-amount" min="0.01" placeholder="0,00" required="" step="0.01" type="number"/></div>
+<div class="hidden" id="cash-manual-customer-wrap"><label class="block text-xs text-slate-400 mb-1" for="cash-manual-customer">Cari Hesap <span class="text-red-400">*</span></label><select class="theme-input w-full bg-slate-950 border border-slate-700 rounded-md p-2.5 text-xs" id="cash-manual-customer"><option value="">Cari seçin...</option></select><p class="mt-1 text-[10px] text-slate-500">Borç veya alacak kaydı seçilen carinin hesap geçmişine eklenir.</p></div>
 <div><label class="block text-xs text-slate-400 mb-1" for="cash-manual-note">Açıklama</label><input class="theme-input w-full bg-slate-950 border border-slate-700 rounded-md p-2.5 text-xs" id="cash-manual-note" maxlength="180" placeholder="Açıklama girin..." required=""/></div>
 <p class="text-[10px] text-slate-500">Gelir kasayı artırır, gider azaltır. Borç ve alacak kayıtları takip amaçlıdır.</p>
 <div class="flex gap-2"><button class="flex-1 py-2.5 bg-slate-800 text-slate-300 rounded text-xs" onclick="modalKapat('modal-cash-add')" type="button">Vazgeç</button><button class="flex-1 py-2.5 bg-emerald-600 text-white font-bold rounded text-xs" type="submit">Kaydet</button></div>
@@ -2861,9 +2862,9 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 "Müşteri Adı": c.name,
                 "Telefon": c.phone || '',
                 "Açıklama / Not": c.desc || '',
-                "Toplam Borç (₺)": c.totalDebt || 0,
-                "Ödenen Tutar (₺)": c.paidDebt || 0,
-                "Kalan Bakiye (₺)": (c.totalDebt || 0) - (c.paidDebt || 0)
+                "Net Cari Tutar (₺)": cariManuelHesapOzeti(c).total,
+                "Net Tahsilat / Ödeme (₺)": cariManuelHesapOzeti(c).paid,
+                "Net Bakiye (₺)": cariManuelHesapOzeti(c).remaining
             }));
             const ws = XLSX.utils.json_to_sheet(data);
             const wb = XLSX.utils.book_new();
@@ -6205,8 +6206,61 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             }), 100);
         }
 
+        function cariManuelHesapOzeti(customer) {
+            if (!customer) return { total: 0, paid: 0, remaining: 0 };
+            const linked = (Array.isArray(kasaHareketleri) ? kasaHareketleri : []).filter(m =>
+                m.movementKind === 'manual' && String(m.customerId || '') === String(customer.id) && ['Borç','Alacak'].includes(m.type)
+            );
+            let alacak = 0, alacakOdenen = 0, borc = 0, borcOdenen = 0;
+            linked.forEach(m => {
+                const tutar = Math.max(0, Number(m.amount) || 0);
+                const odenen = Math.min(tutar, Math.max(0, Number(m.paidAmount) || 0));
+                if (m.type === 'Alacak') { alacak += tutar; alacakOdenen += odenen; }
+                else { borc += tutar; borcOdenen += odenen; }
+            });
+            const total = (Number(customer.totalDebt) || 0) + alacak - borc;
+            const paid = (Number(customer.paidDebt) || 0) + alacakOdenen - borcOdenen;
+            return { total, paid, remaining: total - paid, alacak, alacakOdenen, borc, borcOdenen };
+        }
+
+        function cariManuelGecmisKaydi(customer, movement, isSettlement = false) {
+            if (!customer || !movement) return;
+            if (!Array.isArray(customer.history)) customer.history = [];
+            const id = isSettlement ? movement.id : `CARI-${movement.id}`;
+            const type = isSettlement
+                ? (movement.settlementType === 'Alacak' ? 'Manuel Alacak Tahsilatı' : 'Manuel Borç Ödemesi')
+                : (movement.type === 'Alacak' ? 'Manuel Alacak' : 'Manuel Borç');
+            const item = {
+                id,
+                date: movement.date || new Date().toLocaleString('tr-TR'),
+                type,
+                amount: Number(movement.amount) || 0,
+                cashMovementId: movement.id,
+                parentMovementId: isSettlement ? movement.parentMovementId : movement.id,
+                manualCashRecord: true,
+                note: movement.note || ''
+            };
+            const idx = customer.history.findIndex(h => String(h.id) === String(id));
+            if (idx >= 0) customer.history[idx] = item;
+            else customer.history.unshift(item);
+        }
+
+        function manuelKasaCariAlaniniGuncelle() {
+            const type = document.getElementById('cash-manual-type')?.value || 'Gelir';
+            const wrap = document.getElementById('cash-manual-customer-wrap');
+            const select = document.getElementById('cash-manual-customer');
+            const gerekli = ['Borç','Alacak'].includes(type);
+            if (wrap) wrap.classList.toggle('hidden', !gerekli);
+            if (!select) return;
+            const secili = select.value;
+            select.innerHTML = '<option value="">Cari seçin...</option>' + (Array.isArray(musteriler) ? [...musteriler].sort((a,b) => String(a.name||'').localeCompare(String(b.name||''),'tr')).map(c => `<option value="${htmlGuvenli(String(c.id))}">${htmlGuvenli(c.name || 'İsimsiz cari')}</option>`).join('') : '');
+            if (secili && musteriler.some(c => String(c.id) === String(secili))) select.value = secili;
+            select.required = gerekli;
+        }
+
         function manuelKasaKayitModaliniAc() {
             document.getElementById('cash-manual-form')?.reset();
+            manuelKasaCariAlaniniGuncelle();
             const tarihAlani = document.getElementById('cash-manual-date');
             if (tarihAlani) {
                 const bugun = new Date();
@@ -6227,11 +6281,18 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             const simdi = new Date();
             const hareketTarihi = new Date(yil, ay - 1, gun, simdi.getHours(), simdi.getMinutes(), simdi.getSeconds(), simdi.getMilliseconds());
             if (!Number.isFinite(hareketTarihi.getTime())) { onayModaliniGoster('Geçersiz tarih', 'Lütfen geçerli bir işlem tarihi seçin.', null, true); return; }
-            kasaHareketleri.unshift({ id: `KM-${Date.now()}`, date: hareketTarihi.toLocaleString('tr-TR'), timestamp: hareketTarihi.getTime(), type, amount: Math.round(amount * 100) / 100, note, user: aktifKullaniciAdi || 'Bilinmiyor', periodId: aktifDonemId, movementKind: 'manual' });
+            const customerId = ['Borç','Alacak'].includes(type) ? (document.getElementById('cash-manual-customer')?.value || '') : '';
+            const customer = customerId ? musteriler.find(c => String(c.id) === String(customerId)) : null;
+            if (['Borç','Alacak'].includes(type) && !customer) { onayModaliniGoster('Cari gerekli', 'Borç veya alacak hareketi için bir cari seçin.', null, true); return; }
+            const movement = { id: `KM-${Date.now()}-${Math.random().toString(36).slice(2,7)}`, date: hareketTarihi.toLocaleString('tr-TR'), timestamp: hareketTarihi.getTime(), type, amount: Math.round(amount * 100) / 100, paidAmount: 0, note, user: aktifKullaniciAdi || 'Bilinmiyor', periodId: aktifDonemId, movementKind: 'manual' };
+            if (customer) { movement.customerId = customer.id; movement.customerName = customer.name; }
+            kasaHareketleri.unshift(movement);
+            if (customer) cariManuelGecmisKaydi(customer, movement, false);
             durumuKaydet();
             document.getElementById('cash-manual-form')?.reset();
             modalKapat('modal-cash-add');
             kasaEkraniniGuncelle();
+            if (customer) borclularTablosunuGuncelle();
             onayModaliniGoster('Kayıt eklendi', `${type} hareketi Kasa (Manuel) bölümüne kaydedildi.`, null, true);
         }
 
@@ -6258,13 +6319,21 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             if (!m || m.movementKind !== 'manual' || !Number.isFinite(amount) || amount <= 0 || !note) {
                 onayModaliniGoster('Eksik bilgi', 'Geçerli bir tür, tutar ve açıklama girin.', null, true); return;
             }
-            m.type = document.getElementById('cash-edit-type').value;
+            const yeniTur = document.getElementById('cash-edit-type').value;
+            const odenenToplam = (kasaHareketleri || []).filter(x => x.movementKind === 'manual-settlement' && String(x.parentMovementId) === String(m.id)).reduce((sum,x) => sum + (Number(x.amount)||0), 0);
+            if (amount + 0.001 < odenenToplam) { onayModaliniGoster('Tutar yetersiz', `Ana kayıt tutarı, mevcut ₺${odenenToplam.toFixed(2)} tahsilat/ödeme toplamından düşük olamaz.`, null, true); return; }
+            if ((odenenToplam > 0.009 || m.customerId) && yeniTur !== m.type) { onayModaliniGoster('Tür değiştirilemez', 'Cari hesaba bağlı veya tahsilat/ödeme geçmişi bulunan kaydın türü değiştirilemez.', null, true); return; }
+            m.type = yeniTur;
             m.amount = Math.round(amount * 100) / 100;
+            m.paidAmount = Math.round(odenenToplam * 100) / 100;
             m.note = note;
+            const linkedCustomer = m.customerId ? musteriler.find(c => String(c.id) === String(m.customerId)) : null;
+            if (linkedCustomer) cariManuelGecmisKaydi(linkedCustomer, m, false);
             m.editedAt = new Date().toLocaleString('tr-TR');
             durumuKaydet();
             modalKapat('modal-cash-edit');
             kasaEkraniniGuncelle();
+            if (linkedCustomer) borclularTablosunuGuncelle();
             onayModaliniGoster('Güncellendi', 'Kasa hareketi başarıyla düzenlendi.', null, true);
         }
 
@@ -6274,7 +6343,11 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 onayModaliniGoster('Silinemez', 'Satış veya tahsilat kaynaklı hareketler ilgili işlem kaydından yönetilir.', null, true); return;
             }
             onayModaliniGoster('Kasa hareketini sil', `${m.type} · ₺${(Number(m.amount)||0).toFixed(2)} hareketini silmek istiyor musunuz? Bu işlem geri alınamaz.`, () => {
-                kasaHareketleri.splice(index, 1);
+                const parentId = m.id;
+                const childIds = (kasaHareketleri || []).filter(x => x.movementKind === 'manual-settlement' && String(x.parentMovementId) === String(parentId)).map(x => String(x.id));
+                kasaHareketleri = (kasaHareketleri || []).filter(x => String(x.id) !== String(parentId) && !(x.movementKind === 'manual-settlement' && String(x.parentMovementId) === String(parentId)));
+                const customer = m.customerId ? musteriler.find(c => String(c.id) === String(m.customerId)) : null;
+                if (customer && Array.isArray(customer.history)) customer.history = customer.history.filter(h => String(h.cashMovementId || '') !== String(parentId) && String(h.id || '') !== `CARI-${parentId}` && !childIds.includes(String(h.cashMovementId || '')) && !childIds.includes(String(h.id || '')));
                 durumuKaydet();
                 kasaEkraniniGuncelle();
                 onayModaliniGoster('Silindi', 'Kasa hareketi silindi.', null, true);
@@ -6318,26 +6391,82 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             const tutar = Math.round(amount * 100) / 100;
             m.paidAmount = Math.round(((Number(m.paidAmount)||0) + tutar) * 100) / 100;
             const alacakTahsilati = m.type === 'Alacak';
-            kasaHareketleri.unshift({
-                id: `KM-${alacakTahsilati ? 'TAH' : 'ODE'}-${Date.now()}`,
-                date: new Date().toLocaleString('tr-TR'),
-                timestamp: Date.now(),
+            const child = {
+                id: `KM-${alacakTahsilati ? 'TAH' : 'ODE'}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+                date: new Date().toLocaleString('tr-TR'), timestamp: Date.now(),
                 type: alacakTahsilati ? 'Manuel Alacak Tahsilatı' : 'Manuel Borç Ödemesi',
                 amount: tutar,
                 note: `${alacakTahsilati ? 'Alacak tahsilatı' : 'Borç ödemesi'}: ${m.note || 'Manuel kasa hareketi'} · ${method}`,
-                user: aktifKullaniciAdi || 'Bilinmiyor',
-                periodId: aktifDonemId,
-                movementKind: 'manual-settlement',
-                settlementType: m.type,
-                parentMovementId: m.id,
-                paymentMethod: method
-            });
+                user: aktifKullaniciAdi || 'Bilinmiyor', periodId: aktifDonemId,
+                movementKind: 'manual-settlement', settlementType: m.type,
+                parentMovementId: m.id, customerId: m.customerId || '', customerName: m.customerName || '', paymentMethod: method
+            };
+            kasaHareketleri.unshift(child);
+            const customer = m.customerId ? musteriler.find(c => String(c.id) === String(m.customerId)) : null;
+            if (customer) cariManuelGecmisKaydi(customer, child, true);
             durumuKaydet();
             modalKapat('modal-manual-settlement');
             aktifManuelMutabakatIndex = -1;
             kasaEkraniniGuncelle();
+            if (customer) borclularTablosunuGuncelle();
             onayModaliniGoster(alacakTahsilati ? 'Tahsilat kaydedildi' : 'Borç ödemesi kaydedildi',
                 `₺${tutar.toFixed(2)} işlem kaydedildi. Kalan tutar ₺${Math.max(0, kalan-tutar).toFixed(2)}.`, null, true);
+        }
+
+        function manuelKasaGecmisiniAc(parentId) {
+            const parent = (kasaHareketleri || []).find(m => m.movementKind === 'manual' && String(m.id) === String(parentId));
+            if (!parent) return;
+            const children = (kasaHareketleri || []).filter(m => m.movementKind === 'manual-settlement' && String(m.parentMovementId) === String(parent.id)).sort((a,b) => (Number(b.timestamp)||0)-(Number(a.timestamp)||0));
+            const customer = parent.customerId ? musteriler.find(c => String(c.id) === String(parent.customerId)) : null;
+            const list = document.getElementById('manual-history-list');
+            const subtitle = document.getElementById('manual-history-subtitle');
+            if (subtitle) subtitle.textContent = `${customer ? customer.name + ' · ' : ''}${parent.type} · Başlangıç ₺${(Number(parent.amount)||0).toFixed(2)} · Kalan ₺${Math.max(0,(Number(parent.amount)||0)-(Number(parent.paidAmount)||0)).toFixed(2)}`;
+            if (list) list.innerHTML = children.length ? children.map(child => `<div class="rounded-lg border border-slate-700 bg-slate-800/70 p-3 flex flex-wrap items-center justify-between gap-2"><div><div class="text-xs font-bold">${htmlGuvenli(child.date || '')}</div><div class="mt-1 text-[10px] text-slate-400">${htmlGuvenli(child.paymentMethod || 'Nakit')} · ${htmlGuvenli(child.user || '')}</div><div class="text-[10px] text-slate-400">${htmlGuvenli(child.note || '')}</div></div><div class="flex items-center gap-2"><strong class="font-mono text-sm text-emerald-400">₺${(Number(child.amount)||0).toFixed(2)}</strong><button class="rounded bg-blue-600 px-2 py-1 text-[10px] font-bold" onclick="manuelTahsilatDuzenleAc('${String(child.id).replace(/'/g,'')}')" type="button">Düzenle</button><button class="rounded bg-red-700 px-2 py-1 text-[10px] font-bold" onclick="manuelTahsilatSil('${String(child.id).replace(/'/g,'')}')" type="button">Sil</button></div></div>`).join('') : '<div class="rounded-lg border border-dashed border-slate-700 p-6 text-center text-xs text-slate-400">Henüz tahsilat veya ödeme kaydı yok.</div>';
+            const modal = document.getElementById('modal-manual-history');
+            if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+        }
+
+        function manuelTahsilatDuzenleAc(childId) {
+            const child = (kasaHareketleri || []).find(m => m.movementKind === 'manual-settlement' && String(m.id) === String(childId));
+            if (!child) return;
+            document.getElementById('manual-settlement-edit-id').value = child.id;
+            document.getElementById('manual-settlement-edit-amount').value = (Number(child.amount)||0).toFixed(2);
+            document.getElementById('manual-settlement-edit-method').value = child.paymentMethod || 'Nakit';
+            const modal = document.getElementById('modal-manual-settlement-edit');
+            if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+        }
+
+        function manuelTahsilatDuzenleKaydet(event) {
+            event.preventDefault();
+            const childId = document.getElementById('manual-settlement-edit-id')?.value;
+            const child = (kasaHareketleri || []).find(m => m.movementKind === 'manual-settlement' && String(m.id) === String(childId));
+            const parent = child ? (kasaHareketleri || []).find(m => m.movementKind === 'manual' && String(m.id) === String(child.parentMovementId)) : null;
+            const amount = Number(document.getElementById('manual-settlement-edit-amount')?.value);
+            if (!child || !parent || !Number.isFinite(amount) || amount <= 0) { onayModaliniGoster('Geçersiz kayıt', 'Tahsilat kaydı bulunamadı veya tutar geçersiz.', null, true); return; }
+            const otherPaid = (kasaHareketleri || []).filter(m => m.movementKind === 'manual-settlement' && String(m.parentMovementId) === String(parent.id) && String(m.id) !== String(child.id)).reduce((sum,m) => sum + (Number(m.amount)||0), 0);
+            if (amount + otherPaid > (Number(parent.amount)||0) + 0.001) { onayModaliniGoster('Tutar fazla', `Bu işlem diğer tahsilatlarla birlikte ana kaydın ₺${(Number(parent.amount)||0).toFixed(2)} tutarını aşamaz.`, null, true); return; }
+            child.amount = Math.round(amount * 100) / 100;
+            child.paymentMethod = document.getElementById('manual-settlement-edit-method')?.value || 'Nakit';
+            child.note = `${parent.type === 'Alacak' ? 'Alacak tahsilatı' : 'Borç ödemesi'}: ${parent.note || 'Manuel kasa hareketi'} · ${child.paymentMethod}`;
+            child.editedAt = new Date().toLocaleString('tr-TR');
+            parent.paidAmount = Math.round(((otherPaid + child.amount) * 100)) / 100;
+            const customer = parent.customerId ? musteriler.find(c => String(c.id) === String(parent.customerId)) : null;
+            if (customer) cariManuelGecmisKaydi(customer, child, true);
+            durumuKaydet(); modalKapat('modal-manual-settlement-edit');
+            manuelKasaGecmisiniAc(parent.id); kasaEkraniniGuncelle(); borclularTablosunuGuncelle();
+        }
+
+        function manuelTahsilatSil(childId) {
+            const child = (kasaHareketleri || []).find(m => m.movementKind === 'manual-settlement' && String(m.id) === String(childId));
+            const parent = child ? (kasaHareketleri || []).find(m => m.movementKind === 'manual' && String(m.id) === String(child.parentMovementId)) : null;
+            if (!child || !parent) return;
+            onayModaliniGoster('Tahsilatı sil', `₺${(Number(child.amount)||0).toFixed(2)} tutarındaki tahsilat/ödeme kaydı silinsin mi? Cari bakiye ve kasa yeniden hesaplanacak.`, () => {
+                kasaHareketleri = (kasaHareketleri || []).filter(m => String(m.id) !== String(child.id));
+                parent.paidAmount = (kasaHareketleri || []).filter(m => m.movementKind === 'manual-settlement' && String(m.parentMovementId) === String(parent.id)).reduce((sum,m) => sum + (Number(m.amount)||0), 0);
+                const customer = parent.customerId ? musteriler.find(c => String(c.id) === String(parent.customerId)) : null;
+                if (customer && Array.isArray(customer.history)) customer.history = customer.history.filter(h => String(h.cashMovementId || '') !== String(child.id) && String(h.id || '') !== String(child.id));
+                durumuKaydet(); manuelKasaGecmisiniAc(parent.id); if (customer) musteriGecmisiGoster(customer.id); kasaEkraniniGuncelle(); borclularTablosunuGuncelle();
+            });
         }
 
         function kasaAltBolumunuDegistir(view) {
@@ -6472,7 +6601,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 const encodedSaleId = encodeURIComponent(String(m.saleId || ''));
                 const safeDate = htmlGuvenli(m.date || '');
                 const safeType = htmlGuvenli(m.type || '');
-                const detailLabel = m.note ? `— ${htmlGuvenli(m.note)}` : (m.saleId ? `(${htmlGuvenli(m.saleId)})` : '');
+                const detailLabel = `${m.customerName ? `· ${htmlGuvenli(m.customerName)} ` : ''}${m.note ? `— ${htmlGuvenli(m.note)}` : (m.saleId ? `(${htmlGuvenli(m.saleId)})` : '')}`;
                 const rowClick = m.movementKind === 'manual' ? '' : `onclick="kasaHareketindenSatisiBul('${encodedSaleId}', ${movementIndex})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();kasaHareketindenSatisiBul('${encodedSaleId}', ${movementIndex});}"`;
                 const amountColor = m.type === 'Gider' || m.type === 'Borç' ? 'text-red-600 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400';
                 return `
@@ -6480,7 +6609,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                     <td class="p-2.5 text-xs opacity-70">${safeDate}</td>
                     <td class="p-2.5 text-xs"><span class="${badgeBg} px-2 py-0.5 rounded border font-medium">${safeType} ${detailLabel}</span>${m.user ? `<div class="text-[10px] opacity-60 mt-1">${htmlGuvenli(m.user)}</div>` : ''}</td>
                     <td class="p-2.5 text-right font-mono font-bold ${amountColor}">₺${(Number(m.amount) || 0).toFixed(2)}</td>
-                    <td class="p-2.5 text-right whitespace-nowrap">${m.movementKind === 'manual' ? `${(['Alacak','Borç'].includes(m.type) && (Number(m.amount)||0) - (Number(m.paidAmount)||0) > 0.009 ? `<button type="button" onclick="event.stopPropagation();manuelKasaTahsilatAc(${movementIndex})" class="text-[10px] font-bold rounded bg-emerald-600 text-white px-2 py-1 mr-1">${m.type === 'Alacak' ? 'Tahsilat' : 'Ödeme'}</button>` : '')}<button type="button" onclick="event.stopPropagation();kasaHareketiDuzenlemeAc(${movementIndex})" class="text-blue-400 hover:text-blue-300 px-2 py-1" title="Düzenle" aria-label="Düzenle"><i class="fa-solid fa-pen"></i></button><button type="button" onclick="event.stopPropagation();kasaHareketiniSil(${movementIndex})" class="text-red-400 hover:text-red-300 px-2 py-1" title="Sil" aria-label="Sil"><i class="fa-solid fa-trash"></i></button>` : m.movementKind === 'manual-settlement' ? `<span class="text-[10px] opacity-60">${m.settlementType === 'Alacak' ? 'Tahsilat kaydı' : 'Borç ödeme kaydı'}</span>` : `<span class="text-[10px] opacity-50">İşlem kaydı</span>`}</td>
+                    <td class="p-2.5 text-right whitespace-nowrap">${m.movementKind === 'manual' ? `${(['Alacak','Borç'].includes(m.type) ? `<button type="button" onclick="event.stopPropagation();manuelKasaGecmisiniAc('${String(m.id).replace(/'/g,'')}')" class="text-[10px] font-bold rounded bg-sky-700 text-white px-2 py-1 mr-1">Geçmiş</button>` : '')}${(['Alacak','Borç'].includes(m.type) && (Number(m.amount)||0) - (Number(m.paidAmount)||0) > 0.009 ? `<button type="button" onclick="event.stopPropagation();manuelKasaTahsilatAc(${movementIndex})" class="text-[10px] font-bold rounded bg-emerald-600 text-white px-2 py-1 mr-1">${m.type === 'Alacak' ? 'Tahsilat' : 'Ödeme'}</button>` : '')}<button type="button" onclick="event.stopPropagation();kasaHareketiDuzenlemeAc(${movementIndex})" class="text-blue-400 hover:text-blue-300 px-2 py-1" title="Düzenle" aria-label="Düzenle"><i class="fa-solid fa-pen"></i></button><button type="button" onclick="event.stopPropagation();kasaHareketiniSil(${movementIndex})" class="text-red-400 hover:text-red-300 px-2 py-1" title="Sil" aria-label="Sil"><i class="fa-solid fa-trash"></i></button>` : m.movementKind === 'manual-settlement' ? `<span class="text-[10px] opacity-60">${m.settlementType === 'Alacak' ? 'Tahsilat kaydı' : 'Borç ödeme kaydı'}</span>` : `<span class="text-[10px] opacity-50">İşlem kaydı</span>`}</td>
                 </tr>
                 `;
             }).join('');
@@ -6784,11 +6913,13 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             const cust = musteriler.find(c => String(c.id) === String(id));
             if(!cust) return;
 
-            const total = cust.totalDebt || 0;
-            const paid = cust.paidDebt || 0;
-            const remaining = total - paid;
+            const cariOzet = cariManuelHesapOzeti(cust);
+            const total = cariOzet.total;
+            const paid = cariOzet.paid;
+            const remaining = cariOzet.remaining;
+            const manuelKayitVar = (kasaHareketleri || []).some(m => m.movementKind === 'manual' && String(m.customerId || '') === String(cust.id) && ['Borç','Alacak'].includes(m.type));
 
-            if (total > 0 || paid > 0 || remaining !== 0) {
+            if (total !== 0 || paid !== 0 || remaining !== 0 || manuelKayitVar) {
                 onayModaliniGoster(
                     'Silme İşlemi Engellendi',
                     `"${cust.name}" adlı müşterinin aktif borcu veya tahsilat geçmişi bulunduğu için silinemez!`,
@@ -6992,7 +7123,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             const sortedMusteriler = [...musteriler].sort((a,b) => a.name.localeCompare(b.name, 'tr'));
 
             list.innerHTML = sortedMusteriler.map(c => {
-                const remaining = (c.totalDebt || 0) - (c.paidDebt || 0);
+                const remaining = cariManuelHesapOzeti(c).remaining;
                 const itemBg = isLight ? 'bg-white hover:bg-amber-50 border-slate-300 hover:border-amber-400 shadow-sm text-slate-800' : 'theme-card bg-slate-800 hover:bg-amber-900/30 border-slate-700 hover:border-amber-500 text-slate-100';
                 const safeCustId = String(c.id);
 
@@ -7162,6 +7293,22 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 () => {
                     const islem = customer.history[hIndex];
                     const islemId = islem.id;
+                    if (islem.manualCashRecord && islem.cashMovementId) {
+                        const linked = (kasaHareketleri || []).find(m => String(m.id) === String(islem.cashMovementId));
+                        if (linked && linked.movementKind === 'manual-settlement') {
+                            manuelTahsilatSil(linked.id);
+                            return;
+                        }
+                        if (linked && linked.movementKind === 'manual') {
+                            onayModaliniGoster('Cari hareketini sil', 'Bu cari hareketine bağlı tahsilatlar da silinecek. Devam edilsin mi?', () => {
+                                const ids = (kasaHareketleri || []).filter(m => m.movementKind === 'manual-settlement' && String(m.parentMovementId) === String(linked.id)).map(m => String(m.id));
+                                kasaHareketleri = (kasaHareketleri || []).filter(m => String(m.id) !== String(linked.id) && !(m.movementKind === 'manual-settlement' && String(m.parentMovementId) === String(linked.id)));
+                                customer.history = customer.history.filter(h => String(h.cashMovementId || '') !== String(linked.id) && !ids.includes(String(h.cashMovementId || '')) && String(h.id || '') !== String(islemId));
+                                durumuKaydet(); musteriGecmisiGoster(custId); borclularTablosunuGuncelle(); kasaEkraniniGuncelle();
+                            });
+                            return;
+                        }
+                    }
 
                     if (islem.type === 'Alışveriş Kartı Yükleme') {
                         const silinecekTutar = Number(islem.amount) || 0;
@@ -7299,9 +7446,10 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             const bgRemain = isLight ? 'bg-slate-100' : 'bg-slate-900/60';
 
             tbody.innerHTML = filtered.map((c, index) => {
-                const total = c.totalDebt || 0;
-                const paid = c.paidDebt || 0;
-                const remaining = total - paid;
+                const cariOzet = cariManuelHesapOzeti(c);
+                const total = cariOzet.total;
+                const paid = cariOzet.paid;
+                const remaining = cariOzet.remaining;
 
                 toplamBorcGenel += total;
                 toplamOdenenGenel += paid;
@@ -8025,6 +8173,15 @@ if('serviceWorker' in navigator&&location.protocol!=='file:'){window.addEventLis
             if (action) action();
         }, true);
 </script>
+<div class="fixed inset-0 z-[191] hidden items-center justify-center bg-black/80 backdrop-blur-md p-4" id="modal-manual-history" onclick="if(event.target===this) modalKapat('modal-manual-history')">
+<div class="theme-card w-full max-w-xl max-h-[85vh] overflow-hidden rounded-xl border border-slate-700 bg-slate-900 p-4 text-white shadow-2xl flex flex-col gap-3">
+<div class="flex items-center justify-between border-b border-slate-700 pb-3"><div><h3 class="text-base font-bold">Tahsilat Geçmişi</h3><p class="text-xs text-slate-400" id="manual-history-subtitle"></p></div><button class="text-slate-300" onclick="modalKapat('modal-manual-history')" type="button"><i class="fa-solid fa-xmark"></i></button></div>
+<div class="overflow-y-auto space-y-2" id="manual-history-list"></div>
+<div class="flex justify-end"><button class="rounded-lg bg-slate-700 px-4 py-2 text-xs font-bold" onclick="modalKapat('modal-manual-history')" type="button">Kapat</button></div>
+</div></div>
+<div class="fixed inset-0 z-[192] hidden items-center justify-center bg-black/80 backdrop-blur-md p-4" id="modal-manual-settlement-edit">
+<div class="theme-card w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 p-5 text-white shadow-2xl"><h3 class="mb-3 text-base font-bold">Tahsilatı Düzenle</h3>
+<form class="space-y-3" onsubmit="manuelTahsilatDuzenleKaydet(event)"><input id="manual-settlement-edit-id" type="hidden"/><div><label class="mb-1 block text-xs text-slate-400" for="manual-settlement-edit-amount">Tutar (₺)</label><input class="theme-input w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-3 text-lg font-bold" id="manual-settlement-edit-amount" min="0.01" required step="0.01" type="number"/></div><div><label class="mb-1 block text-xs text-slate-400" for="manual-settlement-edit-method">İşlem yöntemi</label><select class="theme-input w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-3 text-sm" id="manual-settlement-edit-method"><option value="Nakit">Nakit</option><option value="Kredi Kartı">Kredi kartı</option><option value="Banka / Diğer">Banka / Diğer</option></select></div><div class="flex gap-2"><button class="flex-1 rounded-lg bg-slate-700 px-3 py-3 text-sm font-bold" onclick="modalKapat('modal-manual-settlement-edit')" type="button">Vazgeç</button><button class="flex-1 rounded-lg bg-emerald-600 px-3 py-3 text-sm font-black" type="submit">Kaydet</button></div></form></div></div>
 <div class="fixed inset-0 z-[190] hidden items-center justify-center bg-black/80 backdrop-blur-md p-4" id="modal-manual-settlement" onclick="if(event.target===this) modalKapat('modal-manual-settlement')">
 <div class="theme-card w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 p-5 text-white shadow-2xl">
 <div class="mb-4 flex items-center justify-between border-b border-slate-700 pb-3">
