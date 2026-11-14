@@ -2503,13 +2503,35 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             }
         }
 
+        function firebaseBaselineDepoAnahtari(root, period) {
+            return `pos_firebase_sync_baseline_v1_${encodeURIComponent(String(root || ''))}_${encodeURIComponent(String(period || ''))}`;
+        }
+
+        function firebaseBaselinesiniOku(root, period) {
+            try {
+                const raw = localStorage.getItem(firebaseBaselineDepoAnahtari(root, period));
+                const parsed = raw ? JSON.parse(raw) : null;
+                return parsed && typeof parsed === 'object' ? parsed : null;
+            } catch (_) { return null; }
+        }
+
+        function firebaseBaselinesiniKaydet(root, period) {
+            try {
+                localStorage.setItem(firebaseBaselineDepoAnahtari(root, period), JSON.stringify(firebaseSyncBaseline));
+            } catch (hata) { console.warn('Firebase eşitleme tabanı yerel olarak saklanamadı:', hata); }
+        }
+
         async function firebaseVerileriniYukle(options = {}) {
             window.firebaseLastLoadOk = false;
             firebaseWriteBlocked = true;
             if (!(window.firebaseReady && window.database && window.dbGet && window.dbRef)) return false;
             const db = window.database;
-            let temelOkumaBasarili = true;
             const kok = kokDugumGetir();
+            const donem = String(aktifDonemId || '');
+            // Son başarılı ortak kopya, sayfa kapalıyken çevrimdışı yapılan değişiklikleri tanımak için saklanır.
+            const oncekiBaseline = firebaseBaselinesiniOku(kok, donem);
+            const bulutDizileri = {};
+            let temelOkumaBasarili = true;
             // Ortak ayarlar ve dönem listesi önce yüklenir; böylece başka bilgisayarda aynı görünüm açılır.
             try {
                 const [settingsSnap, periodsSnap, activePeriodSnap] = await Promise.all([
@@ -2583,8 +2605,11 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                     return { alan, veri: snap.exists() ? snap.val() : null };
                 }));
                 sonuclar.forEach(({alan, veri}) => {
-                    if (alan.tip === 'array') {
-                        const bulutDizisi = Array.isArray(veri) ? veri : (veri && typeof veri === 'object' ? Object.values(veri) : []);
+                    if (alan.tip === 'array' || alan.tip === 'users') {
+                        const bulutDizisi = alan.tip === 'users'
+                            ? kullanicilariDiziyeCevir(veri || [])
+                            : (Array.isArray(veri) ? veri : (veri && typeof veri === 'object' ? Object.values(veri) : []));
+                        bulutDizileri[alan.anahtar] = JSON.parse(JSON.stringify(bulutDizisi));
                         firebaseSyncBaseline[alan.anahtar] = JSON.parse(JSON.stringify(bulutDizisi));
                     }
                     if (veri === null || veri === undefined) return;
@@ -2615,8 +2640,11 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                     window.dbGet(window.dbRef(db, `${kok}/${aktifDonemId}/acik_adisyonlar`)),
                     window.dbGet(window.dbRef(db, `${kok}/${aktifDonemId}/musteri_siparisleri`))
                 ]);
+                const bulutAdisyonlar = adisyonSnap.exists() && Array.isArray(adisyonSnap.val()) ? adisyonSnap.val() : [];
+                bulutDizileri.acik_adisyonlar = JSON.parse(JSON.stringify(bulutAdisyonlar));
+                firebaseSyncBaseline.acik_adisyonlar = JSON.parse(JSON.stringify(bulutAdisyonlar));
                 if (adisyonSnap.exists() && Array.isArray(adisyonSnap.val())) {
-                    acikAdisyonlar = adisyonSnap.val();
+                    acikAdisyonlar = bulutAdisyonlar;
                     try { localStorage.setItem('pos_open_adisyon_v1', JSON.stringify(acikAdisyonlar)); } catch (_) {}
                     buluttanVeriAlindi = true;
                 }
@@ -2626,7 +2654,45 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                     try { localStorage.setItem('pos_customer_orders_cache_v1', JSON.stringify(cachedOrders)); } catch (_) {}
                     buluttanVeriAlindi = true;
                 }
-            } catch (extraLoadError) { console.warn('Adisyon/müşteri siparişleri buluttan okunamadı:', extraLoadError); }
+            } catch (extraLoadError) { temelOkumaBasarili = false; console.warn('Adisyon/müşteri siparişleri buluttan okunamadı; güvenli eşitleme durduruldu:', extraLoadError); }
+            // Yalnızca tam ve başarılı bulut okumasından sonra önceki ortak kopya ile yerel değişiklikleri üç yönlü birleştir.
+            if (temelOkumaBasarili && oncekiBaseline) {
+                const alanEslemeleri = [
+                    ['urunler', 'urunler'], ['kategoriler', 'kategorilerListesi'], ['musteriler', 'musteriler'],
+                    ['satis_gecmisi', 'satisGecmisi'], ['kasa_hareketleri', 'kasaHareketleri'],
+                    ['bekleyen_sepetler', 'bekleyenSepetler'], ['acik_adisyonlar', 'acikAdisyonlar'],
+                    ['sistem_kullanicilari', 'sistemKullanicilari']
+                ];
+                alanEslemeleri.forEach(([cloudKey, variable]) => {
+                    const yerel = variable === 'urunler' ? urunler : variable === 'kategorilerListesi' ? kategorilerListesi :
+                        variable === 'musteriler' ? musteriler : variable === 'satisGecmisi' ? satisGecmisi :
+                        variable === 'kasaHareketleri' ? kasaHareketleri : variable === 'bekleyenSepetler' ? bekleyenSepetler :
+                        variable === 'acikAdisyonlar' ? acikAdisyonlar : sistemKullanicilari;
+                    const bulut = bulutDizileri[cloudKey] || [];
+                    const taban = Array.isArray(oncekiBaseline[cloudKey]) ? oncekiBaseline[cloudKey] : [];
+                    const birlesik = firebaseDizileriniUcYonluBirlestir(taban, yerel, bulut);
+                    if (variable === 'urunler') urunler = birlesik;
+                    else if (variable === 'kategorilerListesi') kategorilerListesi = birlesik;
+                    else if (variable === 'musteriler') musteriler = birlesik;
+                    else if (variable === 'satisGecmisi') satisGecmisi = birlesik;
+                    else if (variable === 'kasaHareketleri') kasaHareketleri = birlesik;
+                    else if (variable === 'bekleyenSepetler') bekleyenSepetler = birlesik;
+                    else if (variable === 'acikAdisyonlar') acikAdisyonlar = birlesik;
+                    else sistemKullanicilari = birlesik;
+                    firebaseSyncBaseline[cloudKey] = JSON.parse(JSON.stringify(bulut));
+                });
+                try {
+                    localStorage.setItem('pos_products_v4', JSON.stringify(urunler));
+                    localStorage.setItem('pos_categories_v4', JSON.stringify(kategorilerListesi));
+                    localStorage.setItem('pos_customers_v4', JSON.stringify(musteriler));
+                    localStorage.setItem('pos_sales_v4', JSON.stringify(satisGecmisi));
+                    localStorage.setItem('pos_cash_movements_v4', JSON.stringify(kasaHareketleri));
+                    localStorage.setItem('pos_suspended_carts_v4', JSON.stringify(bekleyenSepetler));
+                    localStorage.setItem('pos_open_adisyon_v1', JSON.stringify(acikAdisyonlar));
+                    localStorage.setItem('pos_system_users_v4', JSON.stringify(sistemKullanicilari));
+                } catch (_) {}
+            }
+            if (temelOkumaBasarili) firebaseBaselinesiniKaydet(kok, donem);
             try { localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari)); } catch (_) {}
             window.firebaseLastLoadOk = temelOkumaBasarili;
             firebaseWriteBlocked = !temelOkumaBasarili;
@@ -4330,6 +4396,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                     else if (variable === 'bekleyenSepetler') bekleyenSepetler = merged;
                     else if (variable === 'acikAdisyonlar') acikAdisyonlar = merged;
                     firebaseSyncBaseline[cloudKey] = JSON.parse(JSON.stringify(bulutDizisi));
+                    firebaseBaselinesiniKaydet(root, period);
                     try { localStorage.setItem(localKey, JSON.stringify(merged)); } catch (_) {}
                     try {
                         const periods = yerelKayitOku('pos_period_data_v1', {});
@@ -4393,6 +4460,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                 if (!sonuc.committed) { console.warn(`${etiket}: Firebase işlemi tamamlanmadı.`); return; }
                 const kaydedilen = sonuc.snapshot && Array.isArray(sonuc.snapshot.val()) ? sonuc.snapshot.val() : yerelDizi;
                 firebaseSyncBaseline[alanAnahtari] = JSON.parse(JSON.stringify(kaydedilen || []));
+                firebaseBaselinesiniKaydet(kokDugumGetir(), aktifDonemId);
                 // Uzak cihazdan gelen ve bu cihazda henüz olmayan kayıtları da görünür tut.
                 if (degiskenAdi === 'urunler') urunler = kaydedilen;
                 else if (degiskenAdi === 'kategorilerListesi') kategorilerListesi = kaydedilen;
