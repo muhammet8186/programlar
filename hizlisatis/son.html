@@ -2344,6 +2344,12 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 girisFormu.addEventListener('submit', girisKontrol);
             }
             firebaseCanliEsitlemeyiBaslat(true);
+            // Oturum zaten açıksa satış sekmesini tam olarak etkinleştir.
+            // Yalnızca ürünleri çizmek yeterli olmayabilir; sekme geçişindeki
+            // görünürlük ve satış arayüzü hazırlıkları da ilk açılışta çalışmalıdır.
+            if (sessionStorage.getItem('pos_authenticated') === 'true') {
+                try { sekmeyiDegistir('sales'); } catch (hata) { console.warn('İlk satış ekranı hazırlanamadı:', hata); }
+            }
 
             document.addEventListener('click', (e) => {
                 const dropdown = document.getElementById('auth-dropdown-list');
@@ -3249,9 +3255,12 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 if (passwordInput) passwordInput.value = '';
                 try { kullaniciRozetiniGuncelle(); } catch (hata) { console.warn(hata); }
                 try { kullaniciBolumleriniUygula(); } catch (hata) { console.warn(hata); }
-                try { kategorileriOlustur(); } catch (hata) { console.warn(hata); }
-                try { urunleriGoster(); } catch (hata) { console.warn(hata); }
-                try { sepetiGuncelle(); } catch (hata) { console.warn(hata); }
+                // Giriş sonrası satış ekranını, sekmeye kullanıcı tıklamış gibi
+                // tüm hazırlıklarıyla etkinleştir; ürün listesi ilk anda da çizilsin.
+                try { sekmeyiDegistir('sales'); } catch (hata) {
+                    console.warn('Satış ekranı ilk girişte hazırlanamadı:', hata);
+                    try { kategorileriOlustur(); urunleriGoster(); sepetiGuncelle(); } catch (_) {}
+                }
             } else {
                 onayModaliniGoster('Giriş Başarısız', 'Kullanıcı adı veya şifre hatalı. Lütfen tekrar deneyin.', null, true);
             }
