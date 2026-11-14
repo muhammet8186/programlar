@@ -6368,9 +6368,24 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             if (!m || m.movementKind !== 'manual') {
                 onayModaliniGoster('Silinemez', 'Satış veya tahsilat kaynaklı hareketler ilgili işlem kaydından yönetilir.', null, true); return;
             }
+            const bagliOdemeler = (kasaHareketleri || []).filter(x =>
+                x.movementKind === 'manual-settlement' && String(x.parentMovementId) === String(m.id)
+            );
+            if (['Borç','Alacak'].includes(m.type) && (bagliOdemeler.length > 0 || (Number(m.paidAmount) || 0) > 0.009)) {
+                onayModaliniGoster('Kayıt silinemez', `Bu ${m.type.toLocaleLowerCase('tr-TR')} kaydına bağlı ${bagliOdemeler.length} ödeme/tahsilat hareketi bulunuyor. Önce bağlı ödeme/tahsilat kayıtlarını geçmiş bölümünden silin.`, null, true);
+                return;
+            }
             onayModaliniGoster('Kasa hareketini sil', `${m.type} · ₺${(Number(m.amount)||0).toFixed(2)} hareketini silmek istiyor musunuz? Bu işlem geri alınamaz.`, () => {
+                // Onay penceresi açıkken yeni bir ödeme eklenmiş olabilir; silmeden hemen önce tekrar kontrol et.
+                const sonBagliOdemeler = (kasaHareketleri || []).filter(x =>
+                    x.movementKind === 'manual-settlement' && String(x.parentMovementId) === String(m.id)
+                );
+                if (['Borç','Alacak'].includes(m.type) && (sonBagliOdemeler.length > 0 || (Number(m.paidAmount) || 0) > 0.009)) {
+                    onayModaliniGoster('Kayıt silinemez', 'Bu borç/alacak kaydına ödeme veya tahsilat eklendiği için silme işlemi iptal edildi.', null, true);
+                    return;
+                }
                 const parentId = m.id;
-                const childIds = (kasaHareketleri || []).filter(x => x.movementKind === 'manual-settlement' && String(x.parentMovementId) === String(parentId)).map(x => String(x.id));
+                const childIds = sonBagliOdemeler.map(x => String(x.id));
                 kasaHareketleri = (kasaHareketleri || []).filter(x => String(x.id) !== String(parentId) && !(x.movementKind === 'manual-settlement' && String(x.parentMovementId) === String(parentId)));
                 const customer = m.customerId ? musteriler.find(c => String(c.id) === String(m.customerId)) : null;
                 if (customer && Array.isArray(customer.history)) customer.history = customer.history.filter(h => String(h.cashMovementId || '') !== String(parentId) && String(h.id || '') !== `CARI-${parentId}` && !childIds.includes(String(h.cashMovementId || '')) && !childIds.includes(String(h.id || '')));
