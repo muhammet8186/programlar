@@ -952,6 +952,11 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 <button class="px-3 py-2 rounded-md text-xs font-bold bg-emerald-600 text-white" id="cash-tab-sales" onclick="kasaAltBolumunuDegistir('sales')" type="button"><i class="fa-solid fa-cash-register mr-1"></i> Satış Kasası</button>
 <button class="px-3 py-2 rounded-md text-xs font-bold text-slate-400 hover:text-emerald-400" id="cash-tab-manual" onclick="kasaAltBolumunuDegistir('manual')" type="button"><i class="fa-solid fa-wallet mr-1"></i> Kasa (Manuel)</button>
 </div>
+<div class="flex flex-wrap gap-2 items-center justify-between rounded-lg border border-slate-700 p-3 theme-card" id="cash-accounts-toolbar">
+  <div><h3 class="font-bold text-sm"><i class="fa-solid fa-vault mr-1 text-emerald-500"></i> Kasa Yönetimi</h3><p class="text-xs text-slate-400">Nakit, POS, banka ve özel kasalar</p></div>
+  <div class="flex gap-2"><button type="button" onclick="kasaHesabiEkle()" class="bg-emerald-600 text-white rounded px-3 py-2 text-xs font-bold"><i class="fa-solid fa-plus mr-1"></i> Kasa Ekle</button><button type="button" onclick="kasaTransferiYap()" class="bg-blue-600 text-white rounded px-3 py-2 text-xs font-bold"><i class="fa-solid fa-right-left mr-1"></i> Transfer</button></div>
+</div>
+<div id="cash-accounts-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3"></div>
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 <div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 shadow-lg space-y-1" data-cash-view="sales">
 <span class="text-xs text-slate-400 font-medium">Toplam Nakit Satışlar</span>
@@ -1919,6 +1924,9 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         let musteriler = yerelKayitOku('pos_customers_v4', varsayilanMusteriler);
         let satisGecmisi = yerelKayitOku('pos_sales_v4', []);
         let kasaHareketleri = yerelKayitOku('pos_cash_movements_v4', []);
+        let kasaHesaplari = yerelKayitOku('pos_cash_accounts_v1', []);
+        if (!Array.isArray(kasaHesaplari)) kasaHesaplari = [];
+        if (!kasaHesaplari.length) kasaHesaplari = [{id:'KASA-NAKIT',name:'Ana Nakit Kasa',type:'Nakit',openingBalance:0,active:true},{id:'KASA-POS',name:'POS / Kart Kasası',type:'Kredi Kartı',openingBalance:0,active:true},{id:'KASA-BANKA',name:'Banka Kasası',type:'Banka',openingBalance:0,active:true}];
         let bekleyenSepetler = yerelKayitOku('pos_suspended_carts_v4', []);
         let kategorilerListesi = yerelKayitOku('pos_categories_v4', ['Unlu Mamül', 'Süt Ürünleri', 'İçecek', 'Temel Gıda', 'Atıştırmalık']);
         // Eski sürümler ve Firebase bazen kullanıcı listesini dizi yerine anahtarlı nesne olarak döndürebilir.
@@ -2437,7 +2445,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         function donemVerisiniKaydet() {
             if (!aktifDonemId || !donemVerisiIlklendi) return;
             const all = yerelKayitOku('pos_period_data_v1', {});
-            all[aktifDonemId] = { urunler, musteriler, satisGecmisi, kasaHareketleri, bekleyenSepetler, kategorilerListesi, acikAdisyonlar };
+            all[aktifDonemId] = { urunler, musteriler, satisGecmisi, kasaHareketleri, kasaHesaplari, bekleyenSepetler, kategorilerListesi, acikAdisyonlar };
             localStorage.setItem('pos_period_data_v1', JSON.stringify(all));
         }
 
@@ -4038,6 +4046,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             localStorage.setItem('pos_customers_v4', JSON.stringify(musteriler));
             localStorage.setItem('pos_sales_v4', JSON.stringify(satisGecmisi));
             localStorage.setItem('pos_cash_movements_v4', JSON.stringify(kasaHareketleri));
+            localStorage.setItem('pos_cash_accounts_v1', JSON.stringify(kasaHesaplari));
             localStorage.setItem('pos_suspended_carts_v4', JSON.stringify(bekleyenSepetler));
             localStorage.setItem('pos_open_adisyon_v1', JSON.stringify(acikAdisyonlar));
             localStorage.setItem('pos_system_users_v4', JSON.stringify(sistemKullanicilari));
@@ -6545,7 +6554,63 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             kasaEkraniniGuncelle();
         }
 
+        function kasaHesapBakiyesi(hesap) {
+            const id = String(hesap.id);
+            return (Number(hesap.openingBalance)||0) + (kasaHareketleri||[]).filter(h=>String(h.cashAccountId||'')===id).reduce((sum,h)=>{
+                const a=Number(h.amount)||0;
+                if(h.cashDirection==='out') return sum-a;
+                if(h.cashDirection==='in') return sum+a;
+                return sum;
+            },0);
+        }
+        function kasaHesaplariniCiz() {
+            const root=document.getElementById('cash-accounts-grid'); if(!root)return;
+            const aktif=kasaHesaplari.filter(k=>k.active!==false);
+            root.innerHTML=aktif.map(k=>{const b=kasaHesapBakiyesi(k);return `<div class="theme-card rounded-lg border border-slate-700 bg-slate-900 p-3">
+              <div class="flex justify-between gap-2"><div><div class="font-bold text-sm">${htmlGuvenli(k.name)}</div><div class="text-[10px] text-slate-400">${htmlGuvenli(k.type||'Özel Kasa')}</div></div><span class="text-xs ${b<0?'text-red-400':'text-emerald-400'} font-mono font-bold">₺${b.toFixed(2)}</span></div>
+              <div class="flex flex-wrap gap-2 mt-3"><button class="text-xs bg-emerald-700 text-white rounded px-2 py-1" onclick="kasaHesabinaHareketEkle('${String(k.id).replace(/'/g,"\\'")}','in')">Gelir ekle</button><button class="text-xs bg-rose-700 text-white rounded px-2 py-1" onclick="kasaHesabinaHareketEkle('${String(k.id).replace(/'/g,"\\'")}','out')">Gider ekle</button><button class="text-xs bg-slate-700 text-white rounded px-2 py-1" onclick="kasaHesabiDuzenle('${String(k.id).replace(/'/g,"\\'")}')">Düzenle</button><button class="text-xs bg-slate-700 text-white rounded px-2 py-1" onclick="kasaHesabiKapat('${String(k.id).replace(/'/g,"\\'")}')">Kapat</button></div></div>`}).join('') || '<p class="text-xs text-slate-400">Henüz aktif kasa yok.</p>';
+        }
+        function kasaHesabiEkle() {
+            const name=prompt('Kasa adı:'); if(!name||!name.trim())return;
+            const type=prompt('Kasa türü (Nakit / Kredi Kartı / Banka / Özel):','Özel')||'Özel';
+            const opening=Number((prompt('Açılış bakiyesi (TL):','0')||'0').replace(',','.'));
+            if(!Number.isFinite(opening)||opening<0){onayModaliniGoster('Geçersiz tutar','Açılış bakiyesi sıfır veya pozitif olmalı.',null,true);return;}
+            kasaHesaplari.push({id:'KASA-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),name:name.trim(),type:type.trim(),openingBalance:opening,active:true});
+            durumuKaydet();kasaHesaplariniCiz();onayModaliniGoster('Kasa eklendi',name.trim()+' oluşturuldu.',null,true);
+        }
+        function kasaHesabiDuzenle(id) {
+            const k=kasaHesaplari.find(x=>String(x.id)===String(id));if(!k)return;
+            const name=prompt('Kasa adı:',k.name);if(!name||!name.trim())return;
+            const type=prompt('Kasa türü:',k.type||'Özel');if(type===null)return;
+            k.name=name.trim();k.type=type.trim();durumuKaydet();kasaHesaplariniCiz();
+        }
+        function kasaHesabiKapat(id) {
+            const k=kasaHesaplari.find(x=>String(x.id)===String(id));if(!k)return;
+            if(Math.abs(kasaHesapBakiyesi(k))>0.009){onayModaliniGoster('Kasa kapatılamaz','Bakiyesi sıfır olmayan kasa kapatılamaz. Önce bakiyeyi aktarın.',null,true);return;}
+            k.active=false;durumuKaydet();kasaHesaplariniCiz();
+        }
+        function kasaHesabinaHareketEkle(id,direction) {
+            const k=kasaHesaplari.find(x=>String(x.id)===String(id));if(!k)return;
+            const amount=Number((prompt('Tutar (TL):','')||'').replace(',','.'));if(!Number.isFinite(amount)||amount<=0)return;
+            const note=prompt('Açıklama:','Manuel kasa hareketi');if(note===null)return;
+            kasaHareketleri.unshift({id:'KH-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),movementKind:'account-manual',cashAccountId:k.id,cashDirection:direction,amount:Math.round(amount*100)/100,note:note.trim(),date:new Date().toLocaleString('tr-TR'),timestamp:Date.now(),user:aktifKullaniciAdi||'Bilinmiyor',periodId:aktifDonemId});
+            durumuKaydet();kasaHesaplariniCiz();kasaEkraniniGuncelle();
+        }
+        function kasaTransferiYap() {
+            const aktif=kasaHesaplari.filter(k=>k.active!==false);if(aktif.length<2){onayModaliniGoster('Yetersiz kasa','Transfer için en az iki aktif kasa gerekir.',null,true);return;}
+            const secim=aktif.map((k,i)=>`${i+1}. ${k.name} (₺${kasaHesapBakiyesi(k).toFixed(2)})`).join('\n');
+            const from=Number(prompt('Kaynak kasayı numarayla seçin:\n'+secim,'1'))-1;if(!aktif[from])return;
+            const to=Number(prompt('Hedef kasayı numarayla seçin:\n'+secim,aktif[from]===aktif[0]?'2':'1'))-1;if(!aktif[to]||to===from)return;
+            const amount=Number((prompt('Transfer tutarı (TL):','')||'').replace(',','.'));if(!Number.isFinite(amount)||amount<=0)return;
+            if(kasaHesapBakiyesi(aktif[from])+0.001<amount){onayModaliniGoster('Yetersiz bakiye','Kaynak kasada yeterli bakiye yok.',null,true);return;}
+            const id='TR-'+Date.now(),now=Date.now(),note=`Kasa transferi ${aktif[from].name} → ${aktif[to].name}`;
+            kasaHareketleri.unshift({id:id+'-OUT',movementKind:'account-transfer',transferId:id,cashAccountId:aktif[from].id,cashDirection:'out',amount,note,date:new Date(now).toLocaleString('tr-TR'),timestamp:now,periodId:aktifDonemId});
+            kasaHareketleri.unshift({id:id+'-IN',movementKind:'account-transfer',transferId:id,cashAccountId:aktif[to].id,cashDirection:'in',amount,note,date:new Date(now).toLocaleString('tr-TR'),timestamp:now,periodId:aktifDonemId});
+            durumuKaydet();kasaHesaplariniCiz();kasaEkraniniGuncelle();onayModaliniGoster('Transfer tamamlandı',`₺${amount.toFixed(2)} aktarıldı.`,null,true);
+        }
+
         function kasaEkraniniGuncelle() {
+            kasaHesaplariniCiz();
             let toplamNakit = 0;
             let toplamKart = 0;
             let toplamTahsilat = 0;
