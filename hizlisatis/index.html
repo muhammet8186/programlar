@@ -50,8 +50,9 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
 
         const customerParams = new URLSearchParams(window.location.search);
         const customerMode = customerParams.get('musteriSiparis') === '1';
+        const saleTrackingMode = customerParams.get('satisTakip') === '1';
         let customerFirebaseConfig = null;
-        if (customerMode) {
+        if (customerMode || saleTrackingMode) {
             try {
                 const encoded = customerParams.get('cfg') || '';
                 const normalized = encoded.replace(/-/g, '+').replace(/_/g, '/');
@@ -97,7 +98,7 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
         } catch (_) {}
 
         // Müşteri QR bağlantısı, kendi cihazındaki yerel POS ayarlarına ihtiyaç duymadan menüyü açar.
-        if (customerMode && customerFirebaseConfig && customerFirebaseConfig.databaseURL) {
+        if ((customerMode || saleTrackingMode) && customerFirebaseConfig && customerFirebaseConfig.databaseURL) {
             savedSettings.firebaseConfig = customerFirebaseConfig;
             savedSettings.firebaseAktif = true;
             savedSettings.kokDugum = customerParams.get('root') || 'hizli_pos';
@@ -125,6 +126,7 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
         window.firebaseReady = Boolean(db);
         window.getRootNode = () => savedSettings.kokDugum ? savedSettings.kokDugum : (kodIciKokBasligi || 'hizli_pos');
         window.customerMode = customerMode;
+        window.saleTrackingMode = saleTrackingMode;
         window.customerTable = customerParams.get('masa') || '1';
         window.customerOrderType = customerParams.get('tip') === 'paket' ? 'paket' : 'masa';
         window.customerPeriod = customerParams.get('period') || '';
@@ -178,6 +180,12 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
                 const root = customerParams.get('root') || 'hizli_pos';
                 const period = customerParams.get('period') || 'varsayilan';
                 return onValue(ref(db, `${root}/${period}/musteri_siparisleri/${id}`), snap => callback(snap.exists() ? snap.val() : null));
+            },
+            subscribeSaleTracking(token, callback) {
+                if (!db || !token) throw new Error('Takip bağlantısı eksik.');
+                const root = customerParams.get('root') || 'hizli_pos';
+                const period = customerParams.get('period') || 'varsayilan';
+                return onValue(ref(db, `${root}/${period}/satis_takip/${token}`), snap => callback(snap.exists() ? snap.val() : null), error => callback({ _error: error.message || 'Takip bilgisi okunamadı.' }));
             }
         };
 
@@ -1300,7 +1308,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 </div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
 <h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2">Fiş İçeriği ve Yazdırma Tercihleri</h3>
 <p class="text-[10px] text-slate-400">Fişte görünmesini istediğiniz alanları seçin. Seçimler otomatik kaydedilir.</p>
-<label class="flex items-center justify-between gap-3 rounded border border-slate-800 bg-slate-950 p-3 text-xs"><span><b>Satış takip QR kodunu fişte göster</b><small class="block text-slate-400 mt-1">Her satış için benzersiz QR kod oluşturur. Çevrimiçi durum sayfası sunucu bağlantısı tamamlandığında etkinleşir.</small></span><input class="w-4 h-4 accent-emerald-500" id="setting-receipt-qr-toggle" onchange="satisTakipQrAyariniDegistir(this.checked)" type="checkbox"/></label>
+<label class="flex items-center justify-between gap-3 rounded border border-slate-800 bg-slate-950 p-3 text-xs"><span><b>Satış takip QR kodunu fişte göster</b><small class="block text-slate-400 mt-1">Fiş QR kodu okutulduğunda müşteri siparişin mutfak durumunu canlı görür.</small></span><input class="w-4 h-4 accent-emerald-500" id="setting-receipt-qr-toggle" onchange="satisTakipQrAyariniDegistir(this.checked)" type="checkbox"/></label>
 <div class="space-y-1.5" id="receipt-fields-list"></div>
 <p class="text-[10px] text-slate-500">Oklarla alanların fişteki sırasını değiştirin; kutucuğu kapatarak alanı gizleyebilirsiniz.</p>
 <div class="border-t border-slate-800 pt-3 space-y-2">
@@ -3657,8 +3665,17 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                     }
                 } catch (e) { console.warn('Satış takip kodu oluşturulamadı:', e); }
             }
-            const payload = `HIZLIPOS|SALE|${sale.id}|${sale.trackingToken || sale.id}`;
+            const token = sale.trackingToken || String(sale.id || '');
+            const cfg = btoa(unescape(encodeURIComponent(JSON.stringify(sistemAyarlari.firebaseConfig || {})))) .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+            const base = location.href.split('?')[0].split('#')[0];
+            const query = new URLSearchParams({ satisTakip:'1', root:String(kokDugumGetir()), period:String(aktifDonemId), cfg, token, fis:String(sale.id || '') });
+            const payload = base + '?' + query.toString();
             codeLabel.textContent = String(sale.id || '');
+            // Takip ekranına yalnızca gerekli durum bilgisi yazılır; satış geçmişi paylaşılmaz.
+            const statusRecord = { saleId:String(sale.id || ''), status:sale.kitchenStatus || 'new', updatedAt:Date.now(), company:sistemAyarlari.sirketAdi || 'Sipariş Takibi' };
+            if (window.firebaseReady && window.dbSet && window.dbRef && window.database) {
+                window.dbSet(window.dbRef(window.database, `${kokDugumGetir()}/${aktifDonemId}/satis_takip/${token}`), statusRecord).catch(err => console.warn('Satış takip kaydı yazılamadı:', err));
+            }
             if (typeof QRCode === 'undefined') {
                 target.textContent = 'QR kütüphanesi yüklenemedi';
                 return;
@@ -4593,6 +4610,9 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             } else {
                 const sale = (satisGecmisi || []).find(s => String(s.id) === idText); if (!sale) return;
                 sale.kitchenStatus = status; sale['kitchen'+status.charAt(0).toUpperCase()+status.slice(1)+'At'] = Date.now();
+                if (sale.trackingToken && window.firebaseReady && window.dbSet && window.dbRef && window.database) {
+                    window.dbSet(window.dbRef(window.database, `${kokDugumGetir()}/${aktifDonemId}/satis_takip/${sale.trackingToken}`), { saleId:String(sale.id), status, updatedAt:Date.now(), company:sistemAyarlari.sirketAdi || 'Sipariş Takibi' }).catch(err => console.warn('Satış takip durumu güncellenemedi:', err));
+                }
             }
             durumuKaydet(); adisyonlariGoster(); mutfakEkraniniGuncelle(); islemBildirimiGoster('Mutfak durumu: ' + mutfakDurumMetni(status));
         }
@@ -7529,7 +7549,23 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 }
 </style>
 <!-- MÜŞTERİ QR MENÜSÜ: yalnızca ?musteriSiparis=1 bağlantısında gösterilir -->
+<div id="sale-tracking-portal" class="hidden fixed inset-0 z-[600] min-h-screen overflow-y-auto bg-slate-950 text-slate-100 p-4"><main class="mx-auto mt-10 max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-xl"><div class="text-center"><div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-cyan-500/15 text-3xl text-cyan-300"><i class="fa-solid fa-receipt"></i></div><p class="text-xs font-bold tracking-widest text-cyan-300">SİPARİŞ TAKİBİ</p><h1 id="sale-track-company" class="mt-2 text-xl font-black">Siparişiniz</h1><p class="mt-1 text-sm text-slate-400">Fiş No: <b id="sale-track-number" class="text-slate-200">—</b></p></div><div class="my-6 rounded-xl border border-slate-700 bg-slate-950 p-5 text-center"><div id="sale-track-icon" class="mb-2 text-3xl text-amber-300"><i class="fa-solid fa-hourglass-half"></i></div><div id="sale-track-status" class="text-2xl font-black text-amber-300">Bağlanıyor…</div><p id="sale-track-message" class="mt-2 text-sm text-slate-400">Sipariş durumu yükleniyor.</p></div><p class="text-center text-xs text-slate-500">Durum değişiklikleri otomatik olarak güncellenir.</p></main></div>
 <div class="hidden fixed inset-0 z-[500] overflow-y-auto bg-slate-950 text-slate-100 p-3 md:p-6" id="customer-order-portal"><div class="max-w-4xl mx-auto space-y-4"><header class="rounded-xl border border-slate-800 bg-slate-900 p-4"><div class="text-xs text-cyan-400 font-bold"><span id="customer-portal-service-type">MASA</span> <span id="customer-portal-table">1</span></div><h1 class="text-2xl font-black mt-1" id="customer-portal-company">Menümüz</h1><p class="text-xs text-slate-400 mt-1">Ürünleri seçin, siparişinizi gönderin ve durumunu takip edin.</p></header><div class="text-sm text-amber-300" id="customer-portal-message"></div><div class="flex gap-2 overflow-x-auto pb-1" id="customer-portal-categories"></div><div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3" id="customer-portal-products"></div><section class="rounded-xl border border-slate-700 bg-slate-900 p-4 space-y-3"><h2 class="font-bold text-lg"><i class="fa-solid fa-basket-shopping text-emerald-400 mr-2"></i>Sipariş Sepetim</h2><div class="space-y-2 text-sm" id="customer-portal-cart"><p class="text-slate-400">Henüz ürün seçilmedi.</p></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-2"><label class="block text-xs text-slate-300">Ad Soyad <span class="text-slate-500">(isteğe bağlı)</span><input class="theme-input mt-1 w-full bg-slate-950 border border-slate-700 rounded p-2" id="customer-portal-name" type="text" maxlength="80" autocomplete="name" placeholder="Adınız ve soyadınız"></label><label class="block text-xs text-slate-300">Telefon <span class="text-slate-500">(isteğe bağlı)</span><input class="theme-input mt-1 w-full bg-slate-950 border border-slate-700 rounded p-2" id="customer-portal-phone" type="tel" maxlength="20" autocomplete="tel" inputmode="tel" placeholder="05xx xxx xx xx"></label></div><label class="block text-xs text-slate-300">Sipariş notu <textarea class="theme-input mt-1 w-full bg-slate-950 border border-slate-700 rounded p-2" id="customer-portal-note" placeholder="Örn. sos ayrı olsun" rows="2"></textarea></label><button class="w-full rounded-lg bg-emerald-600 hover:bg-emerald-500 p-3 font-bold text-sm" id="customer-portal-submit" onclick="musteriSiparisGonder()">Siparişi Gönder</button><button class="hidden w-full rounded-lg bg-slate-700 hover:bg-slate-600 p-2 font-bold text-sm" id="customer-portal-cancel-edit" onclick="customerOrderCancelEdit()" type="button">Düzenlemeyi İptal Et</button><div class="hidden rounded-lg border border-cyan-800 bg-slate-950/70 p-3 text-sm" id="customer-portal-status"></div></section></div></div>
+<script>
+(function(){
+ const params=new URLSearchParams(location.search); if(params.get('satisTakip')!=='1') return;
+ document.addEventListener('DOMContentLoaded', async()=>{
+  document.querySelectorAll('body > *').forEach(el=>{ if(el.id!=='sale-tracking-portal' && el.tagName!=='SCRIPT') el.style.display='none'; });
+  const portal=document.getElementById('sale-tracking-portal'); if(portal) portal.classList.remove('hidden');
+  const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
+  set('sale-track-number',params.get('fis')||'—');
+  const states={new:['Sipariş alındı','Siparişiniz mutfağa iletildi.','fa-hourglass-half','text-amber-300'],preparing:['Hazırlanıyor','Siparişiniz hazırlanıyor.','fa-fire-burner','text-sky-300'],ready:['Hazır','Siparişiniz hazır.','fa-circle-check','text-emerald-300'],completed:['Tamamlandı','Siparişiniz teslim edildi.','fa-check-double','text-slate-300']};
+  const wait=()=>new Promise((resolve,reject)=>{let n=0;const t=setInterval(()=>{n++;if(window.customerOrderApi?.subscribeSaleTracking){clearInterval(t);resolve(window.customerOrderApi);}else if(n>100){clearInterval(t);reject(new Error('Bağlantı kurulamadı.'));}},100)});
+  try{const api=await wait();const token=params.get('token');if(!token)throw new Error('QR takip kodu eksik.');api.subscribeSaleTracking(token,record=>{if(!record){set('sale-track-status','Kayıt bulunamadı');set('sale-track-message','Fiş takip kaydı bulunamadı.');return;}if(record._error){set('sale-track-status','Bağlantı hatası');set('sale-track-message',record._error);return;}set('sale-track-company',record.company||'Siparişiniz');const state=states[record.status]||states.new;set('sale-track-status',state[0]);set('sale-track-message',state[1]);const icon=document.getElementById('sale-track-icon');if(icon){icon.innerHTML='<i class="fa-solid '+state[2]+'"></i>';icon.className='mb-2 text-3xl '+state[3];}const status=document.getElementById('sale-track-status');if(status)status.className='text-2xl font-black '+state[3];});}
+  catch(e){set('sale-track-status','Açılamadı');set('sale-track-message',e.message||'Takip sayfası yüklenemedi.');}
+ });
+})();
+</script>
 <script>
 (function(){
  const params=new URLSearchParams(location.search); if(params.get('musteriSiparis')!=='1') return;
