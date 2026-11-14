@@ -663,6 +663,32 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected * { color:#0
 
 </style>
 
+<style id="cash-selected-button-contrast">
+/* Seçili kasa işlem düğmeleri: normal yazı kalınlığı ve zeminle uyumlu metin rengi */
+.cash-account-selected button {
+  font-weight:500 !important;
+  text-shadow:none !important;
+  opacity:1 !important;
+  filter:none !important;
+  box-shadow:0 2px 5px rgba(0,0,0,.16) !important;
+}
+/* Koyu renkli düğmelerde beyaz metin */
+.cash-account-selected button[onclick*="manuelKasaKayitModaliniAc"],
+.cash-account-selected button[onclick*="kasaHesabiKapat"] {
+  color:#ffffff !important;
+}
+/* Açık renkli Düzenle düğmesinde siyah metin */
+.cash-account-selected button[onclick*="kasaHesabiDuzenle"] {
+  color:#111827 !important;
+}
+.cash-account-selected button:hover {
+  filter:brightness(1.08) !important;
+}
+.cash-account-selected button:focus-visible {
+  outline:3px solid #f59e0b !important;
+  outline-offset:2px !important;
+}
+</style>
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans h-full flex flex-col overflow-hidden select-none transition-colors duration-300" id="app-body">
 <!-- LİSANS / GİRİŞ EKRANI -->
@@ -5181,15 +5207,32 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected * { color:#0
             const isLight = sistemAyarlari.temaModu === 'light' || (sistemAyarlari.temaModu !== 'dark' && ['light', 'arctic', 'sand', 'mint'].includes(tema));
 
             listContainer.innerHTML = kategorilerListesi.map((cat, idx) => `
-                <div class="${isLight ? 'bg-slate-100 border-slate-200 text-slate-800' : 'bg-slate-950 border-slate-800 text-slate-200'} p-2 rounded border flex justify-between items-center text-xs">
-                    <span class="font-semibold">${cat}</span>
-                    <button onclick="kategoriSil('${cat}')" type="button" class="text-red-500 hover:bg-red-500/10 p-1 rounded transition" title="Kategoriyi Sil"><i class="fa-solid fa-trash"></i></button>
+                <div class="${isLight ? 'bg-slate-100 border-slate-200 text-slate-800' : 'bg-slate-950 border-slate-800 text-slate-200'} p-2 rounded border flex justify-between items-center gap-2 text-xs">
+                    <span class="font-medium flex-1 min-w-0 break-words">${htmlGuvenli(cat)}</span>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button onclick="kategoriSirasiniDegistir(${idx},-1)" type="button" ${idx===0?'disabled':''} class="px-2 py-1 rounded border ${isLight?'bg-white border-slate-300 text-slate-700':'bg-slate-800 border-slate-700 text-slate-200'} disabled:opacity-30 disabled:cursor-not-allowed hover:border-emerald-500" title="Yukarı taşı"><i class="fa-solid fa-arrow-up"></i></button>
+                        <button onclick="kategoriSirasiniDegistir(${idx},1)" type="button" ${idx===kategorilerListesi.length-1?'disabled':''} class="px-2 py-1 rounded border ${isLight?'bg-white border-slate-300 text-slate-700':'bg-slate-800 border-slate-700 text-slate-200'} disabled:opacity-30 disabled:cursor-not-allowed hover:border-emerald-500" title="Aşağı taşı"><i class="fa-solid fa-arrow-down"></i></button>
+                        <button onclick="kategoriSil(${JSON.stringify(cat).replace(/"/g,'&quot;')})" type="button" class="text-red-500 hover:bg-red-500/10 p-1.5 rounded transition" title="Kategoriyi Sil"><i class="fa-solid fa-trash"></i></button>
+                    </div>
                 </div>
             `).join('');
 
             const modal = document.getElementById('modal-category-manager');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+        }
+
+        function kategoriSirasiniDegistir(index, yon) {
+            const hedef = Number(index) + Number(yon);
+            if (!Number.isInteger(index) || hedef < 0 || hedef >= kategorilerListesi.length) return;
+            const gecici = kategorilerListesi[index];
+            kategorilerListesi[index] = kategorilerListesi[hedef];
+            kategorilerListesi[hedef] = gecici;
+
+            durumuKaydet();
+            kategoriListesiniGuncelle();
+            kategorileriOlustur();
+            kategoriYonetimModaliniAc();
         }
 
         function yeniKategoriEkle() {
