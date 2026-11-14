@@ -7255,41 +7255,67 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 
         function musteriGecmisiGoster(customerId) {
             const customer = musteriler.find(c => String(c.id) === String(customerId));
-            if(!customer) return;
+            if (!customer) return;
 
-            document.getElementById('cust-history-title').innerHTML = `<i class="fa-solid fa-clock-rotate-left"></i> ${htmlGuvenli(customer.name)} - Hesap Geçmişi`;
+            const titleEl = document.getElementById('cust-history-title');
+            if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-clock-rotate-left"></i> ${htmlGuvenli(customer.name)} - Hesap Geçmişi`;
             const listContainer = document.getElementById('customer-history-list');
+            if (!listContainer) return;
             const tema = sistemAyarlari.tema || 'dark';
             const isLight = sistemAyarlari.temaModu === 'light' || (sistemAyarlari.temaModu !== 'dark' && ['light', 'arctic', 'sand', 'mint'].includes(tema));
+            const cariOzet = cariManuelHesapOzeti(customer);
+            const history = Array.isArray(customer.history) ? customer.history : [];
+            const summaryClass = isLight ? 'bg-sky-50 border-sky-200 text-slate-800' : 'bg-slate-800/80 border-slate-700 text-slate-100';
+            const remainColor = cariOzet.remaining > 0.009 ? (isLight ? 'text-amber-700' : 'text-amber-300') : (isLight ? 'text-emerald-700' : 'text-emerald-400');
+            const summary = `<div class="mb-3 rounded-lg border p-3 ${summaryClass}">
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div><div class="text-[10px] opacity-70">Toplam Borç / Alacak</div><strong class="font-mono text-sm">₺${cariOzet.total.toFixed(2)}</strong></div>
+                    <div><div class="text-[10px] opacity-70">Ödenen / Tahsil Edilen</div><strong class="font-mono text-sm ${isLight ? 'text-emerald-700' : 'text-emerald-400'}">₺${cariOzet.paid.toFixed(2)}</strong></div>
+                    <div><div class="text-[10px] opacity-70">Kalan</div><strong class="font-mono text-sm ${remainColor}">₺${cariOzet.remaining.toFixed(2)}</strong></div>
+                </div>
+            </div>`;
 
-            const history = customer.history || [];
-            if(history.length === 0) {
-                listContainer.innerHTML = `<div class="p-8 text-center opacity-70 text-xs">Bu müşteriye ait işlem geçmişi bulunmuyor.</div>`;
+            if (history.length === 0) {
+                listContainer.innerHTML = summary + `<div class="p-8 text-center opacity-70 text-xs">Bu müşteriye ait işlem geçmişi bulunmuyor.</div>`;
             } else {
-                listContainer.innerHTML = history.map((h, hIndex) => {
-                    const isOdeme = h.type.includes('Tahsilat');
+                const rows = history.map((h, hIndex) => {
+                    const type = String(h.type || 'İşlem');
+                    const isOdeme = type.includes('Tahsilat') || type.includes('Ödeme');
                     const badgeColor = isOdeme ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-700 dark:text-amber-400 bg-amber-500/10 border-amber-500/20';
                     const itemBg = isLight ? 'bg-white border-slate-300 text-slate-800' : 'theme-card bg-slate-800 border-slate-700 text-slate-100';
-                    const safeCustId = String(customer.id);
-
-                    return `
-                    <div class="${itemBg} border p-2.5 rounded flex justify-between items-center text-xs">
-                        <div>
-                            <div class="font-bold">${h.date}</div>
-                            <div class="inline-block mt-0.5 px-2 py-0.5 rounded border text-[10px] font-semibold ${badgeColor}">${h.type}</div>
+                    const safeCustId = String(customer.id).replace(/'/g, '&#39;');
+                    const linkedMovement = h.manualCashRecord && h.cashMovementId
+                        ? (kasaHareketleri || []).find(m => String(m.id) === String(h.cashMovementId))
+                        : null;
+                    let remainingText = '';
+                    if (linkedMovement && linkedMovement.movementKind === 'manual') {
+                        const remaining = Math.max(0, (Number(linkedMovement.amount) || 0) - (Number(linkedMovement.paidAmount) || 0));
+                        remainingText = `Kalan: ₺${remaining.toFixed(2)}`;
+                    } else if (linkedMovement && linkedMovement.movementKind === 'manual-settlement') {
+                        const parent = (kasaHareketleri || []).find(m => m.movementKind === 'manual' && String(m.id) === String(linkedMovement.parentMovementId));
+                        if (parent) {
+                            const remaining = Math.max(0, (Number(parent.amount) || 0) - (Number(parent.paidAmount) || 0));
+                            remainingText = `Bu kaydın kalan tutarı: ₺${remaining.toFixed(2)}`;
+                        }
+                    }
+                    return `<div class="${itemBg} border p-2.5 rounded flex flex-wrap justify-between items-center gap-2 text-xs">
+                        <div class="min-w-0">
+                            <div class="font-bold">${htmlGuvenli(h.date || '')}</div>
+                            <div class="inline-block mt-0.5 px-2 py-0.5 rounded border text-[10px] font-semibold ${badgeColor}">${htmlGuvenli(type)}</div>
+                            ${h.note ? `<div class="mt-1 text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'}">${htmlGuvenli(h.note)}</div>` : ''}
+                            ${remainingText ? `<div class="mt-1 font-semibold ${isLight ? 'text-amber-700' : 'text-amber-300'}">${remainingText}</div>` : ''}
                         </div>
-                        <div class="flex items-center space-x-2.5">
-                            <span class="font-mono font-bold text-xs">₺${(h.amount || 0).toFixed(2)}</span>
-                            ${islemYetkisiVar('debt_history_delete') ? `<div><button onclick="musteriIslemSil('${safeCustId}', ${hIndex})" type="button" class="text-red-600 hover:bg-red-500/10 p-1 rounded transition font-semibold" title="Sil"><i class="fa-solid fa-trash"></i> Sil</button></div>` : ''}
+                        <div class="flex items-center gap-2">
+                            <span class="font-mono font-bold text-xs">₺${(Number(h.amount) || 0).toFixed(2)}</span>
+                            ${h.manualCashRecord && h.cashMovementId && islemYetkisiVar('debt_history_delete') ? `<button onclick="musteriIslemSil('${safeCustId}', ${hIndex})" type="button" class="text-red-600 hover:bg-red-500/10 p-1 rounded transition font-semibold" title="Sil"><i class="fa-solid fa-trash"></i> Sil</button>` : (islemYetkisiVar('debt_history_delete') ? `<button onclick="musteriIslemSil('${safeCustId}', ${hIndex})" type="button" class="text-red-600 hover:bg-red-500/10 p-1 rounded transition font-semibold" title="Sil"><i class="fa-solid fa-trash"></i> Sil</button>` : '')}
                         </div>
-                    </div>
-                    `;
+                    </div>`;
                 }).join('');
+                listContainer.innerHTML = summary + `<div class="space-y-2">${rows}</div>`;
             }
 
             const modal = document.getElementById('modal-customer-history');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
         }
 
         function musteriIslemSil(custId, hIndex) {
