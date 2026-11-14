@@ -1998,6 +1998,11 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
 <form class="space-y-3" id="form-product" onsubmit="urunKaydetOnay(event)">
 <input id="prod-id" type="hidden"/>
 <div>
+<label class="block text-xs text-emerald-400 mb-1 font-bold" for="prod-order">Sıra Numarası</label>
+<input class="theme-input w-full bg-slate-800 border border-emerald-500/50 rounded p-2.5 text-xs md:text-sm focus:outline-none focus:border-emerald-500 font-mono transition" id="prod-order" min="1" step="1" required type="number" value="1"/>
+<p class="text-[10px] text-slate-500 mt-1">Satış ekranındaki ürün sırasını belirler. Aynı numara seçilirse ürün o sıraya yerleştirilir.</p>
+</div>
+<div>
 <label class="block text-xs text-slate-400 mb-1 font-medium">Ürün Adı</label>
 <input class="theme-input w-full bg-slate-800 border border-slate-700 rounded p-2.5 text-xs md:text-sm focus:outline-none focus:border-emerald-500 transition" id="prod-name" required="" type="text"/>
 </div>
@@ -2752,7 +2757,11 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                 if (p.minStock === undefined || p.minStock === null || !Number.isFinite(Number(p.minStock))) p.minStock = 5;
                 p.minStock = Math.max(0, Number(p.minStock));
                 if (!Array.isArray(p.stockHistory)) p.stockHistory = [];
+                if (!Number.isSafeInteger(Number(p.siraNo)) || Number(p.siraNo) < 1) p.siraNo = urunler.indexOf(p) + 1;
+                else p.siraNo = Number(p.siraNo);
             });
+            // Eski kayıtların sırasını koru; yinelenen sıra numaralarını da tekilleştir.
+            urunler = urunSiraliListeIlkYukleme(urunler);
             if (!Array.isArray(kategorilerListesi)) kategorilerListesi = [];
             if (!Array.isArray(musteriler)) musteriler = [];
             if (!Array.isArray(satisGecmisi)) satisGecmisi = [];
@@ -5695,18 +5704,42 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             urunleriGoster();
         }
 
+        // Ürünleri sıra numarasına göre döndürür; eski kayıtlarda eksik sıra varsa mevcut dizi sırasını korur.
+        function urunSiraliListe() {
+            return [...urunler].sort((a, b) => {
+                const sa = Number.isSafeInteger(Number(a.siraNo)) && Number(a.siraNo) > 0 ? Number(a.siraNo) : urunler.indexOf(a) + 1;
+                const sb = Number.isSafeInteger(Number(b.siraNo)) && Number(b.siraNo) > 0 ? Number(b.siraNo) : urunler.indexOf(b) + 1;
+                return sa - sb || urunler.indexOf(a) - urunler.indexOf(b);
+            });
+        }
+
+        function urunSiraliListeIlkYukleme(liste) {
+            const sirali = [...liste].sort((a, b) => Number(a.siraNo) - Number(b.siraNo) || liste.indexOf(a) - liste.indexOf(b));
+            sirali.forEach((p, i) => { p.siraNo = i + 1; });
+            return sirali;
+        }
+
+        // Bir ürün belirli sıraya taşındığında diğer ürünlerin sıra numaralarını otomatik kaydırır.
+        function urunuSirayaYerlesitir(urunId, hedefSira) {
+            const sirali = urunSiraliListe();
+            const index = sirali.findIndex(p => String(p.id) === String(urunId));
+            if (index < 0) return false;
+            const [urun] = sirali.splice(index, 1);
+            const hedefIndex = Math.max(0, Math.min(sirali.length, Math.trunc(Number(hedefSira) || 1) - 1));
+            sirali.splice(hedefIndex, 0, urun);
+            sirali.forEach((p, i) => { p.siraNo = i + 1; });
+            return true;
+        }
+
         function urunSirasiDegistir(urunId, yon) {
             if (!islemYetkisiGerekli('sales_product_order', 'Satış panelinde ürünlerin yerini değiştirme yetkiniz yok.')) return;
-            const index = urunler.findIndex(p => String(p.id) === String(urunId));
-            if (index === -1) return;
-
+            const sirali = urunSiraliListe();
+            const index = sirali.findIndex(p => String(p.id) === String(urunId));
+            if (index < 0) return;
             const hedefIndex = index + yon;
-            if (hedefIndex < 0 || hedefIndex >= urunler.length) return;
-
-            const temp = urunler[index];
-            urunler[index] = urunler[hedefIndex];
-            urunler[hedefIndex] = temp;
-
+            if (hedefIndex < 0 || hedefIndex >= sirali.length) return;
+            [sirali[index], sirali[hedefIndex]] = [sirali[hedefIndex], sirali[index]];
+            sirali.forEach((p, i) => { p.siraNo = i + 1; });
             durumuKaydet();
             urunleriGoster();
             urunYonetimTablosunuGuncelle();
@@ -5714,13 +5747,15 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
 
         function urunSirasiniHedefeTasi(kaynakId, hedefId, hedefSonrasi) {
             if (!islemYetkisiGerekli('sales_product_order', 'Satış panelinde ürünlerin yerini değiştirme yetkiniz yok.')) return;
-            const kaynakIndex = urunler.findIndex(p => String(p.id) === String(kaynakId));
+            const sirali = urunSiraliListe();
+            const kaynakIndex = sirali.findIndex(p => String(p.id) === String(kaynakId));
             if (kaynakIndex < 0 || String(kaynakId) === String(hedefId)) return;
-            const [tasInanUrun] = urunler.splice(kaynakIndex, 1);
-            let hedefIndex = urunler.findIndex(p => String(p.id) === String(hedefId));
-            if (hedefIndex < 0) { urunler.splice(kaynakIndex, 0, tasInanUrun); return; }
+            const [tasInanUrun] = sirali.splice(kaynakIndex, 1);
+            let hedefIndex = sirali.findIndex(p => String(p.id) === String(hedefId));
+            if (hedefIndex < 0) return;
             if (hedefSonrasi) hedefIndex += 1;
-            urunler.splice(hedefIndex, 0, tasInanUrun);
+            sirali.splice(hedefIndex, 0, tasInanUrun);
+            sirali.forEach((p, i) => { p.siraNo = i + 1; });
             durumuKaydet();
             urunleriGoster();
             urunYonetimTablosunuGuncelle();
@@ -5766,7 +5801,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             const tema = sistemAyarlari.tema || 'dark';
             const isLight = sistemAyarlari.temaModu === 'light' || (sistemAyarlari.temaModu !== 'dark' && ['light', 'arctic', 'sand', 'mint'].includes(tema));
 
-            const filtered = urunler.filter(p => {
+            const filtered = urunSiraliListe().filter(p => {
                 const matchesCategory = secilenKategori === 'TÜMÜ' || p.category === secilenKategori;
                 return matchesCategory;
             });
@@ -6628,11 +6663,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             const tema = sistemAyarlari.tema || 'dark';
             const isLight = sistemAyarlari.temaModu === 'light' || (sistemAyarlari.temaModu !== 'dark' && ['light', 'arctic', 'sand', 'mint'].includes(tema));
 
-            const sortedUrunler = [...urunler].sort((a, b) => {
-                const katKarsilastir = a.category.localeCompare(b.category, 'tr');
-                if (katKarsilastir !== 0) return katKarsilastir;
-                return a.name.localeCompare(b.name, 'tr');
-            });
+            const sortedUrunler = urunSiraliListe();
 
             const filtered = sortedUrunler.filter(p => {
                 const inQty = p.inStock || 0;
@@ -6675,7 +6706,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                 return `
                 <tr class="${hoverClass} transition">
                     <td class="p-3 text-center"><input type="checkbox" class="product-label-select accent-purple-500" data-product-id="${htmlGuvenli(safeId)}" ${seciliUrunEtiketIdleri.has(safeId) ? 'checked' : ''} onchange="urunEtiketSecimiDegisti('${safeId}',this.checked)" aria-label="${htmlGuvenli(p.name)} etiketini seç"></td>
-                    <td class="p-3 text-center font-mono opacity-70">${index + 1}</td>
+                    <td class="p-3 text-center font-mono font-bold text-emerald-500">${Number(p.siraNo) || (index + 1)}</td>
                     <td class="p-3 font-semibold tracking-tight">${htmlGuvenli(p.name)}</td>
                     <td class="p-3 font-mono text-xs opacity-70">${htmlGuvenli(p.barcode)}</td>
                     <td class="p-3 text-xs"><span class="${catBg} px-2 py-0.5 rounded border font-medium">${htmlGuvenli(p.category)}</span></td>
@@ -7477,6 +7508,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             const formProd = document.getElementById('form-product');
             if(formProd) formProd.reset();
             document.getElementById('prod-id').value = '';
+            document.getElementById('prod-order').value = urunler.length ? Math.max(...urunler.map(p => Number(p.siraNo) || 0)) + 1 : 1;
             document.getElementById('prod-in-stock').value = 10;
             document.getElementById('prod-min-stock').value = 5;
             document.getElementById('modal-product-title').innerText = 'Yeni Ürün Ekle';
@@ -7485,6 +7517,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                 const p = urunler.find(prod => String(prod.id) === String(id));
                 if (p) {
                     document.getElementById('prod-id').value = p.id;
+                    document.getElementById('prod-order').value = Number(p.siraNo) || 1;
                     document.getElementById('prod-name').value = p.name;
                     document.getElementById('prod-barcode').value = p.barcode;
                     document.getElementById('prod-category').value = p.category;
@@ -7505,6 +7538,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             if (!islemYetkisiGerekli(mevcutProdId ? 'product_edit' : 'product_add', mevcutProdId ? 'Ürün düzenleme yetkiniz yok.' : 'Ürün ekleme yetkiniz yok.')) return;
 
             const id = mevcutProdId;
+            const siraNo = Number(document.getElementById('prod-order').value);
             const name = document.getElementById('prod-name').value.trim();
             const barcode = String(document.getElementById('prod-barcode').value ?? '').trim();
             const barcodeKey = barkodNormalizeEt(barcode);
@@ -7513,6 +7547,10 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             const inStock = Number(document.getElementById('prod-in-stock').value);
             const minStock = Number(document.getElementById('prod-min-stock').value);
 
+            if (!Number.isSafeInteger(siraNo) || siraNo < 1) {
+                onayModaliniGoster('Geçersiz Sıra Numarası', 'Sıra numarası 1 veya daha büyük bir tam sayı olmalıdır.', null, true);
+                return;
+            }
             if (!name) {
                 onayModaliniGoster('Eksik Bilgi', 'Ürün adı boş bırakılamaz.', null, true);
                 return;
@@ -7579,10 +7617,13 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                             inStock,
                             outStock: 0,
                             minStock,
+                            siraNo,
                             icon: 'fa-box'
                         });
                     }
 
+                    // Düzenlemede de eklemede de girilen sıra numarasına yerleştir; diğerlerini kaydır.
+                    urunuSirayaYerlesitir(id || urunler[urunler.length - 1].id, siraNo);
                     durumuKaydet();
                     modalKapat('modal-product');
                     urunYonetimTablosunuGuncelle();
