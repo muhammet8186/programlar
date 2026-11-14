@@ -270,10 +270,12 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
             body.printing-receipt #receipt-print-area, body.printing-receipt #receipt-print-area *,
             body.printing-label #label-print-area, body.printing-label #label-print-area * { visibility: visible !important; color: #000000 !important; background-color: #ffffff !important; }
             body.printing-receipt #receipt-print-area { display: block !important; position: static !important; width: 100% !important; color: #000000 !important; padding: 2mm !important; margin: 0 !important; box-shadow: none !important; }
-            body.printing-receipt #rec-tracking-qr-wrap { display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; gap: 2mm !important; width: 100% !important; padding-top: 3mm !important; page-break-inside: avoid !important; break-inside: avoid !important; }
+            body.printing-receipt #rec-tracking-qr-wrap[data-qr-enabled="true"] { display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; gap: 2mm !important; width: 100% !important; padding-top: 3mm !important; page-break-inside: avoid !important; break-inside: avoid !important; }
+            body.printing-receipt #rec-tracking-qr-wrap[data-qr-enabled="false"] { display: none !important; }
             body.printing-receipt #rec-tracking-qr { display: block !important; width: 45mm !important; height: 45mm !important; min-width: 45mm !important; min-height: 45mm !important; padding: 2mm !important; box-sizing: content-box !important; border: 1px solid #000 !important; background: #fff !important; }
-            body.printing-receipt #rec-tracking-qr canvas { display: block !important; width: 45mm !important; height: 45mm !important; min-width: 45mm !important; min-height: 45mm !important; max-width: none !important; object-fit: fill !important; image-rendering: pixelated !important; }
-            body.printing-receipt #rec-tracking-qr img { display: none !important; }
+            /* Termal yazıcı ve Android yazdırma motorlarında canvas yerine QR görselini bas. */
+            body.printing-receipt #rec-tracking-qr canvas { display: none !important; }
+            body.printing-receipt #rec-tracking-qr img { display: block !important; width: 45mm !important; height: 45mm !important; min-width: 45mm !important; min-height: 45mm !important; max-width: none !important; object-fit: fill !important; image-rendering: pixelated !important; }
             body.printing-label #label-print-area { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 2mm !important; position: static !important; width: 100% !important; color: #000000 !important; padding: 2mm !important; margin: 0 !important; box-shadow: none !important; }
             body.printing-label .label-item { break-inside: avoid; page-break-inside: avoid; border: 0 !important; outline: 0 !important; box-shadow: none !important; }
             .no-print { display: none !important; }
@@ -2482,14 +2484,15 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                     adisyon: a.ozellikler?.adisyon === true,
                     customerorders: a.ozellikler?.customerorders === true
                 },
-                customerQrLinks: Array.isArray(a.customerQrLinks) ? a.customerQrLinks : []
+                customerQrLinks: Array.isArray(a.customerQrLinks) ? a.customerQrLinks : [],
+                satisTakipQrAktif: a.satisTakipQrAktif === true
             };
         }
 
         function bulutAyarlariniYerelAyarlarlaBirlestir(bulut) {
             if (!bulut || typeof bulut !== 'object') return;
             // Yalnızca izin verilen ortak alanları buluttan al; diğer tüm ayarlar cihazda kalır.
-            ['sirketAdi','logoDataUrl','fisAlanlari','fisEkBilgiler','otomatikYazdir','fisYazdirmaModu','mutfakAktif','customerQrLinks'].forEach(k => {
+            ['sirketAdi','logoDataUrl','fisAlanlari','fisEkBilgiler','otomatikYazdir','fisYazdirmaModu','mutfakAktif','customerQrLinks','satisTakipQrAktif'].forEach(k => {
                 if (Object.prototype.hasOwnProperty.call(bulut, k)) sistemAyarlari[k] = bulut[k];
             });
             if (bulut.ozellikler && typeof bulut.ozellikler === 'object') {
@@ -4150,69 +4153,89 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             const target = document.getElementById('rec-tracking-qr');
             const codeLabel = document.getElementById('rec-tracking-code');
             if (!wrap || !target || !codeLabel) return;
+
+            // Ayar kaydı ile ekrandaki anahtarın olası yükleme/senkron farkını gider.
+            const toggle = document.getElementById('setting-receipt-qr-toggle');
+            const aktif = sistemAyarlari.satisTakipQrAktif === true || toggle?.checked === true;
+            sistemAyarlari.satisTakipQrAktif = aktif;
+            wrap.dataset.qrEnabled = aktif ? 'true' : 'false';
+            wrap.style.setProperty('display', aktif ? 'flex' : 'none', 'important');
             target.innerHTML = '';
-            const aktif = sistemAyarlari.satisTakipQrAktif === true;
-            // Yazdırma CSS'i display:flex !important kullandığı için kapalı ayarda
-            // görünürlüğü inline !important ile kilitle; açık ayarda bu kilidi kaldır.
-            if (aktif) wrap.style.removeProperty('display');
-            else wrap.style.setProperty('display', 'none', 'important');
+            codeLabel.textContent = '';
             if (!aktif) return;
-            // Takip anahtarı olarak rastgele kod yerine doğrudan fiş numarası kullanılır.
-            const token = String(sale.id || '').trim();
+
+            // Takip anahtarı olarak fiş numarası kullanılır.
+            const token = String(sale?.id || '').trim();
             if (!token) {
                 codeLabel.textContent = 'Fiş numarası eksik';
                 target.textContent = 'Takip QR kodu oluşturulamadı';
                 return;
             }
             sale.trackingToken = token;
-            if (typeof satisGecmisi !== 'undefined') {
+            if (typeof satisGecmisi !== 'undefined' && Array.isArray(satisGecmisi)) {
                 const idx = satisGecmisi.findIndex(x => String(x.id) === token);
                 if (idx >= 0) satisGecmisi[idx].trackingToken = token;
                 try { durumuKaydet(); } catch (_) {}
             }
-            // Müşterinin telefonunda POS cihazının localStorage verileri bulunmaz.
-            // Bu nedenle mevcut müşteri QR menüsünde kullanılan Firebase cfg bilgisini
-            // takip bağlantısına da ekliyoruz. Base64URL kodlama URL'yi güvenli tutar.
-            const base = location.href.split('?')[0].split('#')[0];
-            const firebaseConfig = sistemAyarlari.firebaseConfig || {};
+
+            // Firebase yapılandırmasını hem ana ayardan hem kayıtlı bağlantı kaydından çöz.
+            const adaylar = [
+                sistemAyarlari.firebaseConfig,
+                ...(Array.isArray(sistemAyarlari.firebaseKayitlari) ? sistemAyarlari.firebaseKayitlari.map(x => x?.firebaseConfig) : [])
+            ];
+            const firebaseConfig = adaylar.find(c => c && c.databaseURL && c.apiKey && c.projectId) || {};
             if (!firebaseConfig.databaseURL || !firebaseConfig.apiKey || !firebaseConfig.projectId) {
-                codeLabel.textContent = 'Firebase ayarı eksik';
-                target.textContent = 'Takip için Firebase bağlantısını kaydedin';
-                console.warn('Satış takip QR üretilemedi: Firebase ayarları eksik.');
+                codeLabel.textContent = String(sale.id || '');
+                target.textContent = 'QR oluşturulamadı: Firebase bağlantı ayarları eksik';
+                console.warn('Satış takip QR üretilemedi: geçerli Firebase ayarları bulunamadı.');
                 return;
             }
+
+            if (typeof window.QRCode === 'undefined') {
+                codeLabel.textContent = String(sale.id || '');
+                target.textContent = 'QR oluşturulamadı: QR kütüphanesi yüklenemedi';
+                console.warn('Satış takip QR üretilemedi: QRCode kütüphanesi bulunamadı.');
+                return;
+            }
+
+            const base = location.href.split('?')[0].split('#')[0];
             const cfg = btoa(unescape(encodeURIComponent(JSON.stringify(firebaseConfig))))
                 .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
             const query = new URLSearchParams({ satisTakip:'1', root:String(kokDugumGetir()), period:String(aktifDonemId), fis:token, cfg });
             const payload = base + '?' + query.toString();
             codeLabel.textContent = String(sale.id || '');
-            // Takip ekranına yalnızca gerekli durum bilgisi yazılır; satış geçmişi paylaşılmaz.
+
             const statusRecord = { saleId:String(sale.id || ''), status:sale.kitchenStatus || 'new', updatedAt:Date.now(), company:sistemAyarlari.sirketAdi || 'Sipariş Takibi' };
             if (window.firebaseReady && window.dbSet && window.dbRef && window.database) {
-                window.dbSet(window.dbRef(window.database, `${kokDugumGetir()}/${aktifDonemId}/satis_takip/${token}`), statusRecord).catch(err => console.warn('Satış takip kaydı yazılamadı:', err));
+                window.dbSet(window.dbRef(window.database, `${kokDugumGetir()}/${aktifDonemId}/satis_takip/${token}`), statusRecord)
+                    .catch(err => console.warn('Satış takip kaydı yazılamadı:', err));
             }
-            if (typeof QRCode === 'undefined') {
-                target.textContent = 'QR kütüphanesi yüklenemedi';
-                return;
-            }
-            new QRCode(target, { text: payload, width: 480, height: 480, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.L });
-            // qrcodejs bazı tarayıcılarda hem canvas hem img üretir.
-            // İkisini birden yazdırmak fişte çift QR görünmesine neden olur.
-            const qrCanvas = target.querySelector('canvas');
-            const qrImg = target.querySelector('img');
-            if (qrCanvas) {
-                qrCanvas.style.display = 'block';
-                qrCanvas.style.width = '45mm';
-                qrCanvas.style.height = '45mm';
-                qrCanvas.style.maxWidth = 'none';
-                qrCanvas.style.imageRendering = 'pixelated';
-                if (qrImg) qrImg.style.display = 'none';
-            } else if (qrImg) {
-                qrImg.style.display = 'block';
-                qrImg.style.width = '45mm';
-                qrImg.style.height = '45mm';
-                qrImg.style.maxWidth = 'none';
-                qrImg.style.imageRendering = 'pixelated';
+
+            try {
+                new window.QRCode(target, { text:payload, width:480, height:480, colorDark:'#000000', colorLight:'#ffffff', correctLevel:window.QRCode.CorrectLevel.L });
+                // qrcodejs canvas ve img üretebilir. Ekranda da baskıda da img kullanmak
+                // Android yazdırma motorlarında boş QR çıkması sorununu önler.
+                const qrImg = target.querySelector('img');
+                const qrCanvas = target.querySelector('canvas');
+                if (qrImg) {
+                    qrImg.style.display = 'block';
+                    qrImg.style.width = '45mm';
+                    qrImg.style.height = '45mm';
+                    qrImg.style.maxWidth = 'none';
+                    qrImg.style.imageRendering = 'pixelated';
+                    if (qrCanvas) qrCanvas.style.display = 'none';
+                } else if (qrCanvas) {
+                    qrCanvas.style.display = 'block';
+                    qrCanvas.style.width = '45mm';
+                    qrCanvas.style.height = '45mm';
+                    qrCanvas.style.maxWidth = 'none';
+                    qrCanvas.style.imageRendering = 'pixelated';
+                } else {
+                    target.textContent = 'QR görseli oluşturulamadı';
+                }
+            } catch (err) {
+                console.error('Satış takip QR çizimi başarısız:', err);
+                target.textContent = 'QR oluşturulurken hata oluştu';
             }
         }
 
@@ -4252,7 +4275,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                     fisEkBilgiler:a.fisEkBilgiler||[], otomatikYazdir:Boolean(a.otomatikYazdir),
                     fisYazdirmaModu:a.fisYazdirmaModu||'toplu', mutfakAktif:a.mutfakAktif===true,
                     ozellikler:{adisyon:a.ozellikler?.adisyon===true,customerorders:a.ozellikler?.customerorders===true},
-                    customerQrLinks:a.customerQrLinks||[]
+                    customerQrLinks:a.customerQrLinks||[], satisTakipQrAktif:a.satisTakipQrAktif===true
                 });
                 ortakAyarDegisti = JSON.stringify(ortakAlanlar(oncekiYerel)) !== JSON.stringify(ortakAlanlar(sistemAyarlari));
             } catch (_) {}
@@ -6352,6 +6375,32 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
         }
 
         function cokluUrunFisleriniYazdir(sale) {
+            // Çoklu fiş de standart fişle aynı satış takip QR kodunu kullanır.
+            // QR görselini geçici fiş alanında üretip her ürün fişine gömüyoruz.
+            const qrToggle = document.getElementById('setting-receipt-qr-toggle');
+            const qrAktif = sistemAyarlari.satisTakipQrAktif === true || qrToggle?.checked === true;
+            let takipQrHtml = '';
+            if (qrAktif) {
+                try {
+                    satisTakipQrOlustur(sale);
+                    const qrTarget = document.getElementById('rec-tracking-qr');
+                    const qrImg = qrTarget?.querySelector('img');
+                    const qrCanvas = qrTarget?.querySelector('canvas');
+                    let qrSrc = qrImg?.src || '';
+                    if (!qrSrc && qrCanvas) {
+                        try { qrSrc = qrCanvas.toDataURL('image/png'); } catch (_) {}
+                    }
+                    const qrCodeText = htmlGuvenli(sale?.trackingToken || sale?.id || '');
+                    if (qrSrc) {
+                        takipQrHtml = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2mm;text-align:center;width:100%;box-sizing:border-box;margin-top:9px;padding-top:7px;border-top:1px dashed #aaa;break-inside:avoid;page-break-inside:avoid;"><img src="${htmlGuvenli(qrSrc)}" alt="Satış takip QR" style="display:block;width:32mm;height:32mm;max-width:100%;object-fit:contain;image-rendering:pixelated;margin:0 auto;"><div style="display:block;width:100%;font-family:Arial,sans-serif;text-align:center;white-space:normal;overflow-wrap:anywhere;line-height:1.35;"><div style="font-size:11px;font-weight:bold;">SİPARİŞ TAKİBİ</div><div style="font-size:9px;">Durumu görmek için QR kodunu okutun</div><div style="font-size:9px;font-weight:bold;margin-top:3px;">${qrCodeText}</div></div></div>`;
+                    } else {
+                        const qrError = htmlGuvenli(qrTarget?.textContent || 'QR görseli oluşturulamadı');
+                        takipQrHtml = `<div style="text-align:center;font-size:9px;margin-top:8px;border-top:1px dashed #aaa;padding-top:6px;">${qrError}<br>Fiş No: ${qrCodeText}</div>`;
+                    }
+                } catch (qrErr) {
+                    console.warn('Çoklu fiş QR alanı hazırlanamadı:', qrErr);
+                }
+            }
             const selectedItems = (sale.items || []).filter(item => item.fisYazdir !== false);
             if (!selectedItems.length) {
                 onayModaliniGoster('Fişe ürün seçilmedi', 'Satış tamamlandı ancak çoklu fiş için sepetten en az bir ürünü “Fişe dahil” olarak işaretleyin.', null, true);
@@ -6372,7 +6421,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                     <div style="font-size:11px;margin-top:8px;${alan.araToplam===false?'display:none':''}">Ara Toplam: ${para(itemSubtotal)}</div><div style="font-size:11px;${alan.iskonto===false?'display:none':''}">İskonto: ${para(itemDiscount)}</div>
                     <div style="display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:14px;border-top:1px solid #222;margin-top:5px;padding-top:5px;gap:8px;${alan.toplam===false?'display:none':''}"><span>GENEL TOPLAM:</span><span>${para(itemTotal)}</span></div><div style="display:flex;justify-content:space-between;font-size:10px;margin-top:5px;${alan.odeme===false?'display:none':''}"><span>Ödeme Türü:</span><span>${htmlGuvenli(sale.type || '')}</span></div>
                     ${(Array.isArray(sistemAyarlari.fisEkBilgiler) ? sistemAyarlari.fisEkBilgiler : []).map(b => `<div style="display:flex;justify-content:space-between;gap:8px;font-size:10px;margin-top:5px"><strong>${htmlGuvenli(b.baslik)}</strong><span style="text-align:right">${htmlGuvenli(b.icerik)}</span></div>`).join('')}
-                    <div style="text-align:center;font-size:9px;margin-top:12px;border-top:1px dashed #aaa;padding-top:8px;${alan.tesekkur===false?'display:none':''}">Bizi tercih ettiğiniz için teşekkür ederiz!</div></div>`;
+                    <div style="text-align:center;font-size:9px;margin-top:12px;border-top:1px dashed #aaa;padding-top:8px;${alan.tesekkur===false?'display:none':''}">Bizi tercih ettiğiniz için teşekkür ederiz!</div>${takipQrHtml}</div>`;
             }).join('');
             const area = document.getElementById('receipt-print-area');
             const old = area.innerHTML;
@@ -7060,7 +7109,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             if(!aktif.some(k=>String(k.id)===String(seciliManuelKasaId))) seciliManuelKasaId=String(aktif.find(k=>String(k.id)===ANA_NAKIT_KASA_ID)?.id || aktif[0]?.id || ANA_NAKIT_KASA_ID);
             root.innerHTML=aktif.map(k=>{const b=kasaHesapBakiyesi(k);return `<div onclick="manuelKasaSec('${String(k.id)}')" class="theme-card rounded-lg border ${String(seciliManuelKasaId)===String(k.id)?'cash-account-selected border-2 ring-2':'border-slate-700'} bg-slate-900 p-3 cursor-pointer">
               <div class="flex justify-between gap-2"><div><div class="font-bold text-sm">${htmlGuvenli(k.name)}</div><div class="text-[10px] text-slate-400">${htmlGuvenli(k.type||'Özel Kasa')}${String(k.id)===ANA_NAKIT_KASA_ID?' · Ana kasa (silinemez)':''}${String(seciliManuelKasaId)===String(k.id)?' · <span class="cash-selected-label">SEÇİLİ</span>':''}</div></div><span class="text-xs ${b<0?'text-red-400':'text-emerald-400'} font-mono font-bold">₺${b.toFixed(2)}</span></div>
-              <div class="flex flex-wrap items-center gap-2 mt-3">${String(seciliManuelKasaId)===String(k.id)?`<button class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded px-3 py-2 shadow" onclick="event.stopPropagation();manuelKasaKayitModaliniAc()"><i class="fa-solid fa-plus mr-1"></i> Hareket Ekle</button>`:''}<button class="text-xs bg-slate-700 hover:bg-slate-600 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiDuzenle('${String(k.id).replace(/'/g,"\\'")}')">Düzenle</button>${String(k.id)===ANA_NAKIT_KASA_ID?'<span class="text-[10px] text-amber-400 px-2 py-1">Ana kasa · Silinemez</span>':`<button class="text-xs bg-rose-900/70 hover:bg-rose-800 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiKapat('${String(k.id).replace(/'/g,"\\'")}')">Kapat</button>`}</div></div>`}).join('') || '<p class="text-xs text-slate-400">Henüz aktif kasa yok.</p>';
+              <div class="flex flex-wrap items-center gap-2 mt-3">${String(seciliManuelKasaId)===String(k.id)?`<button class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded px-3 py-2 shadow" onclick="event.stopPropagation();manuelKasaKayitModaliniAc()"><i class="fa-solid fa-plus mr-1"></i> Hareket Ekle</button>`:''}<button class="text-xs bg-slate-700 hover:bg-slate-600 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiDuzenle('${String(k.id).replace(/'/g,"\\'")}')">Düzenle</button>${String(k.id)===ANA_NAKIT_KASA_ID?'<span class="text-[10px] text-amber-400 px-2 py-1">Ana kasa · Silinemez</span>':`<button class="text-xs bg-rose-900/70 hover:bg-rose-800 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiKapat('${String(k.id).replace(/'/g,"\\'")}')">Sil</button>`}</div></div>`}).join('') || '<p class="text-xs text-slate-400">Henüz aktif kasa yok.</p>';
         }
         function manuelKasaSec(id) { seciliManuelKasaId=String(id); kasaHesaplariniCiz(); kasaEkraniniGuncelle(); }
         function kasaModernModalAc(baslik, govde, kaydetEtiketi, kaydetIslemi) {
@@ -7094,8 +7143,11 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                 const type=modal.querySelector('#kasa-new-type').value;
                 const opening=Number(modal.querySelector('#kasa-new-opening').value);
                 if(!name||!Number.isFinite(opening)||opening<0){onayModaliniGoster('Bilgileri kontrol edin','Kasa adı girin; açılış bakiyesi sıfır veya pozitif olmalı.',null,true);return false;}
-                kasaHesaplari.push({id:'KASA-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),name,type,openingBalance:opening,active:true});
-                durumuKaydet();kasaHesaplariniCiz();onayModaliniGoster('Kasa oluşturuldu',name+' kasası başarıyla eklendi.',null,true);
+                const yeniKasa={id:'KASA-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),name,type,openingBalance:opening,active:true};
+                kasaHesaplari.push(yeniKasa);
+                // Yerel ekranı anında güncelle; durumuKaydet kasa_hesaplari dizisini Firebase'e güvenli transaction ile eşitler.
+                seciliManuelKasaId=String(yeniKasa.id);
+                durumuKaydet();kasaHesaplariniCiz();kasaEkraniniGuncelle();
               });
         }
         function kasaHesabiDuzenle(id) {
@@ -7113,12 +7165,14 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
         function kasaHesabiKapat(id) {
             if(String(id)===ANA_NAKIT_KASA_ID){onayModaliniGoster('Ana kasa silinemez','Ana Nakit Kasa sistemin temel kasasıdır ve kapatılamaz.',null,true);return;}
             const k=kasaHesaplari.find(x=>String(x.id)===String(id));if(!k)return;
-            if(Math.abs(kasaHesapBakiyesi(k))>0.009){onayModaliniGoster('Kasa kapatılamaz','Bakiyesi sıfır olmayan kasa kapatılamaz. Önce bakiyeyi başka kasaya aktarın.',null,true);return;}
-            onayModaliniGoster('Kasayı kapat',`"${k.name}" kasasını kapatmak istediğinize emin misiniz? Kasa kayıtları korunur.`,()=>{
-                k.active=false;
+            if(Math.abs(kasaHesapBakiyesi(k))>0.009){onayModaliniGoster('Kasa silinemez','Bakiyesi sıfır olmayan kasa silinemez. Önce bakiyeyi başka kasaya aktarın.',null,true);return;}
+            const kasayaAitHareketVar=(kasaHareketleri||[]).some(h=>String(h.cashAccountId||'')===String(id));
+            if(kasayaAitHareketVar){onayModaliniGoster('Kasa silinemez','Bu kasaya bağlı hareket kayıtları bulunuyor. Muhasebe geçmişinin bozulmaması için önce bu kayıtları kontrol edin.',null,true);return;}
+            onayModaliniGoster('Kasayı sil',`"${k.name}" kasasını kalıcı olarak silmek istediğinize emin misiniz?`,()=>{
+                kasaHesaplari=kasaHesaplari.filter(x=>String(x.id)!==String(id));
                 if(String(seciliManuelKasaId)===String(id))seciliManuelKasaId=ANA_NAKIT_KASA_ID;
+                // Silinen kasa, Firebase güvenli dizi eşitlemesinde baseline farkı olarak kaldırılır.
                 durumuKaydet();kasaHesaplariniCiz();kasaEkraniniGuncelle();
-                onayModaliniGoster('Kasa kapatıldı',k.name+' pasif hale getirildi.',null,true);
             });
         }
         function kasaHesabinaHareketEkle(id,direction) {
@@ -7632,10 +7686,19 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             const remaining = cariOzet.remaining;
             const manuelKayitVar = (kasaHareketleri || []).some(m => m.movementKind === 'manual' && String(m.customerId || '') === String(cust.id) && ['Borç','Alacak'].includes(m.type));
 
-            if (total !== 0 || paid !== 0 || remaining !== 0 || manuelKayitVar) {
+            const veresiyeBorcu = Math.max(0, Number(remaining) || 0);
+            const alisverisKartiBakiyesi = Math.max(0, Number(cust.cardBalance) || 0);
+            if (veresiyeBorcu > 0.009 || alisverisKartiBakiyesi > 0.009 || total !== 0 || paid !== 0 || manuelKayitVar) {
+                const engelNedeni = veresiyeBorcu > 0.009 && alisverisKartiBakiyesi > 0.009
+                    ? `Veresiye borcu ₺${veresiyeBorcu.toFixed(2)} ve alışveriş kartı bakiyesi ₺${alisverisKartiBakiyesi.toFixed(2)} bulunduğu`
+                    : veresiyeBorcu > 0.009
+                        ? `₺${veresiyeBorcu.toFixed(2)} veresiye borcu bulunduğu`
+                        : alisverisKartiBakiyesi > 0.009
+                            ? `₺${alisverisKartiBakiyesi.toFixed(2)} alışveriş kartı bakiyesi bulunduğu`
+                            : 'hesap hareketi veya tahsilat geçmişi bulunduğu';
                 onayModaliniGoster(
                     'Silme İşlemi Engellendi',
-                    `"${cust.name}" adlı müşterinin aktif borcu veya tahsilat geçmişi bulunduğu için silinemez!`,
+                    `"${cust.name}" adlı müşteri ${engelNedeni} için silinemez!`, 
                     null,
                     true
                 );
