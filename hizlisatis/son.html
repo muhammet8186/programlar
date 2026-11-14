@@ -920,6 +920,55 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
 }
 </style>
 
+
+<style id="cash-mobile-sticky-header-and-scroll">
+/* Kasa ekranında hareket tablosu kendi içinde kayar; başlık ve filtreler görünür kalır */
+#section-cash {
+  min-height:0;
+}
+#section-cash .theme-card:has(#cash-movement-title) {
+  min-height:0;
+}
+#cash-movement-title {
+  position:sticky;
+  top:0;
+  z-index:15;
+}
+#cash-movement-scroll {
+  min-height:180px;
+  max-height:52vh;
+  overflow-y:auto !important;
+  overflow-x:auto !important;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+}
+#cash-movement-scroll thead {
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+#cash-movement-scroll th {
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+@media (max-width: 767px) {
+  #section-cash {
+    overflow-y:auto !important;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:calc(24px + env(safe-area-inset-bottom)) !important;
+  }
+  #section-cash .theme-card:has(#cash-movement-title) {
+    flex:0 0 auto !important;
+    overflow:visible;
+  }
+  #cash-movement-scroll {
+    max-height:45vh;
+    min-height:220px;
+  }
+}
+</style>
+
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans h-full flex flex-col overflow-hidden select-none transition-colors duration-300" id="app-body">
 <!-- LİSANS / GİRİŞ EKRANI -->
@@ -1335,7 +1384,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
     <button type="button" class="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800" onclick="document.getElementById('sales-cash-date-from').value='';document.getElementById('sales-cash-date-to').value='';kasaEkraniniGuncelle()">Tarihleri temizle</button>
   </div>
 </div>
-<div class="overflow-x-auto flex-1">
+<div id="cash-movement-scroll" class="overflow-x-auto flex-1 min-h-0">
 <table class="w-full text-left text-xs md:text-sm">
 <thead class="theme-table-header bg-slate-950 uppercase text-[11px] font-semibold">
 <tr>
