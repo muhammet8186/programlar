@@ -7263,15 +7263,32 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             if (!listContainer) return;
             const tema = sistemAyarlari.tema || 'dark';
             const isLight = sistemAyarlari.temaModu === 'light' || (sistemAyarlari.temaModu !== 'dark' && ['light', 'arctic', 'sand', 'mint'].includes(tema));
+            // Manuel kasa kayıtları ana veri kaynağıdır. Geçmiş penceresi açılırken
+            // cari geçmişini bu kayıtlardan yeniden eşitle; eski/eksik history kayıtları da tamamlanır.
+            if (!Array.isArray(customer.history)) customer.history = [];
+            const cariManuelKayitlari = (Array.isArray(kasaHareketleri) ? kasaHareketleri : []).filter(m =>
+                m.movementKind === 'manual' && String(m.customerId || '') === String(customer.id) && ['Borç','Alacak'].includes(m.type)
+            );
+            cariManuelKayitlari.forEach(parent => {
+                const children = (kasaHareketleri || []).filter(m =>
+                    m.movementKind === 'manual-settlement' && String(m.parentMovementId) === String(parent.id)
+                );
+                parent.paidAmount = Math.round(children.reduce((sum, child) => sum + (Number(child.amount) || 0), 0) * 100) / 100;
+                cariManuelGecmisKaydi(customer, parent, false);
+                children.forEach(child => cariManuelGecmisKaydi(customer, child, true));
+            });
             const cariOzet = cariManuelHesapOzeti(customer);
             const history = Array.isArray(customer.history) ? customer.history : [];
+            const manuelToplam = cariManuelKayitlari.reduce((sum, m) => sum + (Number(m.amount) || 0), 0);
+            const manuelOdenen = cariManuelKayitlari.reduce((sum, m) => sum + Math.min(Number(m.amount) || 0, Number(m.paidAmount) || 0), 0);
+            const manuelKalan = Math.max(0, manuelToplam - manuelOdenen);
             const summaryClass = isLight ? 'bg-sky-50 border-sky-200 text-slate-800' : 'bg-slate-800/80 border-slate-700 text-slate-100';
             const remainColor = cariOzet.remaining > 0.009 ? (isLight ? 'text-amber-700' : 'text-amber-300') : (isLight ? 'text-emerald-700' : 'text-emerald-400');
             const summary = `<div class="mb-3 rounded-lg border p-3 ${summaryClass}">
                 <div class="grid grid-cols-3 gap-2 text-center">
-                    <div><div class="text-[10px] opacity-70">Toplam Borç / Alacak</div><strong class="font-mono text-sm">₺${cariOzet.total.toFixed(2)}</strong></div>
-                    <div><div class="text-[10px] opacity-70">Ödenen / Tahsil Edilen</div><strong class="font-mono text-sm ${isLight ? 'text-emerald-700' : 'text-emerald-400'}">₺${cariOzet.paid.toFixed(2)}</strong></div>
-                    <div><div class="text-[10px] opacity-70">Kalan</div><strong class="font-mono text-sm ${remainColor}">₺${cariOzet.remaining.toFixed(2)}</strong></div>
+                    <div><div class="text-[10px] opacity-70">Toplam Borç / Alacak</div><strong class="font-mono text-sm">₺${manuelToplam.toFixed(2)}</strong></div>
+                    <div><div class="text-[10px] opacity-70">Ödenen / Tahsil Edilen</div><strong class="font-mono text-sm ${isLight ? 'text-emerald-700' : 'text-emerald-400'}">₺${manuelOdenen.toFixed(2)}</strong></div>
+                    <div><div class="text-[10px] opacity-70">Kalan</div><strong class="font-mono text-sm ${manuelKalan > 0.009 ? (isLight ? 'text-amber-700' : 'text-amber-300') : (isLight ? 'text-emerald-700' : 'text-emerald-400')}">₺${manuelKalan.toFixed(2)}</strong></div>
                 </div>
             </div>`;
 
@@ -7316,6 +7333,8 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 
             const modal = document.getElementById('modal-customer-history');
             if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+            // Geriye dönük eksik geçmiş satırları ve yeniden hesaplanan ödenen tutarları sakla.
+            durumuKaydet();
         }
 
         function musteriIslemSil(custId, hIndex) {
