@@ -6516,33 +6516,45 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             if (item) item.fisYazdir = Boolean(secili);
         }
 
-        function cokluUrunFisleriniYazdir(sale) {
-            // Çoklu fiş de standart fişle aynı satış takip QR kodunu kullanır.
-            // QR görselini geçici fiş alanında üretip her ürün fişine gömüyoruz.
+        // Tekli, çoklu ve toplu fişlerde aynı satış takip QR görselini kullan.
+        function satisTakipQrHtmlHazirla(sale, boyut = '32mm') {
             const qrToggle = document.getElementById('setting-receipt-qr-toggle');
             const qrAktif = sistemAyarlari.satisTakipQrAktif === true || qrToggle?.checked === true;
-            let takipQrHtml = '';
-            if (qrAktif) {
-                try {
-                    satisTakipQrOlustur(sale);
-                    const qrTarget = document.getElementById('rec-tracking-qr');
-                    const qrImg = qrTarget?.querySelector('img');
-                    const qrCanvas = qrTarget?.querySelector('canvas');
-                    let qrSrc = qrImg?.src || '';
-                    if (!qrSrc && qrCanvas) {
-                        try { qrSrc = qrCanvas.toDataURL('image/png'); } catch (_) {}
-                    }
-                    const qrCodeText = htmlGuvenli(sale?.trackingToken || sale?.id || '');
-                    if (qrSrc) {
-                        takipQrHtml = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2mm;text-align:center;width:100%;box-sizing:border-box;margin-top:9px;padding-top:7px;border-top:1px dashed #aaa;break-inside:avoid;page-break-inside:avoid;"><img src="${htmlGuvenli(qrSrc)}" alt="Satış takip QR" style="display:block;width:32mm;height:32mm;max-width:100%;object-fit:contain;image-rendering:pixelated;margin:0 auto;"><div style="display:block;width:100%;font-family:Arial,sans-serif;text-align:center;white-space:normal;overflow-wrap:anywhere;line-height:1.35;"><div style="font-size:11px;font-weight:bold;">SİPARİŞ TAKİBİ</div><div style="font-size:9px;">Durumu görmek için QR kodunu okutun</div><div style="font-size:9px;font-weight:bold;margin-top:3px;">${qrCodeText}</div></div></div>`;
-                    } else {
-                        const qrError = htmlGuvenli(qrTarget?.textContent || 'QR görseli oluşturulamadı');
-                        takipQrHtml = `<div style="text-align:center;font-size:9px;margin-top:8px;border-top:1px dashed #aaa;padding-top:6px;">${qrError}<br>Fiş No: ${qrCodeText}</div>`;
-                    }
-                } catch (qrErr) {
-                    console.warn('Çoklu fiş QR alanı hazırlanamadı:', qrErr);
+            if (!qrAktif) return '';
+            try {
+                satisTakipQrOlustur(sale);
+                const qrTarget = document.getElementById('rec-tracking-qr');
+                const qrImg = qrTarget?.querySelector('img');
+                const qrCanvas = qrTarget?.querySelector('canvas');
+                let qrSrc = qrImg?.src || '';
+                if (!qrSrc && qrCanvas) {
+                    try { qrSrc = qrCanvas.toDataURL('image/png'); } catch (_) {}
                 }
+                const qrCodeText = htmlGuvenli(sale?.trackingToken || sale?.id || '');
+                if (!qrSrc) {
+                    const hata = htmlGuvenli(qrTarget?.textContent || 'QR görseli oluşturulamadı');
+                    return `<div style="text-align:center;font-size:9px;margin-top:8px;border-top:1px dashed #aaa;padding-top:6px;">${hata}<br>Fiş No: ${qrCodeText}</div>`;
+                }
+                return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2mm;text-align:center;width:100%;box-sizing:border-box;margin-top:9px;padding-top:7px;border-top:1px dashed #aaa;break-inside:avoid;page-break-inside:avoid;color:#000;background:#fff;"><img src="${htmlGuvenli(qrSrc)}" alt="Satış takip QR" style="display:block;width:${boyut};height:${boyut};max-width:100%;object-fit:contain;image-rendering:pixelated;margin:0 auto;background:#fff;"><div style="display:block;width:100%;font-family:Arial,sans-serif;text-align:center;white-space:normal;overflow-wrap:anywhere;line-height:1.35;color:#000;"><div style="font-size:11px;font-weight:bold;">SİPARİŞ TAKİBİ</div><div style="font-size:9px;">Durumu görmek için QR kodunu okutun</div><div style="font-size:9px;font-weight:bold;margin-top:3px;">${qrCodeText}</div></div></div>`;
+            } catch (qrErr) {
+                console.warn('Fiş QR alanı hazırlanamadı:', qrErr);
+                return '';
             }
+        }
+
+        // Geçici fiş HTML'sini yazdırma tamamlanana kadar koru.
+        function topluFisYazdirmaBaslat(area, eskiHtml) {
+            const geriYukle = () => {
+                area.innerHTML = eskiHtml;
+                window.removeEventListener('afterprint', geriYukle);
+            };
+            window.addEventListener('afterprint', geriYukle, { once: true });
+            setTimeout(() => yazdirmaTetikle(), 250);
+        }
+
+        function cokluUrunFisleriniYazdir(sale) {
+            // Çoklu fişler de satışa ait aynı takip QR kodunu taşır.
+            const takipQrHtml = satisTakipQrHtmlHazirla(sale, '32mm');
             const selectedItems = (sale.items || []).filter(item => item.fisYazdir !== false);
             if (!selectedItems.length) {
                 onayModaliniGoster('Fişe ürün seçilmedi', 'Satış tamamlandı ancak çoklu fiş için sepetten en az bir ürünü “Fişe dahil” olarak işaretleyin.', null, true);
@@ -6569,7 +6581,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             const old = area.innerHTML;
             area.innerHTML = html;
             const modal = document.getElementById('modal-receipt'); modal.classList.remove('hidden'); modal.classList.add('flex');
-            setTimeout(() => { window.print(); area.innerHTML = old; modal.classList.add('hidden'); modal.classList.remove('flex'); }, 350);
+            topluFisYazdirmaBaslat(area, old);
         }
 
         function fisAyariniDegistir(alan, gorunsun) {
@@ -6619,8 +6631,9 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             if (!sales.length) { onayModaliniGoster('Fiş Seçilmedi', 'Toplu yazdırmak için satış listesinden en az bir fiş seçin.', null, true); return; }
             const alan = sistemAyarlari.fisAlanlari || {};
             const para = n => `₺${Number(n || 0).toFixed(2)}`;
-            const html = sales.map(s => `<div class="receipt-bulk-one" style="font-family:monospace;padding:3mm 1mm;page-break-after:always;break-after:page;color:#000;background:#fff;">
-                ${(() => {
+            const html = sales.map(s => {
+                const takipQrHtml = satisTakipQrHtmlHazirla(s, '32mm');
+                const fisGovdesi = (() => {
                     const parcalar = {
                         sirket: `<div style="text-align:center;border-bottom:1px dashed #aaa;padding-bottom:8px;${alan.sirket===false?'display:none':''}"><h2 style="font-size:16px;font-weight:bold">${htmlGuvenli(sistemAyarlari.sirketAdi || 'Hızlı Satış Programı').toUpperCase()}</h2><p style="font-size:10px">Satış Fişi / Bilgi Fişi</p></div>`,
                         fisNo: `<div style="font-size:10px;margin:8px 0;${alan.fisNo===false?'display:none':''}">Fiş No: #${htmlGuvenli(s.id)}</div>`,
@@ -6634,13 +6647,15 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                         tesekkur: `<div style="text-align:center;font-size:9px;margin-top:12px;border-top:1px dashed #aaa;padding-top:8px;${alan.tesekkur===false?'display:none':''}">Bizi tercih ettiğiniz için teşekkür ederiz!</div>`
                     };
                     return fisAlanSirasiGetir().map(k => parcalar[k] || '').join('');
-                })()}
-            </div>`).join('');
+                })();
+                return `<div class="receipt-bulk-one" style="font-family:monospace;padding:3mm 1mm;page-break-after:always;break-after:page;color:#000;background:#fff;">${fisGovdesi}${takipQrHtml}</div>`;
+            }).join('');
             const area = document.getElementById('receipt-print-area');
             const old = area.innerHTML;
             area.innerHTML = html;
-            const modal = document.getElementById('modal-receipt'); modal.classList.remove('hidden'); modal.classList.add('flex');
-            setTimeout(() => { window.print(); area.innerHTML = old; modal.classList.add('hidden'); modal.classList.remove('flex'); }, 350);
+            const modal = document.getElementById('modal-receipt');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+            topluFisYazdirmaBaslat(area, old);
         }
 
         function fisGoster(sale, otomatikYazdir = true) {
