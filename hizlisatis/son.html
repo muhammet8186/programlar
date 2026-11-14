@@ -65,7 +65,7 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
         const kodIciFirebaseAyarlari = window.KOD_ICI_FIREBASE_AYARLARI || {};
         const kodIciFirebaseBilgileri = kodIciFirebaseAyarlari.baglantiBilgileri || {};
         const kodIciKokBasligi = String(kodIciFirebaseAyarlari.kokBasligi || '').trim();
-        savedSettings = savedSettings || {
+        savedSettings = (savedSettings && typeof savedSettings === 'object' && !Array.isArray(savedSettings)) ? savedSettings : {
             sirketAdi: 'Hızlı Satış Programı',
             sifre: '1234',
             otomatikYazdir: false,
@@ -86,11 +86,6 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
             if (kodIciFirebaseBilgileri.databaseURL) savedSettings.firebaseConfig = { ...kodIciFirebaseBilgileri };
         }
         if (!savedSettings.kokDugum && kodIciKokBasligi) savedSettings.kokDugum = kodIciKokBasligi;
-        try {
-            const savedReceiptWidth = Number(localStorage.getItem('pos_receipt_paper_width_v1'));
-            if (![58, 80].includes(Number(sistemAyarlari.fisKagitGenisligi)) && [58, 80].includes(savedReceiptWidth)) sistemAyarlari.fisKagitGenisligi = savedReceiptWidth;
-            if (![58, 80].includes(Number(sistemAyarlari.fisKagitGenisligi))) sistemAyarlari.fisKagitGenisligi = 58;
-        } catch (_) { sistemAyarlari.fisKagitGenisligi = 58; }
         try {
             const cihazFirebaseDurumu = localStorage.getItem('pos_firebase_enabled_v1');
             if (cihazFirebaseDurumu === '1' || cihazFirebaseDurumu === '0') savedSettings.firebaseAktif = cihazFirebaseDurumu === '1';
@@ -1986,6 +1981,12 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             kokDugum: kodIciKokBasliginiOku || '',
             firebaseConfig: { ...kodIciFirebaseBilgileriniOku }
         });
+        // Fiş kâğıdı genişliği ayarı, ana uygulama ayarları hazırlandıktan sonra yerel tercihle tamamlanır.
+        try {
+            const savedReceiptWidth = Number(localStorage.getItem('pos_receipt_paper_width_v1'));
+            if (![58, 80].includes(Number(sistemAyarlari.fisKagitGenisligi)) && [58, 80].includes(savedReceiptWidth)) sistemAyarlari.fisKagitGenisligi = savedReceiptWidth;
+            if (![58, 80].includes(Number(sistemAyarlari.fisKagitGenisligi))) sistemAyarlari.fisKagitGenisligi = 58;
+        } catch (_) { sistemAyarlari.fisKagitGenisligi = 58; }
         try {
             const cihazFirebaseDurumu = localStorage.getItem('pos_firebase_enabled_v1');
             if (cihazFirebaseDurumu === '1' || cihazFirebaseDurumu === '0') sistemAyarlari.firebaseAktif = cihazFirebaseDurumu === '1';
