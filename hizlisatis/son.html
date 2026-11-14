@@ -6212,21 +6212,29 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             }
             if (type === 'Nakit' && nakitAlinan > total) sale.cashReceived = nakitAlinan;
 
+            // Önce satış verisini kaydet ve sepeti temizle. Bildirim/fiş arayüzündeki
+            // olası bir hata, tamamlanmış satışın sepetini dolu bırakmamalıdır.
             durumuKaydet();
-            islemBildirimiGoster(type + ' işlemi tamamlandı: ₺' + total.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + (type === 'Nakit' && nakitAlinan > total ? ' · Para üstü: ₺' + (nakitAlinan-total).toFixed(2) : ''));
             window.__posPartialPayment = null;
-            
+            sepetiTemizle();
+            const kitchenNoteInput = document.getElementById('cart-kitchen-note');
+            if (kitchenNoteInput) kitchenNoteInput.value = '';
+            const tableInput = document.getElementById('cart-table-number'); if (tableInput) tableInput.value = '';
+            const orderTypeReset2 = document.getElementById('cart-order-type'); if (orderTypeReset2) orderTypeReset2.value = 'Masa';
+
+            islemBildirimiGoster(type + ' işlemi tamamlandı: ₺' + total.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + (type === 'Nakit' && nakitAlinan > total ? ' · Para üstü: ₺' + (nakitAlinan-total).toFixed(2) : ''));
+
             if (sistemAyarlari.otomatikYazdir === true) {
                 // Satış anındaki fiş, Satışlar > Tekrar Yazdır ile aynı standart şablonu kullanır.
-                fisGoster(sale);
+                try { fisGoster(sale); }
+                catch (hata) {
+                    console.error('Satış kaydedildi ancak fiş gösterilemedi:', hata);
+                    onayModaliniGoster('Satış tamamlandı', 'Satış kaydedildi ve sepet temizlendi; ancak fiş penceresi açılamadı.', null, true);
+                }
             } else {
                 onayModaliniGoster('Başarılı', `Satış işlemi başarıyla gerçekleşti! Toplam Tutar: ₺${total.toFixed(2)}`, null, true);
             }
 
-            sepetiTemizle();
-            const kitchenNoteInput = document.getElementById('cart-kitchen-note');
-            if (kitchenNoteInput) kitchenNoteInput.value = '';
-            const tableInput = document.getElementById('cart-table-number'); if (tableInput) tableInput.value = ''; const orderTypeReset2 = document.getElementById('cart-order-type'); if (orderTypeReset2) orderTypeReset2.value = 'Masa';
             garsonEkraniniGuncelle();
             urunleriGoster();
             mutfakEkraniniGuncelle();
