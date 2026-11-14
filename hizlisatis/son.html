@@ -5607,13 +5607,15 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
 
             listContainer.innerHTML = kategorilerListesi.map((cat, idx) => `
                 <div class="${isLight ? 'bg-slate-100 border-slate-200 text-slate-800' : 'bg-slate-950 border-slate-800 text-slate-200'} p-2 rounded border flex flex-wrap justify-between items-center gap-2 text-xs">
-                    <span class="font-medium flex-1 min-w-0 break-words">${htmlGuvenli(cat)}</span>
+                    <div class="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+                        <label class="sr-only" for="category-name-${idx}">Kategori adı</label>
+                        <input id="category-name-${idx}" class="theme-input min-w-0 flex-1 rounded border ${isLight?'bg-white border-slate-300':'bg-slate-900 border-slate-700'} px-2 py-1.5 text-xs font-medium" type="text" value="${htmlGuvenli(cat)}" aria-label="Kategori adı"/>
+                        <button onclick="kategoriAdiniKaydet(${idx})" type="button" class="px-2 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white" title="Kategori adını kaydet"><i class="fa-solid fa-pen-to-square"></i></button>
+                    </div>
                     <div class="flex items-center gap-1 shrink-0">
                         <label class="sr-only" for="category-order-${idx}">Sıra numarası</label>
                         <input id="category-order-${idx}" class="theme-input w-14 text-center font-mono text-xs rounded border ${isLight?'bg-white border-slate-300':'bg-slate-900 border-slate-700'} px-1.5 py-1" type="number" min="1" step="1" value="${idx+1}" aria-label="${htmlGuvenli(cat)} sıra numarası"/>
                         <button onclick="kategoriSiraNumarasiniKaydet(${idx})" type="button" class="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white" title="Sıra numarasını kaydet"><i class="fa-solid fa-check"></i></button>
-                        <button onclick="kategoriSirasiniDegistir(${idx},-1)" type="button" ${idx===0?'disabled':''} class="px-2 py-1 rounded border ${isLight?'bg-white border-slate-300 text-slate-700':'bg-slate-800 border-slate-700 text-slate-200'} disabled:opacity-30 disabled:cursor-not-allowed hover:border-emerald-500" title="Yukarı taşı"><i class="fa-solid fa-arrow-up"></i></button>
-                        <button onclick="kategoriSirasiniDegistir(${idx},1)" type="button" ${idx===kategorilerListesi.length-1?'disabled':''} class="px-2 py-1 rounded border ${isLight?'bg-white border-slate-300 text-slate-700':'bg-slate-800 border-slate-700 text-slate-200'} disabled:opacity-30 disabled:cursor-not-allowed hover:border-emerald-500" title="Aşağı taşı"><i class="fa-solid fa-arrow-down"></i></button>
                         <button onclick="kategoriSil(${JSON.stringify(cat).replace(/"/g,'&quot;')})" type="button" class="text-red-500 hover:bg-red-500/10 p-1.5 rounded transition" title="Kategoriyi Sil"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>
@@ -5641,17 +5643,39 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             kategoriYonetimModaliniAc();
         }
 
-        function kategoriSirasiniDegistir(index, yon) {
-            const hedef = Number(index) + Number(yon);
-            if (!Number.isInteger(index) || hedef < 0 || hedef >= kategorilerListesi.length) return;
-            const gecici = kategorilerListesi[index];
-            kategorilerListesi[index] = kategorilerListesi[hedef];
-            kategorilerListesi[hedef] = gecici;
+        function kategoriAdiniKaydet(index) {
+            if (!Number.isInteger(index) || index < 0 || index >= kategorilerListesi.length) return;
+            const eskiAd = kategorilerListesi[index];
+            const input = document.getElementById(`category-name-${index}`);
+            const yeniAd = String(input && input.value || '').trim();
+
+            if (!yeniAd) {
+                onayModaliniGoster('Geçersiz Kategori Adı', 'Kategori adı boş bırakılamaz.', null, true);
+                if (input) input.value = eskiAd;
+                return;
+            }
+            if (yeniAd !== eskiAd && kategorilerListesi.some((ad, i) => i !== index && ad.toLocaleLowerCase('tr-TR') === yeniAd.toLocaleLowerCase('tr-TR'))) {
+                onayModaliniGoster('Uyarı', 'Bu kategori adı zaten mevcut!', null, true);
+                if (input) input.value = eskiAd;
+                return;
+            }
+            if (yeniAd === eskiAd) {
+                onayModaliniGoster('Bilgi', 'Kategori adında bir değişiklik yapılmadı.', null, true);
+                return;
+            }
+
+            kategorilerListesi[index] = yeniAd;
+            urunler.forEach(urun => {
+                if (urun && urun.category === eskiAd) urun.category = yeniAd;
+            });
+            if (secilenKategori === eskiAd) secilenKategori = yeniAd;
 
             durumuKaydet();
             kategoriListesiniGuncelle();
             kategorileriOlustur();
+            urunleriGoster();
             kategoriYonetimModaliniAc();
+            onayModaliniGoster('Başarılı', `Kategori adı "${eskiAd}" yerine "${yeniAd}" olarak güncellendi.`, null, true);
         }
 
         function yeniKategoriEkle() {
