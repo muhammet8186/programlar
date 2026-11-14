@@ -689,6 +689,108 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected * { color:#0
   outline-offset:2px !important;
 }
 </style>
+
+<style id="cash-and-modern-modal-readability">
+/* Seçili kasa: açık temada koyu kart ve beyaz metin; koyu temada açık kart ve koyu metin */
+body#app-body[data-theme-mode="light"] .cash-account-selected,
+body#app-body:not([data-theme-mode="dark"]) .cash-account-selected {
+  background:linear-gradient(135deg,#172554,#1e293b) !important;
+  color:#ffffff !important;
+  border:2px solid #2563eb !important;
+}
+body#app-body[data-theme-mode="light"] .cash-account-selected *,
+body#app-body:not([data-theme-mode="dark"]) .cash-account-selected * {
+  color:#ffffff !important;
+  opacity:1 !important;
+}
+body#app-body[data-theme-mode="dark"] .cash-account-selected {
+  background:linear-gradient(135deg,#f8fafc,#dbeafe) !important;
+  color:#111827 !important;
+  border:2px solid #60a5fa !important;
+}
+body#app-body[data-theme-mode="dark"] .cash-account-selected * {
+  color:#111827 !important;
+  opacity:1 !important;
+}
+.cash-selected-label {
+  display:inline-block;
+  margin-left:5px;
+  padding:2px 7px;
+  border-radius:999px;
+  font-size:10px;
+  line-height:1.5;
+  font-weight:700;
+  letter-spacing:.03em;
+  vertical-align:middle;
+  background:#facc15 !important;
+  color:#111827 !important;
+}
+
+/* Kasa ekle/düzenle/transfer penceresi: açık tema */
+body#app-body[data-theme-mode="light"] #kasa-modern-modal > div {
+  background:#ffffff !important;
+  color:#111827 !important;
+  border:1px solid #cbd5e1 !important;
+}
+body#app-body[data-theme-mode="light"] #kasa-modern-modal > div * {
+  color:#1f2937 !important;
+  opacity:1 !important;
+}
+body#app-body[data-theme-mode="light"] #kasa-modern-modal > div > div:first-child {
+  background:#f1f5f9 !important;
+  border-color:#cbd5e1 !important;
+}
+body#app-body[data-theme-mode="light"] #kasa-modern-modal input,
+body#app-body[data-theme-mode="light"] #kasa-modern-modal select,
+body#app-body[data-theme-mode="light"] #kasa-modern-modal textarea {
+  background:#ffffff !important;
+  color:#111827 !important;
+  border:1px solid #94a3b8 !important;
+}
+body#app-body[data-theme-mode="light"] #kasa-modern-modal input::placeholder,
+body#app-body[data-theme-mode="light"] #kasa-modern-modal textarea::placeholder {
+  color:#64748b !important;
+  opacity:1 !important;
+}
+body#app-body[data-theme-mode="light"] #kasa-modern-modal #kasa-modern-save {
+  background:#059669 !important;
+  color:#ffffff !important;
+}
+body#app-body[data-theme-mode="light"] #kasa-modern-modal #kasa-modern-cancel {
+  background:#e2e8f0 !important;
+  color:#1f2937 !important;
+}
+body#app-body[data-theme-mode="light"] #kasa-modern-modal #kasa-modern-x {
+  color:#334155 !important;
+}
+
+/* Koyu tema: koyu pencere ve açık metin */
+body#app-body[data-theme-mode="dark"] #kasa-modern-modal > div {
+  background:#0f172a !important;
+  color:#f8fafc !important;
+  border-color:#475569 !important;
+}
+body#app-body[data-theme-mode="dark"] #kasa-modern-modal > div * {
+  color:#f1f5f9 !important;
+  opacity:1 !important;
+}
+body#app-body[data-theme-mode="dark"] #kasa-modern-modal input,
+body#app-body[data-theme-mode="dark"] #kasa-modern-modal select,
+body#app-body[data-theme-mode="dark"] #kasa-modern-modal textarea {
+  background:#1e293b !important;
+  color:#ffffff !important;
+  border-color:#64748b !important;
+}
+body#app-body[data-theme-mode="dark"] #kasa-modern-modal #kasa-modern-save {
+  background:#059669 !important;
+  color:#ffffff !important;
+}
+body#app-body[data-theme-mode="dark"] #kasa-modern-modal #kasa-modern-cancel {
+  background:#334155 !important;
+  color:#ffffff !important;
+}
+</style>
+
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans h-full flex flex-col overflow-hidden select-none transition-colors duration-300" id="app-body">
 <!-- LİSANS / GİRİŞ EKRANI -->
@@ -6671,7 +6773,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected * { color:#0
             const aktif=kasaHesaplari.filter(k=>k.active!==false);
             if(!aktif.some(k=>String(k.id)===String(seciliManuelKasaId))) seciliManuelKasaId=String(aktif.find(k=>String(k.id)===ANA_NAKIT_KASA_ID)?.id || aktif[0]?.id || ANA_NAKIT_KASA_ID);
             root.innerHTML=aktif.map(k=>{const b=kasaHesapBakiyesi(k);return `<div onclick="manuelKasaSec('${String(k.id)}')" class="theme-card rounded-lg border ${String(seciliManuelKasaId)===String(k.id)?'cash-account-selected border-2 ring-2':'border-slate-700'} bg-slate-900 p-3 cursor-pointer">
-              <div class="flex justify-between gap-2"><div><div class="font-bold text-sm">${htmlGuvenli(k.name)}</div><div class="text-[10px] text-slate-400">${htmlGuvenli(k.type||'Özel Kasa')}${String(k.id)===ANA_NAKIT_KASA_ID?' · Ana kasa (silinemez)':''}${String(seciliManuelKasaId)===String(k.id)?' · SEÇİLİ':''}</div></div><span class="text-xs ${b<0?'text-red-400':'text-emerald-400'} font-mono font-bold">₺${b.toFixed(2)}</span></div>
+              <div class="flex justify-between gap-2"><div><div class="font-bold text-sm">${htmlGuvenli(k.name)}</div><div class="text-[10px] text-slate-400">${htmlGuvenli(k.type||'Özel Kasa')}${String(k.id)===ANA_NAKIT_KASA_ID?' · Ana kasa (silinemez)':''}${String(seciliManuelKasaId)===String(k.id)?' · <span class="cash-selected-label">SEÇİLİ</span>':''}</div></div><span class="text-xs ${b<0?'text-red-400':'text-emerald-400'} font-mono font-bold">₺${b.toFixed(2)}</span></div>
               <div class="flex flex-wrap items-center gap-2 mt-3">${String(seciliManuelKasaId)===String(k.id)?`<button class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded px-3 py-2 shadow" onclick="event.stopPropagation();manuelKasaKayitModaliniAc()"><i class="fa-solid fa-plus mr-1"></i> Hareket Ekle</button>`:''}<button class="text-xs bg-slate-700 hover:bg-slate-600 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiDuzenle('${String(k.id).replace(/'/g,"\\'")}')">Düzenle</button>${String(k.id)===ANA_NAKIT_KASA_ID?'<span class="text-[10px] text-amber-400 px-2 py-1">Ana kasa · Silinemez</span>':`<button class="text-xs bg-rose-900/70 hover:bg-rose-800 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiKapat('${String(k.id).replace(/'/g,"\\'")}')">Kapat</button>`}</div></div>`}).join('') || '<p class="text-xs text-slate-400">Henüz aktif kasa yok.</p>';
         }
         function manuelKasaSec(id) { seciliManuelKasaId=String(id); kasaHesaplariniCiz(); kasaEkraniniGuncelle(); }
