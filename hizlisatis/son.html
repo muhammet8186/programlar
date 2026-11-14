@@ -4172,7 +4172,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
 
             // Ayar kaydı ile ekrandaki anahtarın olası yükleme/senkron farkını gider.
             const toggle = document.getElementById('setting-receipt-qr-toggle');
-            const aktif = sistemAyarlari.satisTakipQrAktif === true || toggle?.checked === true;
+            const aktif = toggle ? Boolean(toggle.checked) : sistemAyarlari.satisTakipQrAktif === true;
             sistemAyarlari.satisTakipQrAktif = aktif;
             wrap.dataset.qrEnabled = aktif ? 'true' : 'false';
             wrap.style.setProperty('display', aktif ? 'flex' : 'none', 'important');
@@ -6519,7 +6519,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
         // Tekli, çoklu ve toplu fişlerde aynı satış takip QR görselini kullan.
         function satisTakipQrHtmlHazirla(sale, boyut = '32mm') {
             const qrToggle = document.getElementById('setting-receipt-qr-toggle');
-            const qrAktif = sistemAyarlari.satisTakipQrAktif === true || qrToggle?.checked === true;
+            const qrAktif = qrToggle ? Boolean(qrToggle.checked) : sistemAyarlari.satisTakipQrAktif === true;
             if (!qrAktif) return '';
             const qrCodeText = htmlGuvenli(sale?.trackingToken || sale?.id || '');
             try {
@@ -6564,7 +6564,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                     new window.QRCode(temp, {
                         text: payload, width: 480, height: 480,
                         colorDark: '#000000', colorLight: '#ffffff',
-                        correctLevel: window.QRCode.CorrectLevel ? window.QRCode.CorrectLevel.L : 1
+                        correctLevel: (window.QRCode.CorrectLevel && window.QRCode.CorrectLevel.L !== undefined) ? window.QRCode.CorrectLevel.L : 1
                     });
                     const canvas = temp.querySelector('canvas');
                     const img = temp.querySelector('img');
