@@ -6325,8 +6325,11 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             catch (hata) { console.error('Satış bildirimi gösterilemedi:', hata); }
 
             if (sistemAyarlari.otomatikYazdir === true) {
-                // Satış anındaki fiş, Satışlar > Tekrar Yazdır ile aynı standart şablonu kullanır.
-                try { fisGoster(sale); }
+                // Otomatik yazdırmada da Ayarlar > Fiş yazdırma biçimi tercihini uygula.
+                try {
+                    if (sistemAyarlari.fisYazdirmaModu === 'coklu') cokluUrunFisleriniYazdir(sale);
+                    else fisGoster(sale);
+                }
                 catch (hata) {
                     console.error('Satış kaydedildi ancak fiş gösterilemedi:', hata);
                     try { onayModaliniGoster('Satış tamamlandı', 'Satış kaydedildi ve sepet temizlendi; ancak fiş penceresi açılamadı.', null, true); } catch (_) {}
@@ -6404,7 +6407,8 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
         function tekFisYazdir(id) {
             const sale = (satisGecmisi || []).find(s => String(s.id) === String(id));
             if (!sale) { onayModaliniGoster('Fiş Bulunamadı', 'Seçilen satış kaydı bulunamadı.', null, true); return; }
-            fisGoster(sale);
+            if (sistemAyarlari.fisYazdirmaModu === 'coklu') cokluUrunFisleriniYazdir(sale);
+            else fisGoster(sale);
         }
 
         function tekFisPdfKaydet(id) {
