@@ -4490,6 +4490,31 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                 return window.dbSet(window.dbRef(window.database, yol), yerelDizi)
                     .catch(hata => console.error(`${etiket} Firebase’e kaydedilemedi:`, hata));
             }
+
+            // Kategori dizisinde sıra bilgisi dizinin kendi sırasıdır. Eleman bazlı
+            // birleştirme salt sıralama değişikliğini algılamadığı için listenin
+            // tamamını yeni sırasıyla yaz; aksi halde yeniden açılışta eski sıra döner.
+            if (degiskenAdi === 'kategorilerListesi') {
+                return window.dbTransaction(window.dbRef(window.database, yol), mevcut => [...(yerelDizi || [])])
+                    .then(sonuc => {
+                        if (!sonuc.committed) {
+                            console.warn(`${etiket}: Kategori sırası Firebase'e kaydedilemedi.`);
+                            return false;
+                        }
+                        const kaydedilen = sonuc.snapshot && sonuc.snapshot.val();
+                        const siraliKayit = Array.isArray(kaydedilen) ? kaydedilen : [...(yerelDizi || [])];
+                        firebaseSyncBaseline[alanAnahtari] = JSON.parse(JSON.stringify(siraliKayit));
+                        firebaseBaselinesiniKaydet(kokDugumGetir(), aktifDonemId);
+                        kategorilerListesi = siraliKayit;
+                        try { localStorage.setItem(yerelAnahtar, JSON.stringify(siraliKayit)); } catch (_) {}
+                        return true;
+                    })
+                    .catch(hata => {
+                        console.error(`${etiket} Firebase’e sıra bilgisiyle kaydedilemedi:`, hata);
+                        return false;
+                    });
+            }
+
             const onceki = Array.isArray(firebaseSyncBaseline[alanAnahtari]) ? firebaseSyncBaseline[alanAnahtari] : [];
             const oncekiMap = new Map(onceki.map(k => [firebaseKayitAnahtari(k), k]));
             const yerelMap = new Map((yerelDizi || []).map(k => [firebaseKayitAnahtari(k), k]));
