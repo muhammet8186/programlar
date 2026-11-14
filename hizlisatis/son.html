@@ -2563,6 +2563,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                 { anahtar: 'musteriler', eski: 'pos_customers', degisken: 'musteriler', tip: 'array' },
                 { anahtar: 'satis_gecmisi', eski: 'pos_sales', degisken: 'satisGecmisi', tip: 'array' },
                 { anahtar: 'kasa_hareketleri', eski: 'pos_cash_movements', degisken: 'kasaHareketleri', tip: 'array' },
+                { anahtar: 'kasa_hesaplari', eski: 'pos_cash_accounts', degisken: 'kasaHesaplari', tip: 'array' },
                 { anahtar: 'bekleyen_sepetler', eski: 'pos_suspended_carts', degisken: 'bekleyenSepetler', tip: 'array' },
                 { anahtar: 'sistem_kullanicilari', eski: 'pos_system_users', degisken: 'sistemKullanicilari', tip: 'users' }
             ];
@@ -2601,6 +2602,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                         else if (alan.degisken === 'musteriler') musteriler = veri;
                         else if (alan.degisken === 'satisGecmisi') satisGecmisi = veri;
                         else if (alan.degisken === 'kasaHareketleri') kasaHareketleri = veri;
+                        else if (alan.degisken === 'kasaHesaplari') kasaHesaplari = veri;
                         else if (alan.degisken === 'bekleyenSepetler') bekleyenSepetler = veri;
                         buluttanVeriAlindi = true;
                     }
@@ -4312,6 +4314,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                 ['musteriler', 'musteriler', 'pos_customers_v4'],
                 ['satis_gecmisi', 'satisGecmisi', 'pos_sales_v4'],
                 ['kasa_hareketleri', 'kasaHareketleri', 'pos_cash_movements_v4'],
+                ['kasa_hesaplari', 'kasaHesaplari', 'pos_cash_accounts_v1'],
                 ['bekleyen_sepetler', 'bekleyenSepetler', 'pos_suspended_carts_v4'],
                 ['acik_adisyonlar', 'acikAdisyonlar', 'pos_open_adisyon_v1']
             ];
@@ -4319,7 +4322,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                 firebaseLiveSyncUnsubscribers.push(window.dbOnValue(window.dbRef(window.database, `${root}/${period}/${cloudKey}`), snap => {
                     const raw = snap.exists() ? snap.val() : [];
                     const bulutDizisi = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? Object.values(raw) : []);
-                    const yerelDizi = variable === 'urunler' ? urunler : variable === 'kategorilerListesi' ? kategorilerListesi : variable === 'musteriler' ? musteriler : variable === 'satisGecmisi' ? satisGecmisi : variable === 'kasaHareketleri' ? kasaHareketleri : variable === 'bekleyenSepetler' ? bekleyenSepetler : acikAdisyonlar;
+                    const yerelDizi = variable === 'urunler' ? urunler : variable === 'kategorilerListesi' ? kategorilerListesi : variable === 'musteriler' ? musteriler : variable === 'satisGecmisi' ? satisGecmisi : variable === 'kasaHareketleri' ? kasaHareketleri : variable === 'kasaHesaplari' ? kasaHesaplari : variable === 'bekleyenSepetler' ? bekleyenSepetler : acikAdisyonlar;
                     const baseline = Array.isArray(firebaseSyncBaseline[cloudKey]) ? firebaseSyncBaseline[cloudKey] : [];
                     const merged = firebaseDizileriniUcYonluBirlestir(baseline, yerelDizi, bulutDizisi);
                     if (variable === 'urunler') urunler = merged;
@@ -4327,6 +4330,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                     else if (variable === 'musteriler') musteriler = merged;
                     else if (variable === 'satisGecmisi') satisGecmisi = merged;
                     else if (variable === 'kasaHareketleri') kasaHareketleri = merged;
+                    else if (variable === 'kasaHesaplari') kasaHesaplari = merged;
                     else if (variable === 'bekleyenSepetler') bekleyenSepetler = merged;
                     else if (variable === 'acikAdisyonlar') acikAdisyonlar = merged;
                     firebaseSyncBaseline[cloudKey] = JSON.parse(JSON.stringify(bulutDizisi));
@@ -4334,13 +4338,13 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                     try {
                         const periods = yerelKayitOku('pos_period_data_v1', {});
                         if (periods && aktifDonemId) {
-                            periods[aktifDonemId] = { ...(periods[aktifDonemId] || {}), urunler, kategorilerListesi, musteriler, satisGecmisi, kasaHareketleri, bekleyenSepetler, acikAdisyonlar };
+                            periods[aktifDonemId] = { ...(periods[aktifDonemId] || {}), urunler, kategorilerListesi, musteriler, satisGecmisi, kasaHareketleri, kasaHesaplari, bekleyenSepetler, acikAdisyonlar };
                             localStorage.setItem('pos_period_data_v1', JSON.stringify(periods));
                         }
                     } catch (_) {}
                     // Yerel tarafta bulutta olmayan bir değişiklik varsa, yalnızca bu alanı işlemli biçimde gönder.
                     if (JSON.stringify(merged) !== JSON.stringify(bulutDizisi)) {
-                        const labels = { urunler:'Ürünler', kategoriler:'Kategoriler', musteriler:'Müşteriler', satis_gecmisi:'Satış geçmişi', kasa_hareketleri:'Kasa hareketleri', bekleyen_sepetler:'Bekleyen sepetler', acik_adisyonlar:'Açık adisyonlar' };
+                        const labels = { urunler:'Ürünler', kategoriler:'Kategoriler', musteriler:'Müşteriler', satis_gecmisi:'Satış geçmişi', kasa_hareketleri:'Kasa hareketleri', kasa_hesaplari:'Kasa hesapları', bekleyen_sepetler:'Bekleyen sepetler', acik_adisyonlar:'Açık adisyonlar' };
                         firebaseDizisiniGuvenliKaydet(`${root}/${period}/${cloudKey}`, merged, labels[cloudKey] || cloudKey, cloudKey, variable, localKey);
                     }
                     if (variable === 'urunler' || variable === 'kategorilerListesi') { kategoriListesiniGuncelle(); kategorileriOlustur(); urunleriGoster(); }
@@ -4399,6 +4403,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                 else if (degiskenAdi === 'musteriler') musteriler = kaydedilen;
                 else if (degiskenAdi === 'satisGecmisi') satisGecmisi = kaydedilen;
                 else if (degiskenAdi === 'kasaHareketleri') kasaHareketleri = kaydedilen;
+                else if (degiskenAdi === 'kasaHesaplari') kasaHesaplari = kaydedilen;
                 else if (degiskenAdi === 'bekleyenSepetler') bekleyenSepetler = kaydedilen;
                 else if (degiskenAdi === 'acikAdisyonlar') acikAdisyonlar = kaydedilen;
                 try { localStorage.setItem(yerelAnahtar, JSON.stringify(kaydedilen)); } catch (_) {}
@@ -4427,7 +4432,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             try {
                 if (aktifDonemId && donemVerisiIlklendi) {
                     const allPeriods = yerelKayitOku('pos_period_data_v1', {});
-                    allPeriods[aktifDonemId] = { urunler, musteriler, satisGecmisi, kasaHareketleri, bekleyenSepetler, kategorilerListesi, acikAdisyonlar };
+                    allPeriods[aktifDonemId] = { urunler, musteriler, satisGecmisi, kasaHareketleri, kasaHesaplari, bekleyenSepetler, kategorilerListesi, acikAdisyonlar };
                     localStorage.setItem('pos_period_data_v1', JSON.stringify(allPeriods));
                     localStorage.setItem('pos_periods_v1', JSON.stringify(donemler));
                 }
@@ -4442,6 +4447,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/musteriler`, musteriler, 'Müşteriler', 'musteriler', 'musteriler', 'pos_customers_v4');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/satis_gecmisi`, satisGecmisi, 'Satış geçmişi', 'satis_gecmisi', 'satisGecmisi', 'pos_sales_v4');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/kasa_hareketleri`, kasaHareketleri, 'Kasa hareketleri', 'kasa_hareketleri', 'kasaHareketleri', 'pos_cash_movements_v4');
+                firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/kasa_hesaplari`, kasaHesaplari, 'Kasa hesapları', 'kasa_hesaplari', 'kasaHesaplari', 'pos_cash_accounts_v1');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/bekleyen_sepetler`, bekleyenSepetler, 'Bekleyen sepetler', 'bekleyen_sepetler', 'bekleyenSepetler', 'pos_suspended_carts_v4');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/acik_adisyonlar`, acikAdisyonlar, 'Açık adisyonlar', 'acik_adisyonlar', 'acikAdisyonlar', 'pos_open_adisyon_v1');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/sistem_kullanicilari`, sistemKullanicilari, 'Kullanıcılar', 'sistem_kullanicilari', 'sistemKullanicilari', 'pos_system_users_v4');
