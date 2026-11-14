@@ -6614,11 +6614,16 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 const detailLabel = `${m.customerName ? `· ${htmlGuvenli(m.customerName)} ` : ''}${m.note ? `— ${htmlGuvenli(m.note)}` : (m.saleId ? `(${htmlGuvenli(m.saleId)})` : '')}`;
                 const rowClick = m.movementKind === 'manual' ? '' : `onclick="kasaHareketindenSatisiBul('${encodedSaleId}', ${movementIndex})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();kasaHareketindenSatisiBul('${encodedSaleId}', ${movementIndex});}"`;
                 const amountColor = m.type === 'Gider' || m.type === 'Borç' ? 'text-red-600 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400';
+                // Borç/Alacak ana satırında ilk tutarı değil, yapılan tahsilat/ödemeler
+                // düşüldükten sonra kalan bakiyeyi göster. Ödeme ayrıca yeşil hareket olarak kalır.
+                const displayedAmount = m.movementKind === 'manual' && ['Borç','Alacak'].includes(m.type)
+                    ? Math.max(0, (Number(m.amount) || 0) - (Number(m.paidAmount) || 0))
+                    : (Number(m.amount) || 0);
                 return `
                 <tr class="${hoverClass} transition focus:outline-none" ${m.movementKind === 'manual' ? '' : 'role="button" tabindex="0"'} ${rowClick} title="${m.movementKind === 'manual' ? 'Manuel kasa hareketi' : 'İlgili satışı satış geçmişinde bul'}">
                     <td class="p-2.5 text-xs opacity-70">${safeDate}</td>
                     <td class="p-2.5 text-xs"><span class="${badgeBg} px-2 py-0.5 rounded border font-medium">${safeType} ${detailLabel}</span>${m.user ? `<div class="text-[10px] opacity-60 mt-1">${htmlGuvenli(m.user)}</div>` : ''}</td>
-                    <td class="p-2.5 text-right font-mono font-bold ${amountColor}">₺${(Number(m.amount) || 0).toFixed(2)}</td>
+                    <td class="p-2.5 text-right font-mono font-bold ${amountColor}">₺${displayedAmount.toFixed(2)}</td>
                     <td class="p-2.5 text-right whitespace-nowrap">${m.movementKind === 'manual' ? `${(['Alacak','Borç'].includes(m.type) ? `<button type="button" onclick="event.stopPropagation();manuelKasaGecmisiniAc('${String(m.id).replace(/'/g,'')}')" class="text-[10px] font-bold rounded bg-sky-700 text-white px-2 py-1 mr-1">Geçmiş</button>` : '')}${(['Alacak','Borç'].includes(m.type) && (Number(m.amount)||0) - (Number(m.paidAmount)||0) > 0.009 ? `<button type="button" onclick="event.stopPropagation();manuelKasaTahsilatAc(${movementIndex})" class="text-[10px] font-bold rounded bg-emerald-600 text-white px-2 py-1 mr-1">${m.type === 'Alacak' ? 'Tahsilat' : 'Ödeme'}</button>` : '')}<button type="button" onclick="event.stopPropagation();kasaHareketiDuzenlemeAc(${movementIndex})" class="text-blue-400 hover:text-blue-300 px-2 py-1" title="Düzenle" aria-label="Düzenle"><i class="fa-solid fa-pen"></i></button><button type="button" onclick="event.stopPropagation();kasaHareketiniSil(${movementIndex})" class="text-red-400 hover:text-red-300 px-2 py-1" title="Sil" aria-label="Sil"><i class="fa-solid fa-trash"></i></button>` : m.movementKind === 'manual-settlement' ? `<span class="text-[10px] opacity-60">${m.settlementType === 'Alacak' ? 'Tahsilat kaydı' : 'Borç ödeme kaydı'}</span>` : `<span class="text-[10px] opacity-50">İşlem kaydı</span>`}</td>
                 </tr>
                 `;
