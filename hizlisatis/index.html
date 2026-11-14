@@ -267,6 +267,8 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
             body.printing-receipt #receipt-print-area, body.printing-receipt #receipt-print-area *,
             body.printing-label #label-print-area, body.printing-label #label-print-area * { visibility: visible !important; color: #000000 !important; background-color: #ffffff !important; }
             body.printing-receipt #receipt-print-area { display: block !important; position: static !important; width: 100% !important; color: #000000 !important; padding: 2mm !important; margin: 0 !important; box-shadow: none !important; }
+            body.printing-receipt #rec-tracking-qr-wrap { display: block !important; page-break-inside: avoid !important; break-inside: avoid !important; }
+            body.printing-receipt #rec-tracking-qr img, body.printing-receipt #rec-tracking-qr canvas { display: inline-block !important; width: 24mm !important; height: 24mm !important; image-rendering: pixelated !important; }
             body.printing-label #label-print-area { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 2mm !important; position: static !important; width: 100% !important; color: #000000 !important; padding: 2mm !important; margin: 0 !important; box-shadow: none !important; }
             body.printing-label .label-item { break-inside: avoid; page-break-inside: avoid; border: 0 !important; outline: 0 !important; box-shadow: none !important; }
             .no-print { display: none !important; }
@@ -1298,6 +1300,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 </div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
 <h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2">Fiş İçeriği ve Yazdırma Tercihleri</h3>
 <p class="text-[10px] text-slate-400">Fişte görünmesini istediğiniz alanları seçin. Seçimler otomatik kaydedilir.</p>
+<label class="flex items-center justify-between gap-3 rounded border border-slate-800 bg-slate-950 p-3 text-xs"><span><b>Satış takip QR kodunu fişte göster</b><small class="block text-slate-400 mt-1">Her satış için benzersiz QR kod oluşturur. Çevrimiçi durum sayfası sunucu bağlantısı tamamlandığında etkinleşir.</small></span><input class="w-4 h-4 accent-emerald-500" id="setting-receipt-qr-toggle" onchange="satisTakipQrAyariniDegistir(this.checked)" type="checkbox"/></label>
 <div class="space-y-1.5" id="receipt-fields-list"></div>
 <p class="text-[10px] text-slate-500">Oklarla alanların fişteki sırasını değiştirin; kutucuğu kapatarak alanı gizleyebilirsiniz.</p>
 <div class="border-t border-slate-800 pt-3 space-y-2">
@@ -1594,6 +1597,11 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 <div class="space-y-1 border-t border-dashed border-slate-300 pt-2" id="rec-custom-fields" style="display:none"></div>
 <div class="text-center text-[9px] text-slate-400 border-t border-dashed border-slate-300 pt-2.5">
 <p id="rec-thanks">Bizi tercih ettiğiniz için teşekkür ederiz!</p>
+</div>
+<div id="rec-tracking-qr-wrap" class="text-center pt-2" style="display:none;">
+<div id="rec-tracking-qr" class="inline-block bg-white p-1"></div>
+<p class="text-[9px] font-bold text-black mt-1">SATIŞ TAKİP KODU</p>
+<p id="rec-tracking-code" class="text-[8px] text-black"></p>
 </div>
 </div>
 <div class="flex space-x-2 pt-2 no-print font-sans">
@@ -1955,6 +1963,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             paraUstuAktif: false,
             parcaliOdemeAktif: false,
             fisYazdirmaModu: 'toplu',
+            satisTakipQrAktif: false,
             tema: 'dark',
             satisYaziBoyutu: 14,
             firebaseAktif: true,
@@ -3264,6 +3273,8 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             if (receiptMode) receiptMode.value = sistemAyarlari.fisYazdirmaModu || 'toplu';
             const receiptWidth = document.getElementById('setting-receipt-width');
             if (receiptWidth) receiptWidth.value = String(sistemAyarlari.fisKagitGenisligi || 58);
+            const qrToggle = document.getElementById('setting-receipt-qr-toggle');
+            if (qrToggle) qrToggle.checked = sistemAyarlari.satisTakipQrAktif === true;
             yazdirmaYontemiAyariniYukle();
             fisAlanlariListesiniCiz();
             
@@ -3616,6 +3627,43 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
         function yazdirmaAyariniDegistir(el) {
             sistemAyarlari.otomatikYazdir = Boolean(el.checked);
             sistemAyarlariKaydet();
+        }
+
+        function satisTakipQrAyariniDegistir(aktif) {
+            sistemAyarlari.satisTakipQrAktif = Boolean(aktif);
+            sistemAyarlariKaydet();
+            islemBildirimiGoster(aktif ? 'Satış takip QR kodu fişlerde gösterilecek.' : 'Satış takip QR kodu fişlerden gizlendi.');
+        }
+
+        function satisTakipQrOlustur(sale) {
+            const wrap = document.getElementById('rec-tracking-qr-wrap');
+            const target = document.getElementById('rec-tracking-qr');
+            const codeLabel = document.getElementById('rec-tracking-code');
+            if (!wrap || !target || !codeLabel) return;
+            target.innerHTML = '';
+            const aktif = sistemAyarlari.satisTakipQrAktif === true;
+            wrap.style.display = aktif ? '' : 'none';
+            if (!aktif) return;
+            if (!sale.trackingToken) {
+                try {
+                    const bytes = new Uint8Array(16);
+                    if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(bytes);
+                    else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+                    sale.trackingToken = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+                    if (typeof satisGecmisi !== 'undefined') {
+                        const idx = satisGecmisi.findIndex(x => String(x.id) === String(sale.id));
+                        if (idx >= 0) satisGecmisi[idx].trackingToken = sale.trackingToken;
+                        try { durumuKaydet(); } catch (_) {}
+                    }
+                } catch (e) { console.warn('Satış takip kodu oluşturulamadı:', e); }
+            }
+            const payload = `HIZLIPOS|SALE|${sale.id}|${sale.trackingToken || sale.id}`;
+            codeLabel.textContent = String(sale.id || '');
+            if (typeof QRCode === 'undefined') {
+                target.textContent = 'QR kütüphanesi yüklenemedi';
+                return;
+            }
+            new QRCode(target, { text: payload, width: 96, height: 96, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
         }
 
         // Yazdırma yöntemi cihaz-özeldir; Firebase ile diğer cihazlara aktarılmaz.
@@ -5471,6 +5519,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 
             const sale = {
                 id: 'S-' + Date.now().toString(),
+                trackingToken: '',
                 date: new Date().toLocaleString('tr-TR'),
                 kasiyer: aktifKullaniciAdi,
                 type: type,
@@ -5685,6 +5734,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                     </div>
                 </div>
             `).join('');
+            satisTakipQrOlustur(sale);
 
             const modal = document.getElementById('modal-receipt');
             modal.classList.remove('hidden');
