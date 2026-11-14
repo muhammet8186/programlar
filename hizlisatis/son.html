@@ -237,6 +237,11 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
         #products-grid .sales-product-card.is-drop-target { outline: 2px dashed var(--lm-accent, #10b981); outline-offset: 2px; }
         #products-grid .product-drag-handle { touch-action: none; cursor: grab; }
         #products-grid .product-drag-handle:active { cursor: grabbing; }
+        #category-container .category-drag-handle { touch-action: none; cursor: grab; }
+        #category-container .category-drag-handle:active { cursor: grabbing; }
+        #category-container button.category-drop-target { outline: 2px dashed var(--lm-accent, #10b981); outline-offset: 2px; }
+        #category-container button.category-is-dragging { opacity: .45; }
+
         #products-grid .sales-product-card { min-width: 0; min-height: calc(var(--sales-font-size) * 5.7); padding: clamp(4px, calc(var(--sales-font-size) * .38), 9px); }
         #products-grid .sales-product-name { font-size: var(--product-name-size) !important; line-height: 1.2; overflow-wrap: anywhere; word-break: normal; }
         #products-grid .sales-product-price { font-size: calc(var(--sales-font-size) * .72) !important; padding: clamp(2px, calc(var(--sales-font-size) * .16), 4px); }
@@ -5738,13 +5743,15 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
             const tema = sistemAyarlari.tema || 'dark';
             const isLight = sistemAyarlari.temaModu === 'light' || (sistemAyarlari.temaModu !== 'dark' && ['light', 'arctic', 'sand', 'mint'].includes(tema));
             
+            const kategoriTasimaYetkisi = islemYetkisiVar('sales_product_order');
             container.innerHTML = kategoriler.map(cat => `
-                <button onclick="kategoriSec('${cat}')" type="button" class="px-3 py-1 rounded text-xs font-semibold whitespace-nowrap transition border ${
-                    secilenKategori === cat 
-                        ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-900/20' 
+                <button data-category-name="${htmlGuvenli(cat)}" onclick="kategoriSec(this.dataset.categoryName)" type="button" class="category-sales-tab px-3 py-1 rounded text-xs font-semibold whitespace-nowrap transition border inline-flex items-center gap-1.5 ${
+                    secilenKategori === cat
+                        ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-900/20'
                         : (isLight ? 'bg-white text-slate-800 border-slate-300 hover:bg-slate-100 shadow-sm' : 'theme-btn-alt bg-slate-800 text-slate-300 border-slate-700')
                 }">
-                    ${cat === 'TÜMÜ' ? 'Tüm Ürünler' : cat}
+                    ${kategoriTasimaYetkisi && cat !== 'TÜMÜ' ? '<span class="category-drag-handle opacity-60 hover:opacity-100 px-0.5" title="Tut ve sürükleyerek kategori sırasını değiştir" aria-label="Kategoriyi sürükleyerek taşı"><i class="fa-solid fa-grip-vertical"></i></span>' : ''}
+                    <span>${cat === 'TÜMÜ' ? 'Tüm Ürünler' : htmlGuvenli(cat)}</span>
                 </button>
             `).join('');
         }
@@ -5756,6 +5763,25 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
 
         function kategoriSec(cat) {
             secilenKategori = cat;
+            kategorileriOlustur();
+            urunleriGoster();
+        }
+
+        function kategoriSirasiniHedefeTasi(kaynakAd, hedefAd, hedefSonrasi) {
+            if (!islemYetkisiGerekli('sales_product_order', 'Satış panelinde kategorilerin yerini değiştirme yetkiniz yok.')) return;
+            if (!kaynakAd || !hedefAd || kaynakAd === hedefAd) return;
+            const kaynakIndex = kategorilerListesi.indexOf(kaynakAd);
+            const hedefIndexIlk = kategorilerListesi.indexOf(hedefAd);
+            if (kaynakIndex < 0 || hedefIndexIlk < 0) return;
+
+            const [tasInanKategori] = kategorilerListesi.splice(kaynakIndex, 1);
+            let hedefIndex = kategorilerListesi.indexOf(hedefAd);
+            if (hedefIndex < 0) return;
+            if (hedefSonrasi) hedefIndex += 1;
+            kategorilerListesi.splice(hedefIndex, 0, tasInanKategori);
+
+            durumuKaydet();
+            kategoriListesiniGuncelle();
             kategorileriOlustur();
             urunleriGoster();
         }
@@ -8914,6 +8940,45 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                 const rect = card.getBoundingClientRect();
                 return y > rect.top + rect.height / 2 || (Math.abs(y - (rect.top + rect.height / 2)) < 4 && x > rect.left + rect.width / 2);
             };
+            // Satış ekranındaki kategori sekmelerini ürün kartları gibi tutup sürükleyerek sırala.
+            let categoryDrag = null;
+            const getCategoryTabAt = (x, y) => document.elementFromPoint(x, y)?.closest('#category-container .category-sales-tab[data-category-name]') || null;
+            const clearCategoryDragMarks = () => document.querySelectorAll('#category-container .category-sales-tab.category-is-dragging, #category-container .category-sales-tab.category-drop-target').forEach(tab => tab.classList.remove('category-is-dragging', 'category-drop-target'));
+            document.addEventListener('pointerdown', e => {
+                const handle = e.target.closest('#category-container .category-drag-handle');
+                if (!handle || (e.pointerType === 'mouse' && e.button !== 0) || !islemYetkisiVar('sales_product_order')) return;
+                const tab = handle.closest('.category-sales-tab[data-category-name]');
+                if (!tab) return;
+                e.preventDefault();
+                categoryDrag = { pointerId: e.pointerId, sourceName: tab.dataset.categoryName, startX: e.clientX, startY: e.clientY, moved: false };
+                tab.classList.add('category-is-dragging');
+                try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+            }, { passive: false });
+            document.addEventListener('pointermove', e => {
+                if (!categoryDrag || categoryDrag.pointerId !== e.pointerId) return;
+                if (Math.abs(e.clientX - categoryDrag.startX) > 7 || Math.abs(e.clientY - categoryDrag.startY) > 7) categoryDrag.moved = true;
+                if (!categoryDrag.moved) return;
+                e.preventDefault();
+                const target = getCategoryTabAt(e.clientX, e.clientY);
+                document.querySelectorAll('#category-container .category-sales-tab.category-drop-target').forEach(tab => tab.classList.remove('category-drop-target'));
+                if (target && target.dataset.categoryName !== categoryDrag.sourceName && target.dataset.categoryName !== 'TÜMÜ') target.classList.add('category-drop-target');
+            }, { passive: false });
+            const categoryDragBitir = e => {
+                if (!categoryDrag || (e && categoryDrag.pointerId !== e.pointerId)) return;
+                const current = categoryDrag;
+                const target = e && e.type !== 'pointercancel' ? getCategoryTabAt(e.clientX, e.clientY) : null;
+                clearCategoryDragMarks();
+                categoryDrag = null;
+                if (current.moved && target && target.dataset.categoryName !== current.sourceName && target.dataset.categoryName !== 'TÜMÜ') {
+                    tiklamayiOnle();
+                    const rect = target.getBoundingClientRect();
+                    const after = e.clientX > rect.left + rect.width / 2;
+                    kategoriSirasiniHedefeTasi(current.sourceName, target.dataset.categoryName, after);
+                }
+            };
+            document.addEventListener('pointerup', categoryDragBitir);
+            document.addEventListener('pointercancel', categoryDragBitir);
+
             document.addEventListener('pointerdown', e => {
                 const handle = e.target.closest('#products-grid .product-drag-handle');
                 if (!handle || (e.pointerType === 'mouse' && e.button !== 0) || !islemYetkisiVar('sales_product_order')) return;
