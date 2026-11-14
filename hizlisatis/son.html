@@ -613,6 +613,24 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
   }
 }
 </style>
+
+<style id="cash-account-selection-theme">
+body#app-body[data-theme-mode="light"] .cash-account-selected {
+  background: linear-gradient(135deg,#1e293b,#334155) !important;
+  border-color:#0f172a !important; outline:2px solid #64748b !important;
+  color:#ffffff !important; box-shadow:0 0 0 3px rgba(15,23,42,.16),0 8px 20px rgba(15,23,42,.18) !important;
+}
+body#app-body[data-theme-mode="light"] .cash-account-selected * { color:#ffffff !important; }
+body#app-body[data-theme-mode="dark"] .cash-account-selected,
+body#app-body:not([data-theme-mode="light"]) .cash-account-selected {
+  background:linear-gradient(135deg,#f8fafc,#dbeafe) !important;
+  border-color:#ffffff !important; outline:2px solid #93c5fd !important;
+  color:#0f172a !important; box-shadow:0 0 0 3px rgba(147,197,253,.2),0 8px 20px rgba(0,0,0,.28) !important;
+}
+body#app-body[data-theme-mode="dark"] .cash-account-selected *,
+body#app-body:not([data-theme-mode="light"]) .cash-account-selected * { color:#0f172a !important; }
+</style>
+
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans h-full flex flex-col overflow-hidden select-none transition-colors duration-300" id="app-body">
 <!-- LİSANS / GİRİŞ EKRANI -->
@@ -948,17 +966,16 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 <p class="text-xs text-slate-400 mt-0.5">Nakit, kredi kartı ve tahsilat durumu.</p>
 </div>
 </div>
-<div class="theme-subbar flex flex-wrap gap-2 rounded-lg border border-slate-800 bg-slate-950/70 p-2">
+<div class="theme-subbar flex flex-wrap items-center gap-2 rounded-lg border border-slate-800 bg-slate-950/70 p-2">
 <button class="px-3 py-2 rounded-md text-xs font-bold bg-emerald-600 text-white" id="cash-tab-sales" onclick="kasaAltBolumunuDegistir('sales')" type="button"><i class="fa-solid fa-cash-register mr-1"></i> Satış Kasası</button>
 <button class="px-3 py-2 rounded-md text-xs font-bold text-slate-400 hover:text-emerald-400" id="cash-tab-manual" onclick="kasaAltBolumunuDegistir('manual')" type="button"><i class="fa-solid fa-wallet mr-1"></i> Kasa (Manuel)</button>
-</div>
-<div class="theme-card bg-slate-900 p-2.5 rounded-lg border border-slate-800 shadow-lg hidden flex flex-wrap items-center justify-between gap-2" id="cash-manual-panel">
-<div><h3 class="text-sm font-bold flex items-center gap-2"><i class="fa-solid fa-arrow-right-arrow-left text-emerald-500"></i> Kasa (Manuel)</h3></div>
-
-<div class="flex flex-wrap gap-2 items-center justify-between rounded-lg border border-slate-700 p-3 theme-card" id="cash-accounts-toolbar">
+<div class="flex flex-wrap gap-2 items-center justify-between rounded-lg border border-slate-700 p-3 theme-card" id="cash-accounts-toolbar" class="hidden items-center gap-2 ml-auto">
   <div><h3 class="font-bold text-sm"><i class="fa-solid fa-vault mr-1 text-emerald-500"></i> Kasa Yönetimi</h3><p class="text-xs text-slate-400">Nakit, POS, banka ve özel kasalar</p></div>
   <div class="flex gap-2"><button type="button" onclick="kasaHesabiEkle()" class="bg-emerald-600 text-white rounded px-3 py-2 text-xs font-bold"><i class="fa-solid fa-plus mr-1"></i> Kasa Ekle</button><button type="button" onclick="kasaTransferiYap()" class="bg-blue-600 text-white rounded px-3 py-2 text-xs font-bold"><i class="fa-solid fa-right-left mr-1"></i> Transfer</button></div>
 </div>
+
+</div>
+<div class="hidden" id="cash-manual-panel">
 <div id="cash-accounts-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3"></div>
 </div>
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -6546,6 +6563,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             });
             document.querySelectorAll('[data-cash-view="sales"]').forEach(el => { if (el.tagName === 'BUTTON') el.classList.toggle('hidden', aktifKasaAltBolumu !== 'sales'); });
             const formPanel = document.getElementById('cash-manual-panel'); if (formPanel) formPanel.classList.toggle('hidden', aktifKasaAltBolumu !== 'manual');
+            const accountToolbar = document.getElementById('cash-accounts-toolbar'); if (accountToolbar) { accountToolbar.classList.toggle('hidden', aktifKasaAltBolumu !== 'manual'); accountToolbar.classList.toggle('flex', aktifKasaAltBolumu === 'manual'); }
             const title = document.getElementById('cash-movement-title'); if (title) title.textContent = aktifKasaAltBolumu === 'sales' ? 'Satış Kasası Hareketleri' : 'Kasa (Manuel) Hareketleri';
             const typeFilter = document.getElementById('cash-filter-type');
             if (typeFilter) {
@@ -6574,7 +6592,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             const root=document.getElementById('cash-accounts-grid'); if(!root)return;
             const aktif=kasaHesaplari.filter(k=>k.active!==false);
             if(!aktif.some(k=>String(k.id)===String(seciliManuelKasaId))) seciliManuelKasaId=String(aktif.find(k=>String(k.id)===ANA_NAKIT_KASA_ID)?.id || aktif[0]?.id || ANA_NAKIT_KASA_ID);
-            root.innerHTML=aktif.map(k=>{const b=kasaHesapBakiyesi(k);return `<div onclick="manuelKasaSec('${String(k.id)}')" class="theme-card rounded-lg border ${String(seciliManuelKasaId)===String(k.id)?'border-emerald-500 ring-2 ring-emerald-500 bg-emerald-950/30':'border-slate-700'} bg-slate-900 p-3 cursor-pointer">
+            root.innerHTML=aktif.map(k=>{const b=kasaHesapBakiyesi(k);return `<div onclick="manuelKasaSec('${String(k.id)}')" class="theme-card rounded-lg border ${String(seciliManuelKasaId)===String(k.id)?'cash-account-selected border-2 ring-2':'border-slate-700'} bg-slate-900 p-3 cursor-pointer">
               <div class="flex justify-between gap-2"><div><div class="font-bold text-sm">${htmlGuvenli(k.name)}</div><div class="text-[10px] text-slate-400">${htmlGuvenli(k.type||'Özel Kasa')}${String(k.id)===ANA_NAKIT_KASA_ID?' · Ana kasa (silinemez)':''}${String(seciliManuelKasaId)===String(k.id)?' · SEÇİLİ':''}</div></div><span class="text-xs ${b<0?'text-red-400':'text-emerald-400'} font-mono font-bold">₺${b.toFixed(2)}</span></div>
               <div class="flex flex-wrap items-center gap-2 mt-3">${String(seciliManuelKasaId)===String(k.id)?`<button class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded px-3 py-2 shadow" onclick="event.stopPropagation();manuelKasaKayitModaliniAc()"><i class="fa-solid fa-plus mr-1"></i> Hareket Ekle</button>`:''}<button class="text-xs bg-slate-700 hover:bg-slate-600 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiDuzenle('${String(k.id).replace(/'/g,"\\'")}')">Düzenle</button>${String(k.id)===ANA_NAKIT_KASA_ID?'<span class="text-[10px] text-amber-400 px-2 py-1">Ana kasa · Silinemez</span>':`<button class="text-xs bg-rose-900/70 hover:bg-rose-800 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiKapat('${String(k.id).replace(/'/g,"\\'")}')">Kapat</button>`}</div></div>`}).join('') || '<p class="text-xs text-slate-400">Henüz aktif kasa yok.</p>';
         }
