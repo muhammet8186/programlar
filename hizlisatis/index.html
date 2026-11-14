@@ -571,12 +571,27 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
   font-weight: 700 !important;
 }
 @media print {
+  /* Yazıcı çıktısında ürün listesinin üst ayırıcısını gerçek çizgi olarak üret. */
+  @page { margin: 0 !important; }
   body.printing-receipt #receipt-print-area #rec-items-list {
-    border-top: 1px solid #222 !important;
-    padding-top: 5px !important;
-    margin-top: 5px !important;
+    display: block !important;
+    border: 0 !important;
+    border-top: 0 !important;
+    padding-top: 0 !important;
+    margin-top: 0 !important;
     color: #000 !important;
     font-weight: 700 !important;
+    position: relative !important;
+  }
+  body.printing-receipt #receipt-print-area #rec-items-list::before {
+    content: "" !important;
+    display: block !important;
+    width: 100% !important;
+    height: 0 !important;
+    border-top: 1px solid #111 !important;
+    margin: 5px 0 5px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   body.printing-receipt #receipt-print-area #rec-items-list > div,
   body.printing-receipt #receipt-print-area #rec-items-list > div > span,
@@ -5700,7 +5715,12 @@ und:#fff"><h2 style="text-align:center;font-size:19px;font-weight:900;margin:0 0
             window.print();
         }
 
-        function yazdirmaTetikle() { fisKagitGenisliginiUygula(); window.print(); }
+        function yazdirmaTetikle() {
+            // Yazdırma görünümünü window.print() çağrısından önce etkinleştir.
+            document.body.classList.add('printing-receipt');
+            fisKagitGenisliginiUygula();
+            requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+        }
 
         function stokFiltresiAyarla(filterType) {
             mevcutStokFiltresi = filterType;
