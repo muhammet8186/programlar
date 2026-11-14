@@ -1316,10 +1316,24 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
 <label class="text-[10px] text-slate-400">Başlangıç tarihi<input aria-label="Manuel kasa başlangıç tarihi" class="theme-input mt-1 w-full bg-slate-950 border border-slate-700 rounded-md px-2.5 py-2 text-xs" id="cash-filter-date-from" onchange="kasaEkraniniGuncelle()" type="date"/></label>
 <label class="text-[10px] text-slate-400">Bitiş tarihi<input aria-label="Manuel kasa bitiş tarihi" class="theme-input mt-1 w-full bg-slate-950 border border-slate-700 rounded-md px-2.5 py-2 text-xs" id="cash-filter-date-to" onchange="kasaEkraniniGuncelle()" type="date"/></label>
 </div>
+<div class="hidden sm:col-span-2 grid grid-cols-2 gap-2" data-cash-view="sales">
+<label class="text-[10px] text-slate-500">Satış başlangıç tarihi<input aria-label="Satış kasası başlangıç tarihi" class="theme-input mt-1 w-full border rounded-md px-2.5 py-2 text-xs" id="sales-cash-date-from" onchange="kasaEkraniniGuncelle()" type="date"/></label>
+<label class="text-[10px] text-slate-500">Satış bitiş tarihi<input aria-label="Satış kasası bitiş tarihi" class="theme-input mt-1 w-full border rounded-md px-2.5 py-2 text-xs" id="sales-cash-date-to" onchange="kasaEkraniniGuncelle()" type="date"/></label>
+</div>
 </div>
 <button class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded shadow font-medium flex items-center justify-center gap-1" data-cash-view="sales" onclick="kasaHareketleriExcelAktar('sales')" type="button"><i class="fa-solid fa-file-excel"></i> Satış Kasası Excel</button>
 <button class="hidden bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded shadow font-medium items-center justify-center gap-1" data-cash-view="manual" onclick="kasaHareketleriExcelAktar('manual')" type="button"><i class="fa-solid fa-file-excel"></i> Manuel Kasa Excel</button>
 </div>
+</div>
+<div data-cash-view="sales" class="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-slate-900">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <div>
+      <div class="text-xs font-semibold text-slate-700">Seçilen tarih aralığı satış kasası toplamı</div>
+      <div class="text-xl font-bold font-mono text-blue-800" id="sales-cash-range-total">₺0,00</div>
+      <div class="text-[10px] text-slate-600" id="sales-cash-range-caption">Tarih seçilmediğinde tüm satış kasası hareketleri gösterilir.</div>
+    </div>
+    <button type="button" class="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800" onclick="document.getElementById('sales-cash-date-from').value='';document.getElementById('sales-cash-date-to').value='';kasaEkraniniGuncelle()">Tarihleri temizle</button>
+  </div>
 </div>
 <div class="overflow-x-auto flex-1">
 <table class="w-full text-left text-xs md:text-sm">
@@ -7112,8 +7126,8 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
 
             const filterQuery = (document.getElementById('cash-filter-search')?.value || '').trim().toLocaleLowerCase('tr-TR');
             const filterType = document.getElementById('cash-filter-type')?.value || '';
-            const dateFrom = document.getElementById('cash-filter-date-from')?.value || '';
-            const dateTo = document.getElementById('cash-filter-date-to')?.value || '';
+            const dateFrom = (aktifKasaAltBolumu === 'sales' ? document.getElementById('sales-cash-date-from')?.value : document.getElementById('cash-filter-date-from')?.value) || '';
+            const dateTo = (aktifKasaAltBolumu === 'sales' ? document.getElementById('sales-cash-date-to')?.value : document.getElementById('cash-filter-date-to')?.value) || '';
             const movementDateKey = value => {
                 const raw = String(value || '').trim();
                 let m = raw.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})/);
@@ -7127,10 +7141,23 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                 const typeText = String(m.type || '').toLocaleLowerCase('tr-TR');
                 const matchesType = !filterType || (filterType === 'Nakit' ? /satış \(nakit\)/i.test(typeText) : filterType === 'Kredi Kartı' ? /kredi kartı/i.test(typeText) : filterType === 'Veresiye' ? /veresiye|tahsilat/i.test(typeText) : filterType === 'Alışveriş Kartı' ? /alışveriş kartı/i.test(typeText) : typeText.includes(filterType.toLocaleLowerCase('tr-TR')));
                 const movementDate = movementDateKey(m.date);
-                const matchesFrom = aktifKasaAltBolumu !== 'manual' || !dateFrom || (movementDate && movementDate >= dateFrom);
-                const matchesTo = aktifKasaAltBolumu !== 'manual' || !dateTo || (movementDate && movementDate <= dateTo);
+                const matchesFrom = !dateFrom || (movementDate && movementDate >= dateFrom);
+                const matchesTo = !dateTo || (movementDate && movementDate <= dateTo);
                 return matchesText && matchesType && matchesFrom && matchesTo;
             });
+            if (aktifKasaAltBolumu === 'sales') {
+                const rangeTotalEl = document.getElementById('sales-cash-range-total');
+                const rangeCaptionEl = document.getElementById('sales-cash-range-caption');
+                const rangeTotal = indexedMovements.reduce((sum, item) => {
+                    const m = item.m;
+                    const amount = Number(m.amount) || 0;
+                    return sum + (m.movementKind === 'sales-transfer-out' ? -amount : amount);
+                }, 0);
+                if (rangeTotalEl) rangeTotalEl.textContent = `₺${rangeTotal.toFixed(2)}`;
+                if (rangeCaptionEl) rangeCaptionEl.textContent = dateFrom || dateTo
+                    ? `${dateFrom || 'Başlangıç yok'} – ${dateTo || 'Bitiş yok'} arasındaki, mevcut metin ve işlem türü filtrelerine uyan hareketler`
+                    : 'Tüm satış kasası hareketlerinin toplamı';
+            }
             if (indexedMovements.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center opacity-70">${aktifKasaAltBolumu === 'manual' ? 'Manuel kasa hareketi yok.' : 'Satış kasası hareketi yok.'}</td></tr>`;
                 return;
