@@ -6375,6 +6375,32 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
         }
 
         function cokluUrunFisleriniYazdir(sale) {
+            // Çoklu fiş de standart fişle aynı satış takip QR kodunu kullanır.
+            // QR görselini geçici fiş alanında üretip her ürün fişine gömüyoruz.
+            const qrToggle = document.getElementById('setting-receipt-qr-toggle');
+            const qrAktif = sistemAyarlari.satisTakipQrAktif === true || qrToggle?.checked === true;
+            let takipQrHtml = '';
+            if (qrAktif) {
+                try {
+                    satisTakipQrOlustur(sale);
+                    const qrTarget = document.getElementById('rec-tracking-qr');
+                    const qrImg = qrTarget?.querySelector('img');
+                    const qrCanvas = qrTarget?.querySelector('canvas');
+                    let qrSrc = qrImg?.src || '';
+                    if (!qrSrc && qrCanvas) {
+                        try { qrSrc = qrCanvas.toDataURL('image/png'); } catch (_) {}
+                    }
+                    const qrCodeText = htmlGuvenli(sale?.trackingToken || sale?.id || '');
+                    if (qrSrc) {
+                        takipQrHtml = `<div style="display:flex;align-items:center;justify-content:center;gap:3mm;text-align:center;margin-top:9px;padding-top:7px;border-top:1px dashed #aaa;break-inside:avoid;"><img src="${htmlGuvenli(qrSrc)}" alt="Satış takip QR" style="display:block;width:32mm;height:32mm;object-fit:fill;image-rendering:pixelated;"><div style="font-family:Arial,sans-serif;min-width:0;"><div style="font-size:11px;font-weight:bold;">SİPARİŞ TAKİBİ</div><div style="font-size:9px;">Durumu görmek için QR kodu okutun</div><div style="font-size:9px;font-weight:bold;margin-top:3px;">${qrCodeText}</div></div></div>`;
+                    } else {
+                        const qrError = htmlGuvenli(qrTarget?.textContent || 'QR görseli oluşturulamadı');
+                        takipQrHtml = `<div style="text-align:center;font-size:9px;margin-top:8px;border-top:1px dashed #aaa;padding-top:6px;">${qrError}<br>Fiş No: ${qrCodeText}</div>`;
+                    }
+                } catch (qrErr) {
+                    console.warn('Çoklu fiş QR alanı hazırlanamadı:', qrErr);
+                }
+            }
             const selectedItems = (sale.items || []).filter(item => item.fisYazdir !== false);
             if (!selectedItems.length) {
                 onayModaliniGoster('Fişe ürün seçilmedi', 'Satış tamamlandı ancak çoklu fiş için sepetten en az bir ürünü “Fişe dahil” olarak işaretleyin.', null, true);
@@ -6395,7 +6421,7 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                     <div style="font-size:11px;margin-top:8px;${alan.araToplam===false?'display:none':''}">Ara Toplam: ${para(itemSubtotal)}</div><div style="font-size:11px;${alan.iskonto===false?'display:none':''}">İskonto: ${para(itemDiscount)}</div>
                     <div style="display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:14px;border-top:1px solid #222;margin-top:5px;padding-top:5px;gap:8px;${alan.toplam===false?'display:none':''}"><span>GENEL TOPLAM:</span><span>${para(itemTotal)}</span></div><div style="display:flex;justify-content:space-between;font-size:10px;margin-top:5px;${alan.odeme===false?'display:none':''}"><span>Ödeme Türü:</span><span>${htmlGuvenli(sale.type || '')}</span></div>
                     ${(Array.isArray(sistemAyarlari.fisEkBilgiler) ? sistemAyarlari.fisEkBilgiler : []).map(b => `<div style="display:flex;justify-content:space-between;gap:8px;font-size:10px;margin-top:5px"><strong>${htmlGuvenli(b.baslik)}</strong><span style="text-align:right">${htmlGuvenli(b.icerik)}</span></div>`).join('')}
-                    <div style="text-align:center;font-size:9px;margin-top:12px;border-top:1px dashed #aaa;padding-top:8px;${alan.tesekkur===false?'display:none':''}">Bizi tercih ettiğiniz için teşekkür ederiz!</div></div>`;
+                    <div style="text-align:center;font-size:9px;margin-top:12px;border-top:1px dashed #aaa;padding-top:8px;${alan.tesekkur===false?'display:none':''}">Bizi tercih ettiğiniz için teşekkür ederiz!</div>${takipQrHtml}</div>`;
             }).join('');
             const area = document.getElementById('receipt-print-area');
             const old = area.innerHTML;
