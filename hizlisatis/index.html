@@ -3666,11 +3666,20 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 } catch (e) { console.warn('Satış takip kodu oluşturulamadı:', e); }
             }
             const token = sale.trackingToken || String(sale.id || '');
-            // QR içine Firebase yapılandırmasını gömmüyoruz: uzun cfg parametresi
-            // QR'ı aşırı yoğunlaştırıyordu. Müşteri sayfası uygulamadaki kod içi
-            // Firebase ayarlarını kullanır; QR yalnızca kısa takip bilgisi taşır.
+            // Müşterinin telefonunda POS cihazının localStorage verileri bulunmaz.
+            // Bu nedenle mevcut müşteri QR menüsünde kullanılan Firebase cfg bilgisini
+            // takip bağlantısına da ekliyoruz. Base64URL kodlama URL'yi güvenli tutar.
             const base = location.href.split('?')[0].split('#')[0];
-            const query = new URLSearchParams({ satisTakip:'1', root:String(kokDugumGetir()), period:String(aktifDonemId), token, fis:String(sale.id || '') });
+            const firebaseConfig = sistemAyarlari.firebaseConfig || {};
+            if (!firebaseConfig.databaseURL || !firebaseConfig.apiKey || !firebaseConfig.projectId) {
+                codeLabel.textContent = 'Firebase ayarı eksik';
+                target.textContent = 'Takip için Firebase bağlantısını kaydedin';
+                console.warn('Satış takip QR üretilemedi: Firebase ayarları eksik.');
+                return;
+            }
+            const cfg = btoa(unescape(encodeURIComponent(JSON.stringify(firebaseConfig))))
+                .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+            const query = new URLSearchParams({ satisTakip:'1', root:String(kokDugumGetir()), period:String(aktifDonemId), token, fis:String(sale.id || ''), cfg });
             const payload = base + '?' + query.toString();
             codeLabel.textContent = String(sale.id || '');
             // Takip ekranına yalnızca gerekli durum bilgisi yazılır; satış geçmişi paylaşılmaz.
@@ -3682,9 +3691,9 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
                 target.textContent = 'QR kütüphanesi yüklenemedi';
                 return;
             }
-            new QRCode(target, { text: payload, width: 180, height: 180, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+            new QRCode(target, { text: payload, width: 220, height: 220, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.Q });
             const qrImg = target.querySelector('img, canvas');
-            if (qrImg) { qrImg.style.width = '180px'; qrImg.style.height = '180px'; qrImg.style.maxWidth = 'none'; }
+            if (qrImg) { qrImg.style.width = '220px'; qrImg.style.height = '220px'; qrImg.style.maxWidth = 'none'; qrImg.style.imageRendering = 'pixelated'; }
         }
 
         // Yazdırma yöntemi cihaz-özeldir; Firebase ile diğer cihazlara aktarılmaz.
