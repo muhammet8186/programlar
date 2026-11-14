@@ -551,6 +551,18 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
   body.printing-receipt #receipt-print-area .receipt-bulk-one div[style*="font-size:14px"] { font-size: 18px !important; }
 }
 </style>
+<style id="sales-receipt-readable-print">
+@media print {
+  body.printing-receipt #receipt-print-area { font-size: 14px !important; line-height: 1.45 !important; }
+  body.printing-receipt #receipt-print-area .text-\[10px\],
+  body.printing-receipt #receipt-print-area .text-\[11px\],
+  body.printing-receipt #receipt-print-area .text-xs { font-size: 13px !important; line-height: 1.4 !important; }
+  body.printing-receipt #receipt-print-area #rec-items-list { font-size: 14px !important; line-height: 1.5 !important; }
+  body.printing-receipt #receipt-print-area #rec-items-list > div { padding: 3px 0 !important; gap: 6px !important; }
+  body.printing-receipt #receipt-print-area #rec-row-total { font-size: 17px !important; line-height: 1.5 !important; }
+  body.printing-receipt #receipt-print-area #receipt-company-title { font-size: 19px !important; line-height: 1.3 !important; }
+}
+</style>
 <style id="receipt-product-clarity-fix">
 /* Satış fişinde ürün listesini belirginleştir ve üstüne toplam çizgisiyle aynı ayırıcıyı ekle. */
 #receipt-print-area #rec-items-list {
@@ -5297,20 +5309,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             const remaining = Math.max(0, total - paid);
             const w = window.open('', '_blank', 'width=500,height=700');
             if (!w) { onayModaliniGoster('Yazdırma engellendi', 'Adisyon fişi için açılır pencereye izin verin.', null, true); return; }
-            w.document.write(`<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Adisyon ${htmlGuvenli(ad.masa || '')}</title><style>@page{size:${width}mm auto;margin:0}html,body{margin:0;padding:0;background:#fff;color:#000}*{box-sizing:border-box}@media print{html,body{margin:0;padding:0}}</style></head><body><div style="width:${content}mm;max-width:${content}mm;margin:0 auto;padding:2mm;font-family:Arial,sans-serif;font-size:13px;line-height:1.4;color:#000;backgro
-<style id="sales-receipt-readable-print">
-@media print {
-  body.printing-receipt #receipt-print-area { font-size: 14px !important; line-height: 1.45 !important; }
-  body.printing-receipt #receipt-print-area .text-\[10px\],
-  body.printing-receipt #receipt-print-area .text-\[11px\],
-  body.printing-receipt #receipt-print-area .text-xs { font-size: 13px !important; line-height: 1.4 !important; }
-  body.printing-receipt #receipt-print-area #rec-items-list { font-size: 14px !important; line-height: 1.5 !important; }
-  body.printing-receipt #receipt-print-area #rec-items-list > div { padding: 3px 0 !important; gap: 6px !important; }
-  body.printing-receipt #receipt-print-area #rec-row-total { font-size: 17px !important; line-height: 1.5 !important; }
-  body.printing-receipt #receipt-print-area #receipt-company-title { font-size: 19px !important; line-height: 1.3 !important; }
-}
-</style>
-und:#fff"><h2 style="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuvenli(sistemAyarlari.sirketAdi || 'ADİSYON')}</h2><div style="text-align:center;font-size:16px;font-weight:900">${htmlGuvenli(ad.masa || 'Masa belirtilmedi')}</div><hr><div>Garson: <b>${htmlGuvenli(ad.garson || '-')}</b></div><div>Tarih: ${htmlGuvenli(ad.updatedLabel || ad.createdLabel || '')}</div><hr><div style="font-weight:900;margin:5px 0">SİPARİŞ DETAYI</div>${rows || '<div>Ürün bulunamadı</div>'}<hr><div style="display:flex;justify-content:space-between;font-size:16px;font-weight:900"><span>TOPLAM</span><span>${adisyonPara(total)}</span></div><div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px"><span>Ödenen</span><b>${adisyonPara(paid)}</b></div><div style="display:flex;justify-content:space-between;font-size:15px;font-weight:900;margin-top:3px"><span>KALAN</span><span>${adisyonPara(remaining)}</span></div>${ad.note ? `<hr><div style="font-size:13px"><b>NOT:</b> ${htmlGuvenli(ad.note)}</div>` : ''}<hr><div style="text-align:center;font-size:11px">Afiyet olsun</div></div><script>window.onload=()=>{window.focus();window.print()}<\/script></body></html>`);
+            w.document.write(`<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Adisyon ${htmlGuvenli(ad.masa || '')}</title><style>@page{size:${width}mm auto;margin:0}html,body{margin:0;padding:0;background:#fff;color:#000}*{box-sizing:border-box}@media print{html,body{margin:0;padding:0}}</style></head><body><div style="width:${content}mm;max-width:${content}mm;margin:0 auto;padding:2mm;font-family:Arial,sans-serif;font-size:13px;line-height:1.4;color:#000;background:#fff"><h2 style="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuvenli(sistemAyarlari.sirketAdi || 'ADİSYON')}</h2><div style="text-align:center;font-size:16px;font-weight:900">${htmlGuvenli(ad.masa || 'Masa belirtilmedi')}</div><hr><div>Garson: <b>${htmlGuvenli(ad.garson || '-')}</b></div><div>Tarih: ${htmlGuvenli(ad.updatedLabel || ad.createdLabel || '')}</div><hr><div style="font-weight:900;margin:5px 0">SİPARİŞ DETAYI</div>${rows || '<div>Ürün bulunamadı</div>'}<hr><div style="display:flex;justify-content:space-between;font-size:16px;font-weight:900"><span>TOPLAM</span><span>${adisyonPara(total)}</span></div><div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px"><span>Ödenen</span><b>${adisyonPara(paid)}</b></div><div style="display:flex;justify-content:space-between;font-size:15px;font-weight:900;margin-top:3px"><span>KALAN</span><span>${adisyonPara(remaining)}</span></div>${ad.note ? `<hr><div style="font-size:13px"><b>NOT:</b> ${htmlGuvenli(ad.note)}</div>` : ''}<hr><div style="text-align:center;font-size:11px">Afiyet olsun</div></div><script>window.onload=()=>{window.focus();window.print()}<\/script></body></html>`);
             w.document.close();
         }
 
