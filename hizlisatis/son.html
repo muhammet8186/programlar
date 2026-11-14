@@ -952,6 +952,15 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 <button class="px-3 py-2 rounded-md text-xs font-bold bg-emerald-600 text-white" id="cash-tab-sales" onclick="kasaAltBolumunuDegistir('sales')" type="button"><i class="fa-solid fa-cash-register mr-1"></i> Satış Kasası</button>
 <button class="px-3 py-2 rounded-md text-xs font-bold text-slate-400 hover:text-emerald-400" id="cash-tab-manual" onclick="kasaAltBolumunuDegistir('manual')" type="button"><i class="fa-solid fa-wallet mr-1"></i> Kasa (Manuel)</button>
 </div>
+<div class="theme-card bg-slate-900 p-2.5 rounded-lg border border-slate-800 shadow-lg hidden flex flex-wrap items-center justify-between gap-2" id="cash-manual-panel">
+<div><h3 class="text-sm font-bold flex items-center gap-2"><i class="fa-solid fa-arrow-right-arrow-left text-emerald-500"></i> Kasa (Manuel)</h3></div>
+
+<div class="flex flex-wrap gap-2 items-center justify-between rounded-lg border border-slate-700 p-3 theme-card" id="cash-accounts-toolbar">
+  <div><h3 class="font-bold text-sm"><i class="fa-solid fa-vault mr-1 text-emerald-500"></i> Kasa Yönetimi</h3><p class="text-xs text-slate-400">Nakit, POS, banka ve özel kasalar</p></div>
+  <div class="flex gap-2"><button type="button" onclick="kasaHesabiEkle()" class="bg-emerald-600 text-white rounded px-3 py-2 text-xs font-bold"><i class="fa-solid fa-plus mr-1"></i> Kasa Ekle</button><button type="button" onclick="kasaTransferiYap()" class="bg-blue-600 text-white rounded px-3 py-2 text-xs font-bold"><i class="fa-solid fa-right-left mr-1"></i> Transfer</button></div>
+</div>
+<div id="cash-accounts-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3"></div>
+</div>
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 <div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 shadow-lg space-y-1" data-cash-view="sales">
 <span class="text-xs text-slate-400 font-medium">Toplam Nakit Satışlar</span>
@@ -986,15 +995,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 <div class="text-lg md:text-xl font-bold font-mono text-cyan-500" id="cash-total-receivable">₺0,00</div>
 </div>
 </div>
-<div class="theme-card bg-slate-900 p-2.5 rounded-lg border border-slate-800 shadow-lg hidden flex flex-wrap items-center justify-between gap-2" id="cash-manual-panel">
-<div><h3 class="text-sm font-bold flex items-center gap-2"><i class="fa-solid fa-arrow-right-arrow-left text-emerald-500"></i> Kasa (Manuel)</h3><p class="text-[10px] text-slate-500 mt-1">Manuel gelir, gider, borç ve alacak hareketleri.</p></div>
 
-<div class="flex flex-wrap gap-2 items-center justify-between rounded-lg border border-slate-700 p-3 theme-card" id="cash-accounts-toolbar">
-  <div><h3 class="font-bold text-sm"><i class="fa-solid fa-vault mr-1 text-emerald-500"></i> Kasa Yönetimi</h3><p class="text-xs text-slate-400">Nakit, POS, banka ve özel kasalar</p></div>
-  <div class="flex gap-2"><button type="button" onclick="kasaHesabiEkle()" class="bg-emerald-600 text-white rounded px-3 py-2 text-xs font-bold"><i class="fa-solid fa-plus mr-1"></i> Kasa Ekle</button><button type="button" onclick="kasaTransferiYap()" class="bg-blue-600 text-white rounded px-3 py-2 text-xs font-bold"><i class="fa-solid fa-right-left mr-1"></i> Transfer</button></div>
-</div>
-<div id="cash-accounts-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3"></div>
-</div>
 <div class="theme-card bg-slate-900 rounded-lg border border-slate-800 overflow-hidden shadow-lg flex-1 flex flex-col p-3">
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
 <h3 class="text-xs md:text-sm font-bold tracking-tight" id="cash-movement-title">Satış Kasası Hareketleri</h3>
@@ -6700,7 +6701,9 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             let toplamAlacak = 0;
             if (Array.isArray(kasaHareketleri)) {
                 kasaHareketleri.forEach(m => {
-                    if (/Veresiye Tahsilat|Adisyon Tahsilatı|Sipariş Tahsilatı/i.test(String(m.type || ''))) toplamTahsilat += Number(m.amount) || 0;
+                    const isSelectedManualCash = String(m.cashAccountId || ANA_NAKIT_KASA_ID) === String(seciliManuelKasaId);
+                    if (aktifKasaAltBolumu !== 'manual' && /Veresiye Tahsilat|Adisyon Tahsilatı|Sipariş Tahsilatı/i.test(String(m.type || ''))) toplamTahsilat += Number(m.amount) || 0;
+                    if (aktifKasaAltBolumu === 'manual' && !isSelectedManualCash) return;
                     if (m.movementKind === 'manual' && m.type === 'Gelir') manuelGelir += Number(m.amount) || 0;
                     if (m.movementKind === 'manual' && m.type === 'Gider') manuelGider += Number(m.amount) || 0;
                     if (m.movementKind === 'manual' && m.type === 'Borç') toplamBorc += Math.max(0, (Number(m.amount) || 0) - (Number(m.paidAmount) || 0));
@@ -6711,7 +6714,8 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
 
             const toplamKartYukleme = (kasaHareketleri || []).filter(m => m.movementKind === 'card-topup').reduce((sum,m) => sum + (Number(m.amount)||0), 0);
             const manuelBorcOdemeleri = (kasaHareketleri || []).filter(m => m.movementKind === 'manual-settlement' && m.settlementType === 'Borç').reduce((sum,m) => sum + (Number(m.amount)||0), 0);
-            const genelToplam = toplamNakit + toplamKart + toplamDiger + toplamTahsilat + toplamKartYukleme + manuelGelir - manuelGider - manuelBorcOdemeleri;
+            const seciliKasa = kasaHesaplari.find(k=>String(k.id)===String(seciliManuelKasaId));
+            const genelToplam = aktifKasaAltBolumu === 'manual' && seciliKasa ? kasaHesapBakiyesi(seciliKasa) : toplamNakit + toplamKart + toplamDiger + toplamTahsilat + toplamKartYukleme + manuelGelir - manuelGider - manuelBorcOdemeleri;
 
             const nakitEl = document.getElementById('cash-total-nakit');
             const kartEl = document.getElementById('cash-total-kart');
