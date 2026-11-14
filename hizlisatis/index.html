@@ -3655,20 +3655,19 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             const aktif = sistemAyarlari.satisTakipQrAktif === true;
             wrap.style.display = aktif ? '' : 'none';
             if (!aktif) return;
-            if (!sale.trackingToken) {
-                try {
-                    const bytes = new Uint8Array(16);
-                    if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(bytes);
-                    else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
-                    sale.trackingToken = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
-                    if (typeof satisGecmisi !== 'undefined') {
-                        const idx = satisGecmisi.findIndex(x => String(x.id) === String(sale.id));
-                        if (idx >= 0) satisGecmisi[idx].trackingToken = sale.trackingToken;
-                        try { durumuKaydet(); } catch (_) {}
-                    }
-                } catch (e) { console.warn('Satış takip kodu oluşturulamadı:', e); }
+            // Takip anahtarı olarak rastgele kod yerine doğrudan fiş numarası kullanılır.
+            const token = String(sale.id || '').trim();
+            if (!token) {
+                codeLabel.textContent = 'Fiş numarası eksik';
+                target.textContent = 'Takip QR kodu oluşturulamadı';
+                return;
             }
-            const token = sale.trackingToken || String(sale.id || '');
+            sale.trackingToken = token;
+            if (typeof satisGecmisi !== 'undefined') {
+                const idx = satisGecmisi.findIndex(x => String(x.id) === token);
+                if (idx >= 0) satisGecmisi[idx].trackingToken = token;
+                try { durumuKaydet(); } catch (_) {}
+            }
             // Müşterinin telefonunda POS cihazının localStorage verileri bulunmaz.
             // Bu nedenle mevcut müşteri QR menüsünde kullanılan Firebase cfg bilgisini
             // takip bağlantısına da ekliyoruz. Base64URL kodlama URL'yi güvenli tutar.
@@ -3682,7 +3681,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             }
             const cfg = btoa(unescape(encodeURIComponent(JSON.stringify(firebaseConfig))))
                 .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-            const query = new URLSearchParams({ satisTakip:'1', root:String(kokDugumGetir()), period:String(aktifDonemId), token, fis:String(sale.id || ''), cfg });
+            const query = new URLSearchParams({ satisTakip:'1', root:String(kokDugumGetir()), period:String(aktifDonemId), fis:token, cfg });
             const payload = base + '?' + query.toString();
             codeLabel.textContent = String(sale.id || '');
             // Takip ekranına yalnızca gerekli durum bilgisi yazılır; satış geçmişi paylaşılmaz.
@@ -3696,7 +3695,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             }
             new QRCode(target, { text: payload, width: 480, height: 480, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.L });
             const qrImg = target.querySelector('img, canvas');
-            if (qrImg) { qrImg.style.width = '30mm'; qrImg.style.height = '30mm'; qrImg.style.maxWidth = 'none'; qrImg.style.imageRendering = 'pixelated'; }
+            if (qrImg) { qrImg.style.width = '36mm'; qrImg.style.height = '36mm'; qrImg.style.maxWidth = 'none'; qrImg.style.imageRendering = 'pixelated'; }
         }
 
         // Yazdırma yöntemi cihaz-özeldir; Firebase ile diğer cihazlara aktarılmaz.
@@ -4626,8 +4625,9 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             } else {
                 const sale = (satisGecmisi || []).find(s => String(s.id) === idText); if (!sale) return;
                 sale.kitchenStatus = status; sale['kitchen'+status.charAt(0).toUpperCase()+status.slice(1)+'At'] = Date.now();
-                if (sale.trackingToken && window.firebaseReady && window.dbSet && window.dbRef && window.database) {
-                    window.dbSet(window.dbRef(window.database, `${kokDugumGetir()}/${aktifDonemId}/satis_takip/${sale.trackingToken}`), { saleId:String(sale.id), status, updatedAt:Date.now(), company:sistemAyarlari.sirketAdi || 'Sipariş Takibi' }).catch(err => console.warn('Satış takip durumu güncellenemedi:', err));
+                if (sale.id && window.firebaseReady && window.dbSet && window.dbRef && window.database) {
+                    sale.trackingToken = String(sale.id);
+                    window.dbSet(window.dbRef(window.database, `${kokDugumGetir()}/${aktifDonemId}/satis_takip/${sale.id}`), { saleId:String(sale.id), status, updatedAt:Date.now(), company:sistemAyarlari.sirketAdi || 'Sipariş Takibi' }).catch(err => console.warn('Satış takip durumu güncellenemedi:', err));
                 }
             }
             durumuKaydet(); adisyonlariGoster(); mutfakEkraniniGuncelle(); islemBildirimiGoster('Mutfak durumu: ' + mutfakDurumMetni(status));
@@ -7577,7 +7577,7 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
   set('sale-track-number',params.get('fis')||'—');
   const states={new:['Sipariş alındı','Siparişiniz mutfağa iletildi.','fa-hourglass-half','text-amber-300'],preparing:['Hazırlanıyor','Siparişiniz hazırlanıyor.','fa-fire-burner','text-sky-300'],ready:['Hazır','Siparişiniz hazır.','fa-circle-check','text-emerald-300'],completed:['Tamamlandı','Siparişiniz teslim edildi.','fa-check-double','text-slate-300']};
   const wait=()=>new Promise((resolve,reject)=>{let n=0;const t=setInterval(()=>{n++;if(window.customerOrderApi?.subscribeSaleTracking){clearInterval(t);resolve(window.customerOrderApi);}else if(n>100){clearInterval(t);reject(new Error('Bağlantı kurulamadı.'));}},100)});
-  try{const api=await wait();const token=params.get('token');if(!token)throw new Error('QR takip kodu eksik.');api.subscribeSaleTracking(token,record=>{if(!record){set('sale-track-status','Kayıt bulunamadı');set('sale-track-message','Fiş takip kaydı bulunamadı.');return;}if(record._error){set('sale-track-status','Bağlantı hatası');set('sale-track-message',record._error);return;}set('sale-track-company',record.company||'Siparişiniz');const state=states[record.status]||states.new;set('sale-track-status',state[0]);set('sale-track-message',state[1]);const icon=document.getElementById('sale-track-icon');if(icon){icon.innerHTML='<i class="fa-solid '+state[2]+'"></i>';icon.className='mb-2 text-3xl '+state[3];}const status=document.getElementById('sale-track-status');if(status)status.className='text-2xl font-black '+state[3];});}
+  try{const api=await wait();const token=params.get('fis');if(!token)throw new Error('Fiş numarası eksik.');api.subscribeSaleTracking(token,record=>{if(!record){set('sale-track-status','Kayıt bulunamadı');set('sale-track-message','Fiş takip kaydı bulunamadı.');return;}if(record._error){set('sale-track-status','Bağlantı hatası');set('sale-track-message',record._error);return;}set('sale-track-company',record.company||'Siparişiniz');const state=states[record.status]||states.new;set('sale-track-status',state[0]);set('sale-track-message',state[1]);const icon=document.getElementById('sale-track-icon');if(icon){icon.innerHTML='<i class="fa-solid '+state[2]+'"></i>';icon.className='mb-2 text-3xl '+state[3];}const status=document.getElementById('sale-track-status');if(status)status.className='text-2xl font-black '+state[3];});}
   catch(e){set('sale-track-status','Açılamadı');set('sale-track-message',e.message||'Takip sayfası yüklenemedi.');}
  });
 })();
