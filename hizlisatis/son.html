@@ -3694,7 +3694,10 @@ body#app-body[data-theme-mode="light"] #modal-modern-payment button[onclick="mod
             if (!wrap || !target || !codeLabel) return;
             target.innerHTML = '';
             const aktif = sistemAyarlari.satisTakipQrAktif === true;
-            wrap.style.display = aktif ? '' : 'none';
+            // Yazdırma CSS'i display:flex !important kullandığı için kapalı ayarda
+            // görünürlüğü inline !important ile kilitle; açık ayarda bu kilidi kaldır.
+            if (aktif) wrap.style.removeProperty('display');
+            else wrap.style.setProperty('display', 'none', 'important');
             if (!aktif) return;
             // Takip anahtarı olarak rastgele kod yerine doğrudan fiş numarası kullanılır.
             const token = String(sale.id || '').trim();
