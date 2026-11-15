@@ -6851,12 +6851,33 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 const itemDiscount = subtotalAll > 0 ? Math.round((discountAll * itemSubtotal / subtotalAll) * 100) / 100 : 0;
                 const itemTotal = Math.max(0, itemSubtotal - itemDiscount);
                 return `<div class="receipt-bulk-one" style="font-family:monospace;padding:3mm 1mm;page-break-after:${index < selectedItems.length - 1 ? 'always' : 'auto'};break-after:${index < selectedItems.length - 1 ? 'page' : 'auto'};color:#000;background:#fff;">
-                    <div style="text-align:center;border-bottom:1px dashed #aaa;padding-bottom:8px;${alan.sirket===false?'display:none':''}"><h2 style="font-size:16px;font-weight:bold">${htmlGuvenli(sistemAyarlari.sirketAdi || 'Hızlı Satış Programı').toUpperCase()}</h2><p style="font-size:10px">Satış Fişi / Bilgi Fişi</p></div>
-                    <div style="display:flex;justify-content:space-between;font-size:10px;margin:8px 0;${alan.fisNo===false?'display:none':''}">Fiş No: #${htmlGuvenli(sale.id)}-${index+1} <span style="${alan.tarih===false?'display:none':''}">${htmlGuvenli(sale.date || '')}</span></div>
-                    <div style="font-size:11px;border-bottom:1px dashed #aaa;padding-bottom:8px;${alan.urunler===false?'display:none':''}"><div style="display:flex;justify-content:space-between;gap:8px"><span>${htmlGuvenli(item.product?.name || 'Ürün')}</span><span>x${Number(item.qty||0)} &nbsp; ${para(itemSubtotal)}</span></div></div>
-                    <div style="font-size:11px;margin-top:8px;${alan.araToplam===false?'display:none':''}">Ara Toplam: ${para(itemSubtotal)}</div><div style="font-size:11px;${alan.iskonto===false?'display:none':''}">İskonto: ${para(itemDiscount)}</div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:14px;border-top:1px solid #222;margin-top:5px;padding-top:5px;gap:8px;${alan.toplam===false?'display:none':''}"><span>GENEL TOPLAM:</span><span>${para(itemTotal)}</span></div><div style="display:flex;justify-content:space-between;font-size:10px;margin-top:5px;${alan.odeme===false?'display:none':''}"><span>Ödeme Türü:</span><span>${htmlGuvenli(sale.type || '')}</span></div>
-                    ${(Array.isArray(sistemAyarlari.fisEkBilgiler) ? sistemAyarlari.fisEkBilgiler : []).map(b => `<div style="display:flex;justify-content:space-between;gap:8px;font-size:10px;margin-top:5px"><strong>${htmlGuvenli(b.baslik)}</strong><span style="text-align:right">${htmlGuvenli(b.icerik)}</span></div>`).join('')}
+                    <div style="text-align:center;padding-bottom:8px;${alan.sirket===false?'display:none':''}">
+                        <h2 style="font-size:16px;font-weight:bold">${htmlGuvenli(sistemAyarlari.sirketAdi || 'Hızlı Satış Programı').toUpperCase()}</h2>
+                        <p style="font-size:10px">Satış Fişi / Bilgi Fişi</p>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;gap:8px;font-size:10px;margin:8px 0;${alan.fisNo===false?'display:none':''}">
+                        <span>Fiş No: #${htmlGuvenli(sale.id)}-${index+1}</span>
+                        <span style="text-align:right;${alan.tarih===false?'display:none':''}">${htmlGuvenli(sale.date || '')}</span>
+                    </div>
+                    <div style="font-size:11px;border-bottom:1.5px dashed #111;padding-bottom:8px;${alan.urunler===false?'display:none':''}">
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1.5px dashed #111;padding-bottom:6px;margin-bottom:6px;font-weight:bold">
+                            <span style="flex:1;min-width:0">Ürün</span>
+                            <span style="white-space:nowrap;flex-shrink:0">Adet&nbsp;&nbsp; Tutar</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:3px 0">
+                            <span style="flex:1;min-width:0;white-space:normal;overflow-wrap:anywhere;word-break:normal">${htmlGuvenli(item.product?.name || 'Ürün')}</span>
+                            <span style="white-space:nowrap;flex-shrink:0;text-align:right">x${Number(item.qty||0)} &nbsp; ${para(itemSubtotal)}</span>
+                        </div>
+                    </div>
+                    <div style="font-size:11px;margin-top:8px;${alan.araToplam===false?'display:none':''}">Ara Toplam: <span style="float:right">${para(itemSubtotal)}</span></div>
+                    <div style="font-size:11px;${alan.iskonto===false?'display:none':''}">İskonto: <span style="float:right">${para(itemDiscount)}</span></div>
+                    <div style="clear:both;display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:14px;border-top:1.5px dashed #111;margin-top:5px;padding-top:7px;gap:8px;${alan.toplam===false?'display:none':''}">
+                        <span>GENEL TOPLAM:</span><span style="white-space:nowrap">${para(itemTotal)}</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:10px;margin-top:5px;gap:8px;${alan.odeme===false?'display:none':''}">
+                        <span>Ödeme Türü:</span><span>${htmlGuvenli(sale.type || '')}</span>
+                    </div>
+                    ${(Array.isArray(sistemAyarlari.fisEkBilgiler) ? sistemAyarlari.fisEkBilgiler : []).map(b => `<div style="display:flex;justify-content:space-between;gap:8px;font-size:10px;margin-top:5px"><strong>${htmlGuvenli(b.baslik)}</strong><span style="text-align:right;overflow-wrap:anywhere">${htmlGuvenli(b.icerik)}</span></div>`).join('')}
                     <div style="text-align:center;font-size:9px;margin-top:12px;border-top:1px dashed #aaa;padding-top:8px;${alan.tesekkur===false?'display:none':''}">Bizi tercih ettiğiniz için teşekkür ederiz!</div>${takipQrHtml}</div>`;
             }).join('');
             const area = document.getElementById('receipt-print-area');
@@ -6922,7 +6943,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                         sirket: `<div style="text-align:center;border-bottom:1px dashed #aaa;padding-bottom:8px;${alan.sirket===false?'display:none':''}"><h2 style="font-size:16px;font-weight:bold">${htmlGuvenli(sistemAyarlari.sirketAdi || 'Hızlı Satış Programı').toUpperCase()}</h2><p style="font-size:10px">Satış Fişi / Bilgi Fişi</p></div>`,
                         fisNo: `<div style="font-size:10px;margin:8px 0;${alan.fisNo===false?'display:none':''}">Fiş No: #${htmlGuvenli(s.id)}</div>`,
                         tarih: `<div style="font-size:10px;margin:4px 0;${alan.tarih===false?'display:none':''}">Tarih: ${htmlGuvenli(s.date || '')}</div>`,
-                        urunler: `<div style="font-size:11px;border-bottom:1px dashed #aaa;padding-bottom:8px;${alan.urunler===false?'display:none':''}">${(s.items||[]).map(i=>`<div style="display:flex;justify-content:space-between;gap:8px"><span>${htmlGuvenli(i.product?.name || 'Ürün')}</span><span>x${Number(i.qty||0)} &nbsp; ${para((i.product?.price||0)*(i.qty||0))}</span></div>`).join('')}</div>`,
+                        urunler: `<div style="font-size:11px;border-top:1px dashed #aaa;padding-top:8px;padding-bottom:8px;${alan.urunler===false?'display:none':''}">${(s.items||[]).map(i=>`<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:2px 0"><span style="flex:1;min-width:0;white-space:normal;overflow-wrap:anywhere;word-break:normal">${htmlGuvenli(i.product?.name || 'Ürün')}</span><span style="white-space:nowrap;flex-shrink:0;text-align:right">x${Number(i.qty||0)} &nbsp; ${para((i.product?.price||0)*(i.qty||0))}</span></div>`).join('')}</div>`,
                         araToplam: `<div style="font-size:11px;margin-top:8px;${alan.araToplam===false?'display:none':''}">Ara Toplam: ${para(s.subtotal)}</div>`,
                         iskonto: `<div style="font-size:11px;${alan.iskonto===false?'display:none':''}">İskonto: ${para(s.discount)}</div>`,
                         toplam: `<div style="font-weight:bold;font-size:14px;border-top:1px solid #222;margin-top:5px;padding-top:5px;${alan.toplam===false?'display:none':''}">GENEL TOPLAM: ${para(s.total)}</div>`,
@@ -7282,12 +7303,12 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             if (customer) { movement.customerId = customer.id; movement.customerName = customer.name; }
             kasaHareketleri.unshift(movement);
             if (customer) cariManuelGecmisKaydi(customer, movement, false);
-            durumuKaydet();
+            // Formu hemen kapat ve yeni hareketi listeye anında yansıt.
             document.getElementById('cash-manual-form')?.reset();
             modalKapat('modal-cash-add');
             kasaEkraniniGuncelle();
             if (customer) borclularTablosunuGuncelle();
-            onayModaliniGoster('Kayıt eklendi', `${type} hareketi ${['Gelir','Gider'].includes(type) ? (kasaHesaplari.find(k=>String(k.id)===String(seciliManuelKasaId))?.name || 'seçili kasa') : 'Ana Nakit Kasa'} bölümüne kaydedildi.`, null, true);
+            durumuKaydet();
         }
 
         function manuelKasaDuzenlemeCariAlaniniGuncelle(seciliCariId = null) {
@@ -7382,9 +7403,9 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 kasaHareketleri = (kasaHareketleri || []).filter(x => String(x.id) !== String(parentId) && !(x.movementKind === 'manual-settlement' && String(x.parentMovementId) === String(parentId)));
                 const customer = m.customerId ? musteriler.find(c => String(c.id) === String(m.customerId)) : null;
                 if (customer && Array.isArray(customer.history)) customer.history = customer.history.filter(h => String(h.cashMovementId || '') !== String(parentId) && String(h.id || '') !== `CARI-${parentId}` && !childIds.includes(String(h.cashMovementId || '')) && !childIds.includes(String(h.id || '')));
-                durumuKaydet();
+                // Silinen hareketi önce listeden kaldır; ardından yerel/bulut kaydını başlat.
                 kasaEkraniniGuncelle();
-                onayModaliniGoster('Silindi', 'Kasa hareketi silindi.', null, true);
+                durumuKaydet();
             });
         }
 
@@ -7557,7 +7578,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             if(!aktif.some(k=>String(k.id)===String(seciliManuelKasaId))) seciliManuelKasaId=String(aktif.find(k=>String(k.id)===ANA_NAKIT_KASA_ID)?.id || aktif[0]?.id || ANA_NAKIT_KASA_ID);
             root.innerHTML=aktif.map(k=>{const b=kasaHesapBakiyesi(k);return `<div onclick="manuelKasaSec('${String(k.id)}')" class="theme-card rounded-lg border ${String(seciliManuelKasaId)===String(k.id)?'cash-account-selected border-2 ring-2':'border-slate-700'} bg-slate-900 p-3 cursor-pointer">
               <div class="flex justify-between gap-2"><div><div class="font-bold text-sm">${htmlGuvenli(k.name)}</div><div class="text-[10px] text-slate-400">${htmlGuvenli(k.type||'Özel Kasa')}${String(k.id)===ANA_NAKIT_KASA_ID?' · Ana kasa (silinemez)':''}${String(seciliManuelKasaId)===String(k.id)?' · <span class="cash-selected-label">SEÇİLİ</span>':''}</div></div><span class="text-xs ${b<0?'text-red-400':'text-emerald-400'} font-mono font-bold">₺${b.toFixed(2)}</span></div>
-              <div class="flex flex-wrap items-center gap-2 mt-3">${String(seciliManuelKasaId)===String(k.id)?`<button class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded px-3 py-2 shadow" onclick="event.stopPropagation();manuelKasaKayitModaliniAc()"><i class="fa-solid fa-plus mr-1"></i> Hareket Ekle</button>`:''}<button class="text-xs bg-slate-700 hover:bg-slate-600 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiDuzenle('${String(k.id).replace(/'/g,"\\'")}')">Düzenle</button>${String(k.id)===ANA_NAKIT_KASA_ID?'<span class="text-[10px] text-amber-400 px-2 py-1">Ana kasa · Silinemez</span>':`<button class="text-xs bg-rose-900/70 hover:bg-rose-800 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiKapat('${String(k.id).replace(/'/g,"\\'")}')">Sil</button>`}</div></div>`}).join('') || '<p class="text-xs text-slate-400">Henüz aktif kasa yok.</p>';
+              <div class="flex flex-wrap items-center gap-2 mt-3">${String(seciliManuelKasaId)===String(k.id)?`<button class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded px-3 py-2 shadow" onclick="event.stopPropagation();manuelKasaKayitModaliniAc()"><i class="fa-solid fa-plus mr-1"></i> Hareket Ekle</button>`:''}${String(k.id)===ANA_NAKIT_KASA_ID?'':`<button class="text-xs bg-slate-700 hover:bg-slate-600 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiDuzenle('${String(k.id).replace(/'/g,"\\'")}')">Düzenle</button>`} ${String(k.id)===ANA_NAKIT_KASA_ID?'<span class="text-[10px] text-amber-400 px-2 py-1">Ana kasa · Silinemez</span>':`<button class="text-xs bg-rose-900/70 hover:bg-rose-800 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiKapat('${String(k.id).replace(/'/g,"\\'")}')">Sil</button>`}</div></div>`}).join('') || '<p class="text-xs text-slate-400">Henüz aktif kasa yok.</p>';
         }
         function manuelKasaSec(id) { seciliManuelKasaId=String(id); kasaHesaplariniCiz(); kasaEkraniniGuncelle(); }
         function kasaModernModalAc(baslik, govde, kaydetEtiketi, kaydetIslemi) {
