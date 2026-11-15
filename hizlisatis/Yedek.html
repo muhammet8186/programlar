@@ -2691,7 +2691,9 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                         variable === 'acikAdisyonlar' ? acikAdisyonlar : sistemKullanicilari;
                     const bulut = bulutDizileri[cloudKey] || [];
                     const taban = Array.isArray(oncekiBaseline[cloudKey]) ? oncekiBaseline[cloudKey] : [];
-                    const birlesik = firebaseDizileriniUcYonluBirlestir(taban, yerel, bulut);
+                    const birlesik = cloudKey === 'kategoriler'
+                        ? kategoriDizisiniUcYonluBirlestir(taban, yerel, bulut)
+                        : firebaseDizileriniUcYonluBirlestir(taban, yerel, bulut);
                     if (variable === 'urunler') urunler = birlesik;
                     else if (variable === 'kategorilerListesi') kategorilerListesi = birlesik;
                     else if (variable === 'musteriler') musteriler = birlesik;
@@ -4359,7 +4361,20 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
         }
 
 
-        // Son ortak kopyayı baz alarak yerel ve uzak değişiklikleri üç yönlü birleştir.
+        // Kategoriler sıraya duyarlı bir listedir; eleman bazlı birleştirme sıralamayı bozabilir.
+        // Ortak tabana göre yalnızca yerel sıra değişmişse yereli koru; aksi durumda bulut sırasını esas al.
+        function kategoriDizisiniUcYonluBirlestir(baseline, yerel, bulut) {
+            const b = Array.isArray(baseline) ? baseline : [];
+            const l = Array.isArray(yerel) ? yerel : [];
+            const r = Array.isArray(bulut) ? bulut : [];
+            const taban = JSON.stringify(b);
+            const yerelDegisti = JSON.stringify(l) !== taban;
+            const bulutDegisti = JSON.stringify(r) !== taban;
+            if (yerelDegisti && !bulutDegisti) return [...l];
+            return [...r];
+        }
+
+        // Son ortak kopyayı baz alarak üç yönlü birleştir. Kategori sırası özel olarak korunur.
         function firebaseDizileriniUcYonluBirlestir(baseline, yerel, bulut) {
             const toMap = arr => new Map((Array.isArray(arr) ? arr : []).map(item => [firebaseKayitAnahtari(item), item]).filter(([key]) => key !== null));
             const bMap = toMap(baseline), lMap = toMap(yerel), rMap = toMap(bulut);
@@ -4438,7 +4453,9 @@ body#app-body:not([data-theme-mode="light"]) .cash-account-selected button[oncli
                     const bulutDizisi = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? Object.values(raw) : []);
                     const yerelDizi = variable === 'urunler' ? urunler : variable === 'kategorilerListesi' ? kategorilerListesi : variable === 'musteriler' ? musteriler : variable === 'satisGecmisi' ? satisGecmisi : variable === 'kasaHareketleri' ? kasaHareketleri : variable === 'kasaHesaplari' ? kasaHesaplari : variable === 'bekleyenSepetler' ? bekleyenSepetler : acikAdisyonlar;
                     const baseline = Array.isArray(firebaseSyncBaseline[cloudKey]) ? firebaseSyncBaseline[cloudKey] : [];
-                    const merged = firebaseDizileriniUcYonluBirlestir(baseline, yerelDizi, bulutDizisi);
+                    const merged = cloudKey === 'kategoriler'
+                        ? kategoriDizisiniUcYonluBirlestir(baseline, yerelDizi, bulutDizisi)
+                        : firebaseDizileriniUcYonluBirlestir(baseline, yerelDizi, bulutDizisi);
                     if (variable === 'urunler') urunler = merged;
                     else if (variable === 'kategorilerListesi') kategorilerListesi = merged;
                     else if (variable === 'musteriler') musteriler = merged;
