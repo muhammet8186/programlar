@@ -1860,6 +1860,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <label class="flex items-center justify-between gap-3 rounded border border-slate-800 bg-slate-950 p-3 text-xs"><span><b>Para üstü hesaplama</b><small class="block text-slate-400 mt-1">Nakit ödemede alınan tutarı girip para üstünü hesaplayın.</small></span><input class="w-4 h-4 accent-emerald-500" id="setting-change-toggle" onchange="odemeOzelliginiDegistir('paraUstuAktif',this.checked)" type="checkbox"/></label>
 <label class="flex items-center justify-between gap-3 rounded border border-slate-800 bg-slate-950 p-3 text-xs"><span><b>Parçalı ödeme ve açık bakiye</b><small class="block text-slate-400 mt-1">Bir satışta nakit/kart tahsil edin, kalanı müşteriye borç yazın.</small></span><input class="w-4 h-4 accent-emerald-500" id="setting-partial-toggle" onchange="odemeOzelliginiDegistir('parcaliOdemeAktif',this.checked)" type="checkbox"/></label>
 </div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
+<div id="receipt-design-launcher" class="theme-card bg-slate-900 p-3 rounded-lg border border-slate-800 shadow-lg flex items-center justify-between gap-3"><div><div class="text-sm font-bold">Fiş Tasarım Merkezi</div><div class="text-[10px] text-slate-400 mt-1">Fiş içeriği, yazdırma ve görünüm ayarları tek yerde.</div></div><button type="button" onclick="fisTasarimPenceresiniAc()" class="bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded-lg px-4 py-2.5 text-xs whitespace-nowrap"><i class="fa-solid fa-palette mr-2"></i>Aç</button></div>
 <h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2 tracking-tight">Satış Görünüm Tercihleri</h3>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
 <div class="theme-subbar flex items-center justify-between bg-slate-950 p-3 rounded border border-slate-800">
@@ -1896,6 +1897,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <div class="theme-subbar bg-slate-950 p-3 rounded border border-slate-800 md:col-span-2">
 <div class="text-xs font-semibold">Bluetooth termal yazıcı</div><div class="text-[10px] text-slate-400 mt-1">Android’de normal yazdırma ekranından cihazınıza bağlı yazıcıyı seçin. Windows’ta sessiz baskı için aşağıdaki kurulum adımlarını uygulayın; kullanılacak yazıcı, işletim sisteminde varsayılan olarak seçilen yazıcıdır.</div>
 </div>
+
 </div>
 </div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg">
 <h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2">Fiş İçeriği ve Yazdırma Tercihleri</h3>
@@ -2660,6 +2662,15 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 
         if (!sistemAyarlari.fisAlanlari || typeof sistemAyarlari.fisAlanlari !== 'object') sistemAyarlari.fisAlanlari = {};
         ['sirket','fisNo','tarih','urunler','araToplam','iskonto','toplam','odeme','tesekkur'].forEach(k => { if (typeof sistemAyarlari.fisAlanlari[k] !== 'boolean') sistemAyarlari.fisAlanlari[k] = true; });
+        const fisTasarimVarsayilanProfil = () => ({
+            fontSize: 11, lineColor: '#111111', lineWidth: 1.5, lineStyle: 'dashed',
+            headerBottom: false, productTop: true, productBottom: false,
+            productHeaderBottom: true, totalTop: true
+        });
+        if (!sistemAyarlari.fisTasarimlari || typeof sistemAyarlari.fisTasarimlari !== 'object') sistemAyarlari.fisTasarimlari = {};
+        ['normal','coklu','toplu'].forEach(tip => {
+            sistemAyarlari.fisTasarimlari[tip] = { ...fisTasarimVarsayilanProfil(), ...(sistemAyarlari.fisTasarimlari[tip] || {}) };
+        });
         if(!sistemAyarlari.firebaseConfig) sistemAyarlari.firebaseConfig = { ...kodIciFirebaseBilgileriniOku };
         if (!Array.isArray(sistemAyarlari.firebaseKayitlari)) sistemAyarlari.firebaseKayitlari = [];
         if (!Array.isArray(sistemAyarlari.customerQrLinks)) sistemAyarlari.customerQrLinks = [];
@@ -4307,6 +4318,182 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             });
         }
 
+
+        let fisTasarimTaslagi = null;
+        function fisTasarimProfiliGetir(tip) {
+            const varsayilan = { fontSize:11, lineColor:'#111111', lineWidth:1.5, lineStyle:'dashed', headerBottom:false, productTop:true, productBottom:false, productHeaderBottom:true, totalTop:true };
+            return { ...varsayilan, ...(sistemAyarlari.fisTasarimlari?.[tip] || {}) };
+        }
+        function fisTasarimCizgiCss(tip, kenar) {
+            const p = fisTasarimProfiliGetir(tip);
+            if (p[kenar] !== true) return `${kenar === 'headerBottom' || kenar === 'productHeaderBottom' || kenar === 'productBottom' || kenar === 'totalTop' ? 'border-bottom' : 'border-top'}:0`;
+            const cssKenar = kenar === 'headerBottom' || kenar === 'productHeaderBottom' || kenar === 'productBottom' ? 'border-bottom' : 'border-top';
+            return `${cssKenar}:${Number(p.lineWidth) || 1}px ${['solid','dashed','dotted'].includes(p.lineStyle) ? p.lineStyle : 'dashed'} ${/^#[0-9a-f]{6}$/i.test(p.lineColor) ? p.lineColor : '#111111'}`;
+        }
+        function fisTasarimModaliniHazirla() {
+            if (document.getElementById('receipt-design-modal')) return;
+            const modal = document.createElement('div');
+            modal.id = 'receipt-design-modal';
+            modal.className = 'fixed inset-0 z-[120] hidden items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4';
+            modal.innerHTML = `
+              <div class="w-full max-w-5xl max-h-[96vh] overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 text-white shadow-2xl">
+                <div class="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-700 bg-slate-900 p-4">
+                  <div><h2 class="text-lg font-bold"><i class="fa-solid fa-palette mr-2 text-cyan-400"></i>Fiş Tasarım Merkezi</h2><p class="text-xs text-slate-400 mt-1">Ayarları değiştirin; önizleme anında güncellenir.</p></div>
+                  <button type="button" onclick="fisTasarimPenceresiniKapat()" class="rounded-lg border border-slate-700 px-3 py-2 text-slate-300">Kapat</button>
+                </div>
+                <div class="flex flex-wrap gap-2 border-b border-slate-700 px-4 pt-3">
+                  <button type="button" onclick="fisTasarimSekmesi('content')" id="receipt-tab-content" class="rounded-lg bg-cyan-700 px-4 py-2 text-xs font-bold">Fiş İçeriği</button>
+                  <button type="button" onclick="fisTasarimSekmesi('print')" id="receipt-tab-print" class="rounded-lg bg-slate-800 px-4 py-2 text-xs font-bold">Yazdırma</button>
+                  <button type="button" onclick="fisTasarimSekmesi('design')" id="receipt-tab-design" class="rounded-lg bg-slate-800 px-4 py-2 text-xs font-bold">Tasarım</button>
+                </div>
+                <div id="receipt-tab-panel-content" class="p-4 space-y-3"></div>
+                <div id="receipt-tab-panel-print" class="hidden p-4 space-y-3"></div>
+                <div id="receipt-tab-panel-design" class="hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
+                  <section class="space-y-3">
+                    <label class="block text-xs font-semibold">Düzenlenecek fiş türü
+                      <select id="receipt-design-profile" onchange="fisTasarimProfiliniDegistir(this.value)" class="theme-input mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm">
+                        <option value="normal">Normal satış fişi</option><option value="coklu">Çoklu fiş</option><option value="toplu">Toplu fiş</option>
+                      </select>
+                    </label>
+                    <div class="grid grid-cols-2 gap-3">
+                      <label class="text-xs">Ürün yazı boyutu <output id="receipt-design-font-value" class="float-right text-cyan-300">11 px</output>
+                        <input id="receipt-design-font" type="range" min="9" max="16" step="1" value="11" oninput="fisTasarimKontrolDegisti()" class="mt-3 w-full accent-cyan-500">
+                      </label>
+                      <label class="text-xs">Çizgi kalınlığı <output id="receipt-design-width-value" class="float-right text-cyan-300">1.5 px</output>
+                        <input id="receipt-design-width" type="range" min="0.5" max="3" step="0.5" value="1.5" oninput="fisTasarimKontrolDegisti()" class="mt-3 w-full accent-cyan-500">
+                      </label>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                      <label class="text-xs">Çizgi rengi<input id="receipt-design-color" type="color" value="#111111" oninput="fisTasarimKontrolDegisti()" class="mt-2 block h-10 w-full rounded border border-slate-700 bg-slate-950 p-1"></label>
+                      <label class="text-xs">Çizgi tipi<select id="receipt-design-style" onchange="fisTasarimKontrolDegisti()" class="theme-input mt-2 w-full rounded border border-slate-700 bg-slate-950 p-2.5"><option value="dashed">Kesikli</option><option value="solid">Düz</option><option value="dotted">Noktalı</option></select></label>
+                    </div>
+                    <div class="space-y-2 rounded-xl border border-slate-700 bg-slate-950 p-3">
+                      <div class="text-xs font-bold text-slate-200">Çizgi konumları</div>
+                      <label class="flex items-center justify-between gap-3 text-xs"><span>Fiş başlığının altında</span><input id="receipt-design-header" type="checkbox" onchange="fisTasarimKontrolDegisti()" class="h-4 w-4 accent-cyan-500"></label>
+                      <label class="flex items-center justify-between gap-3 text-xs"><span>Ürün listesinin üstünde</span><input id="receipt-design-product-top" type="checkbox" onchange="fisTasarimKontrolDegisti()" class="h-4 w-4 accent-cyan-500"></label>
+                      <label class="flex items-center justify-between gap-3 text-xs"><span>Ürün başlığı ile ürünler arasında</span><input id="receipt-design-product-head" type="checkbox" onchange="fisTasarimKontrolDegisti()" class="h-4 w-4 accent-cyan-500"></label>
+                      <label class="flex items-center justify-between gap-3 text-xs"><span>Ürün listesinin altında</span><input id="receipt-design-product-bottom" type="checkbox" onchange="fisTasarimKontrolDegisti()" class="h-4 w-4 accent-cyan-500"></label>
+                      <label class="flex items-center justify-between gap-3 text-xs"><span>Genel toplamın üstünde</span><input id="receipt-design-total" type="checkbox" onchange="fisTasarimKontrolDegisti()" class="h-4 w-4 accent-cyan-500"></label>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                      <button type="button" onclick="fisTasarimVarsayilanaDon()" class="rounded-lg border border-slate-600 px-3 py-2 text-xs">Bu fişi varsayılana döndür</button>
+                      <button type="button" onclick="fisTasarimKaydet()" class="rounded-lg bg-emerald-600 px-5 py-2.5 text-xs font-bold hover:bg-emerald-500"><i class="fa-solid fa-floppy-disk mr-1"></i> Tasarımı Kaydet</button>
+                    </div>
+                  </section>
+                  <section class="rounded-xl border border-slate-700 bg-slate-800 p-3">
+                    <div class="mb-3 flex items-center justify-between"><b class="text-sm">Canlı fiş önizlemesi</b><span class="text-[10px] text-slate-400">Örnek görünüm</span></div>
+                    <div id="receipt-design-preview" class="mx-auto min-h-[440px] w-full max-w-[300px] bg-white p-5 font-mono text-black shadow-xl">
+                      <div id="receipt-preview-header" class="pb-3 text-center"><div class="text-base font-bold">HIZLI SATIŞ PROGRAMI</div><div class="text-[10px]">Satış Fişi / Bilgi Fişi</div><div class="mt-3 flex justify-between text-[9px]"><span>Fiş No: #12345</span><span>16.11.2026</span></div></div>
+                      <div id="receipt-preview-products" class="mt-3 py-2"><div id="receipt-preview-product-head" class="mb-2 flex justify-between pb-2 text-[10px] font-bold"><span>Ürün</span><span>Adet&nbsp;&nbsp; Tutar</span></div><div class="flex items-start justify-between gap-2 text-[11px]"><span class="min-w-0 flex-1 break-words">Tavuk Döneri - Porsiyon Ekstra Lavaş</span><span class="shrink-0 whitespace-nowrap">x1&nbsp; ₺250.00</span></div><div class="mt-2 flex items-start justify-between gap-2 text-[11px]"><span class="min-w-0 flex-1 break-words">Ayran</span><span class="shrink-0 whitespace-nowrap">x2&nbsp; ₺60.00</span></div></div>
+                      <div class="mt-3 space-y-2 text-[11px]"><div class="flex justify-between"><span>Ara Toplam:</span><span>₺310.00</span></div><div class="flex justify-between"><span>İskonto:</span><span>₺0.00</span></div><div id="receipt-preview-total" class="flex justify-between pt-2 text-sm font-bold"><span>GENEL TOPLAM:</span><span>₺310.00</span></div><div class="flex justify-between"><span>Ödeme Türü:</span><span>Nakit</span></div></div>
+                      <div class="mt-6 border-t border-dashed border-slate-300 pt-3 text-center text-[10px]">Bizi tercih ettiğiniz için teşekkür ederiz!</div>
+                      <div class="mt-4 text-center text-[10px] font-bold">[ QR KODU ]</div>
+                    </div>
+                  </section>
+                </div>
+                </div>
+              </div>`;
+            document.body.appendChild(modal);
+            fisTasarimAyarKartlariniTasi();
+            fisTasarimSekmesi('content');
+        }
+        function fisTasarimAyarKartlariniTasi() {
+            const modal=document.getElementById('receipt-design-modal');
+            if(!modal || modal.dataset.settingsMoved==='1') return;
+            const cards=[...document.querySelectorAll('.theme-card')];
+            const printCard=cards.find(c=>c.querySelector('h3')?.textContent.trim()==='Satış Görünüm Tercihleri');
+            const contentCard=cards.find(c=>c.querySelector('h3')?.textContent.trim()==='Fiş İçeriği ve Yazdırma Tercihleri');
+            const printPanel=document.getElementById('receipt-tab-panel-print');
+            const contentPanel=document.getElementById('receipt-tab-panel-content');
+            if(printCard && printPanel) {
+                printCard.dataset.receiptSettingsCard='print';
+                printPanel.appendChild(printCard);
+            }
+            if(contentCard && contentPanel) {
+                contentCard.dataset.receiptSettingsCard='content';
+                contentPanel.appendChild(contentCard);
+            }
+            modal.dataset.settingsMoved='1';
+        }
+        function fisTasarimSekmesi(tab) {
+            ['content','print','design'].forEach(name=>{
+                const panel=document.getElementById('receipt-tab-panel-'+name);
+                const button=document.getElementById('receipt-tab-'+name);
+                if(panel) panel.classList.toggle('hidden',name!==tab);
+                if(button) {
+                    button.classList.toggle('bg-cyan-700',name===tab);
+                    button.classList.toggle('bg-slate-800',name!==tab);
+                }
+            });
+        }
+
+        function fisTasarimPenceresiniAc() {
+            fisTasarimModaliniHazirla();
+            fisTasarimTaslagi = JSON.parse(JSON.stringify(sistemAyarlari.fisTasarimlari || {}));
+            const modal = document.getElementById('receipt-design-modal');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+            const secim = document.getElementById('receipt-design-profile');
+            secim.value = sistemAyarlari.fisYazdirmaModu === 'coklu' ? 'coklu' : 'toplu';
+            fisTasarimProfiliniDegistir(secim.value);
+        }
+        function fisTasarimProfiliniDegistir(tip) {
+            const p = fisTasarimTaslagi?.[tip] || fisTasarimProfiliGetir(tip);
+            const set = (id, value) => { const el=document.getElementById(id); if(el) el.value=String(value); };
+            set('receipt-design-font',p.fontSize); set('receipt-design-width',p.lineWidth); set('receipt-design-color',p.lineColor); set('receipt-design-style',p.lineStyle);
+            ['headerBottom','productTop','productHeaderBottom','productBottom','totalTop'].forEach(k => {
+                const ids={headerBottom:'receipt-design-header',productTop:'receipt-design-product-top',productHeaderBottom:'receipt-design-product-head',productBottom:'receipt-design-product-bottom',totalTop:'receipt-design-total'};
+                const el=document.getElementById(ids[k]); if(el) el.checked=p[k]===true;
+            });
+            fisTasarimOnizlemesiniGuncelle();
+        }
+        function fisTasarimKontrolDegisti() {
+            if (!fisTasarimTaslagi) return;
+            const tip=document.getElementById('receipt-design-profile').value;
+            const p=fisTasarimTaslagi[tip] || (fisTasarimTaslagi[tip]=fisTasarimProfiliGetir(tip));
+            p.fontSize=Number(document.getElementById('receipt-design-font').value);
+            p.lineWidth=Number(document.getElementById('receipt-design-width').value);
+            p.lineColor=document.getElementById('receipt-design-color').value;
+            p.lineStyle=document.getElementById('receipt-design-style').value;
+            p.headerBottom=document.getElementById('receipt-design-header').checked;
+            p.productTop=document.getElementById('receipt-design-product-top').checked;
+            p.productHeaderBottom=document.getElementById('receipt-design-product-head').checked;
+            p.productBottom=document.getElementById('receipt-design-product-bottom').checked;
+            p.totalTop=document.getElementById('receipt-design-total').checked;
+            document.getElementById('receipt-design-font-value').textContent=p.fontSize+' px';
+            document.getElementById('receipt-design-width-value').textContent=p.lineWidth+' px';
+            fisTasarimOnizlemesiniGuncelle();
+        }
+        function fisTasarimOnizlemesiniGuncelle() {
+            const tip=document.getElementById('receipt-design-profile')?.value || 'toplu';
+            const p=fisTasarimTaslagi?.[tip] || fisTasarimProfiliGetir(tip);
+            const line=(enabled,edge)=>enabled?`${p.lineWidth}px ${p.lineStyle} ${p.lineColor}`:'none';
+            const setBorder=(id,edge,enabled)=>{const el=document.getElementById(id);if(el)el.style[edge]=line(enabled,edge);};
+            setBorder('receipt-preview-header','borderBottom',p.headerBottom);
+            setBorder('receipt-preview-products','borderTop',p.productTop);
+            setBorder('receipt-preview-products','borderBottom',p.productBottom);
+            setBorder('receipt-preview-product-head','borderBottom',p.productHeaderBottom);
+            setBorder('receipt-preview-total','borderTop',p.totalTop);
+            const products=document.querySelectorAll('#receipt-preview-products .text-\\[11px\\]');
+            products.forEach(el=>el.style.fontSize=p.fontSize+'px');
+        }
+        function fisTasarimVarsayilanaDon() {
+            const tip=document.getElementById('receipt-design-profile').value;
+            fisTasarimTaslagi[tip]={fontSize:11,lineColor:'#111111',lineWidth:1.5,lineStyle:'dashed',headerBottom:false,productTop:true,productBottom:false,productHeaderBottom:true,totalTop:true};
+            fisTasarimProfiliniDegistir(tip);
+        }
+        function fisTasarimKaydet() {
+            if (!fisTasarimTaslagi) return;
+            sistemAyarlari.fisTasarimlari=fisTasarimTaslagi;
+            try { sistemAyarlariKaydet(); } catch(e) { console.warn('Fiş tasarımı kaydedilemedi:',e); }
+            fisTasarimPenceresiniKapat();
+            islemBildirimiGoster('Fiş tasarımı kaydedildi.');
+        }
+        function fisTasarimPenceresiniKapat() {
+            const modal=document.getElementById('receipt-design-modal');
+            if(modal){modal.classList.add('hidden');modal.classList.remove('flex');}
+            fisTasarimTaslagi=null;
+        }
 
         function fisAlanSirasiGetir() {
             const varsayilan = fisAlanTanimlari.map(a => a.key);
@@ -6859,8 +7046,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                         <span>Fiş No: #${htmlGuvenli(sale.id)}-${index+1}</span>
                         <span style="text-align:right;${alan.tarih===false?'display:none':''}">${htmlGuvenli(sale.date || '')}</span>
                     </div>
-                    <div style="font-size:11px;border-bottom:1.5px dashed #111;padding-bottom:8px;${alan.urunler===false?'display:none':''}">
-                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1.5px dashed #111;padding-bottom:6px;margin-bottom:6px;font-weight:bold">
+                    <div style="font-size:${fisTasarimProfiliGetir('coklu').fontSize}px;${fisTasarimCizgiCss('coklu','productTop')};${fisTasarimCizgiCss('coklu','productBottom')};padding-bottom:8px;${alan.urunler===false?'display:none':''}">
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;${fisTasarimCizgiCss('coklu','productHeaderBottom')};padding-bottom:6px;margin-bottom:6px;font-weight:bold">
                             <span style="flex:1;min-width:0">Ürün</span>
                             <span style="white-space:nowrap;flex-shrink:0">Adet&nbsp;&nbsp; Tutar</span>
                         </div>
@@ -6871,7 +7058,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     </div>
                     <div style="font-size:11px;margin-top:8px;${alan.araToplam===false?'display:none':''}">Ara Toplam: <span style="float:right">${para(itemSubtotal)}</span></div>
                     <div style="font-size:11px;${alan.iskonto===false?'display:none':''}">İskonto: <span style="float:right">${para(itemDiscount)}</span></div>
-                    <div style="clear:both;display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:14px;border-top:1.5px dashed #111;margin-top:5px;padding-top:7px;gap:8px;${alan.toplam===false?'display:none':''}">
+                    <div style="clear:both;display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:14px;${fisTasarimCizgiCss('coklu','totalTop')};margin-top:5px;padding-top:7px;gap:8px;${alan.toplam===false?'display:none':''}">
                         <span>GENEL TOPLAM:</span><span style="white-space:nowrap">${para(itemTotal)}</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;font-size:10px;margin-top:5px;gap:8px;${alan.odeme===false?'display:none':''}">
@@ -6940,13 +7127,13 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 const takipQrHtml = await satisTakipQrHtmlHazirla(s, '32mm');
                 const fisGovdesi = (() => {
                     const parcalar = {
-                        sirket: `<div style="text-align:center;border-bottom:1px dashed #aaa;padding-bottom:8px;${alan.sirket===false?'display:none':''}"><h2 style="font-size:16px;font-weight:bold">${htmlGuvenli(sistemAyarlari.sirketAdi || 'Hızlı Satış Programı').toUpperCase()}</h2><p style="font-size:10px">Satış Fişi / Bilgi Fişi</p></div>`,
+                        sirket: `<div style="text-align:center;${fisTasarimCizgiCss('toplu','headerBottom')};padding-bottom:8px;${alan.sirket===false?'display:none':''}"><h2 style="font-size:16px;font-weight:bold">${htmlGuvenli(sistemAyarlari.sirketAdi || 'Hızlı Satış Programı').toUpperCase()}</h2><p style="font-size:10px">Satış Fişi / Bilgi Fişi</p></div>`,
                         fisNo: `<div style="font-size:10px;margin:8px 0;${alan.fisNo===false?'display:none':''}">Fiş No: #${htmlGuvenli(s.id)}</div>`,
                         tarih: `<div style="font-size:10px;margin:4px 0;${alan.tarih===false?'display:none':''}">Tarih: ${htmlGuvenli(s.date || '')}</div>`,
-                        urunler: `<div style="font-size:11px;border-top:1px dashed #aaa;padding-top:8px;padding-bottom:8px;${alan.urunler===false?'display:none':''}">${(s.items||[]).map(i=>`<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:2px 0"><span style="flex:1;min-width:0;white-space:normal;overflow-wrap:anywhere;word-break:normal">${htmlGuvenli(i.product?.name || 'Ürün')}</span><span style="white-space:nowrap;flex-shrink:0;text-align:right">x${Number(i.qty||0)} &nbsp; ${para((i.product?.price||0)*(i.qty||0))}</span></div>`).join('')}</div>`,
+                        urunler: `<div style="font-size:${fisTasarimProfiliGetir('toplu').fontSize}px;${fisTasarimCizgiCss('toplu','productTop')};${fisTasarimCizgiCss('toplu','productBottom')};padding-top:8px;padding-bottom:8px;${alan.urunler===false?'display:none':''}">${(s.items||[]).map(i=>`<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:2px 0"><span style="flex:1;min-width:0;white-space:normal;overflow-wrap:anywhere;word-break:normal">${htmlGuvenli(i.product?.name || 'Ürün')}</span><span style="white-space:nowrap;flex-shrink:0;text-align:right">x${Number(i.qty||0)} &nbsp; ${para((i.product?.price||0)*(i.qty||0))}</span></div>`).join('')}</div>`,
                         araToplam: `<div style="font-size:11px;margin-top:8px;${alan.araToplam===false?'display:none':''}">Ara Toplam: ${para(s.subtotal)}</div>`,
                         iskonto: `<div style="font-size:11px;${alan.iskonto===false?'display:none':''}">İskonto: ${para(s.discount)}</div>`,
-                        toplam: `<div style="font-weight:bold;font-size:14px;border-top:1px solid #222;margin-top:5px;padding-top:5px;${alan.toplam===false?'display:none':''}">GENEL TOPLAM: ${para(s.total)}</div>`,
+                        toplam: `<div style="font-weight:bold;font-size:14px;${fisTasarimCizgiCss('toplu','totalTop')};margin-top:5px;padding-top:5px;${alan.toplam===false?'display:none':''}">GENEL TOPLAM: ${para(s.total)}</div>`,
                         odeme: `<div style="font-size:10px;margin-top:5px;${alan.odeme===false?'display:none':''}">Ödeme Türü: ${htmlGuvenli(s.type || '')}</div>`,
                         ekBilgiler: (Array.isArray(sistemAyarlari.fisEkBilgiler) ? sistemAyarlari.fisEkBilgiler : []).map(b => `<div style="display:flex;justify-content:space-between;gap:8px;font-size:10px;margin-top:5px"><strong>${htmlGuvenli(b.baslik)}</strong><span style="text-align:right">${htmlGuvenli(b.icerik)}</span></div>`).join(''),
                         tesekkur: `<div style="text-align:center;font-size:9px;margin-top:12px;border-top:1px dashed #aaa;padding-top:8px;${alan.tesekkur===false?'display:none':''}">Bizi tercih ettiğiniz için teşekkür ederiz!</div>`
@@ -6971,6 +7158,20 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             document.getElementById('rec-discount').innerText = `₺${sale.discount.toFixed(2)}`;
             document.getElementById('rec-total').innerText = `₺${sale.total.toFixed(2)}`;
             const alan = sistemAyarlari.fisAlanlari || {};
+            const normalTasarim = fisTasarimProfiliGetir('normal');
+            const receiptArea = document.getElementById('receipt-print-area');
+            const receiptHeader = receiptArea?.querySelector(':scope > .text-center');
+            const receiptProductWrap = document.getElementById('rec-items-list')?.parentElement;
+            const receiptProductHead = receiptProductWrap?.querySelector(':scope > div');
+            const receiptTotal = document.getElementById('rec-row-total');
+            const normalLine = (enabled) => enabled ? `${normalTasarim.lineWidth}px ${normalTasarim.lineStyle} ${normalTasarim.lineColor}` : 'none';
+            if (receiptHeader) receiptHeader.style.setProperty('border-bottom', normalLine(normalTasarim.headerBottom), 'important');
+            if (receiptProductWrap) {
+                receiptProductWrap.style.setProperty('border-top', normalLine(normalTasarim.productTop), 'important');
+                receiptProductWrap.style.setProperty('border-bottom', normalLine(normalTasarim.productBottom), 'important');
+            }
+            if (receiptProductHead) receiptProductHead.style.setProperty('border-bottom', normalLine(normalTasarim.productHeaderBottom), 'important');
+            if (receiptTotal) receiptTotal.style.setProperty('border-top', normalLine(normalTasarim.totalTop), 'important');
             fisAlaniniUygula('receipt-company-title', alan.sirket !== false);
             fisAlaniniUygula('rec-id', alan.fisNo !== false);
             fisAlaniniUygula('rec-date', alan.tarih !== false);
@@ -6988,7 +7189,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             const itemsContainer = document.getElementById('rec-items-list');
             itemsContainer.innerHTML = sale.items.map(i => `
                 <div class="flex justify-between">
-                    <span class="truncate max-w-[150px]">${htmlGuvenli(i.product.name)}</span>
+                    <span style="flex:1;min-width:0;white-space:normal;overflow-wrap:anywhere;word-break:normal">${htmlGuvenli(i.product.name)}</span>
                     <div class="space-x-2">
                         <span>x${i.qty}</span>
                         <span>₺${(i.product.price * i.qty).toFixed(2)}</span>
