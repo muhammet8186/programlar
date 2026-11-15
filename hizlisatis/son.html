@@ -6784,8 +6784,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
         }
 
         async function cokluUrunFisleriniYazdir(sale) {
-            // QR görselinin oluşturulması tamamlanmadan yazdırma önizlemesini açma.
-            const takipQrHtml = await satisTakipQrHtmlHazirla(sale, '32mm');
+            // Çoklu ürün fişinde ana fişteki büyük QR kullanılır; alt QR tekrarı eklenmez.
+            const takipQrHtml = '';
             const selectedItems = (sale.items || []).filter(item => item.fisYazdir !== false);
             if (!selectedItems.length) {
                 onayModaliniGoster('Fişe ürün seçilmedi', 'Satış tamamlandı ancak çoklu fiş için sepetten en az bir ürünü “Fişe dahil” olarak işaretleyin.', null, true);
@@ -6864,7 +6864,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             const alan = sistemAyarlari.fisAlanlari || {};
             const para = n => `₺${Number(n || 0).toFixed(2)}`;
             const html = (await Promise.all(sales.map(async (s, index) => {
-                const takipQrHtml = await satisTakipQrHtmlHazirla(s, '32mm');
+                // Toplu fişte ikinci/küçük QR kod tekrarı eklenmez.
+                const takipQrHtml = '';
                 const fisGovdesi = (() => {
                     const parcalar = {
                         sirket: `<div style="text-align:center;border-bottom:1px dashed #aaa;padding-bottom:8px;${alan.sirket===false?'display:none':''}"><h2 style="font-size:16px;font-weight:bold">${htmlGuvenli(sistemAyarlari.sirketAdi || 'Hızlı Satış Programı').toUpperCase()}</h2><p style="font-size:10px">Satış Fişi / Bilgi Fişi</p></div>`,
