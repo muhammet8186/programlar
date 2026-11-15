@@ -7282,12 +7282,12 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             if (customer) { movement.customerId = customer.id; movement.customerName = customer.name; }
             kasaHareketleri.unshift(movement);
             if (customer) cariManuelGecmisKaydi(customer, movement, false);
-            durumuKaydet();
+            // Formu hemen kapat ve yeni hareketi listeye anında yansıt.
             document.getElementById('cash-manual-form')?.reset();
             modalKapat('modal-cash-add');
             kasaEkraniniGuncelle();
             if (customer) borclularTablosunuGuncelle();
-            onayModaliniGoster('Kayıt eklendi', `${type} hareketi ${['Gelir','Gider'].includes(type) ? (kasaHesaplari.find(k=>String(k.id)===String(seciliManuelKasaId))?.name || 'seçili kasa') : 'Ana Nakit Kasa'} bölümüne kaydedildi.`, null, true);
+            durumuKaydet();
         }
 
         function manuelKasaDuzenlemeCariAlaniniGuncelle(seciliCariId = null) {
@@ -7382,9 +7382,9 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 kasaHareketleri = (kasaHareketleri || []).filter(x => String(x.id) !== String(parentId) && !(x.movementKind === 'manual-settlement' && String(x.parentMovementId) === String(parentId)));
                 const customer = m.customerId ? musteriler.find(c => String(c.id) === String(m.customerId)) : null;
                 if (customer && Array.isArray(customer.history)) customer.history = customer.history.filter(h => String(h.cashMovementId || '') !== String(parentId) && String(h.id || '') !== `CARI-${parentId}` && !childIds.includes(String(h.cashMovementId || '')) && !childIds.includes(String(h.id || '')));
-                durumuKaydet();
+                // Silinen hareketi önce listeden kaldır; ardından yerel/bulut kaydını başlat.
                 kasaEkraniniGuncelle();
-                onayModaliniGoster('Silindi', 'Kasa hareketi silindi.', null, true);
+                durumuKaydet();
             });
         }
 
@@ -7557,7 +7557,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             if(!aktif.some(k=>String(k.id)===String(seciliManuelKasaId))) seciliManuelKasaId=String(aktif.find(k=>String(k.id)===ANA_NAKIT_KASA_ID)?.id || aktif[0]?.id || ANA_NAKIT_KASA_ID);
             root.innerHTML=aktif.map(k=>{const b=kasaHesapBakiyesi(k);return `<div onclick="manuelKasaSec('${String(k.id)}')" class="theme-card rounded-lg border ${String(seciliManuelKasaId)===String(k.id)?'cash-account-selected border-2 ring-2':'border-slate-700'} bg-slate-900 p-3 cursor-pointer">
               <div class="flex justify-between gap-2"><div><div class="font-bold text-sm">${htmlGuvenli(k.name)}</div><div class="text-[10px] text-slate-400">${htmlGuvenli(k.type||'Özel Kasa')}${String(k.id)===ANA_NAKIT_KASA_ID?' · Ana kasa (silinemez)':''}${String(seciliManuelKasaId)===String(k.id)?' · <span class="cash-selected-label">SEÇİLİ</span>':''}</div></div><span class="text-xs ${b<0?'text-red-400':'text-emerald-400'} font-mono font-bold">₺${b.toFixed(2)}</span></div>
-              <div class="flex flex-wrap items-center gap-2 mt-3">${String(seciliManuelKasaId)===String(k.id)?`<button class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded px-3 py-2 shadow" onclick="event.stopPropagation();manuelKasaKayitModaliniAc()"><i class="fa-solid fa-plus mr-1"></i> Hareket Ekle</button>`:''}<button class="text-xs bg-slate-700 hover:bg-slate-600 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiDuzenle('${String(k.id).replace(/'/g,"\\'")}')">Düzenle</button>${String(k.id)===ANA_NAKIT_KASA_ID?'<span class="text-[10px] text-amber-400 px-2 py-1">Ana kasa · Silinemez</span>':`<button class="text-xs bg-rose-900/70 hover:bg-rose-800 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiKapat('${String(k.id).replace(/'/g,"\\'")}')">Sil</button>`}</div></div>`}).join('') || '<p class="text-xs text-slate-400">Henüz aktif kasa yok.</p>';
+              <div class="flex flex-wrap items-center gap-2 mt-3">${String(seciliManuelKasaId)===String(k.id)?`<button class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded px-3 py-2 shadow" onclick="event.stopPropagation();manuelKasaKayitModaliniAc()"><i class="fa-solid fa-plus mr-1"></i> Hareket Ekle</button>`:''}${String(k.id)===ANA_NAKIT_KASA_ID?'':`<button class="text-xs bg-slate-700 hover:bg-slate-600 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiDuzenle('${String(k.id).replace(/'/g,"\\'")}')">Düzenle</button>`} ${String(k.id)===ANA_NAKIT_KASA_ID?'<span class="text-[10px] text-amber-400 px-2 py-1">Ana kasa · Silinemez</span>':`<button class="text-xs bg-rose-900/70 hover:bg-rose-800 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiKapat('${String(k.id).replace(/'/g,"\\'")}')">Sil</button>`}</div></div>`}).join('') || '<p class="text-xs text-slate-400">Henüz aktif kasa yok.</p>';
         }
         function manuelKasaSec(id) { seciliManuelKasaId=String(id); kasaHesaplariniCiz(); kasaEkraniniGuncelle(); }
         function kasaModernModalAc(baslik, govde, kaydetEtiketi, kaydetIslemi) {
