@@ -277,9 +277,8 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
             body.printing-receipt #receipt-print-area { display: block !important; position: static !important; width: 100% !important; color: #000000 !important; padding: 2mm !important; margin: 0 !important; box-shadow: none !important; }
             body.printing-receipt #rec-tracking-qr-wrap[data-qr-enabled="true"] { display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; gap: 2mm !important; width: 100% !important; padding-top: 3mm !important; page-break-inside: avoid !important; break-inside: avoid !important; }
             body.printing-receipt #rec-tracking-qr-wrap[data-qr-enabled="false"] { display: none !important; }
-            body.printing-receipt #rec-tracking-qr { display: block !important; width: 32mm !important; height: 32mm !important; min-width: 32mm !important; min-height: 32mm !important; padding: 2mm !important; box-sizing: content-box !important; border: 1px solid #000 !important; background: #fff !important; }
-            /* Termal yazıcı ve Android yazdırma motorlarında canvas yerine QR görselini bas. */
-            body.printing-receipt #rec-tracking-qr canvas { display: block !important; width: 32mm !important; height: 32mm !important; max-width: none !important; image-rendering: pixelated !important; }
+            body.printing-receipt #rec-tracking-qr { display: block !important; width: 32mm !important; height: 32mm !important; min-width: 32mm !important; min-height: 32mm !important; padding: 0 !important; box-sizing: border-box !important; border: 0 !important; outline: 0 !important; box-shadow: none !important; background: #fff !important; }
+            
             body.printing-receipt #rec-tracking-qr img { display: block !important; width: 32mm !important; height: 32mm !important; min-width: 32mm !important; min-height: 32mm !important; max-width: none !important; object-fit: fill !important; image-rendering: pixelated !important; }
             /* Çoklu ve toplu fişlerde dinamik üretilen QR görselini de aynı baskı kurallarıyla işle. */
             body.printing-receipt #receipt-print-area .receipt-tracking-qr { display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; gap: 2mm !important; width: 100% !important; max-width: 100% !important; margin: 3mm auto 0 !important; padding: 2mm 0 0 !important; box-sizing: border-box !important; break-inside: avoid !important; page-break-inside: avoid !important; color: #000 !important; background: #fff !important; }
@@ -1141,6 +1140,84 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
   body#app-body[data-theme-mode="light"] { font-size:14px !important; }
   body#app-body[data-theme-mode="light"] #sale-detail-edit-modal { padding:8px !important; }
   body#app-body[data-theme-mode="light"] #sale-detail-edit-modal > div { max-height:96vh !important; border-radius:16px !important; }
+}
+</style>
+
+
+<style id="bulk-receipt-qr-no-frame">
+@media print {
+  body.printing-receipt #receipt-print-area .receipt-bulk-one .receipt-tracking-qr,
+  body.printing-receipt #receipt-print-area .receipt-bulk-one .receipt-tracking-qr::before,
+  body.printing-receipt #receipt-print-area .receipt-bulk-one .receipt-tracking-qr::after {
+    border:0 !important; outline:0 !important; box-shadow:none !important;
+  }
+  body.printing-receipt #receipt-print-area .receipt-bulk-one .receipt-tracking-qr img,
+  body.printing-receipt #receipt-print-area .receipt-bulk-one .receipt-tracking-qr-image {
+    border:0 !important; outline:0 !important; box-shadow:none !important;
+    padding:0 !important; background:#fff !important;
+  }
+}
+</style>
+
+
+\n
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<style id="qr-final-safe-layout">
+#receipt-print-area #rec-tracking-qr {
+  display:block !important;
+  width:32mm !important;
+  height:32mm !important;
+  min-width:32mm !important;
+  min-height:32mm !important;
+  box-sizing:border-box !important;
+  padding:0 !important;
+  margin:0 auto !important;
+  border:0 !important;
+  outline:0 !important;
+  box-shadow:none !important;
+  background:#fff !important;
+  line-height:0 !important;
+}
+#receipt-print-area #rec-tracking-qr img,
+#receipt-print-area #rec-tracking-qr canvas {
+  width:32mm !important;
+  height:32mm !important;
+  max-width:none !important;
+  padding:0 !important;
+  margin:0 auto !important;
+  border:0 !important;
+  outline:0 !important;
+  box-shadow:none !important;
+  image-rendering:pixelated !important;
+}
+@media print {
+  body.printing-receipt #receipt-print-area #rec-tracking-qr {
+    display:block !important;
+    border:0 !important;
+    outline:0 !important;
+    box-shadow:none !important;
+  }
+  /* img/canvas görünürlüğünü JS'in gerçek QR üretim sonucuna bırak. */
 }
 </style>
 
@@ -2149,7 +2226,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <p id="rec-thanks">Bizi tercih ettiğiniz için teşekkür ederiz!</p>
 </div>
 <div id="rec-tracking-qr-wrap" class="pt-2 receipt-tracking-qr" style="display:none; align-items:center; justify-content:center; gap:3mm; flex-direction:row;">
-<div id="rec-tracking-qr" class="inline-block bg-white p-1" style="border:1px solid #000; line-height:0; flex:0 0 auto;"></div>
+<div id="rec-tracking-qr" class="inline-block bg-white p-1" style="display:block!important;width:32mm;height:32mm;padding:0!important;box-sizing:border-box;border:0!important;outline:0!important;box-shadow:none!important;background:#fff;line-height:0;flex:0 0 auto;"></div>
 <div class="text-center" style="min-width:0; width:100%;">
 <p class="text-[12px] font-bold text-black">SİPARİŞ TAKİBİ</p>
 <p class="text-[10px] text-black">Durumu görmek için QR kodu okutun</p>
@@ -4399,24 +4476,23 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 
             try {
                 new window.QRCode(target, { text:payload, width:480, height:480, colorDark:'#000000', colorLight:'#ffffff', correctLevel:window.QRCode.CorrectLevel.L });
-                // qrcodejs canvas ve img üretebilir. Ekranda da baskıda da img kullanmak
-                // Android yazdırma motorlarında boş QR çıkması sorununu önler.
-                const qrImg = target.querySelector('img');
+                // QRCode.js canvas çizimini sabit PNG görseline dönüştür.
                 const qrCanvas = target.querySelector('canvas');
-                if (qrImg) {
-                    qrImg.style.display = 'block';
-                    qrImg.style.width = '32mm';
-                    qrImg.style.height = '32mm';
-                    qrImg.style.maxWidth = 'none';
-                    qrImg.style.imageRendering = 'pixelated';
-                    if (qrCanvas) qrCanvas.style.display = 'none';
-                } else if (qrCanvas) {
-                    qrCanvas.style.display = 'block';
-                    qrCanvas.style.width = '32mm';
-                    qrCanvas.style.height = '32mm';
-                    qrCanvas.style.maxWidth = 'none';
-                    qrCanvas.style.imageRendering = 'pixelated';
+                const qrImg = target.querySelector('img');
+                let qrDataUrl = '';
+                if (qrCanvas && qrCanvas.width > 0 && qrCanvas.height > 0) {
+                    try { qrDataUrl = qrCanvas.toDataURL('image/png'); } catch (_) {}
+                }
+                if (!qrDataUrl && qrImg && qrImg.src && qrImg.src.startsWith('data:image/')) qrDataUrl = qrImg.src;
+                if (qrDataUrl) {
+                    const stableImg = document.createElement('img');
+                    stableImg.alt = 'Satış takip QR';
+                    stableImg.src = qrDataUrl;
+                    stableImg.style.cssText = 'display:block!important;width:32mm!important;height:32mm!important;max-width:none!important;object-fit:fill!important;image-rendering:pixelated!important;border:0!important;padding:0!important;margin:0 auto!important;background:#fff!important;';
+                    target.innerHTML = '';
+                    target.appendChild(stableImg);
                 } else {
+                    target.innerHTML = '';
                     target.textContent = 'QR görseli oluşturulamadı';
                 }
             } catch (err) {
@@ -6764,7 +6840,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 if (!qrSrc || !qrSrc.startsWith('data:image/')) throw new Error('QR görseli üretilemedi');
 
                 const qrBoyut = ['28mm', '30mm', '32mm', '35mm'].includes(boyut) ? boyut : '32mm';
-                return `<div class="receipt-tracking-qr" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2mm;text-align:center;width:100%;max-width:100%;box-sizing:border-box;margin:3mm auto 0;padding-top:2mm;border-top:1px dashed #aaa;break-inside:avoid;page-break-inside:avoid;color:#000;background:#fff;"><img class="receipt-tracking-qr-image" src="${qrSrc}" alt="Satış takip QR" style="display:block;width:${qrBoyut};height:${qrBoyut};max-width:${qrBoyut};object-fit:contain;image-rendering:pixelated;margin:0 auto;background:#fff;"><div style="display:block;width:100%;font-family:Arial,sans-serif;text-align:center;white-space:normal;overflow-wrap:anywhere;line-height:1.35;color:#000;background:#fff;"><div style="font-size:11px;font-weight:bold;">SİPARİŞ TAKİBİ</div><div style="font-size:9px;">Durumu görmek için QR kodunu okutun</div><div style="font-size:9px;font-weight:bold;margin-top:3px;">${qrCodeText}</div></div></div>`;
+                return `<div class="receipt-tracking-qr" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2mm;text-align:center;width:100%;max-width:100%;box-sizing:border-box;margin:3mm auto 0;padding:0;border:0!important;outline:0!important;box-shadow:none!important;break-inside:avoid;page-break-inside:avoid;color:#000;background:#fff;"><img class="receipt-tracking-qr-image" src="${qrSrc}" alt="Satış takip QR" style="display:block;width:${qrBoyut};height:${qrBoyut};max-width:${qrBoyut};object-fit:contain;image-rendering:pixelated;margin:0 auto;padding:0;border:0!important;outline:0!important;box-shadow:none!important;background:#fff;"><div style="display:block;width:100%;font-family:Arial,sans-serif;text-align:center;white-space:normal;overflow-wrap:anywhere;line-height:1.35;color:#000;background:#fff;"><div style="font-size:11px;font-weight:bold;">SİPARİŞ TAKİBİ</div><div style="font-size:9px;">Durumu görmek için QR kodunu okutun</div><div style="font-size:9px;font-weight:bold;margin-top:3px;">${qrCodeText}</div></div></div>`;
             } catch (qrErr) {
                 console.warn('Fiş QR alanı hazırlanamadı:', qrErr);
                 return `<div style="text-align:center;font-size:9px;margin-top:8px;border-top:1px dashed #aaa;padding-top:6px;">QR oluşturulamadı: ${htmlGuvenli(qrErr?.message || 'Bilinmeyen hata')}<br>Fiş No: ${qrCodeText}</div>`;
@@ -6784,8 +6860,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
         }
 
         async function cokluUrunFisleriniYazdir(sale) {
-            // Çoklu ürün fişinde ana fişteki büyük QR kullanılır; alt QR tekrarı eklenmez.
-            const takipQrHtml = '';
+            // Çoklu fişte her ürün fişine aynı satış takip QR kodunu ekle.
+            const takipQrHtml = await satisTakipQrHtmlHazirla(sale, '32mm');
             const selectedItems = (sale.items || []).filter(item => item.fisYazdir !== false);
             if (!selectedItems.length) {
                 onayModaliniGoster('Fişe ürün seçilmedi', 'Satış tamamlandı ancak çoklu fiş için sepetten en az bir ürünü “Fişe dahil” olarak işaretleyin.', null, true);
@@ -6864,8 +6940,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             const alan = sistemAyarlari.fisAlanlari || {};
             const para = n => `₺${Number(n || 0).toFixed(2)}`;
             const html = (await Promise.all(sales.map(async (s, index) => {
-                // Toplu fişte ikinci/küçük QR kod tekrarı eklenmez.
-                const takipQrHtml = '';
+                // Toplu fişte her satış fişinin altına büyük takip QR kodunu ekle.
+                const takipQrHtml = await satisTakipQrHtmlHazirla(s, '32mm');
                 const fisGovdesi = (() => {
                     const parcalar = {
                         sirket: `<div style="text-align:center;border-bottom:1px dashed #aaa;padding-bottom:8px;${alan.sirket===false?'display:none':''}"><h2 style="font-size:16px;font-weight:bold">${htmlGuvenli(sistemAyarlari.sirketAdi || 'Hızlı Satış Programı').toUpperCase()}</h2><p style="font-size:10px">Satış Fişi / Bilgi Fişi</p></div>`,
@@ -6977,8 +7053,19 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             window.addEventListener('afterprint', yazdirmaSonrasiKapat, { once: true });
             document.body.classList.add('printing-receipt');
             fisKagitGenisliginiUygula();
-            requestAnimationFrame(() => requestAnimationFrame(() => {
+            requestAnimationFrame(() => requestAnimationFrame(async () => {
                 try {
+                    const qrPrintImages = Array.from(document.querySelectorAll('#receipt-print-area .receipt-tracking-qr img, #receipt-print-area #rec-tracking-qr img'));
+                    await Promise.all(qrPrintImages.map(img => {
+                        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+                        if (typeof img.decode === 'function') return img.decode().catch(() => {});
+                        return new Promise(resolve => {
+                            img.addEventListener('load', resolve, { once:true });
+                            img.addEventListener('error', resolve, { once:true });
+                            setTimeout(resolve, 1800);
+                        });
+                    }));
+                    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                     window.print();
                     // Masaüstü tarayıcılarda print() genellikle diyalog kapandıktan sonra döner.
                     yazdirmaSonrasiKapat();
