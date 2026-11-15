@@ -2719,6 +2719,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 sirketAdi: a.sirketAdi || '',
                 logoDataUrl: a.logoDataUrl || '',
                 fisAlanlari: { ...(a.fisAlanlari || {}) },
+                fisTasarimlari: a.fisTasarimlari && typeof a.fisTasarimlari === 'object' ? JSON.parse(JSON.stringify(a.fisTasarimlari)) : {},
                 fisEkBilgiler: Array.isArray(a.fisEkBilgiler) ? a.fisEkBilgiler : [],
                 otomatikYazdir: Boolean(a.otomatikYazdir),
                 fisYazdirmaModu: a.fisYazdirmaModu || 'toplu',
@@ -2735,7 +2736,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
         function bulutAyarlariniYerelAyarlarlaBirlestir(bulut) {
             if (!bulut || typeof bulut !== 'object') return;
             // Yalnızca izin verilen ortak alanları buluttan al; diğer tüm ayarlar cihazda kalır.
-            ['sirketAdi','logoDataUrl','fisAlanlari','fisEkBilgiler','otomatikYazdir','fisYazdirmaModu','mutfakAktif','customerQrLinks','satisTakipQrAktif'].forEach(k => {
+            ['sirketAdi','logoDataUrl','fisAlanlari','fisTasarimlari','fisEkBilgiler','otomatikYazdir','fisYazdirmaModu','mutfakAktif','customerQrLinks','satisTakipQrAktif'].forEach(k => {
                 if (Object.prototype.hasOwnProperty.call(bulut, k)) sistemAyarlari[k] = bulut[k];
             });
             if (bulut.ozellikler && typeof bulut.ozellikler === 'object') {
@@ -4326,8 +4327,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
         }
         function fisTasarimCizgiCss(tip, kenar) {
             const p = fisTasarimProfiliGetir(tip);
-            if (p[kenar] !== true) return `${kenar === 'headerBottom' || kenar === 'productHeaderBottom' || kenar === 'productBottom' || kenar === 'totalTop' ? 'border-bottom' : 'border-top'}:0`;
             const cssKenar = kenar === 'headerBottom' || kenar === 'productHeaderBottom' || kenar === 'productBottom' ? 'border-bottom' : 'border-top';
+            if (p[kenar] !== true) return `${cssKenar}:0`;
             return `${cssKenar}:${Number(p.lineWidth) || 1}px ${['solid','dashed','dotted'].includes(p.lineStyle) ? p.lineStyle : 'dashed'} ${/^#[0-9a-f]{6}$/i.test(p.lineColor) ? p.lineColor : '#111111'}`;
         }
         function fisTasarimModaliniHazirla() {
@@ -4702,7 +4703,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 const oncekiYerel = JSON.parse(localStorage.getItem('pos_system_settings_v4') || '{}');
                 const ortakAlanlar = a => ({
                     sirketAdi:a.sirketAdi||'', logoDataUrl:a.logoDataUrl||'', fisAlanlari:a.fisAlanlari||{},
-                    fisEkBilgiler:a.fisEkBilgiler||[], otomatikYazdir:Boolean(a.otomatikYazdir),
+                    fisTasarimlari:a.fisTasarimlari||{}, fisEkBilgiler:a.fisEkBilgiler||[], otomatikYazdir:Boolean(a.otomatikYazdir),
                     fisYazdirmaModu:a.fisYazdirmaModu||'toplu', mutfakAktif:a.mutfakAktif===true,
                     ozellikler:{adisyon:a.ozellikler?.adisyon===true,customerorders:a.ozellikler?.customerorders===true},
                     customerQrLinks:a.customerQrLinks||[], satisTakipQrAktif:a.satisTakipQrAktif===true
@@ -7170,7 +7171,16 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             const receiptProductWrap = document.getElementById('rec-items-list')?.parentElement;
             const receiptProductHead = receiptProductWrap?.querySelector(':scope > div');
             const receiptTotal = document.getElementById('rec-row-total');
-            const normalLine = (enabled) => enabled ? `${normalTasarim.lineWidth}px ${normalTasarim.lineStyle} ${normalTasarim.lineColor}` : 'none';
+            const normalLine = (enabled) => enabled ? `${Number(normalTasarim.lineWidth) || 1}px ${normalTasarim.lineStyle || 'dashed'} ${normalTasarim.lineColor || '#111111'}` : 'none';
+            // Önce fiş şablonundaki sabit Tailwind kenarlıklarını temizle.
+            // Böylece tasarım merkezinde kapatılan çizgiler HTML sınıfları nedeniyle görünmeye devam etmez.
+            if (receiptArea) {
+                receiptArea.querySelectorAll('*').forEach(el => {
+                    ['border-top','border-right','border-bottom','border-left'].forEach(edge => {
+                        el.style.setProperty(edge, '0', 'important');
+                    });
+                });
+            }
             if (receiptHeader) receiptHeader.style.setProperty('border-bottom', normalLine(normalTasarim.headerBottom), 'important');
             if (receiptProductWrap) {
                 receiptProductWrap.style.setProperty('border-top', normalLine(normalTasarim.productTop), 'important');
