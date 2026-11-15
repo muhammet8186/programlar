@@ -4404,8 +4404,14 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             const cards=[...document.querySelectorAll('.theme-card')];
             const printCard=cards.find(c=>c.querySelector('h3')?.textContent.trim()==='Satış Görünüm Tercihleri');
             const contentCard=cards.find(c=>c.querySelector('h3')?.textContent.trim()==='Fiş İçeriği ve Yazdırma Tercihleri');
+            const launcher=document.getElementById('receipt-design-launcher');
             const printPanel=document.getElementById('receipt-tab-panel-print');
             const contentPanel=document.getElementById('receipt-tab-panel-content');
+            // Açma butonunu, ayar kartı modal içine taşınmadan önce ana Ayarlar alanına çıkar.
+            // Böylece modal kapatıldığında buton gizli modalın içinde kalmaz.
+            if(launcher && printCard && launcher.parentElement===printCard) {
+                printCard.parentNode.insertBefore(launcher, printCard);
+            }
             if(printCard && printPanel) {
                 printCard.dataset.receiptSettingsCard='print';
                 printPanel.appendChild(printCard);
@@ -9883,6 +9889,24 @@ if('serviceWorker' in navigator&&location.protocol!=='file:'){window.addEventLis
 </div>
 </div>
 </div>
+
+
+<script id="receipt-design-settings-init">
+// Ayarlar ekranı ilk açıldığında fiş ayar kartlarını gizli Tasarım Merkezi modalına taşı.
+// Böylece ana Ayarlar sayfasında yalnızca sabit açma butonu görünür.
+(function () {
+  function initializeReceiptDesignSettings() {
+    if (typeof fisTasarimModaliniHazirla === 'function') {
+      fisTasarimModaliniHazirla();
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeReceiptDesignSettings, { once: true });
+  } else {
+    initializeReceiptDesignSettings();
+  }
+})();
+</script>
 
 </body>
 </html>
