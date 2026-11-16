@@ -1679,7 +1679,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 </div>
 <div class="theme-card bg-slate-900 rounded-lg border border-slate-800 overflow-hidden shadow-lg">
 <div class="p-3 border-b border-slate-800 font-bold text-sm"><i class="fa-solid fa-calendar-day text-emerald-500 mr-1"></i> Günlük Satışlar</div>
-<div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="theme-table-header bg-slate-800"><tr><th class="p-2.5">Tarih</th><th class="p-2.5 text-right">İşlem</th><th class="p-2.5 text-right">Toplam</th><th class="p-2.5 text-right">Veresiye</th></tr></thead><tbody id="report-daily-table"></tbody></table></div>
+<div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="theme-table-header bg-slate-800"><tr><th class="p-2.5">Tarih</th><th class="p-2.5 text-right">İşlem</th><th class="p-2.5 text-right">Toplam</th><th class="p-2.5 text-right">Nakit</th><th class="p-2.5 text-right">Kredi Kartı</th><th class="p-2.5 text-right">Veresiye</th><th class="p-2.5 text-right">Diğer</th></tr></thead><tbody id="report-daily-table"></tbody></table></div>
 </div>
 <div class="theme-card bg-slate-900 rounded-lg border border-slate-800 overflow-hidden shadow-lg">
 <div class="p-3 border-b border-slate-800 font-bold text-sm">Seçilen Tarihteki İşlemler</div>
@@ -8755,9 +8755,9 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             });
             const cariOzet = cariManuelHesapOzeti(customer);
             const history = Array.isArray(customer.history) ? customer.history : [];
-            const manuelToplam = cariManuelKayitlari.reduce((sum, m) => sum + (Number(m.amount) || 0), 0);
-            const manuelOdenen = cariManuelKayitlari.reduce((sum, m) => sum + Math.min(Number(m.amount) || 0, Number(m.paidAmount) || 0), 0);
-            const manuelKalan = Math.max(0, manuelToplam - manuelOdenen);
+            const manuelToplam = Math.max(0, Number(cariOzet.total) || 0);
+            const manuelOdenen = Math.max(0, Number(cariOzet.paid) || 0);
+            const manuelKalan = Math.max(0, Number(cariOzet.remaining) || 0);
             const summaryClass = isLight ? 'bg-sky-50 border-sky-200 text-slate-800' : 'bg-slate-800/80 border-slate-700 text-slate-100';
             const remainColor = cariOzet.remaining > 0.009 ? (isLight ? 'text-amber-700' : 'text-amber-300') : (isLight ? 'text-emerald-700' : 'text-emerald-400');
             const summary = `<div class="mb-3 rounded-lg border p-3 ${summaryClass}">
@@ -9073,13 +9073,18 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             rows.forEach(s => {
                 const day = raporTarihiniNormalizeEt(s.date || s.timestamp || s.createdAt);
                 if (!day) return;
-                if (!daily[day]) daily[day] = { count: 0, total: 0, credit: 0 };
+                if (!daily[day]) daily[day] = { count: 0, total: 0, cash: 0, card: 0, credit: 0, other: 0 };
                 daily[day].count++; daily[day].total += Number(s.total || 0);
                 daily[day].credit += creditAmount(s);
+                const payments = Array.isArray(s.payments) ? s.payments : [];
+                let paymentCash=0, paymentCard=0, paymentOther=0;
+                payments.forEach(p => { const amount=Math.max(0,Number(p.amount)||0); const type=String(p.type||''); if (/nakit/i.test(type)) paymentCash+=amount; else if (/kredi kart/i.test(type)) paymentCard+=amount; else if (!/veresiye/i.test(type)) paymentOther+=amount; });
+                if (!payments.length) { const type=String(s.type||''); const paid=Math.max(0,Number(s.paidAmount ?? (Number(s.total||0)-creditAmount(s)))||0); if (/nakit/i.test(type)) paymentCash=paid; else if (/kredi kart/i.test(type)) paymentCard=paid; else if (!/veresiye/i.test(type)) paymentOther=paid; }
+                daily[day].cash += paymentCash; daily[day].card += paymentCard; daily[day].other += paymentOther;
             });
             const dailyBody = document.getElementById('report-daily-table');
             const dailyKeys = Object.keys(daily).sort((a,b) => b.localeCompare(a));
-            if (dailyBody) dailyBody.innerHTML = dailyKeys.length ? dailyKeys.map(day => `<tr class="border-t border-slate-800"><td class="p-2.5">${day}</td><td class="p-2.5 text-right">${daily[day].count}</td><td class="p-2.5 text-right font-semibold">${money(daily[day].total)}</td><td class="p-2.5 text-right text-amber-400">${money(daily[day].credit)}</td></tr>`).join('') : '<tr><td colspan="4" class="p-4 text-center opacity-70">Veri yok.</td></tr>';
+            if (dailyBody) dailyBody.innerHTML = dailyKeys.length ? dailyKeys.map(day => `<tr class="border-t border-slate-800"><td class="p-2.5">${day}</td><td class="p-2.5 text-right">${daily[day].count}</td><td class="p-2.5 text-right font-semibold">${money(daily[day].total)}</td><td class="p-2.5 text-right text-amber-400">${money(daily[day].cash)}</td><td class="p-2.5 text-right">${money(daily[day].card)}</td><td class="p-2.5 text-right text-amber-400">${money(daily[day].credit)}</td><td class="p-2.5 text-right">${money(daily[day].other)}</td></tr>`).join('') : '<tr><td colspan="7" class="p-4 text-center opacity-70">Veri yok.</td></tr>';
 
             // Ürün adet ve ciro sıralaması
             const products = {};
@@ -9258,8 +9263,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     </div>
                 </div>
                 </div>
-                <div class="grid grid-cols-2 gap-3"><label class="text-xs text-slate-300">İndirim (TL)<input id="sale-edit-discount" type="number" min="0" step="0.01" value="${Number(sale.discount)||0}" class="w-full mt-1 rounded bg-slate-950 border border-slate-600 p-2.5 text-white"></label><div class="rounded-lg bg-slate-800 p-3"><div class="text-xs text-slate-400">Yeni toplam</div><div id="sale-edit-total" class="text-xl font-black text-emerald-400">₺0,00</div></div></div>
-                <p class="text-[11px] text-amber-300">Kaydettiğinizde stok farkı, satışa bağlı kasa hareketleri ve varsa veresiye bakiyesi yeniden hesaplanır. Satışın ödeme türü korunur.</p>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3"><label class="text-xs text-slate-300">Ödeme Şekli<select id="sale-edit-payment-type" class="w-full mt-1 rounded bg-slate-950 border border-slate-600 p-2.5 text-white"><option value="Nakit" ${sale.type === 'Nakit' ? 'selected' : ''}>Nakit</option><option value="Kredi Kartı" ${sale.type === 'Kredi Kartı' ? 'selected' : ''}>Kredi Kartı</option><option value="Veresiye" ${String(sale.type||'').startsWith('Veresiye') ? 'selected' : ''}>Veresiye</option></select></label><label class="text-xs text-slate-300">İndirim (TL)<input id="sale-edit-discount" type="number" min="0" step="0.01" value="${Number(sale.discount)||0}" class="w-full mt-1 rounded bg-slate-950 border border-slate-600 p-2.5 text-white"></label><div class="rounded-lg bg-slate-800 p-3"><div class="text-xs text-slate-400">Yeni toplam</div><div id="sale-edit-total" class="text-xl font-black text-emerald-400">₺0,00</div></div></div>
+                <p class="text-[11px] text-amber-300">Kaydettiğinizde stok farkı, satışa bağlı kasa hareketleri ve varsa veresiye bakiyesi yeniden hesaplanır. Ödeme şekli değişikliği satış ve kasa kayıtlarına uygulanır.</p>
                 <div class="flex justify-end gap-2"><button id="sale-edit-cancel" type="button" class="rounded-lg bg-slate-700 px-4 py-2 text-sm">Vazgeç</button><button id="sale-edit-save" type="button" class="rounded-lg bg-emerald-600 hover:bg-emerald-500 px-5 py-2 text-sm font-bold">Değişiklikleri Kaydet</button></div></div></div>`;
             document.body.appendChild(overlay);
             const close = () => overlay.remove();
@@ -9289,7 +9294,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             const sale = (satisGecmisi||[]).find(x => String(x.id) === String(id));
             if (!sale || !Array.isArray(sale.items)) return;
             const oldTotal = Math.max(0, Number(sale.total)||0);
-            const oldRemaining = Math.max(0, Number(sale.remainingAmount)||0);
+            const oldRemaining = Math.max(0, Number(sale.remainingAmount ?? (String(sale.type||'').startsWith('Veresiye') ? oldTotal : 0))||0);
             const oldItems = sale.items.map(x => ({...x, qty:Number(x.qty)||0}));
             const nextItems = [...modal.querySelectorAll('#sale-edit-items [data-edit-item]')].map(row => {
                 const originalIndex = row.dataset.editItem;
@@ -9322,20 +9327,29 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             }
             // Satışa bağlı kasa hareketlerini mevcut ödeme dağılımını koruyarak güncelle.
             const linkedCash = (kasaHareketleri||[]).filter(m=>String(m.saleId||'')===String(id));
-            linkedCash.forEach(m=>{m.amount=Math.round((Number(m.amount)||0)*ratio*100)/100;});
+
             // Satışın müşteri borcu varsa yalnızca bakiye farkı kadar cari hesap düzeltilir.
-            const newRemaining = Math.round(oldRemaining*ratio*100)/100;
-            const debtDelta = newRemaining-oldRemaining;
+            const paymentType = modal.querySelector('#sale-edit-payment-type')?.value || sale.type || 'Nakit';
             const customer = (musteriler||[]).find(c=>String(c.id)===String(sale.customerId||sale.associatedCustId||''));
+            if (paymentType === 'Veresiye' && !customer) { onayModaliniGoster('Müşteri gerekli','Satışı veresiye olarak kaydetmek için satışa bağlı bir müşteri bulunmalı.',null,true); return; }
+            const newRemaining = paymentType === 'Veresiye' ? newTotal : 0;
+            const debtDelta = newRemaining-oldRemaining;
             if (customer && Math.abs(debtDelta)>0.001) {
                 customer.totalDebt = Math.max(0,(Number(customer.totalDebt)||0)+debtDelta);
                 if (!Array.isArray(customer.history)) customer.history=[];
                 customer.history.unshift({id:`${id}-edit-${Date.now()}`,saleId:String(id),date:new Date().toLocaleString('tr-TR'),type:'Satış düzenleme borç farkı',amount:debtDelta});
             }
             sale.items = nextItems; sale.subtotal = Math.round(subtotal*100)/100; sale.discount = discount; sale.total = newTotal;
-            sale.paidAmount = Math.max(0,Math.round((Number(sale.paidAmount ?? (oldTotal-oldRemaining)) * ratio)*100)/100);
+            sale.type = paymentType;
+            sale.paidAmount = Math.max(0, Math.round((newTotal - newRemaining)*100)/100);
             sale.remainingAmount = newRemaining;
-            sale.payments = Array.isArray(sale.payments) ? sale.payments.map(p=>({...p,amount:Math.round((Number(p.amount)||0)*ratio*100)/100})) : sale.payments;
+            sale.paymentStatus = newRemaining > 0 ? 'partial' : 'paid';
+            sale.payments = [{ type: paymentType, amount: newTotal - newRemaining }];
+            if (paymentType !== 'Veresiye') {
+                const existing = (kasaHareketleri||[]).filter(m=>String(m.saleId||'')===String(id));
+                if (existing.length) { existing[0].type = `Satış (${paymentType})`; existing[0].amount = newTotal; existing[0].paymentMethod = paymentType; for (const duplicate of existing.slice(1)) kasaHareketleri = kasaHareketleri.filter(m=>m!==duplicate); }
+                else { if(!Array.isArray(kasaHareketleri)) kasaHareketleri=[]; kasaHareketleri.unshift({saleId:String(id),date:sale.date,type:`Satış (${paymentType})`,amount:newTotal,user:sale.kasiyer||aktifKullaniciAdi||'Bilinmiyor',periodId:aktifDonemId}); }
+            } else { kasaHareketleri = (kasaHareketleri||[]).filter(m=>String(m.saleId||'')!==String(id)); }
             sale.editedAt = Date.now(); sale.editedBy = aktifKullaniciAdi || 'Admin';
             durumuKaydet(); gecmisTablosunuGuncelle(); kasaEkraniniGuncelle(); urunleriGoster(); borclularTablosunuGuncelle();
             closeModal();
