@@ -132,7 +132,15 @@
         button { cursor: pointer; touch-action: manipulation; position: relative; z-index: 20; }
         #btn-play-pause, #drive-btn-play { box-shadow: 0 0 32px var(--accent-glow), 0 10px 30px rgba(0,0,0,.2); }
         .toast-enhanced { animation: toastIn .25s ease-out; }
-        @keyframes toastIn { from { opacity:0; transform:translateY(12px) scale(.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+        @keyframes toastIn { from { opacity:0; transform:translate(-50%,-45%) scale(.98); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
+        .drive-volume-btn {
+            width: 64px; height: 58px; border-radius: 16px;
+            background: #1e293b; color: #fff; border: 2px solid #64748b;
+            font-size: 1.35rem; display: flex; align-items: center; justify-content: center;
+        }
+        .drive-volume-btn:active { background: #334155; transform: scale(.96); }
+        #drive-volume-range { accent-color: #f59e0b; width: 100%; height: 12px; }
+        .drive-volume-label { color: #f8fafc; font-size: 1rem; font-weight: 800; }
     </style>
 </head>
 <body class="font-sans min-h-screen flex flex-col justify-between selection:bg-[var(--theme-primary)] selection:text-black overflow-x-hidden relative">
@@ -403,6 +411,26 @@
             </div>
 
             <div class="space-y-6 z-20">
+                <div class="w-full max-w-md mx-auto pt-2 space-y-3">
+                    <div class="flex items-center justify-center gap-5 rounded-2xl border border-slate-600 bg-slate-900/90 px-4 py-3">
+                        <button type="button" class="drive-volume-btn" onclick="aracSesiniDegistir(-0.1)" aria-label="Sesi azalt" title="Sesi azalt">
+                            <i class="fa-solid fa-volume-low"></i>
+                        </button>
+                        <div class="flex-1 min-w-0 text-center space-y-2">
+                            <div class="drive-volume-label">SES <span id="drive-volume-value">80%</span></div>
+                            <input id="drive-volume-range" type="range" min="0" max="1" step="0.01" value="0.8"
+                                   aria-label="Araç modu ses seviyesi"
+                                   oninput="aracSesSeviyesiniAyarla(this.value)">
+                        </div>
+                        <button type="button" class="drive-volume-btn" onclick="aracSesiniDegistir(0.1)" aria-label="Sesi yükselt" title="Sesi yükselt">
+                            <i class="fa-solid fa-volume-high"></i>
+                        </button>
+                    </div>
+                    <button onclick="rastgeleKanalCal()" class="w-full py-4 rounded-2xl bg-slate-800 border-2 border-slate-600 text-amber-300 font-extrabold text-lg tracking-wide hover:bg-slate-700 flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-shuffle text-amber-300 text-2xl"></i>
+                        <span>RASTGELE KANAL SEÇ</span>
+                    </button>
+                </div>
                 <div class="flex items-center justify-center space-x-6 sm:space-x-10">
                     <button onclick="oncekiKanaliCal()" class="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-slate-800 border-2 border-slate-700 active:bg-slate-700 text-white flex items-center justify-center transition">
                         <i class="fa-solid fa-backward-step text-3xl sm:text-4xl"></i>
@@ -412,12 +440,6 @@
                     </button>
                     <button onclick="sonrakiKanaliCal()" class="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-slate-800 border-2 border-slate-700 active:bg-slate-700 text-white flex items-center justify-center transition">
                         <i class="fa-solid fa-forward-step text-3xl sm:text-4xl"></i>
-                    </button>
-                </div>
-                <div class="flex items-center justify-center space-x-4 max-w-md mx-auto pt-2">
-                    <button onclick="rastgeleKanalCal()" class="w-full py-4 rounded-2xl bg-slate-800 border border-slate-700 text-amber-400 font-extrabold text-base tracking-wide hover:bg-slate-700 flex items-center justify-center space-x-2">
-                        <i class="fa-solid fa-shuffle text-amber-400 text-xl"></i>
-                        <span>RASTGELE KANAL SEÇ</span>
                     </button>
                 </div>
             </div>
@@ -1189,6 +1211,7 @@
             const ekran = document.getElementById('arac-modu-ekran');
             ekran.classList.toggle('hidden', !ac);
             if (ac) {
+                aracSesKontrolleriniGuncelle();
                 setTimeout(() => {
                     const canvasArac = document.getElementById('arac-gorsel-canvas');
                     if (canvasArac && canvasArac.parentElement) {
@@ -1268,6 +1291,27 @@
         function sesSessizToggle() {
             sesElementi.muted = !sesElementi.muted;
             sessizlikIkonGuncelle();
+            aracSesKontrolleriniGuncelle();
+        }
+
+        function aracSesSeviyesiniAyarla(deger) {
+            const seviye = Math.max(0, Math.min(1, Number(deger)));
+            sesElementi.volume = seviye;
+            sesElementi.muted = (seviye === 0);
+            if (sesSeviyeCubuk) sesSeviyeCubuk.value = seviye;
+            sessizlikIkonGuncelle();
+            aracSesKontrolleriniGuncelle();
+        }
+
+        function aracSesiniDegistir(miktar) {
+            aracSesSeviyesiniAyarla(Math.round((sesElementi.volume + miktar) * 100) / 100);
+        }
+
+        function aracSesKontrolleriniGuncelle() {
+            const aralik = document.getElementById('drive-volume-range');
+            const etiket = document.getElementById('drive-volume-value');
+            if (aralik) aralik.value = sesElementi.volume;
+            if (etiket) etiket.innerText = `${Math.round(sesElementi.volume * 100)}%`;
         }
 
         function sessizlikIkonGuncelle() {
@@ -1283,6 +1327,7 @@
                 sesElementi.volume = val;
                 sesElementi.muted = (val === 0);
                 sessizlikIkonGuncelle();
+                aracSesKontrolleriniGuncelle();
             });
         }
 
@@ -1496,10 +1541,11 @@
         
         function bildirimGoster(mesaj) {
             const t = document.createElement('div');
-            t.className = 'toast-enhanced fixed bottom-5 right-5 z-[80] glass-panel border px-4 py-3 rounded-xl shadow-2xl text-xs font-medium flex items-center space-x-2';
-            t.style.borderColor = 'var(--panel-border)';
+            t.className = 'toast-enhanced fixed left-1/2 top-1/2 z-[80] -translate-x-1/2 -translate-y-1/2 glass-panel border-2 px-5 py-4 rounded-2xl shadow-2xl text-sm sm:text-base font-bold flex items-center justify-center gap-3 text-center max-w-[min(90vw,520px)]';
+            t.style.borderColor = 'var(--theme-primary)';
             t.style.color = 'var(--text-main)';
-            t.innerHTML = `<i class="fa-solid fa-circle-info text-cyan-500 text-sm" style="color: var(--theme-primary);"></i><span>${mesaj}</span>`;
+            t.style.background = 'var(--panel-bg)';
+            t.innerHTML = `<i class="fa-solid fa-circle-info text-lg shrink-0" style="color: var(--theme-primary);"></i><span>${mesaj}</span>`;
             document.body.appendChild(t);
             setTimeout(() => { t.classList.add('opacity-0'); setTimeout(() => t.remove(), 300); }, 3000);
         }
