@@ -50,8 +50,9 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
         const customerParams = new URLSearchParams(window.location.search);
         const customerMode = customerParams.get('musteriSiparis') === '1';
         const saleTrackingMode = customerParams.get('satisTakip') === '1';
+        const customerTrackingMode = customerParams.get('musteriIzleme') === '1';
         let customerFirebaseConfig = null;
-        if (customerMode || saleTrackingMode) {
+        if (customerMode || saleTrackingMode || customerTrackingMode) {
             try {
                 const encoded = customerParams.get('cfg') || '';
                 const normalized = encoded.replace(/-/g, '+').replace(/_/g, '/');
@@ -92,7 +93,7 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
         } catch (_) {}
 
         // Müşteri QR bağlantısı, kendi cihazındaki yerel POS ayarlarına ihtiyaç duymadan menüyü açar.
-        if ((customerMode || saleTrackingMode) && customerFirebaseConfig && customerFirebaseConfig.databaseURL) {
+        if ((customerMode || saleTrackingMode || customerTrackingMode) && customerFirebaseConfig && customerFirebaseConfig.databaseURL) {
             savedSettings.firebaseConfig = customerFirebaseConfig;
             savedSettings.firebaseAktif = true;
             savedSettings.kokDugum = customerParams.get('root') || 'hizli_pos';
@@ -121,6 +122,7 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
         window.getRootNode = () => savedSettings.kokDugum ? savedSettings.kokDugum : (kodIciKokBasligi || 'hizli_pos');
         window.customerMode = customerMode;
         window.saleTrackingMode = saleTrackingMode;
+        window.customerTrackingMode = customerTrackingMode;
         window.customerTable = customerParams.get('masa') || '1';
         window.customerOrderType = customerParams.get('tip') === 'paket' ? 'paket' : 'masa';
         window.customerPeriod = customerParams.get('period') || '';
@@ -180,6 +182,17 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
                 const root = customerParams.get('root') || 'hizli_pos';
                 const period = customerParams.get('period') || 'varsayilan';
                 return onValue(ref(db, `${root}/${period}/satis_takip/${token}`), snap => callback(snap.exists() ? snap.val() : null), error => callback({ _error: error.message || 'Takip bilgisi okunamadı.' }));
+            },
+            subscribeTrackingBoard(callback) {
+                if (!db) throw new Error('Müşteri izleme için Firebase bağlantısı kurulamadı.');
+                const root = customerParams.get('root') || 'hizli_pos';
+                const period = customerParams.get('period') || 'varsayilan';
+                let state = { sales: {}, customerOrders: {}, openOrders: {}, settings: {} };
+                const emit = () => callback(state);
+                const paths = { sales:'satis_takip', customerOrders:'musteri_siparisleri', openOrders:'acik_adisyonlar' };
+                const unsubs = Object.entries(paths).map(([key,path]) => onValue(ref(db, `${root}/${period}/${path}`), snap => { state={...state,[key]:snap.exists()?(snap.val()||{}):{}}; emit(); }, error => callback({_error:error.message||'Siparişler okunamadı.'})));
+                unsubs.push(onValue(ref(db, `${root}/ayarlar`), snap => { state={...state,settings:snap.exists()?(snap.val()||{}):{}}; emit(); }, error => callback({_error:error.message||'Ayarlar okunamadı.'})));
+                return () => unsubs.forEach(unsub=>unsub());
             }
         };
 
@@ -1268,15 +1281,15 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <i class="fa-solid fa-cart-shopping"></i>
 <span>Satış</span>
 </button>
+<button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap hidden" id="tab-adisyon" onclick="sekmeyiDegistir('adisyon')"><i class="fa-solid fa-clipboard-list"></i><span>Adisyon <span class="ml-1 rounded-full bg-amber-600 text-white px-1.5" id="adisyon-nav-count">0</span></span></button>
 <button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap hidden" id="tab-kitchen" onclick="sekmeyiDegistir('kitchen')">
 <i class="fa-solid fa-fire-burner"></i>
 <span>Mutfak <span class="ml-1 rounded-full bg-red-600 text-white px-1.5" id="kitchen-nav-count">0</span></span>
 </button>
-<button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap hidden" id="tab-waiter" style="display:none!important" aria-hidden="true" onclick="sekmeyiDegistir('waiter')" type="button">
-<i class="fa-solid fa-user-tie"></i> <span>Garson</span>
-</button>
-<button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap hidden" id="tab-adisyon" onclick="sekmeyiDegistir('adisyon')"><i class="fa-solid fa-clipboard-list"></i><span>Adisyon <span class="ml-1 rounded-full bg-amber-600 text-white px-1.5" id="adisyon-nav-count">0</span></span></button>
 <button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap hidden" id="tab-customerorders" onclick="sekmeyiDegistir('customerorders')"><i class="fa-solid fa-bell-concierge"></i><span>Müşteri Siparişleri <span class="ml-1 rounded-full bg-red-600 text-white px-1.5" id="customer-order-nav-count">0</span></span></button>
+<button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap hidden" id="tab-waiter" style="display:none!important" aria-hidden="true" onclick="sekmeyiDegistir('waiter')" type="button">
+<i class="fa-solid fa-eye"></i> <span>Müşteri İzleme</span>
+</button>
 <button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap" id="tab-products" onclick="sekmeyiDegistir('products')">
 <i class="fa-solid fa-boxes-stacked"></i>
 <span>Ürünler</span>
@@ -1291,7 +1304,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 </button>
 <button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap" id="tab-reports" onclick="sekmeyiDegistir('reports')">
 <i class="fa-solid fa-chart-column"></i>
-<span>Rapor</span>
+<span>Raporlar</span>
 </button>
 <button class="px-2.5 py-1 text-xs font-semibold rounded transition text-slate-400 hover:text-emerald-500 whitespace-nowrap" id="tab-debtors" onclick="sekmeyiDegistir('debtors')">
 <i class="fa-solid fa-users"></i>
@@ -1379,7 +1392,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <div class="flex justify-between items-center opacity-80 text-[11px]">
 <span>İskonto / İndirim:</span>
 <div class="flex items-center space-x-1">
-<input class="theme-input w-14 bg-slate-900 text-right text-[11px] px-1.5 py-0.5 rounded border border-slate-700 focus:outline-none focus:border-emerald-500 font-mono" id="cart-discount" min="0" oninput="sepetiGuncelle()" type="number" value="0"/>
+<input class="theme-input w-24 bg-slate-900 text-right text-[11px] px-1.5 py-0.5 rounded border border-slate-700 focus:outline-none focus:border-emerald-500 font-mono" id="cart-discount" min="0" oninput="sepetiGuncelle()" type="number" value="0"/>
 <span class="text-[11px]">₺</span>
 </div>
 </div>
@@ -1417,21 +1430,22 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Hazırlanıyor</div><div class="text-2xl font-black text-amber-400" id="kitchen-count-preparing">0</div></div>
 <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Hazır</div><div class="text-2xl font-black text-emerald-400" id="kitchen-count-ready">0</div></div>
 </div>
-<div class="flex flex-wrap gap-2"><button class="px-3 py-1.5 rounded text-xs font-bold bg-emerald-600 text-white" id="kitchen-filter-active" onclick="mutfakFiltresiAyarla('active')">Aktif siparişler</button><button class="px-3 py-1.5 rounded text-xs font-bold bg-slate-800 text-slate-300" id="kitchen-filter-all" onclick="mutfakFiltresiAyarla('all')">Tüm siparişler</button></div>
+<div class="flex flex-wrap items-center gap-2"><button class="px-3 py-1.5 rounded text-xs font-bold bg-emerald-600 text-white" id="kitchen-filter-active" onclick="mutfakFiltresiAyarla('active')">Aktif siparişler</button><button class="px-3 py-1.5 rounded text-xs font-bold bg-slate-800 text-slate-300" id="kitchen-filter-all" onclick="mutfakFiltresiAyarla('all')">Tüm siparişler</button><input id="kitchen-search" type="search" class="theme-input min-w-[220px] flex-1 rounded border border-slate-700 bg-slate-950 px-3 py-2 text-xs" placeholder="Sipariş no, masa veya ürün ara…" oninput="mutfakEkraniniGuncelle()" aria-label="Sipariş no, masa veya ürün ara"></div>
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" id="kitchen-orders"><div class="text-sm text-slate-400">Siparişler yükleniyor…</div></div>
 </section>
-<!-- GARSON PERFORMANS / SİPARİŞ EKRANI -->
+<!-- MÜŞTERİ SİPARİŞ İZLEME EKRANI -->
 <section class="absolute inset-0 p-3 md:p-5 hidden flex-col gap-3 overflow-y-auto" id="section-waiter">
   <div class="theme-card rounded-lg border border-slate-700 p-4 flex flex-wrap items-center justify-between gap-3">
-    <div><h2 class="text-xl font-black"><i class="fa-solid fa-user-tie text-cyan-400 mr-2"></i>Garson Paneli</h2><p class="text-xs text-slate-400 mt-1">Garsonlara göre satışları, masa siparişlerini ve toplam tutarları görüntüleyin.</p></div>
-    <div class="flex items-center gap-2"><label class="text-xs font-semibold text-slate-300" for="waiter-filter">Garson</label><select id="waiter-filter" class="theme-input rounded border border-slate-700 bg-slate-950 px-3 py-2 text-xs" onchange="garsonEkraniniGuncelle()"><option value="all">Tüm garsonlar</option></select><button type="button" class="rounded bg-emerald-600 px-3 py-2 text-xs font-bold text-white" onclick="garsonEkraniniGuncelle()"><i class="fa-solid fa-rotate mr-1"></i>Yenile</button></div>
+    <div><h2 class="text-xl font-black"><i class="fa-solid fa-eye text-cyan-400 mr-2"></i>Müşteri İzleme</h2><p class="text-xs text-slate-400 mt-1">Masa/paket bilgilerini ve hazırlık aşamalarını izleyin. Her siparişin QR kodu müşteriye yalnızca kendi sipariş durumunu gösterir.</p></div>
+    <div class="flex flex-wrap items-center gap-2"><label class="sr-only" for="waiter-filter">Müşteri, masa veya sipariş ara</label><input id="waiter-filter" type="search" class="theme-input rounded border border-slate-700 bg-slate-950 px-3 py-2 text-xs" placeholder="Müşteri, masa veya sipariş ara…" oninput="garsonEkraniniGuncelle()"><button type="button" class="rounded bg-emerald-600 px-3 py-2 text-xs font-bold text-white" onclick="garsonEkraniniGuncelle()"><i class="fa-solid fa-rotate mr-1"></i>Yenile</button></div>
   </div>
-  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-    <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Filtredeki sipariş</div><div class="text-2xl font-black text-cyan-400" id="waiter-count-total">0</div></div>
-    <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Bugünkü sipariş</div><div class="text-2xl font-black text-cyan-400" id="waiter-count-today">0</div></div>
-    <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Masa / paket kaydı</div><div class="text-2xl font-black text-amber-400" id="waiter-count-tables">0</div></div>
-    <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Toplam satış</div><div class="text-2xl font-black text-emerald-400" id="waiter-total">₺0,00</div></div>
-    <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Ortalama sipariş tutarı</div><div class="text-2xl font-black text-violet-400" id="waiter-average">₺0,00</div></div>
+  <div class="flex flex-wrap gap-2"><button type="button" id="tracking-filter-active" class="rounded bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white" onclick="musteriIzlemeFiltresiAyarla('active')">Aktif siparişler</button><button type="button" id="tracking-filter-delivered" class="rounded bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-300" onclick="musteriIzlemeFiltresiAyarla('delivered')">Teslim edilenler</button></div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+    <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">İzlenen sipariş</div><div class="text-2xl font-black text-cyan-400" id="waiter-count-total">0</div></div>
+    <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Hazırlanıyor</div><div class="text-2xl font-black text-cyan-400" id="waiter-count-today">0</div></div>
+    <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Hazır</div><div class="text-2xl font-black text-amber-400" id="waiter-count-tables">0</div></div>
+    <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Masa / paket sayısı</div><div class="text-2xl font-black text-emerald-400" id="waiter-total">0</div></div>
+    <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Yeni sipariş</div><div class="text-2xl font-black text-violet-400" id="waiter-average">0</div></div>
   </div>
   <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" id="waiter-orders"><div class="text-sm text-slate-400">Siparişler yükleniyor…</div></div>
 </section>
@@ -1508,7 +1522,9 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <th class="p-3">Ürün Adı</th>
 <th class="p-3">Barkod</th>
 <th class="p-3">Kategori</th>
-<th class="p-3 text-right">Fiyat</th>
+<th class="p-3 text-right">Alış</th>
+<th class="p-3 text-right">Satış</th>
+<th class="p-3 text-right">Birim Kâr</th>
 <th class="p-3 text-center text-emerald-500">Giriş</th>
 <th class="p-3 text-center text-red-500">Çıkış</th>
 <th class="p-3 text-center text-amber-500 font-bold">Kalan</th>
@@ -1533,7 +1549,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 </div>
 <div class="theme-subbar flex flex-wrap items-center gap-2 rounded-lg border border-slate-800 bg-slate-950/70 p-2">
 <button class="px-3 py-2 rounded-md text-xs font-bold bg-emerald-600 text-white" id="cash-tab-sales" onclick="kasaAltBolumunuDegistir('sales')" type="button"><i class="fa-solid fa-cash-register mr-1"></i> Satış Kasası</button>
-<button class="px-3 py-2 rounded-md text-xs font-bold text-slate-400 hover:text-emerald-400" id="cash-tab-manual" onclick="kasaAltBolumunuDegistir('manual')" type="button"><i class="fa-solid fa-wallet mr-1"></i> Kasa (Manuel)</button>
+<button class="px-3 py-2 rounded-md text-xs font-bold text-slate-400 hover:text-emerald-400" id="cash-tab-manual" onclick="kasaAltBolumunuDegistir('manual')" type="button"><i class="fa-solid fa-wallet mr-1"></i> Ana Kasa</button>
 <div class="flex flex-wrap gap-2 items-center justify-between rounded-lg border border-slate-700 p-3 theme-card" id="cash-accounts-toolbar" class="hidden items-center gap-2 ml-auto">
   <div><h3 class="font-bold text-sm"><i class="fa-solid fa-vault mr-1 text-emerald-500"></i> Kasa Yönetimi</h3><p class="text-xs text-slate-400">Nakit, POS, banka ve özel kasalar</p></div>
   <div class="flex gap-2"><button type="button" onclick="kasaHesabiEkle()" class="bg-emerald-600 text-white rounded px-3 py-2 text-xs font-bold"><i class="fa-solid fa-plus mr-1"></i> Kasa Ekle</button><button type="button" onclick="kasaTransferiYap()" class="bg-blue-600 text-white rounded px-3 py-2 text-xs font-bold"><i class="fa-solid fa-right-left mr-1"></i> Transfer</button></div>
@@ -1564,11 +1580,11 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <div class="text-lg md:text-xl font-bold font-mono text-amber-500" id="cash-grand-total">₺0.00</div>
 </div>
 <div class="theme-card hidden bg-slate-900 p-4 rounded-lg border border-slate-800 shadow-lg space-y-1" data-cash-view="manual">
-<span class="text-xs text-slate-400 font-medium">Manuel Gelirler</span>
+<span class="text-xs text-slate-400 font-medium">Gelirler</span>
 <div class="text-lg md:text-xl font-bold font-mono text-emerald-500" id="cash-total-income">₺0,00</div>
 </div>
 <div class="theme-card hidden bg-slate-900 p-4 rounded-lg border border-slate-800 shadow-lg space-y-1" data-cash-view="manual">
-<span class="text-xs text-slate-400 font-medium">Manuel Giderler</span>
+<span class="text-xs text-slate-400 font-medium">Giderler</span>
 <div class="text-lg md:text-xl font-bold font-mono text-orange-500" id="cash-total-expense">₺0,00</div>
 </div>
 <div class="theme-card hidden bg-slate-900 p-4 rounded-lg border border-slate-800 shadow-lg space-y-1" data-cash-view="manual">
@@ -1677,19 +1693,25 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 </div>
 <div class="theme-card bg-slate-900 rounded-lg border border-slate-800 overflow-hidden shadow-lg">
 <div class="p-3 border-b border-slate-800 font-bold text-sm"><i class="fa-solid fa-calendar-day text-emerald-500 mr-1"></i> Günlük Satışlar</div>
-<div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="theme-table-header bg-slate-800"><tr><th class="p-2.5">Tarih</th><th class="p-2.5 text-right">İşlem</th><th class="p-2.5 text-right">Toplam</th><th class="p-2.5 text-right">Veresiye</th></tr></thead><tbody id="report-daily-table"></tbody></table></div>
+<div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="theme-table-header bg-slate-800"><tr><th class="p-2.5">Tarih</th><th class="p-2.5 text-right">İşlem</th><th class="p-2.5 text-right">Toplam</th><th class="p-2.5 text-right">Nakit</th><th class="p-2.5 text-right">Kredi Kartı</th><th class="p-2.5 text-right">Veresiye</th><th class="p-2.5 text-right">Diğer</th></tr></thead><tbody id="report-daily-table"></tbody></table></div>
 </div>
 <div class="theme-card bg-slate-900 rounded-lg border border-slate-800 overflow-hidden shadow-lg">
-<div class="p-3 border-b border-slate-800 font-bold text-sm">Seçilen Tarihteki İşlemler</div>
-<div class="overflow-x-auto"><table class="w-full text-left text-xs md:text-sm min-w-[650px]"><thead class="theme-table-header bg-slate-800 uppercase text-[11px] font-semibold"><tr><th class="p-3">İşlem ID</th><th class="p-3">Tarih</th><th class="p-3">Kasiyer</th><th class="p-3">Tür</th><th class="p-3 text-right">Tutar</th></tr></thead><tbody class="divide-y divide-slate-800" id="report-table"></tbody></table></div>
+<div class="p-3 border-b border-slate-800 font-bold text-sm"><i class="fa-solid fa-users text-blue-400 mr-1"></i> Kullanıcı Bazlı Ödeme Dağılımı</div>
+<div class="overflow-x-auto"><table class="w-full text-left text-xs min-w-[750px]"><thead class="theme-table-header bg-slate-800"><tr><th class="p-2.5">Kullanıcı</th><th class="p-2.5 text-right">İşlem</th><th class="p-2.5 text-right">Toplam</th><th class="p-2.5 text-right">Nakit</th><th class="p-2.5 text-right">Kredi Kartı</th><th class="p-2.5 text-right">Veresiye</th><th class="p-2.5 text-right">Diğer</th></tr></thead><tbody id="report-cashier-payments-table"></tbody></table></div>
 </div>
+
 <div class="theme-card bg-slate-900 rounded-lg border border-slate-800 overflow-hidden shadow-lg">
 <div class="p-3 border-b border-slate-800 font-bold text-sm"><i class="fa-solid fa-trophy text-amber-500 mr-1"></i> En Çok Satılan Ürünler</div>
 <div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="theme-table-header bg-slate-800"><tr><th class="p-2.5">Ürün</th><th class="p-2.5 text-right">Adet</th><th class="p-2.5 text-right">Satış Tutarı</th></tr></thead><tbody id="report-products-table"></tbody></table></div>
 </div>
+<div class="theme-card bg-slate-900 rounded-lg border border-slate-800 overflow-hidden shadow-lg"><div class="p-3 border-b border-slate-800 font-bold text-sm"><i class="fa-solid fa-sack-dollar text-emerald-500 mr-1"></i> En Çok Kâr Edilen Ürünler</div><div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="theme-table-header bg-slate-800"><tr><th class="p-2.5">Ürün</th><th class="p-2.5 text-right">Adet</th><th class="p-2.5 text-right">Toplam Kâr</th></tr></thead><tbody id="report-profit-products-table"></tbody></table></div></div>
 <div class="theme-card bg-slate-900 rounded-lg border border-slate-800 overflow-hidden shadow-lg">
 <div class="p-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2"><div class="font-bold text-sm"><i class="fa-solid fa-users text-blue-400 mr-1"></i> Kullanıcı Bazlı Tam Satış Dökümü</div><label class="text-xs text-slate-400">Kullanıcı <select class="theme-input bg-slate-950 border border-slate-700 rounded p-2 ml-1" id="report-user-filter" onchange="raporuGuncelle()"><option value="">Tüm kullanıcılar</option></select></label></div>
 <div class="overflow-x-auto"><table class="w-full text-left text-xs min-w-[700px]"><thead class="theme-table-header bg-slate-800"><tr><th class="p-2.5">Tarih</th><th class="p-2.5">İşlem ID</th><th class="p-2.5">Kullanıcı</th><th class="p-2.5">Ürünler / Adet</th><th class="p-2.5">Ödeme</th><th class="p-2.5 text-right">Tutar</th></tr></thead><tbody id="report-user-sales-table"></tbody></table></div>
+</div>
+<div class="theme-card bg-slate-900 rounded-lg border border-slate-800 overflow-hidden shadow-lg">
+<div class="p-3 border-b border-slate-800 font-bold text-sm">Seçilen Tarihteki İşlemler</div>
+<div class="overflow-x-auto"><table class="w-full text-left text-xs md:text-sm min-w-[650px]"><thead class="theme-table-header bg-slate-800 uppercase text-[11px] font-semibold"><tr><th class="p-3">İşlem ID</th><th class="p-3">Tarih</th><th class="p-3">Kasiyer</th><th class="p-3">Tür</th><th class="p-3 text-right">Tutar</th></tr></thead><tbody class="divide-y divide-slate-800" id="report-table"></tbody></table></div>
 </div>
 </section>
 <!-- 5. VERESİYE DEFTİRİ -->
@@ -1919,7 +1941,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2">Mutfak Sistemi</h3>
 <div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold">Mutfak özelliğini etkinleştir</div><p class="text-xs text-slate-400 mt-1">Mutfak sipariş takip ekranını ve mutfak kuyruğunu açar veya kapatır. Satış ekranındaki masa, paket ve sipariş alanları Adisyon ayarından yönetilir. Kapatıldığında kayıtlı siparişler silinmez.</p></div><label class="inline-flex items-center gap-2 text-xs font-bold"><input class="w-4 h-4 accent-emerald-500" id="setting-kitchen-enabled" onchange="mutfakSisteminiDegistir(this.checked)" type="checkbox"/> Açık</label></div>
 <div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold">Adisyon özelliğini etkinleştir</div><p class="text-xs text-slate-400 mt-1">Satış ekranındaki masa/paket seçimi, sipariş notu, garson alanı ve Adisyon Aç / Kaydet butonunu gösterir. Kapatıldığında bu alanlar gizlenir; kayıtlı adisyonlar silinmez.</p></div><label class="inline-flex items-center gap-2 text-xs font-bold"><input class="w-4 h-4 accent-emerald-500" id="setting-adisyon-enabled" onchange="window.adisyonSisteminiDegistir(this.checked)" type="checkbox"/> Açık</label></div>
-<div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold">Garson sistemini etkinleştir</div><p class="text-xs text-slate-400 mt-1">Garson panelini ve satış ekranındaki garson atamasını açar veya kapatır. Kapatıldığında geçmiş sipariş ve garson kayıtları silinmez. Adisyon ayarından bağımsızdır.</p></div><label class="inline-flex items-center gap-2 text-xs font-bold"><input class="w-4 h-4 accent-emerald-500" id="setting-waiter-enabled" onchange="garsonSisteminiDegistir(this.checked)" type="checkbox"/> Açık</label></div>
+<div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold">Müşteri izleme sistemini etkinleştir</div><p class="text-xs text-slate-400 mt-1">Müşteri İzleme panelini ve müşterilerin göreceği ortak canlı sipariş ekranını açar veya kapatır. Etkinleştirildiğinde müşteriler için QR kod oluşturulur.</p></div><label class="inline-flex items-center gap-2 text-xs font-bold"><input class="w-4 h-4 accent-emerald-500" id="setting-waiter-enabled" onchange="garsonSisteminiDegistir(this.checked)" type="checkbox"/> Açık</label></div>
+<div id="customer-tracking-qr-settings" class="hidden mt-2 rounded-lg border border-cyan-800 bg-slate-950/60 p-4"><div class="flex flex-col gap-4 md:flex-row md:items-center"><div id="customer-tracking-qr-preview" class="shrink-0 rounded bg-white p-2"></div><div class="min-w-0 flex-1"><h4 class="text-sm font-bold text-cyan-300">Müşteriler için ortak sipariş ekranı QR kodu</h4><p class="mt-1 text-xs text-slate-400">QR kodu tarayan herkes sipariş numaralarını, durumlarını ve sıradaki yerlerini görür. Tutar ve müşteri bilgisi gösterilmez.</p><p id="customer-tracking-qr-message" class="mt-2 text-xs text-amber-300"></p><textarea id="customer-tracking-qr-link" readonly class="theme-input mt-2 hidden h-14 w-full rounded border border-slate-700 bg-slate-950 p-2 text-[10px]"></textarea><button type="button" id="customer-tracking-qr-copy" onclick="musteriIzlemeQrKopyala()" class="mt-2 hidden rounded bg-slate-700 px-3 py-2 text-xs font-bold text-white">QR bağlantısını kopyala</button></div></div></div>
 <div class="flex items-center justify-between gap-3"><div><div class="text-sm font-semibold">Müşteri siparişleri özelliğini etkinleştir</div><p class="text-xs text-slate-400 mt-1">QR menüden gelen siparişlerin takibini açar veya gizler.</p></div><label class="inline-flex items-center gap-2 text-xs font-bold"><input class="w-4 h-4 accent-emerald-500" id="setting-customerorders-enabled" onchange="bagliOzelligiDegistir('customerorders',this.checked)" type="checkbox"/> Açık</label></div>
 </div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-cyan-800 space-y-3 shadow-lg w-full min-w-0" id="customer-qr-settings">
 <h3 class="text-sm font-bold text-cyan-400">QR Menü ve Sipariş</h3>
@@ -2253,8 +2276,13 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 </div>
 <div class="grid grid-cols-2 gap-3">
 <div>
+<label class="block text-xs text-slate-400 mb-1 font-medium">Alış Fiyatı (₺)</label>
+<input class="theme-input w-full bg-slate-800 border border-slate-700 rounded p-2.5 text-xs md:text-sm focus:outline-none focus:border-emerald-500 font-mono transition" id="prod-cost" min="0" required step="0.01" type="number" oninput="urunKarOnizleGuncelle()"/>
+</div>
+<div>
 <label class="block text-xs text-slate-400 mb-1 font-medium">Satış Fiyatı (₺)</label>
-<input class="theme-input w-full bg-slate-800 border border-slate-700 rounded p-2.5 text-xs md:text-sm focus:outline-none focus:border-emerald-500 font-mono transition" id="prod-price" required="" step="0.01" type="number"/>
+<input class="theme-input w-full bg-slate-800 border border-slate-700 rounded p-2.5 text-xs md:text-sm focus:outline-none focus:border-emerald-500 font-mono transition" id="prod-price" required="" min="0" step="0.01" type="number" oninput="urunKarOnizleGuncelle()"/>
+<p class="mt-1 text-[10px] text-emerald-400" id="prod-profit-preview">Birim kâr: ₺0,00</p>
 </div>
 <div>
 <label class="block text-xs text-slate-400 mb-1 font-medium">Giriş Stok Adedi</label>
@@ -2415,19 +2443,20 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 </div>
 <div class="rounded border border-slate-700 bg-slate-900/70 p-3 space-y-2">
 <div class="text-xs font-bold text-amber-500">Kullanıcı Kısıtlamaları</div>
-<p class="text-[10px] text-slate-400">Kullanıcının erişebileceği bölümleri seçin. Ayarlar yalnızca yöneticiye açıktır.</p>
+<p class="text-[10px] text-slate-400">Kullanıcının erişebileceği bölümleri seçin.</p>
 <div class="grid grid-cols-2 gap-2 text-xs">
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="sales"/> Satış bölümüne erişim</label>
 <label class="flex items-center gap-2"><input class="sysuser-permission" type="checkbox" value="kitchen"/> Mutfak bölümüne erişim</label>
-<label class="flex items-center gap-2"><input class="sysuser-permission" type="checkbox" value="waiter"/> Garson bölümüne erişim</label>
+<label class="flex items-center gap-2"><input class="sysuser-permission" type="checkbox" value="waiter"/> Müşteri İzleme bölümüne erişim</label>
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="adisyon"/> Adisyon bölümüne erişim</label>
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="adisyon_collect"/> Adisyon tahsilatı alma</label>
-<label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="customerorders"/> Müşteri siparişlerini takip etme</label>
+<label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="customerorders"/> Müşteri Siparişleri bölümüne erişim</label>
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="products"/> Ürünler bölümüne erişim</label>
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="cash"/> Kasa bölümüne erişim</label>
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="history"/> Satışlar bölümüne erişim</label>
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="reports"/> Rapor bölümüne erişim</label>
 <label class="flex items-center gap-2"><input checked="" class="sysuser-permission" type="checkbox" value="debtors"/> Veresiye bölümüne erişim</label>
+<label class="flex items-center gap-2"><input class="sysuser-permission" type="checkbox" value="settings"/> Ayarlar bölümüne erişim</label>
 </div>
 <div class="border-t border-slate-700 pt-2 mt-2">
 <div class="text-[11px] font-bold text-slate-300 mb-2">Satış Paneli</div>
@@ -2729,16 +2758,18 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     customerorders: a.ozellikler?.customerorders === true
                 },
                 customerQrLinks: Array.isArray(a.customerQrLinks) ? a.customerQrLinks : [],
-                satisTakipQrAktif: a.satisTakipQrAktif === true
+                satisTakipQrAktif: a.satisTakipQrAktif === true,
+                musteriIzlemeAktif: a.garsonAktif === true
             };
         }
 
         function bulutAyarlariniYerelAyarlarlaBirlestir(bulut) {
             if (!bulut || typeof bulut !== 'object') return;
             // Yalnızca izin verilen ortak alanları buluttan al; diğer tüm ayarlar cihazda kalır.
-            ['sirketAdi','logoDataUrl','fisAlanlari','fisTasarimlari','fisEkBilgiler','otomatikYazdir','fisYazdirmaModu','mutfakAktif','customerQrLinks','satisTakipQrAktif'].forEach(k => {
+            ['sirketAdi','logoDataUrl','fisAlanlari','fisTasarimlari','fisEkBilgiler','otomatikYazdir','fisYazdirmaModu','mutfakAktif','customerQrLinks','satisTakipQrAktif','musteriIzlemeAktif'].forEach(k => {
                 if (Object.prototype.hasOwnProperty.call(bulut, k)) sistemAyarlari[k] = bulut[k];
             });
+            if (Object.prototype.hasOwnProperty.call(bulut, 'musteriIzlemeAktif')) sistemAyarlari.garsonAktif = bulut.musteriIzlemeAktif === true;
             if (bulut.ozellikler && typeof bulut.ozellikler === 'object') {
                 sistemAyarlari.ozellikler = { ...(sistemAyarlari.ozellikler || {}) };
                 ['adisyon','customerorders'].forEach(k => {
@@ -3325,6 +3356,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
         }
 
         function ayarlarKontrolluGecis() {
+            if (kullaniciYetkisiVar('settings')) { yoneticiAyarYetkisi = true; sekmeyiDegistir('settings'); return; }
             // Kurucu Admin, kendi hesabıyla oturum açmışsa Ayarlar bölümüne şifresiz girer.
             // Sonradan eklenen Yönetici hesapları için mevcut kullanıcı adı + şifre doğrulaması sürer.
             const aktifHesap = (sistemKullanicilari || []).find(u =>
@@ -4637,7 +4669,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             const payload = base + '?' + query.toString();
             codeLabel.textContent = String(sale.id || '');
 
-            const statusRecord = { saleId:String(sale.id || ''), status:sale.kitchenStatus || 'new', updatedAt:Date.now(), company:sistemAyarlari.sirketAdi || 'Sipariş Takibi' };
+            const statusRecord = { saleId:String(sale.id || ''), orderNo:String(sale.id||'').slice(-6), status:sale.kitchenStatus || 'new', createdAt:Number(sale.createdAt)||Number((String(sale.id||'').match(/\d{10,}/)||[])[0])||Date.now(), updatedAt:Date.now(), table:String(sale.masa||''), company:sistemAyarlari.sirketAdi || 'Sipariş Takibi', items:Array.isArray(sale.items)?sale.items:[] };
             if (window.firebaseReady && window.dbSet && window.dbRef && window.database) {
                 window.dbSet(window.dbRef(window.database, `${kokDugumGetir()}/${aktifDonemId}/satis_takip/${token}`), statusRecord)
                     .catch(err => console.warn('Satış takip kaydı yazılamadı:', err));
@@ -4706,7 +4738,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     fisTasarimlari:a.fisTasarimlari||{}, fisEkBilgiler:a.fisEkBilgiler||[], otomatikYazdir:Boolean(a.otomatikYazdir),
                     fisYazdirmaModu:a.fisYazdirmaModu||'toplu', mutfakAktif:a.mutfakAktif===true,
                     ozellikler:{adisyon:a.ozellikler?.adisyon===true,customerorders:a.ozellikler?.customerorders===true},
-                    customerQrLinks:a.customerQrLinks||[], satisTakipQrAktif:a.satisTakipQrAktif===true
+                    customerQrLinks:a.customerQrLinks||[], satisTakipQrAktif:a.satisTakipQrAktif===true,musteriIzlemeAktif:a.garsonAktif===true
                 });
                 ortakAyarDegisti = JSON.stringify(ortakAlanlar(oncekiYerel)) !== JSON.stringify(ortakAlanlar(sistemAyarlari));
             } catch (_) {}
@@ -5191,11 +5223,45 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             if (!mutfakAktif && secilenSekme === 'kitchen') sekmeyiDegistir('sales');
         }
 
+        function musteriIzlemeFirebaseConfigBul() {
+            const configs=[sistemAyarlari.firebaseConfig,...(Array.isArray(sistemAyarlari.firebaseKayitlari)?sistemAyarlari.firebaseKayitlari.map(x=>x?.firebaseConfig):[])];
+            return configs.find(c=>c&&c.databaseURL&&c.apiKey&&c.projectId)||null;
+        }
+        function musteriIzlemeKaydiniYaz(sale, eskiKayit=false) {
+            if(!sale||!sistemAyarlari.garsonAktif||!sistemAyarlari.firebaseAktif||!window.firebaseReady||!window.dbSet||!window.dbRef||!window.database)return;
+            const id=String(sale.id||'');if(!id)return;
+            const match=id.match(/\d{10,}/);const createdAt=Number(sale.createdAt||sale.timestamp)||(match?Number(match[0]):0)||Date.now();
+            const status=['new','preparing','ready','completed'].includes(sale.kitchenStatus)?sale.kitchenStatus:(eskiKayit?'completed':'new');
+            const record={saleId:id,orderNo:id.slice(-6),status,createdAt,updatedAt:Date.now(),table:String(sale.masa||''),company:sistemAyarlari.sirketAdi||'Sipariş Sırası',items:Array.isArray(sale.items)?sale.items:[]};
+            window.dbSet(window.dbRef(window.database,kokDugumGetir()+'/'+aktifDonemId+'/satis_takip/'+id),record).catch(err=>console.warn('Müşteri izleme siparişi yazılamadı:',err));
+        }
+        function musteriIzlemeEskiSiparisleriAktar() {
+            if(!sistemAyarlari.garsonAktif)return;
+            (Array.isArray(satisGecmisi)?satisGecmisi:[]).forEach(sale=>musteriIzlemeKaydiniYaz(sale,true));
+        }
+        function musteriIzlemeQrGuncelle() {
+            const panel=document.getElementById('customer-tracking-qr-settings');if(!panel)return;
+            const aktif=sistemAyarlari.garsonAktif===true;panel.classList.toggle('hidden',!aktif);if(!aktif)return;
+            const target=document.getElementById('customer-tracking-qr-preview'),message=document.getElementById('customer-tracking-qr-message'),linkField=document.getElementById('customer-tracking-qr-link'),copy=document.getElementById('customer-tracking-qr-copy');
+            if(target)target.innerHTML='';if(linkField){linkField.value='';linkField.classList.add('hidden');}if(copy)copy.classList.add('hidden');
+            if(location.protocol==='file:'){if(message)message.textContent='QR bağlantısı için HTML dosyası HTTPS web adresinde yayınlanmalı.';return;}
+            const config=musteriIzlemeFirebaseConfigBul();if(!config||!sistemAyarlari.firebaseAktif){if(message)message.textContent='Ortak müşteri ekranı için Firebase eşitlemesini etkinleştirin.';return;}
+            if(typeof window.QRCode==='undefined'){if(message)message.textContent='QR kütüphanesi yüklenemedi.';return;}
+            const cfg=btoa(unescape(encodeURIComponent(JSON.stringify(config)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');
+            const query=new URLSearchParams({musteriIzleme:'1',root:String(kokDugumGetir()),period:String(aktifDonemId),cfg});
+            const link=location.href.split('?')[0].split('#')[0]+'?'+query.toString();if(linkField){linkField.value=link;linkField.classList.remove('hidden');}if(copy)copy.classList.remove('hidden');
+            if(target)new window.QRCode(target,{text:link,width:180,height:180,colorDark:'#000000',colorLight:'#ffffff',correctLevel:window.QRCode.CorrectLevel.L});
+            if(message)message.textContent='Ortak canlı sipariş panosu hazır.';
+        }
+        function musteriIzlemeQrKopyala(){const link=document.getElementById('customer-tracking-qr-link')?.value||'';if(link)musteriQrLinkiniKopyala(link);}
+
         function garsonSisteminiDegistir(aktif) {
             // Garson ayarı sessizce kaydedilir; açma/kapatma bildirimi gösterilmez.
             sistemAyarlari.garsonAktif = Boolean(aktif);
             sistemAyarlariKaydet();
             garsonArayuzunuUygula();
+            musteriIzlemeQrGuncelle();
+            if (aktif) musteriIzlemeEskiSiparisleriAktar();
             if (!aktif && document.getElementById('section-waiter') && !document.getElementById('section-waiter').classList.contains('hidden')) {
                 sekmeyiDegistir('sales');
             }
@@ -5229,30 +5295,28 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             select.disabled = true;
             select.title = 'Garson olarak oturum açan kullanıcı otomatik atanır.';
         }
+        function musteriIzlemeFiltresiAyarla(filtre) {
+            musteriIzlemeFiltresi = filtre === 'delivered' ? 'delivered' : 'active';
+            const active=document.getElementById('tracking-filter-active'); const delivered=document.getElementById('tracking-filter-delivered');
+            if(active) active.className='rounded px-3 py-1.5 text-xs font-bold '+(musteriIzlemeFiltresi==='active'?'bg-emerald-600 text-white':'bg-slate-800 text-slate-300');
+            if(delivered) delivered.className='rounded px-3 py-1.5 text-xs font-bold '+(musteriIzlemeFiltresi==='delivered'?'bg-emerald-600 text-white':'bg-slate-800 text-slate-300');
+            garsonEkraniniGuncelle();
+        }
         function garsonEkraniniGuncelle() {
             const host = document.getElementById('waiter-orders'); if (!host) return;
-            garsonSecenekleriniGuncelle();
-            const filterEl = document.getElementById('waiter-filter'); const selected = filterEl?.value || 'all';
-            const allSales = (Array.isArray(satisGecmisi) ? satisGecmisi : []).filter(s => Array.isArray(s.items) && s.items.length);
-            const canViewAllWaiters = kullaniciYoneticiMi();
-            const ownName = String(aktifKullaniciAdi || '').trim();
-            const visibleSales = canViewAllWaiters ? allSales : allSales.filter(s => String(s.garson || s.kasiyer || '').trim() === ownName);
-            const names = [...new Set(visibleSales.map(s => s.garson || s.kasiyer).filter(Boolean))];
-            if (filterEl) {
-                filterEl.innerHTML = canViewAllWaiters
-                    ? '<option value="all">Tüm garsonlar</option>'+names.map(n=>`<option value="${htmlGuvenli(n)}">${htmlGuvenli(n)}</option>`).join('')
-                    : `<option value="${htmlGuvenli(ownName)}">${htmlGuvenli(ownName || 'Kendi siparişlerim')}</option>`;
-                filterEl.value = canViewAllWaiters && names.includes(selected) ? selected : (canViewAllWaiters ? 'all' : ownName);
-                filterEl.disabled = !canViewAllWaiters;
-            }
-            const filter = canViewAllWaiters ? (filterEl?.value || 'all') : ownName;
-            const list = visibleSales.filter(s => filter === 'all' || String(s.garson || s.kasiyer || '').trim() === filter);
-            const today = new Date().toLocaleDateString('tr-TR'); const todayList = list.filter(s => String(s.date||'').startsWith(today));
-            const money = n => '₺' + (Number(n)||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});
+            const filterEl = document.getElementById('waiter-filter');
+            const query = String(filterEl?.value || '').trim().toLocaleLowerCase('tr-TR');
+            const sales = (Array.isArray(satisGecmisi) ? satisGecmisi : []).filter(s => s && s.kitchenEnabledAtCreation !== false && Array.isArray(s.items) && s.items.length).map(s => ({...s, masa:/masa belirtilmedi/i.test(String(s.masa||''))?'':s.masa, kitchenStatus:s.kitchenStatus || 'new', customerName:s.customerName || 'Müşteri belirtilmedi'}));
+            const openAdisyon = (Array.isArray(acikAdisyonlar) ? acikAdisyonlar : []).filter(a => a && a.kitchenEnabledAtCreation !== false && a.status !== 'closed' && Array.isArray(a.items) && a.items.length).map(a => ({id:'AD-'+a.id,date:a.updatedLabel||a.createdLabel||'',masa:/masa belirtilmedi/i.test(String(a.masa||''))?'':(a.masa||''),customerName:a.customerName||'Müşteri belirtilmedi',items:a.items,kitchenStatus:a.kitchenStatus||'new',total:adisyonToplam(a),kitchenNote:a.note||''}));
+            const customerOrders = (Array.isArray(customerOrderRecords) ? customerOrderRecords : []).filter(o => o && o.status !== 'cancelled' && Array.isArray(o.items) && o.items.length).map(o => ({id:String(o.id),date:new Date(o.createdAt||Date.now()).toLocaleString('tr-TR'),masa:o.orderType==='paket'?'Paket servis':(o.table?'Masa '+String(o.table):''),customerName:o.customerName||o.name||'QR müşteri siparişi',items:o.items,kitchenStatus:({accepted:'new',preparing:'preparing',ready:'ready',served:'completed'})[o.status]||'new',total:Number(o.total)||0,kitchenNote:o.note||''}));
+            const all = [...sales,...openAdisyon,...customerOrders];
+            const list = all.filter(o => (musteriIzlemeFiltresi === 'delivered' ? o.kitchenStatus === 'completed' : o.kitchenStatus !== 'completed')).filter(o => { const text=[o.customerName,o.masa,o.id,o.kitchenStatus,(o.items||[]).map(i=>i.product?.name||i.name||'').join(' ')].join(' ').toLocaleLowerCase('tr-TR'); return !query || text.includes(query); }).sort((a,b)=>(Number(b.kitchenCreatedAt||b.createdAt||0)-Number(a.kitchenCreatedAt||a.createdAt||0)));
+            const money = n => '₺'+(Number(n)||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});
             const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=String(v);};
-            const totalAmount=list.reduce((sum,s)=>sum+(Number(s.total)||0),0); set('waiter-count-total',list.length); set('waiter-count-today',todayList.length); set('waiter-count-tables',list.filter(s=>String(s.masa||'').trim()).length); set('waiter-total',money(totalAmount)); set('waiter-average',money(list.length?totalAmount/list.length:0));
-            if (!list.length) { host.innerHTML='<div class="theme-card rounded-lg border border-slate-700 p-8 text-center text-slate-400 md:col-span-2 xl:col-span-3">Henüz sipariş kaydı yok.</div>'; return; }
-            host.innerHTML=list.slice().reverse().map(s=>`<article class="theme-card rounded-xl border border-slate-700 p-4 shadow-lg"><div class="flex justify-between gap-2"><div><div class="text-xs text-slate-400">${htmlGuvenli(s.date||'')}</div><h3 class="text-lg font-black mt-1">${htmlGuvenli(s.masa||'Paket / Masa belirtilmedi')}</h3><p class="text-xs text-cyan-300 mt-1"><i class="fa-solid fa-user-tie mr-1"></i>${htmlGuvenli(s.garson||s.kasiyer||'Garson belirtilmedi')}</p></div><strong class="text-emerald-400">${money(s.total)}</strong></div><ul class="mt-3 text-sm">${(s.items||[]).map(i=>`<li class="flex justify-between gap-2 py-1 border-b border-slate-700/50"><span>${htmlGuvenli(i.product?.name||i.name||'Ürün')}</span><b>×${Number(i.qty||1)}</b></li>`).join('')}</ul><div class="text-[10px] text-slate-500 mt-3">Sipariş #${htmlGuvenli(s.id)} · ${htmlGuvenli(s.type||'')}</div></article>`).join('');
+            set('waiter-count-total',list.length); set('waiter-count-today',list.filter(o=>o.kitchenStatus==='preparing').length); set('waiter-count-tables',list.filter(o=>o.kitchenStatus==='ready').length); set('waiter-total',new Set(list.map(o=>o.masa).filter(Boolean)).size); set('waiter-average',list.filter(o=>o.kitchenStatus==='new').length);
+            if (!list.length) { host.innerHTML='<div class="theme-card rounded-lg border border-slate-700 p-8 text-center text-slate-400 md:col-span-2 xl:col-span-3">İzlenecek sipariş bulunamadı.</div>'; return; }
+            const labels={new:'Sipariş alındı',preparing:'Hazırlanıyor',ready:'Hazır',completed:'Tamamlandı'};
+            host.innerHTML=list.map(o=>{const status=o.kitchenStatus||'new';const color=status==='new'?'border-red-500/40 text-red-300 bg-red-500/10':status==='preparing'?'border-amber-500/40 text-amber-300 bg-amber-500/10':status==='ready'?'border-emerald-500/40 text-emerald-300 bg-emerald-500/10':'border-slate-600 text-slate-300 bg-slate-700';const items=(o.items||[]).map(i=>'<li class="flex justify-between gap-2 border-b border-slate-700/50 py-1"><span>'+htmlGuvenli(i.product?.name||i.name||'Ürün')+'</span><b>×'+(Number(i.qty||i.quantity)||1)+'</b></li>').join('');return '<article class="theme-card rounded-xl border border-slate-700 p-4 shadow-lg"><div class="flex flex-wrap items-start justify-between gap-2"><div><div class="text-xs text-slate-400">'+htmlGuvenli(o.date||'')+' · '+htmlGuvenli(o.id||'')+'</div><h3 class="mt-1 text-lg font-black">'+htmlGuvenli(o.masa || ('Sipariş #'+o.id))+'</h3><p class="mt-1 text-xs text-cyan-300"><i class="fa-solid fa-user mr-1"></i>'+htmlGuvenli(o.customerName||'Müşteri belirtilmedi')+'</p></div><span class="rounded border px-2 py-1 text-xs font-bold '+color+'">'+(labels[status]||'Sipariş alındı')+'</span></div><ul class="mt-3 rounded-lg p-3 text-sm '+siparisDurumListeSinifi(status)+'">'+(items||'<li>Ürün bilgisi bulunamadı</li>')+'</ul>'+(o.kitchenNote?'<p class="mt-2 text-xs text-slate-400">Not: '+htmlGuvenli(o.kitchenNote)+'</p>':'')+'</article>';}).join('');
         }
 
         function aktifKullaniciKaydi() {
@@ -5267,7 +5331,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
         function kullaniciYetkisiVar(sekme) {
             const u = aktifKullaniciKaydi();
             if (kullaniciYoneticiMi()) return true;
-            if (sekme === 'settings') return false;
+            
             if (sekme === 'kitchen' && sistemAyarlari.mutfakAktif !== true) return false;
             if (sekme === 'waiter' && sistemAyarlari.garsonAktif === false) return false;
             if (!u || !Array.isArray(u.permissions)) return false;
@@ -5306,12 +5370,12 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             gizle('customer-add-button', 'debt_customer_add');
         }
         function kullaniciBolumleriniUygula() {
-            ['sales','kitchen','waiter','adisyon','products','cash','history','reports','debtors'].forEach(t => {
+            ['sales','adisyon','kitchen','customerorders','waiter','products','cash','history','reports','debtors','settings'].forEach(t => {
                 const btn = document.getElementById(`tab-${t}`);
                 if (btn) btn.classList.toggle('hidden', !kullaniciYetkisiVar(t));
             });
             const settingsBtn = document.getElementById('tab-settings');
-            if (settingsBtn) settingsBtn.classList.remove('hidden');
+            if (settingsBtn) settingsBtn.classList.toggle('hidden', !kullaniciYetkisiVar('settings'));
             kullaniciArayuzIzinleriniUygula();
             mutfakArayuzunuUygula();
             adisyonArayuzunuUygula();
@@ -5406,7 +5470,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             musteriSiparisYazdirmaPenceresi([order]);
         }
         function musteriBekleyenSiparisleriYazdir() {
-            const orders = customerOrderRecords.filter(o => o && !['served','cancelled'].includes(o.status) && Array.isArray(o.items) && o.items.length);
+            const orders = customerOrderRecords.filter(o => o && o.status !== 'cancelled' && Array.isArray(o.items) && o.items.length);
             musteriSiparisYazdirmaPenceresi(orders);
         }
         function musteriOtomatikFisYazdir(orders) {
@@ -5619,7 +5683,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             if (secilenSekme === 'adisyon' && sistemAyarlari.ozellikler?.adisyon !== true) return;
             if (secilenSekme === 'customerorders' && sistemAyarlari.ozellikler?.customerorders !== true) return;
             if (secilenSekme !== 'settings') yoneticiAyarYetkisi = false;
-            if (secilenSekme === 'settings' && !yoneticiAyarYetkisi) { ayarlarKontrolluGecis(); return; }
+            if (secilenSekme === 'settings' && !yoneticiAyarYetkisi && !kullaniciYetkisiVar('settings')) { ayarlarKontrolluGecis(); return; }
             if (secilenSekme !== 'settings' && !kullaniciYetkisiVar(secilenSekme)) {
                 onayModaliniGoster('Erişim Kısıtlı', 'Bu bölüme erişim yetkiniz yok. Yönetici Ayarlar bölümünden izin verebilir.', null, true);
                 return;
@@ -5649,12 +5713,13 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             if (secilenSekme === 'reports') raporuGuncelle();
             if (secilenSekme === 'adisyon') adisyonlariGoster();
             if (secilenSekme === 'customerorders') { musteriSiparisleriniDinle(); musteriSiparisleriniGoster(); }
-            if (secilenSekme === 'settings') { sistemKullanicilariTablosunuGuncelle(); musteriQrGarsonSecenekleriniGuncelle(); musteriQrListesiniGoster(); musteriQrTurunuAyarla(); firmaAyarlariniUygula(); donemSecenekleriniGuncelle(); const k=document.getElementById('setting-kitchen-enabled'); if(k) k.checked=sistemAyarlari.mutfakAktif === true; const a=document.getElementById('setting-adisyon-enabled'); if(a) a.checked=sistemAyarlari.ozellikler?.adisyon === true; const w=document.getElementById('setting-waiter-enabled'); if(w) w.checked=sistemAyarlari.garsonAktif === true; const co=document.getElementById('setting-customerorders-enabled'); if(co) co.checked=sistemAyarlari.ozellikler?.customerorders === true; }
+            if (secilenSekme === 'settings') { sistemKullanicilariTablosunuGuncelle(); musteriQrGarsonSecenekleriniGuncelle(); musteriQrListesiniGoster(); musteriQrTurunuAyarla(); firmaAyarlariniUygula(); donemSecenekleriniGuncelle(); const k=document.getElementById('setting-kitchen-enabled'); if(k) k.checked=sistemAyarlari.mutfakAktif === true; const a=document.getElementById('setting-adisyon-enabled'); if(a) a.checked=sistemAyarlari.ozellikler?.adisyon === true; const w=document.getElementById('setting-waiter-enabled'); if(w) w.checked=sistemAyarlari.garsonAktif === true; musteriIzlemeQrGuncelle(); const co=document.getElementById('setting-customerorders-enabled'); if(co) co.checked=sistemAyarlari.ozellikler?.customerorders === true; }
             if (secilenSekme === 'sales') { adisyonArayuzunuUygula(); garsonSecenekleriniGuncelle(); garsonArayuzunuUygula(); kategorileriOlustur(); urunleriGoster(); satisYaziBoyutunuUygula(sistemAyarlari.satisYaziBoyutu || 14); setTimeout(() => { const barcodeInput = document.getElementById('barcode-search'); if (barcodeInput) barcodeInput.focus(); }, 100); }
         }
 
         // Mutfak modülü: sipariş durumu satış kaydıyla birlikte yerel/Firebase kaydına yazılır.
         let mutfakFiltre = 'active';
+        let musteriIzlemeFiltresi = 'active';
         let mutfakSesAktif = false;
         let mutfakBilinenSiparisler = new Set();
         function mutfakDurumMetni(status) {
@@ -5713,7 +5778,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             const setText = (id, value) => { const el=document.getElementById(id); if(el) el.textContent=String(value); };
             setText('kitchen-count-new', yeni); setText('kitchen-count-preparing', hazirlaniyor); setText('kitchen-count-ready', hazir); setText('kitchen-nav-count', active.length);
             const host = document.getElementById('kitchen-orders'); if (!host) return;
-            const list = (mutfakFiltre === 'all' ? all : active).sort((a,b) => Number(b.kitchenCreatedAt || 0)-Number(a.kitchenCreatedAt || 0));
+            const query = String(document.getElementById('kitchen-search')?.value || '').trim().toLocaleLowerCase('tr-TR');
+            const list = (mutfakFiltre === 'all' ? all : active).filter(s => { const text=[s.id,s.masa,s.customerName,s.kitchenNote,...(s.items||[]).map(i=>i.product?.name||i.name||'')].join(' ').toLocaleLowerCase('tr-TR'); return !query || text.includes(query); }).sort((a,b) => Number(b.kitchenCreatedAt || 0)-Number(a.kitchenCreatedAt || 0));
             if (!list.length) { host.innerHTML = '<div class="theme-card rounded-lg border border-slate-700 p-8 text-center text-slate-400 md:col-span-2 xl:col-span-3"><i class="fa-solid fa-check-circle text-3xl text-emerald-500 mb-2"></i><p>Gösterilecek sipariş yok.</p></div>'; return; }
             host.innerHTML = list.map(s => {
                 const status = s.kitchenStatus || 'new';
@@ -5721,7 +5787,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 const note = s.kitchenNote ? `<div class="mt-3 p-2 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs"><i class="fa-solid fa-note-sticky mr-1"></i>${htmlGuvenli(s.kitchenNote)}</div>` : '';
                 const time = htmlGuvenli(s.date || '');
                 const customer = s.customerName ? `<span class="text-slate-400"> · ${htmlGuvenli(s.customerName)}</span>` : '';
-                const buttons = `<div class="grid grid-cols-2 gap-2 mt-4">${status==='new'?`<button onclick="mutfakDurumunuDegistir('${htmlGuvenli(s.id)}','preparing')" class="rounded bg-amber-600 hover:bg-amber-500 text-white p-2 text-xs font-bold">Hazırlamaya başla</button>`:''}${status==='preparing'?`<button onclick="mutfakDurumunuDegistir('${htmlGuvenli(s.id)}','ready')" class="rounded bg-emerald-600 hover:bg-emerald-500 text-white p-2 text-xs font-bold">Hazır</button>`:''}${status==='ready'?`<button onclick="mutfakDurumunuDegistir('${htmlGuvenli(s.id)}','completed')" class="rounded bg-slate-600 hover:bg-slate-500 text-white p-2 text-xs font-bold">Teslim edildi / tamamla</button>`:''}<button onclick="mutfakTekFisYazdir('${htmlGuvenli(s.id)}')" class="rounded bg-sky-700 hover:bg-sky-600 text-white p-2 text-xs font-bold"><i class="fa-solid fa-print mr-1"></i>Fiş yazdır</button></div>`;
+                const buttons = `<div class="grid grid-cols-2 gap-2 mt-4">${status==='new'?`<button onclick="mutfakDurumunuDegistir('${htmlGuvenli(s.id)}','preparing')" class="rounded bg-amber-600 hover:bg-amber-500 text-white p-2 text-xs font-bold">Hazırlamaya başla</button>`:''}${status==='preparing'?`<button onclick="mutfakDurumunuDegistir('${htmlGuvenli(s.id)}','ready')" class="rounded bg-emerald-600 hover:bg-emerald-500 text-white p-2 text-xs font-bold">Hazır</button>`:''}${status==='ready'?`<button onclick="mutfakDurumunuDegistir('${htmlGuvenli(s.id)}','completed')" class="rounded bg-slate-600 hover:bg-slate-500 text-white p-2 text-xs font-bold">Teslim edildi / tamamla</button>`:''}${status==='completed'?`<button onclick="mutfakDurumunuDegistir('${htmlGuvenli(s.id)}','new')" class="rounded bg-amber-600 hover:bg-amber-500 text-white p-2 text-xs font-bold">Aktife al</button>`:''}<button onclick="mutfakTekFisYazdir('${htmlGuvenli(s.id)}')" class="rounded bg-sky-700 hover:bg-sky-600 text-white p-2 text-xs font-bold"><i class="fa-solid fa-print mr-1"></i>Fiş yazdır</button></div>`;
                 return `<article class="theme-card rounded-xl border-l-4 ${mutfakDurumRengi(status)} border-y border-r p-4 shadow-lg"><div class="flex items-start justify-between gap-2"><div><div class="text-xs text-slate-400">${time}${customer}</div><h3 class="text-lg font-black mt-1">Sipariş #${htmlGuvenli(s.id)}</h3></div><span class="px-2 py-1 rounded text-[10px] font-black ${status==='new'?'bg-red-500/20 text-red-300':status==='preparing'?'bg-amber-500/20 text-amber-300':status==='ready'?'bg-emerald-500/20 text-emerald-300':'bg-slate-700 text-slate-300'}">${mutfakDurumMetni(status)}</span></div><ul class="mt-3 text-sm rounded-lg p-3 ${siparisDurumListeSinifi(status)}">${items || '<li class="text-xs opacity-70">Ürün yok</li>'}</ul>${note}${buttons}</article>`;
             }).join('');
         }
@@ -5740,7 +5806,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             } else if (idText.startsWith('MUS-')) {
                 const mapped = status === 'completed' ? 'served' : status;
                 musteriSiparisKaydiniYaz(idText, { status: mapped, ...(status !== 'new' ? { assignedWaiter: (customerOrderRecords.find(o=>String(o.id)===idText)?.assignedWaiter || aktifKullaniciAdi || 'Personel') } : {}) })
-                    .then(saved => { if(!saved)throw new Error('Müşteri siparişi Firebase’e kaydedilemedi.'); mutfakEkraniniGuncelle(); musteriSiparisleriniGoster(); })
+                    .then(saved => { if(!saved)throw new Error('Müşteri siparişi Firebase’e kaydedilemedi.'); mutfakEkraniniGuncelle(); musteriSiparisleriniGoster(); garsonEkraniniGuncelle(); })
                     .catch(err => { console.error('Müşteri sipariş mutfak durumu kaydedilemedi:',err); onayModaliniGoster('Mutfak durumu kaydedilemedi',err.message||'Bağlantıyı kontrol edin.',null,true); mutfakEkraniniGuncelle(); });
                 return;
             } else {
@@ -5748,10 +5814,10 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 sale.kitchenStatus = status; sale['kitchen'+status.charAt(0).toUpperCase()+status.slice(1)+'At'] = Date.now();
                 if (sale.id && window.firebaseReady && window.dbSet && window.dbRef && window.database) {
                     sale.trackingToken = String(sale.id);
-                    window.dbSet(window.dbRef(window.database, `${kokDugumGetir()}/${aktifDonemId}/satis_takip/${sale.id}`), { saleId:String(sale.id), status, updatedAt:Date.now(), company:sistemAyarlari.sirketAdi || 'Sipariş Takibi' }).catch(err => console.warn('Satış takip durumu güncellenemedi:', err));
+                    window.dbSet(window.dbRef(window.database, `${kokDugumGetir()}/${aktifDonemId}/satis_takip/${sale.id}`), { saleId:String(sale.id), orderNo:String(sale.id).slice(-6), status, createdAt:Number(sale.createdAt)||Number((String(sale.id).match(/\d{10,}/)||[])[0])||Date.now(), updatedAt:Date.now(), table:String(sale.masa||''), company:sistemAyarlari.sirketAdi || 'Sipariş Takibi', items:Array.isArray(sale.items)?sale.items:[] }).catch(err => console.warn('Satış takip durumu güncellenemedi:', err));
                 }
             }
-            durumuKaydet(); adisyonlariGoster(); mutfakEkraniniGuncelle(); islemBildirimiGoster('Mutfak durumu: ' + mutfakDurumMetni(status));
+            durumuKaydet(); adisyonlariGoster(); mutfakEkraniniGuncelle(); garsonEkraniniGuncelle(); islemBildirimiGoster('Mutfak durumu: ' + mutfakDurumMetni(status));
         }
         function mutfakFisHTML(s) {
             const width = Number(sistemAyarlari.fisKagitGenisligi || localStorage.getItem('pos_receipt_paper_width_v1')) === 80 ? 80 : 58;
@@ -6840,7 +6906,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 type: type,
                 customerId: kartMusterisi ? kartMusterisi.id : null,
                 customerName: kartMusterisi ? kartMusterisi.name : (musteriAdiRef || null),
-                items: [...sepet],
+                items: sepet.map(item => { const product=item.product||{}; const live=urunler.find(p=>String(p.id)===String(product.id)); return {...item,product:{...product,costPrice:Number(live?.costPrice ?? live?.alisFiyati ?? product.costPrice ?? 0)}}; }),
                 kitchenNote: (document.getElementById('cart-kitchen-note')?.value || '').trim(),
                 masa: siparisMasaEtiketiOku(),
                 garson: String(aktifKullaniciAdi || '').trim(),
@@ -6905,6 +6971,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             // Firebase fonksiyonları kendi hata kayıtlarını konsola yazar.
             try { durumuKaydet(); }
             catch (hata) { console.error('Satış oluşturuldu; kayıt/eşitleme sırasında hata:', hata); }
+            if (sistemAyarlari.garsonAktif) musteriIzlemeKaydiniYaz(sale);
 
             // Ekran yenilemelerini birbirinden bağımsız tut: tek bir arayüz hatası
             // başarı bildirimini engellemesin.
@@ -6927,11 +6994,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 }
                 catch (hata) {
                     console.error('Satış kaydedildi ancak fiş gösterilemedi:', hata);
-                    try { onayModaliniGoster('Satış tamamlandı', 'Satış kaydedildi ve sepet temizlendi; ancak fiş penceresi açılamadı.', null, true); } catch (_) {}
+                    try { islemBildirimiGoster('Satış kaydedildi ancak fiş penceresi açılamadı.', 'error'); } catch (_) {}
                 }
-            } else {
-                try { onayModaliniGoster('Başarılı', `Satış işlemi başarıyla gerçekleşti! Toplam Tutar: ₺${total.toFixed(2)}`, null, true); }
-                catch (hata) { console.error('Satış başarı penceresi açılamadı:', hata); }
             }
         }
 
@@ -7337,7 +7401,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             });
 
             if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="11" class="p-8 text-center opacity-70 text-xs">Stok verisi bulunamadı.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="13" class="p-8 text-center opacity-70 text-xs">Stok verisi bulunamadı.</td></tr>`;
                 return;
             }
 
@@ -7365,7 +7429,9 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     <td class="p-3 font-semibold tracking-tight">${htmlGuvenli(p.name)}</td>
                     <td class="p-3 font-mono text-xs opacity-70">${htmlGuvenli(p.barcode)}</td>
                     <td class="p-3 text-xs"><span class="${catBg} px-2 py-0.5 rounded border font-medium">${htmlGuvenli(p.category)}</span></td>
-                    <td class="p-3 text-right font-mono text-emerald-700 dark:text-emerald-400 font-bold">₺${p.price.toFixed(2)}</td>
+                    <td class="p-3 text-right font-mono">₺${Number(p.costPrice ?? p.alisFiyati ?? 0).toFixed(2)}</td>
+                    <td class="p-3 text-right font-mono text-emerald-700 dark:text-emerald-400 font-bold">₺${Number(p.price || 0).toFixed(2)}</td>
+                    <td class="p-3 text-right font-mono text-amber-600 dark:text-amber-400 font-semibold">₺${(Number(p.price || 0)-Number(p.costPrice ?? p.alisFiyati ?? 0)).toFixed(2)}</td>
                     <td class="p-3 text-center font-mono font-semibold ${sideBg}">${inQty}</td>
                     <td class="p-3 text-center font-mono text-red-600 dark:text-red-400 font-semibold ${sideBg}">${outQty}</td>
                     <td class="p-3 text-center font-mono text-amber-600 dark:text-amber-400 font-bold text-xs md:text-sm ${isLight ? 'bg-slate-200/50' : 'bg-slate-950/80'}">${remaining}</td>
@@ -8177,6 +8243,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     document.getElementById('prod-barcode').value = p.barcode;
                     document.getElementById('prod-category').value = p.category;
                     document.getElementById('prod-price').value = p.price;
+                    document.getElementById('prod-cost').value = Number(p.costPrice ?? p.alisFiyati ?? 0);
+                    urunKarOnizleGuncelle();
                     document.getElementById('prod-in-stock').value = p.inStock || 0;
                     document.getElementById('prod-min-stock').value = Math.max(0, Number(p.minStock ?? 5));
                     document.getElementById('modal-product-title').innerText = 'Ürünü Düzenle';
@@ -8186,6 +8254,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         }
+
+        function urunKarOnizleGuncelle() { const cost=Number(document.getElementById('prod-cost')?.value)||0; const price=Number(document.getElementById('prod-price')?.value)||0; const el=document.getElementById('prod-profit-preview'); if(el) el.textContent='Birim kâr: ₺'+(price-cost).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
         function urunKaydetOnay(e) {
             e.preventDefault();
@@ -8199,6 +8269,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             const barcodeKey = barkodNormalizeEt(barcode);
             const category = document.getElementById('prod-category').value;
             const price = Number(document.getElementById('prod-price').value);
+            const costPrice = Number(document.getElementById('prod-cost').value);
             const inStock = Number(document.getElementById('prod-in-stock').value);
             const minStock = Number(document.getElementById('prod-min-stock').value);
 
@@ -8214,6 +8285,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 onayModaliniGoster('Eksik Bilgi', 'Barkod boş bırakılamaz.', null, true);
                 return;
             }
+            if (!Number.isFinite(costPrice) || costPrice < 0) { onayModaliniGoster('Geçersiz Alış Fiyatı', 'Alış fiyatı sıfır veya daha büyük olmalıdır.', null, true); return; }
             if (!Number.isFinite(price) || price < 0) {
                 onayModaliniGoster('Geçersiz Fiyat', 'Ürün fiyatı sıfır veya daha büyük geçerli bir sayı olmalıdır.', null, true);
                 return;
@@ -8258,7 +8330,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                         const index = urunler.findIndex(p => String(p.id) === String(id));
                         if (index !== -1) {
                             const oncekiGirisStok = Number(urunler[index].inStock || 0);
-                            urunler[index] = { ...urunler[index], name, barcode, category, price, inStock, minStock };
+                            urunler[index] = { ...urunler[index], name, barcode, category, price, costPrice, inStock, minStock };
                             const stokFarki = inStock - oncekiGirisStok;
                             if (stokFarki !== 0) stokHareketKaydi(urunler[index], 'Stok düzeltme', stokFarki, 'Ürün kartından stok güncelleme');
                         }
@@ -8269,6 +8341,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                             barcode,
                             category,
                             price,
+                            costPrice,
                             inStock,
                             outStock: 0,
                             minStock,
@@ -8741,9 +8814,9 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             });
             const cariOzet = cariManuelHesapOzeti(customer);
             const history = Array.isArray(customer.history) ? customer.history : [];
-            const manuelToplam = cariManuelKayitlari.reduce((sum, m) => sum + (Number(m.amount) || 0), 0);
-            const manuelOdenen = cariManuelKayitlari.reduce((sum, m) => sum + Math.min(Number(m.amount) || 0, Number(m.paidAmount) || 0), 0);
-            const manuelKalan = Math.max(0, manuelToplam - manuelOdenen);
+            const manuelToplam = Math.max(0, Number(cariOzet.total) || 0);
+            const manuelOdenen = Math.max(0, Number(cariOzet.paid) || 0);
+            const manuelKalan = Math.max(0, Number(cariOzet.remaining) || 0);
             const summaryClass = isLight ? 'bg-sky-50 border-sky-200 text-slate-800' : 'bg-slate-800/80 border-slate-700 text-slate-100';
             const remainColor = cariOzet.remaining > 0.009 ? (isLight ? 'text-amber-700' : 'text-amber-300') : (isLight ? 'text-emerald-700' : 'text-emerald-400');
             const summary = `<div class="mb-3 rounded-lg border p-3 ${summaryClass}">
@@ -9056,16 +9129,29 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 
             // Günlük satış toplamları
             const daily = {};
+            const cashierDaily = {};
             rows.forEach(s => {
                 const day = raporTarihiniNormalizeEt(s.date || s.timestamp || s.createdAt);
                 if (!day) return;
-                if (!daily[day]) daily[day] = { count: 0, total: 0, credit: 0 };
+                if (!daily[day]) daily[day] = { count: 0, total: 0, cash: 0, card: 0, credit: 0, other: 0 };
                 daily[day].count++; daily[day].total += Number(s.total || 0);
                 daily[day].credit += creditAmount(s);
+                const payments = Array.isArray(s.payments) ? s.payments : [];
+                let paymentCash=0, paymentCard=0, paymentOther=0;
+                payments.forEach(p => { const amount=Math.max(0,Number(p.amount)||0); const type=String(p.type||''); if (/nakit/i.test(type)) paymentCash+=amount; else if (/kredi kart/i.test(type)) paymentCard+=amount; else if (!/veresiye/i.test(type)) paymentOther+=amount; });
+                if (!payments.length) { const type=String(s.type||''); const paid=Math.max(0,Number(s.paidAmount ?? (Number(s.total||0)-creditAmount(s)))||0); if (/nakit/i.test(type)) paymentCash=paid; else if (/kredi kart/i.test(type)) paymentCard=paid; else if (!/veresiye/i.test(type)) paymentOther=paid; }
+                daily[day].cash += paymentCash; daily[day].card += paymentCard; daily[day].other += paymentOther;
+                const cashier=String(s.kasiyer||'Admin');
+                if(!cashierDaily[cashier]) cashierDaily[cashier]={cashier:cashier,count:0,total:0,cash:0,card:0,credit:0,other:0};
+                cashierDaily[cashier].count++; cashierDaily[cashier].total+=Number(s.total||0); cashierDaily[cashier].cash+=paymentCash; cashierDaily[cashier].card+=paymentCard; cashierDaily[cashier].credit+=creditAmount(s); cashierDaily[cashier].other+=paymentOther;
             });
             const dailyBody = document.getElementById('report-daily-table');
             const dailyKeys = Object.keys(daily).sort((a,b) => b.localeCompare(a));
-            if (dailyBody) dailyBody.innerHTML = dailyKeys.length ? dailyKeys.map(day => `<tr class="border-t border-slate-800"><td class="p-2.5">${day}</td><td class="p-2.5 text-right">${daily[day].count}</td><td class="p-2.5 text-right font-semibold">${money(daily[day].total)}</td><td class="p-2.5 text-right text-amber-400">${money(daily[day].credit)}</td></tr>`).join('') : '<tr><td colspan="4" class="p-4 text-center opacity-70">Veri yok.</td></tr>';
+            if (dailyBody) dailyBody.innerHTML = dailyKeys.length ? dailyKeys.map(day => `<tr class="border-t border-slate-800"><td class="p-2.5">${day}</td><td class="p-2.5 text-right">${daily[day].count}</td><td class="p-2.5 text-right font-semibold">${money(daily[day].total)}</td><td class="p-2.5 text-right text-amber-400">${money(daily[day].cash)}</td><td class="p-2.5 text-right">${money(daily[day].card)}</td><td class="p-2.5 text-right text-amber-400">${money(daily[day].credit)}</td><td class="p-2.5 text-right">${money(daily[day].other)}</td></tr>`).join('') : '<tr><td colspan="7" class="p-4 text-center opacity-70">Veri yok.</td></tr>';
+
+            const cashierBody=document.getElementById('report-cashier-payments-table');
+            const cashierRows=Object.values(cashierDaily).sort((a,b)=>a.cashier.localeCompare(b.cashier,'tr'));
+            if(cashierBody) cashierBody.innerHTML=cashierRows.length ? cashierRows.map(u => '<tr class="border-t border-slate-800"><td class="p-2.5">'+htmlGuvenli(u.cashier)+'</td><td class="p-2.5 text-right">'+u.count+'</td><td class="p-2.5 text-right font-semibold">'+money(u.total)+'</td><td class="p-2.5 text-right">'+money(u.cash)+'</td><td class="p-2.5 text-right">'+money(u.card)+'</td><td class="p-2.5 text-right text-amber-400">'+money(u.credit)+'</td><td class="p-2.5 text-right">'+money(u.other)+'</td></tr>').join('') : '<tr><td colspan="7" class="p-4 text-center opacity-70">Veri yok.</td></tr>';
 
             // Ürün adet ve ciro sıralaması
             const products = {};
@@ -9086,12 +9172,18 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     // Sepet indirimi, ürün satırlarının brüt tutarına oransal dağıtılır.
                     const allocatedDiscount = grossSubtotal > 0 ? Math.min(line.gross, discount * line.gross / grossSubtotal) : 0;
                     const netLineTotal = Math.max(0, line.gross - allocatedDiscount);
-                    if (!products[key]) products[key] = { name, qty: 0, total: 0 };
+                    if (!products[key]) products[key] = { name, qty: 0, total: 0, profit: 0 };
                     products[key].qty += line.qty;
                     products[key].total += netLineTotal;
+                    const cost = Math.max(0, Number(line.product.costPrice ?? line.product.alisFiyati ?? 0) || 0);
+                    products[key].profit += netLineTotal - cost * line.qty;
                 });
             });
-            const productRows = Object.values(products).sort((a,b) => b.qty - a.qty).slice(0,20);
+            const allProducts = Object.values(products);
+            const productRows = allProducts.slice().sort((a,b) => b.qty - a.qty).slice(0,20);
+            const profitBody = document.getElementById('report-profit-products-table');
+            const profitRows = allProducts.slice().sort((a,b) => b.profit - a.profit).slice(0,20);
+            if (profitBody) profitBody.innerHTML = profitRows.length ? profitRows.map(v => `<tr class="border-t border-slate-800"><td class="p-2.5">${htmlGuvenli(v.name)}</td><td class="p-2.5 text-right font-semibold">${v.qty}</td><td class="p-2.5 text-right text-emerald-400">${money(v.profit)}</td></tr>`).join('') : '<tr><td colspan="3" class="p-4 text-center opacity-70">Ürün kârı verisi bulunamadı.</td></tr>';
             const productsBody = document.getElementById('report-products-table');
             if (productsBody) productsBody.innerHTML = productRows.length ? productRows.map(v => `<tr class="border-t border-slate-800"><td class="p-2.5">${htmlGuvenli(v.name)}</td><td class="p-2.5 text-right font-semibold">${v.qty}</td><td class="p-2.5 text-right">${money(v.total)}</td></tr>`).join('') : '<tr><td colspan="3" class="p-4 text-center opacity-70">Ürün satışı bulunamadı.</td></tr>';
 
@@ -9132,12 +9224,14 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
         }
 
         function raporuExcelAktar() {
-            const rows = raporVerileriniGetir();
-            if (!rows.length) { onayModaliniGoster('Rapor', 'Seçilen tarih aralığında aktarılacak işlem yok.', null, true); return; }
-            const data = rows.map(s => ({'İşlem ID':s.id,'Tarih':s.date || '', 'Kasiyer':s.kasiyer || 'Admin','İşlem Türü':s.type || '', 'Tutar':Number(s.total || 0)}));
-            const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Satış-Veresiye Raporu'); XLSX.writeFile(wb,'Satis_Veresiye_Raporu.xlsx');
+            if (typeof XLSX === 'undefined') { onayModaliniGoster('Excel kullanılamıyor','Excel dışa aktarma kitaplığı yüklenemedi.',null,true); return; }
+            raporuGuncelle();
+            const wb = XLSX.utils.book_new();
+            const tableData = id => { const table=document.getElementById(id); if(!table) return []; const headers=[...(table.closest('table')?.querySelectorAll('thead th')||[])].map(th=>th.textContent.trim()); return [...table.querySelectorAll('tr')].filter(tr=>tr.querySelectorAll('td').length>1).map(tr=>Object.fromEntries([...tr.querySelectorAll('td')].map((td,i)=>[headers[i]||('Alan '+(i+1)),td.textContent.trim()]))); };
+            const add=(name,data)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data.length?data:[{Bilgi:'Kayıt yok'}]),name);
+            add('Satış Veresiye',tableData('report-table')); add('Günlük Satışlar',tableData('report-daily-table')); add('Kullanıcı Ödeme',tableData('report-cashier-payments-table')); add('En Çok Satılan',tableData('report-products-table')); add('En Çok Kâr',tableData('report-profit-products-table')); add('Kullanıcı Satışları',tableData('report-user-sales-table'));
+            XLSX.writeFile(wb,'Satis_Raporlarinin_Tumu.xlsx');
         }
-
         function satisKasiyerFiltresiniGuncelle() {
             const select = document.getElementById('sales-history-cashier');
             if (!select) return;
@@ -9236,8 +9330,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     </div>
                 </div>
                 </div>
-                <div class="grid grid-cols-2 gap-3"><label class="text-xs text-slate-300">İndirim (TL)<input id="sale-edit-discount" type="number" min="0" step="0.01" value="${Number(sale.discount)||0}" class="w-full mt-1 rounded bg-slate-950 border border-slate-600 p-2.5 text-white"></label><div class="rounded-lg bg-slate-800 p-3"><div class="text-xs text-slate-400">Yeni toplam</div><div id="sale-edit-total" class="text-xl font-black text-emerald-400">₺0,00</div></div></div>
-                <p class="text-[11px] text-amber-300">Kaydettiğinizde stok farkı, satışa bağlı kasa hareketleri ve varsa veresiye bakiyesi yeniden hesaplanır. Satışın ödeme türü korunur.</p>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3"><label class="text-xs text-slate-300">Ödeme Şekli<select id="sale-edit-payment-type" class="w-full mt-1 rounded bg-slate-950 border border-slate-600 p-2.5 text-white"><option value="Nakit" ${sale.type === 'Nakit' ? 'selected' : ''}>Nakit</option><option value="Kredi Kartı" ${sale.type === 'Kredi Kartı' ? 'selected' : ''}>Kredi Kartı</option><option value="Veresiye" ${String(sale.type||'').startsWith('Veresiye') ? 'selected' : ''}>Veresiye</option></select></label><label class="text-xs text-slate-300">İndirim (TL)<input id="sale-edit-discount" type="number" min="0" step="0.01" value="${Number(sale.discount)||0}" class="w-full mt-1 rounded bg-slate-950 border border-slate-600 p-2.5 text-white"></label><div class="rounded-lg bg-slate-800 p-3"><div class="text-xs text-slate-400">Yeni toplam</div><div id="sale-edit-total" class="text-xl font-black text-emerald-400">₺0,00</div></div></div>
+                <p class="text-[11px] text-amber-300">Kaydettiğinizde stok farkı, satışa bağlı kasa hareketleri ve varsa veresiye bakiyesi yeniden hesaplanır. Ödeme şekli değişikliği satış ve kasa kayıtlarına uygulanır.</p>
                 <div class="flex justify-end gap-2"><button id="sale-edit-cancel" type="button" class="rounded-lg bg-slate-700 px-4 py-2 text-sm">Vazgeç</button><button id="sale-edit-save" type="button" class="rounded-lg bg-emerald-600 hover:bg-emerald-500 px-5 py-2 text-sm font-bold">Değişiklikleri Kaydet</button></div></div></div>`;
             document.body.appendChild(overlay);
             const close = () => overlay.remove();
@@ -9267,7 +9361,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             const sale = (satisGecmisi||[]).find(x => String(x.id) === String(id));
             if (!sale || !Array.isArray(sale.items)) return;
             const oldTotal = Math.max(0, Number(sale.total)||0);
-            const oldRemaining = Math.max(0, Number(sale.remainingAmount)||0);
+            const oldRemaining = Math.max(0, Number(sale.remainingAmount ?? (String(sale.type||'').startsWith('Veresiye') ? oldTotal : 0))||0);
             const oldItems = sale.items.map(x => ({...x, qty:Number(x.qty)||0}));
             const nextItems = [...modal.querySelectorAll('#sale-edit-items [data-edit-item]')].map(row => {
                 const originalIndex = row.dataset.editItem;
@@ -9300,20 +9394,29 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             }
             // Satışa bağlı kasa hareketlerini mevcut ödeme dağılımını koruyarak güncelle.
             const linkedCash = (kasaHareketleri||[]).filter(m=>String(m.saleId||'')===String(id));
-            linkedCash.forEach(m=>{m.amount=Math.round((Number(m.amount)||0)*ratio*100)/100;});
+
             // Satışın müşteri borcu varsa yalnızca bakiye farkı kadar cari hesap düzeltilir.
-            const newRemaining = Math.round(oldRemaining*ratio*100)/100;
-            const debtDelta = newRemaining-oldRemaining;
+            const paymentType = modal.querySelector('#sale-edit-payment-type')?.value || sale.type || 'Nakit';
             const customer = (musteriler||[]).find(c=>String(c.id)===String(sale.customerId||sale.associatedCustId||''));
+            if (paymentType === 'Veresiye' && !customer) { onayModaliniGoster('Müşteri gerekli','Satışı veresiye olarak kaydetmek için satışa bağlı bir müşteri bulunmalı.',null,true); return; }
+            const newRemaining = paymentType === 'Veresiye' ? newTotal : 0;
+            const debtDelta = newRemaining-oldRemaining;
             if (customer && Math.abs(debtDelta)>0.001) {
                 customer.totalDebt = Math.max(0,(Number(customer.totalDebt)||0)+debtDelta);
                 if (!Array.isArray(customer.history)) customer.history=[];
                 customer.history.unshift({id:`${id}-edit-${Date.now()}`,saleId:String(id),date:new Date().toLocaleString('tr-TR'),type:'Satış düzenleme borç farkı',amount:debtDelta});
             }
             sale.items = nextItems; sale.subtotal = Math.round(subtotal*100)/100; sale.discount = discount; sale.total = newTotal;
-            sale.paidAmount = Math.max(0,Math.round((Number(sale.paidAmount ?? (oldTotal-oldRemaining)) * ratio)*100)/100);
+            sale.type = paymentType;
+            sale.paidAmount = Math.max(0, Math.round((newTotal - newRemaining)*100)/100);
             sale.remainingAmount = newRemaining;
-            sale.payments = Array.isArray(sale.payments) ? sale.payments.map(p=>({...p,amount:Math.round((Number(p.amount)||0)*ratio*100)/100})) : sale.payments;
+            sale.paymentStatus = newRemaining > 0 ? 'partial' : 'paid';
+            sale.payments = [{ type: paymentType, amount: newTotal - newRemaining }];
+            if (paymentType !== 'Veresiye') {
+                const existing = (kasaHareketleri||[]).filter(m=>String(m.saleId||'')===String(id));
+                if (existing.length) { existing[0].type = `Satış (${paymentType})`; existing[0].amount = newTotal; existing[0].paymentMethod = paymentType; for (const duplicate of existing.slice(1)) kasaHareketleri = kasaHareketleri.filter(m=>m!==duplicate); }
+                else { if(!Array.isArray(kasaHareketleri)) kasaHareketleri=[]; kasaHareketleri.unshift({saleId:String(id),date:sale.date,type:`Satış (${paymentType})`,amount:newTotal,user:sale.kasiyer||aktifKullaniciAdi||'Bilinmiyor',periodId:aktifDonemId}); }
+            } else { kasaHareketleri = (kasaHareketleri||[]).filter(m=>String(m.saleId||'')!==String(id)); }
             sale.editedAt = Date.now(); sale.editedBy = aktifKullaniciAdi || 'Admin';
             durumuKaydet(); gecmisTablosunuGuncelle(); kasaEkraniniGuncelle(); urunleriGoster(); borclularTablosunuGuncelle();
             closeModal();
@@ -9749,7 +9852,28 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
   #sales-cart-header-panel, #sales-right-wrapper .theme-card { min-width: 0 !important; }
 }
 </style>
+<script>
+(function(){
+ const params=new URLSearchParams(location.search); if(params.get('musteriIzleme')!=='1') return;
+ document.addEventListener('DOMContentLoaded',async()=>{
+  document.querySelectorAll('body > *').forEach(el=>{if(el.id!=='customer-tracking-board'&&el.tagName!=='SCRIPT')el.style.display='none';});
+  const board=document.getElementById('customer-tracking-board');if(board)board.classList.remove('hidden');
+  const message=document.getElementById('tracking-board-message'),host=document.getElementById('tracking-board-list');
+  let selected='active',orders=[],unsubscribe=null;
+  const statusText={new:'Sipariş alındı',preparing:'Hazırlanıyor',ready:'Hazır',completed:'Teslim edildi'};
+  const show=(value)=>{selected=value;document.getElementById('tracking-board-active').className='rounded px-3 py-2 text-xs font-bold '+(value==='active'?'bg-cyan-700 text-white':'bg-slate-800 text-slate-300');document.getElementById('tracking-board-delivered').className='rounded px-3 py-2 text-xs font-bold '+(value==='delivered'?'bg-cyan-700 text-white':'bg-slate-800 text-slate-300');render();};
+  document.getElementById('tracking-board-active').onclick=()=>show('active');document.getElementById('tracking-board-delivered').onclick=()=>show('delivered');document.getElementById('tracking-board-search').addEventListener('input',render);
+  const wait=()=>new Promise((resolve,reject)=>{let n=0;const t=setInterval(()=>{n++;if(window.customerOrderApi?.subscribeTrackingBoard){clearInterval(t);resolve(window.customerOrderApi);}else if(n>150){clearInterval(t);reject(new Error('Firebase bağlantısı kurulamadı.'));}},100)});
+  function render(){if(!host)return;const query=(document.getElementById('tracking-board-search')?.value||'').trim().toLocaleLowerCase('tr-TR');const selectedOrders=orders.filter(o=>(selected==='delivered'?o.status==='completed':o.status!=='completed')).filter(o=>!query||[o.orderNo,o.table,o.status].join(' ').toLocaleLowerCase('tr-TR').includes(query));const active=orders.filter(o=>o.status!=='completed').sort((a,b)=>a.createdAt-b.createdAt);if(!selectedOrders.length){host.innerHTML='<div class="rounded-xl border border-slate-700 bg-slate-900 p-8 text-center text-sm text-slate-400 sm:col-span-2">Bu listede sipariş bulunmuyor.</div>';return;}host.innerHTML=selectedOrders.map(o=>{const ahead=active.findIndex(x=>x.id===o.id);const aheadText=o.status==='completed'?'Teslim edildi':ahead<=0?'Önünüzde 0 sipariş var':('Önünüzde '+ahead+' sipariş var');const color=o.status==='new'?'text-amber-300 border-amber-500/40 bg-amber-500/10':o.status==='preparing'?'text-sky-300 border-sky-500/40 bg-sky-500/10':o.status==='ready'?'text-emerald-300 border-emerald-500/40 bg-emerald-500/10':'text-slate-300 border-slate-600 bg-slate-700';const itemsHtml=(Array.isArray(o.items)?o.items:[]).map(i=>'<div class=\"flex justify-between gap-2 border-b border-slate-800/50 py-1 text-xs\"><span>'+htmlEscape(i.name||i.product?.name||i.urunAdi||'Ürün')+' × '+(Number(i.qty??i.quantity)||1)+'</span></div>').join('');return '<article class="rounded-xl border border-slate-700 bg-slate-900 p-4 shadow"><div class="flex items-start justify-between gap-3"><div><div class="text-[11px] text-slate-400">'+htmlEscape(o.table||'')+'</div><h2 class="mt-1 text-xl font-black">Sipariş #'+htmlEscape(o.orderNo)+'</h2></div><span class="rounded border px-2 py-1 text-xs font-bold '+color+'">'+(statusText[o.status]||'Sipariş alındı')+'</span></div>'+ (itemsHtml ? '<div class=\"mt-3 rounded-lg border border-slate-800 bg-slate-950 p-3\"><div class=\"mb-1 text-[11px] font-bold text-slate-400\">Sipariş ürünleri</div>'+itemsHtml+'</div>' : '') + '<div class=\"mt-4 rounded-lg bg-slate-950 p-3 text-center text-sm font-bold text-cyan-200\">'+aheadText+'</div></article>';}).join('');}
+  const htmlEscape=value=>String(value||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  try{const api=await wait();unsubscribe=api.subscribeTrackingBoard(data=>{if(data?._error){message.textContent=data._error;return;}if(!data?.settings?.musteriIzlemeAktif){message.textContent='Müşteri sipariş panosu şu anda kapalı.';host.innerHTML='';return;}message.textContent='Sipariş sırası canlı olarak güncelleniyor.';document.getElementById('tracking-board-company').textContent=data.settings.sirketAdi||'Sipariş Sırası';const raw=[];Object.values(data.sales||{}).forEach(x=>{if(!x)return;const id=String(x.saleId||'');const status=['new','preparing','ready','completed'].includes(x.status)?x.status:'new';raw.push({id:'sale:'+id,orderNo:String(x.orderNo||id.slice(-8)),status,createdAt:Number(x.createdAt)||Number((id.match(/\d+/g)||[]).join('').slice(0,13))||Number(x.updatedAt)||Date.now(),table:x.table||'',items:Array.isArray(x.items)?x.items:[]});});Object.values(data.customerOrders||{}).forEach(x=>{if(!x||x.status==='cancelled')return;const id=String(x.id||'');const status=({accepted:'new',preparing:'preparing',ready:'ready',served:'completed'})[x.status]||'new';raw.push({id:'qr:'+id,orderNo:id.slice(-8),status,createdAt:Number(x.createdAt)||Number(x.updatedAt)||Date.now(),table:x.orderType==='paket'?'Paket servis':(x.table?'Masa '+x.table:''),items:Array.isArray(x.items)?x.items:[]});});Object.entries(data.openOrders||{}).forEach(([id,x])=>{if(!x||x.status==='closed')return;const status=['new','preparing','ready','completed'].includes(x.kitchenStatus)?x.kitchenStatus:'new';raw.push({id:'ad:'+id,orderNo:'AD-'+String(id).slice(-8),status,createdAt:Number(x.createdAt)||Number(x.updatedAt)||Date.now(),table:x.masa||'',items:Array.isArray(x.items)?x.items:(Array.isArray(x.urunler)?x.urunler:[])});});const dedupe=new Map();raw.forEach(o=>dedupe.set(o.id,o));orders=[...dedupe.values()].sort((a,b)=>a.createdAt-b.createdAt);render();});}
+  catch(e){message.textContent=e.message||'Müşteri izleme ekranı açılamadı.';}
+  window.addEventListener('pagehide',()=>{try{unsubscribe?.();}catch(_){}});
+ });
+})();
+</script>
 <!-- MÜŞTERİ QR MENÜSÜ: yalnızca ?musteriSiparis=1 bağlantısında gösterilir -->
+<div id="customer-tracking-board" class="hidden fixed inset-0 z-[700] min-h-screen overflow-y-auto bg-slate-950 text-slate-100 p-4 md:p-8"><main class="mx-auto max-w-4xl space-y-5"><header class="rounded-2xl border border-slate-700 bg-slate-900 p-5 text-center"><div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-cyan-500/15 text-2xl text-cyan-300"><i class="fa-solid fa-list-check"></i></div><h1 id="tracking-board-company" class="text-2xl font-black">Sipariş Sırası</h1><p class="mt-2 text-sm text-slate-400">Sipariş durumlarını ve sıradaki yerinizi canlı takip edin.</p></header><div id="tracking-board-message" class="rounded-xl border border-slate-700 bg-slate-900 p-4 text-center text-sm text-slate-300">Siparişler yükleniyor…</div><div class="flex flex-wrap items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 p-3"><button type="button" id="tracking-board-active" class="rounded bg-cyan-700 px-3 py-2 text-xs font-bold text-white">Aktif siparişler</button><button type="button" id="tracking-board-delivered" class="rounded bg-slate-800 px-3 py-2 text-xs font-bold text-slate-300">Teslim edilenler</button><input id="tracking-board-search" type="search" class="theme-input min-w-[200px] flex-1 rounded border border-slate-700 bg-slate-950 px-3 py-2 text-xs" placeholder="Sipariş numarası veya masa ara…" aria-label="Sipariş numarası veya masa ara"></div><section id="tracking-board-list" class="grid grid-cols-1 gap-3 sm:grid-cols-2"></section><p class="text-center text-[11px] text-slate-500">Durumlar otomatik olarak yenilenir.</p></main></div>
 <div id="sale-tracking-portal" class="hidden fixed inset-0 z-[600] min-h-screen overflow-y-auto bg-slate-950 text-slate-100 p-4"><main class="mx-auto mt-10 max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-xl"><div class="text-center"><div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-cyan-500/15 text-3xl text-cyan-300"><i class="fa-solid fa-receipt"></i></div><p class="text-xs font-bold tracking-widest text-cyan-300">SİPARİŞ TAKİBİ</p><h1 id="sale-track-company" class="mt-2 text-xl font-black">Siparişiniz</h1><p class="mt-1 text-sm text-slate-400">Fiş No: <b id="sale-track-number" class="text-slate-200">—</b></p></div><div class="my-6 rounded-xl border border-slate-700 bg-slate-950 p-5 text-center"><div id="sale-track-icon" class="mb-2 text-3xl text-amber-300"><i class="fa-solid fa-hourglass-half"></i></div><div id="sale-track-status" class="text-2xl font-black text-amber-300">Bağlanıyor…</div><p id="sale-track-message" class="mt-2 text-sm text-slate-400">Sipariş durumu yükleniyor.</p></div><p class="text-center text-xs text-slate-500">Durum değişiklikleri otomatik olarak güncellenir.</p></main></div>
 <div class="hidden fixed inset-0 z-[500] overflow-y-auto bg-slate-950 text-slate-100 p-3 md:p-6" id="customer-order-portal"><div class="max-w-4xl mx-auto space-y-4"><header class="rounded-xl border border-slate-800 bg-slate-900 p-4"><div class="text-xs text-cyan-400 font-bold"><span id="customer-portal-service-type">MASA</span> <span id="customer-portal-table">1</span></div><h1 class="text-2xl font-black mt-1" id="customer-portal-company">Menümüz</h1><p class="text-xs text-slate-400 mt-1">Ürünleri seçin, siparişinizi gönderin ve durumunu takip edin.</p></header><div class="text-sm text-amber-300" id="customer-portal-message"></div><div class="flex gap-2 overflow-x-auto pb-1" id="customer-portal-categories"></div><div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3" id="customer-portal-products"></div><section class="rounded-xl border border-slate-700 bg-slate-900 p-4 space-y-3"><h2 class="font-bold text-lg"><i class="fa-solid fa-basket-shopping text-emerald-400 mr-2"></i>Sipariş Sepetim</h2><div class="space-y-2 text-sm" id="customer-portal-cart"><p class="text-slate-400">Henüz ürün seçilmedi.</p></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-2"><label class="block text-xs text-slate-300">Ad Soyad <span class="text-slate-500">(isteğe bağlı)</span><input class="theme-input mt-1 w-full bg-slate-950 border border-slate-700 rounded p-2" id="customer-portal-name" type="text" maxlength="80" autocomplete="name" placeholder="Adınız ve soyadınız"></label><label class="block text-xs text-slate-300">Telefon <span class="text-slate-500">(isteğe bağlı)</span><input class="theme-input mt-1 w-full bg-slate-950 border border-slate-700 rounded p-2" id="customer-portal-phone" type="tel" maxlength="20" autocomplete="tel" inputmode="tel" placeholder="05xx xxx xx xx"></label></div><label class="block text-xs text-slate-300">Sipariş notu <textarea class="theme-input mt-1 w-full bg-slate-950 border border-slate-700 rounded p-2" id="customer-portal-note" placeholder="Örn. sos ayrı olsun" rows="2"></textarea></label><button class="w-full rounded-lg bg-emerald-600 hover:bg-emerald-500 p-3 font-bold text-sm" id="customer-portal-submit" onclick="musteriSiparisGonder()">Siparişi Gönder</button><button class="hidden w-full rounded-lg bg-slate-700 hover:bg-slate-600 p-2 font-bold text-sm" id="customer-portal-cancel-edit" onclick="customerOrderCancelEdit()" type="button">Düzenlemeyi İptal Et</button><div class="hidden rounded-lg border border-cyan-800 bg-slate-950/70 p-3 text-sm" id="customer-portal-status"></div></section></div></div>
 <script>
