@@ -1524,7 +1524,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <th class="p-3">Kategori</th>
 <th class="p-3 text-right">Alış</th>
 <th class="p-3 text-right">Satış</th>
-<th class="p-3 text-right">Birim Kâr</th>
+<th class="p-3 text-right">Birim Kâr</th>\n<th class="p-3 text-right">Çıkışa Göre Toplam Kâr</th>
 <th class="p-3 text-center text-emerald-500">Giriş</th>
 <th class="p-3 text-center text-red-500">Çıkış</th>
 <th class="p-3 text-center text-amber-500 font-bold">Kalan</th>
@@ -7401,7 +7401,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             });
 
             if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="13" class="p-8 text-center opacity-70 text-xs">Stok verisi bulunamadı.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="14" class="p-8 text-center opacity-70 text-xs">Stok verisi bulunamadı.</td></tr>`;
                 return;
             }
 
@@ -7409,6 +7409,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 const inQty = p.inStock || 0;
                 const outQty = p.outStock || 0;
                 const remaining = inQty - outQty;
+                const totalProfit = (Number(p.price || 0) - Number(p.costPrice ?? p.alisFiyati ?? 0)) * Number(outQty || 0);
 
                 let statusBadge = `<span class="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">Stokta Var</span>`;
                 if (remaining <= Math.max(0, Number(p.minStock ?? 5)) && remaining > 0) {
@@ -7431,7 +7432,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     <td class="p-3 text-xs"><span class="${catBg} px-2 py-0.5 rounded border font-medium">${htmlGuvenli(p.category)}</span></td>
                     <td class="p-3 text-right font-mono">₺${Number(p.costPrice ?? p.alisFiyati ?? 0).toFixed(2)}</td>
                     <td class="p-3 text-right font-mono text-emerald-700 dark:text-emerald-400 font-bold">₺${Number(p.price || 0).toFixed(2)}</td>
-                    <td class="p-3 text-right font-mono text-amber-600 dark:text-amber-400 font-semibold">₺${(Number(p.price || 0)-Number(p.costPrice ?? p.alisFiyati ?? 0)).toFixed(2)}</td>
+                    <td class="p-3 text-right font-mono text-amber-600 dark:text-amber-400 font-semibold">₺${(Number(p.price || 0)-Number(p.costPrice ?? p.alisFiyati ?? 0)).toFixed(2)}</td>\n                    <td class="p-3 text-right font-mono text-emerald-700 dark:text-emerald-400 font-bold">₺${totalProfit.toFixed(2)}</td>
                     <td class="p-3 text-center font-mono font-semibold ${sideBg}">${inQty}</td>
                     <td class="p-3 text-center font-mono text-red-600 dark:text-red-400 font-semibold ${sideBg}">${outQty}</td>
                     <td class="p-3 text-center font-mono text-amber-600 dark:text-amber-400 font-bold text-xs md:text-sm ${isLight ? 'bg-slate-200/50' : 'bg-slate-950/80'}">${remaining}</td>
