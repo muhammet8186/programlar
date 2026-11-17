@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#070a12">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png">
     <title>STREAM PULSE PRO v2 — Akıllı İnternet Radyo Stüdyosu</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -189,7 +195,349 @@
         @media (prefers-reduced-motion: reduce) {
             .mp3-vinyl-disc.is-playing { animation-duration:12s; }
         }
-</style>
+
+        /* Telefon ekranlarına uyum: taşmayı önle, kontrolleri dar ekranda ölçekle */
+        *, *::before, *::after { box-sizing: border-box; }
+        html { width:100%; min-width:0; overflow-x:hidden; }
+        body { width:100%; min-width:0; overflow-x:hidden; }
+        img, canvas, video, svg { max-width:100%; }
+        #radio-mode-view, #mp3-mode-view { min-width:0; }
+        #radio-mode-view > section, #mp3-mode-view > section { min-width:0; width:100%; }
+        @media (max-width: 640px) {
+            .relative.z-10.flex.flex-col.min-h-screen { min-height:100svh; }
+            header { padding-left:10px !important; padding-right:10px !important; }
+            header > div { min-width:0; gap:8px; }
+            header .flex.items-center.space-x-3 { min-width:0; gap:7px; }
+            header .flex.items-center.space-x-2.sm\\:space-x-3 { gap:6px; }
+            nav[aria-label="Çalma modu"] { padding-left:10px; padding-right:10px; padding-top:10px; }
+            #radio-mode-view, #mp3-mode-view {
+                padding:10px !important;
+                margin-left:auto; margin-right:auto;
+                width:100%; max-width:100%;
+            }
+            #radio-mode-view > section, #mp3-mode-view > section {
+                width:100%; max-width:100%; margin-left:auto; margin-right:auto;
+            }
+            #radio-mode-view .glass-panel,
+            #mp3-mode-view .glass-panel {
+                border-radius:20px;
+            }
+            #radio-mode-view .glass-panel.rounded-3xl {
+                padding:clamp(12px, 3.8vw, 18px) !important;
+            }
+            #mp3-mode-view .glass-panel.rounded-3xl {
+                padding:clamp(12px, 3.8vw, 18px) !important;
+            }
+            #radio-mode-view .w-44.h-44,
+            #mp3-mode-view .w-44.h-44 {
+                width:clamp(132px, 42vw, 176px) !important;
+                height:clamp(132px, 42vw, 176px) !important;
+            }
+            #radio-mode-view .w-full.h-28,
+            #mp3-mode-view .w-full.h-28 {
+                height:clamp(76px, 23vw, 108px) !important;
+            }
+            #radio-mode-view h1, #radio-mode-view h2,
+            #mp3-mode-view h1, #mp3-mode-view h2 {
+                overflow-wrap:anywhere;
+            }
+            #radio-mode-view button, #mp3-mode-view button {
+                min-width:0;
+                max-width:100%;
+            }
+            #radio-mode-view .grid, #mp3-mode-view .grid { min-width:0; }
+            #mp3-mode-view .space-y-4 > :not([hidden]) ~ :not([hidden]) { margin-top:12px; }
+            #mp3-mode-view .space-y-5 > :not([hidden]) ~ :not([hidden]) { margin-top:14px; }
+            #mp3-mode-view .mp3-vinyl-disc { max-width:100%; max-height:100%; }
+            #mp3-mode-view input[type="range"],
+            #radio-mode-view input[type="range"] { min-width:0; }
+        }
+        @media (max-width: 380px) {
+            header { padding-top:8px !important; padding-bottom:8px !important; }
+            nav[aria-label="Çalma modu"] .grid { gap:6px; }
+            nav[aria-label="Çalma modu"] button { padding:9px 7px !important; font-size:12px !important; }
+            #radio-mode-view, #mp3-mode-view { padding:7px !important; }
+            #radio-mode-view .glass-panel.rounded-3xl,
+            #mp3-mode-view .glass-panel.rounded-3xl { padding:11px !important; }
+            #radio-mode-view .w-44.h-44,
+            #mp3-mode-view .w-44.h-44 { width:128px !important; height:128px !important; }
+        }
+        @media (max-height: 700px) and (max-width: 640px) {
+            #radio-mode-view, #mp3-mode-view { padding-top:7px !important; }
+            #radio-mode-view .w-44.h-44,
+            #mp3-mode-view .w-44.h-44 { width:clamp(112px, 31vh, 150px) !important; height:clamp(112px, 31vh, 150px) !important; }
+            #radio-mode-view .w-full.h-28,
+            #mp3-mode-view .w-full.h-28 { height:70px !important; }
+        }
+
+    
+        /* MP3 ekranı için özel mobil yerleşim */
+        /* Mod değişiminde gizli ekranın görünmesini engelle */
+        #radio-mode-view.hidden,
+        #mp3-mode-view.hidden { display: none !important; }
+
+        @media (max-width: 640px) {
+            #mp3-mode-view:not(.hidden) {
+                display: block;
+                flex: 1 1 auto;
+                min-height: 0;
+                padding: 8px 10px 14px !important;
+                overflow-x: hidden;
+            }
+            #mp3-mode-view > section {
+                width: 100%;
+                max-width: 520px;
+                margin: 0 auto;
+                display: flex;
+                flex-direction: column;
+                gap: 10px !important;
+            }
+            #mp3-mode-view > section > .glass-panel {
+                width: 100%;
+                padding: 12px !important;
+                border-radius: 20px;
+                gap: 10px !important;
+            }
+            #mp3-mode-view > section > .glass-panel > .flex.items-center.justify-between {
+                gap: 8px !important;
+            }
+            #mp3-mode-view > section > .glass-panel > .flex.items-center.justify-between h2 {
+                font-size: clamp(18px, 5vw, 22px) !important;
+                line-height: 1.15;
+            }
+            #mp3-mode-view > section > .glass-panel > .flex.items-center.justify-between .w-14.h-14 {
+                width: 42px !important;
+                height: 42px !important;
+                flex: 0 0 42px;
+            }
+            #mp3-mode-view .mp3-vinyl-disc {
+                width: 82%;
+                height: 82%;
+            }
+            #mp3-mode-view .relative.w-44.h-44 {
+                width: clamp(112px, 32vw, 148px) !important;
+                height: clamp(112px, 32vw, 148px) !important;
+            }
+            #mp3-mode-view .relative.group.my-2 {
+                margin-top: 2px !important;
+                margin-bottom: 2px !important;
+            }
+            #mp3-mode-view .mt-4.w-full.z-20 {
+                margin-top: 5px !important;
+            }
+            #mp3-mode-view #mp3-current-title {
+                font-size: clamp(17px, 4.8vw, 22px) !important;
+                line-height: 1.2;
+            }
+            #mp3-mode-view #mp3-current-subtitle {
+                font-size: 11px !important;
+            }
+            #mp3-mode-view .w-full.h-28 {
+                height: 66px !important;
+                margin-top: 8px !important;
+            }
+            #mp3-mode-view .w-full.mt-6.space-y-5 {
+                margin-top: 10px !important;
+            }
+            #mp3-mode-view .w-full.mt-6.space-y-5 > :not([hidden]) ~ :not([hidden]) {
+                margin-top: 9px !important;
+            }
+            #mp3-mode-view #mp3-play-btn {
+                width: 58px !important;
+                height: 58px !important;
+                font-size: 19px !important;
+            }
+            #mp3-mode-view .w-12.h-12 {
+                width: 42px !important;
+                height: 42px !important;
+            }
+            #mp3-mode-view .flex.items-center.justify-center.gap-6 {
+                gap: clamp(18px, 7vw, 30px) !important;
+            }
+            #mp3-mode-view .grid.grid-cols-4 {
+                gap: 6px !important;
+                padding-top: 7px !important;
+            }
+            #mp3-mode-view .grid.grid-cols-4 button {
+                padding: 8px 3px !important;
+                min-height: 48px;
+            }
+            #mp3-mode-view .grid.grid-cols-4 button span {
+                font-size: 9px !important;
+            }
+            #mp3-mode-view .flex.items-center.justify-between.pt-3.px-2 {
+                padding-top: 6px !important;
+            }
+            #mp3-mode-view .flex.items-center.gap-3.w-2\\/3 {
+                width: 68% !important;
+                max-width: 220px !important;
+                gap: 8px !important;
+            }
+        }
+        @media (max-width: 380px) {
+            #mp3-mode-view { padding-left: 7px !important; padding-right: 7px !important; }
+            #mp3-mode-view > section > .glass-panel { padding: 10px !important; }
+            #mp3-mode-view .relative.w-44.h-44 {
+                width: 108px !important;
+                height: 108px !important;
+            }
+            #mp3-mode-view .w-full.h-28 { height: 58px !important; }
+            #mp3-mode-view #mp3-play-btn { width: 54px !important; height: 54px !important; }
+            #mp3-mode-view .grid.grid-cols-4 button { min-height: 44px; }
+        }
+        @media (max-height: 760px) and (max-width: 640px) {
+            #mp3-mode-view { padding-top: 5px !important; }
+            #mp3-mode-view > section { gap: 7px !important; }
+            #mp3-mode-view > section > .glass-panel { gap: 7px !important; }
+            #mp3-mode-view .relative.w-44.h-44 {
+                width: clamp(96px, 25vh, 132px) !important;
+                height: clamp(96px, 25vh, 132px) !important;
+            }
+            #mp3-mode-view .w-full.h-28 { height: 54px !important; }
+            #mp3-mode-view .w-full.mt-6.space-y-5 { margin-top: 7px !important; }
+            #mp3-mode-view .grid.grid-cols-4 button { padding-top: 6px !important; padding-bottom: 6px !important; }
+        }
+
+
+        /* MP3 modu: telefon ekraninda daha buyuk ve dengeli yerlesim */
+        @media (max-width: 640px) {
+            #mp3-mode-view { padding: 8px 10px 12px !important; }
+            #mp3-mode-view > section { gap: 8px !important; max-width: 560px !important; }
+            #mp3-mode-view > section > .glass-panel {
+                padding: 12px !important;
+                gap: 9px !important;
+            }
+            #mp3-mode-view > section > .glass-panel > .flex.items-center.justify-between h2 {
+                font-size: clamp(20px, 5.5vw, 24px) !important;
+                line-height: 1.15 !important;
+            }
+            #mp3-mode-view > section > .glass-panel > .flex.items-center.justify-between p {
+                font-size: 13px !important;
+                margin-top: 3px !important;
+            }
+            #mp3-mode-view > section > .glass-panel > .flex.items-center.justify-between .w-14.h-14 {
+                width: 44px !important; height: 44px !important; flex-basis: 44px !important;
+            }
+            #mp3-mode-view .relative.group.my-2 { margin: 3px 0 !important; }
+            #mp3-mode-view .relative.w-44.h-44 {
+                width: clamp(132px, 38vw, 158px) !important;
+                height: clamp(132px, 38vw, 158px) !important;
+            }
+            #mp3-mode-view .mt-4.w-full.z-20 { margin-top: 6px !important; }
+            #mp3-mode-view #mp3-current-title {
+                font-size: clamp(18px, 5vw, 22px) !important;
+                line-height: 1.15 !important;
+            }
+            #mp3-mode-view #mp3-current-subtitle { margin-top: 3px !important; font-size: 14px !important; }
+            #mp3-mode-view .w-full.h-28 {
+                height: 58px !important;
+                margin-top: 7px !important;
+            }
+            #mp3-mode-view .w-full.mt-6.space-y-5 { margin-top: 9px !important; }
+            #mp3-mode-view .w-full.mt-6.space-y-5 > :not([hidden]) ~ :not([hidden]) {
+                margin-top: 8px !important;
+            }
+            #mp3-mode-view .w-full.mt-6.space-y-5 .space-y-2 > :not([hidden]) ~ :not([hidden]) {
+                margin-top: 4px !important;
+            }
+            #mp3-mode-view #mp3-play-btn { width: 56px !important; height: 56px !important; }
+            #mp3-mode-view .w-12.h-12 { width: 42px !important; height: 42px !important; }
+            #mp3-mode-view .flex.items-center.justify-center.gap-6 { gap: 24px !important; }
+            #mp3-mode-view .flex.items-center.justify-center.gap-6.text-sm {
+                gap: 24px !important; font-size: 13px !important;
+            }
+            #mp3-mode-view .grid.grid-cols-4 {
+                gap: 6px !important; padding-top: 7px !important;
+            }
+            #mp3-mode-view .grid.grid-cols-4 button {
+                min-height: 46px !important; padding: 7px 3px !important;
+                gap: 4px !important;
+            }
+            #mp3-mode-view .grid.grid-cols-4 button span { font-size: 11px !important; }
+            #mp3-mode-view .flex.items-center.justify-between.pt-3.px-2 {
+                padding: 7px 5px 0 !important;
+            }
+            #mp3-mode-view #mp3-favorite-btn { padding: 5px !important; font-size: 21px !important; }
+            #mp3-mode-view .flex.items-center.gap-3.w-2\\/3 {
+                width: 70% !important; max-width: 260px !important; gap: 8px !important;
+            }
+        }
+        @media (max-height: 680px) and (max-width: 640px) {
+            #mp3-mode-view .relative.w-44.h-44 {
+                width: clamp(116px, 27vh, 140px) !important;
+                height: clamp(116px, 27vh, 140px) !important;
+            }
+            #mp3-mode-view .w-full.h-28 { height: 50px !important; }
+            #mp3-mode-view #mp3-play-btn { width: 50px !important; height: 50px !important; }
+            #mp3-mode-view .grid.grid-cols-4 button { min-height: 42px !important; }
+        }
+
+            #radio-mode-view.hidden, #mp3-mode-view.hidden { display:none !important; }
+    
+        /* MP3 ekolayzer görselini telefonda büyüt */
+        @media (max-width: 640px) {
+            #mp3-mode-view .w-full.h-28 {
+                height: clamp(96px, 26vw, 124px) !important;
+                min-height: 96px !important;
+            }
+            #mp3-mode-view #mp3-gorsellestirici-canvas {
+                display: block;
+                width: 100% !important;
+                height: 100% !important;
+            }
+        }
+        @media (max-width: 380px) {
+            #mp3-mode-view .w-full.h-28 {
+                height: 100px !important;
+                min-height: 100px !important;
+            }
+        }
+
+    
+        /* Son istek: radyo görseli ve oynatma düğmesini küçült; MP3 mod simgelerini favori yanına al */
+        @media (max-width: 640px) {
+            #radio-mode-view .relative.w-44.h-44 {
+                width: clamp(112px, 32vw, 138px) !important;
+                height: clamp(112px, 32vw, 138px) !important;
+            }
+            #radio-mode-view #btn-play-pause {
+                width: 64px !important;
+                height: 64px !important;
+            }
+            #radio-mode-view #btn-play-pause i {
+                font-size: 24px !important;
+            }
+            #mp3-mode-view .flex.items-center.justify-between.pt-3.px-2.border-t {
+                gap: 8px !important;
+            }
+            #mp3-mode-view #mp3-favorite-btn,
+            #mp3-mode-view #mp3-shuffle-btn,
+            #mp3-mode-view #mp3-repeat-btn {
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                min-width: 36px !important;
+                min-height: 36px !important;
+                padding: 6px !important;
+            }
+        }
+
+    
+        /* MP3 plak görselini mobil ekranda biraz küçült */
+        @media (max-width: 640px) {
+            #mp3-mode-view .relative.w-44.h-44 {
+                width: clamp(104px, 29vw, 128px) !important;
+                height: clamp(104px, 29vw, 128px) !important;
+            }
+        }
+        @media (max-width: 380px) {
+            #mp3-mode-view .relative.w-44.h-44 {
+                width: 100px !important;
+                height: 100px !important;
+            }
+        }
+
+    </style>
 </head>
 <body class="font-sans min-h-screen flex flex-col justify-between selection:bg-[var(--theme-primary)] selection:text-black overflow-x-hidden relative">
 
@@ -214,6 +562,9 @@
                 </div>
 
                 <div class="flex items-center space-x-2 sm:space-x-3">
+                    <button id="pwa-install-btn" type="button" class="hidden px-3 py-2 rounded-xl font-bold transition items-center space-x-2 text-xs sm:text-sm shadow-lg" style="background: var(--theme-primary); color:#07111f;" aria-label="Uygulamayı yükle">
+                        <i class="fa-solid fa-download"></i><span class="hidden sm:inline">Yükle</span>
+                    </button>
                     <div id="uyku-durum-rozet" class="hidden px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center space-x-1.5" style="background: var(--card-bg); border-color: var(--panel-border); color: var(--theme-primary);">
                         <i class="fa-solid fa-moon animate-pulse" style="color: var(--theme-primary);"></i>
                         <span id="uyku-sayac-etiket">00:00</span>
@@ -235,10 +586,10 @@
         <!-- RADYO / MP3 MOD SEÇİMİ -->
         <nav class="w-full max-w-xl mx-auto px-4 pt-4 relative z-20" aria-label="Çalma modu">
             <div class="grid grid-cols-2 gap-2 p-1.5 rounded-2xl border" style="background: var(--card-bg); border-color: var(--panel-border);">
-                <button id="mode-radio-btn" type="button" onclick="calmaModunuDegistir('radio')" class="py-3 rounded-xl font-extrabold text-sm flex items-center justify-center gap-2 transition" style="background: linear-gradient(135deg, var(--theme-primary), var(--theme-secondary)); color:#07111f;">
+                <button id="mode-radio-btn" type="button" onclick="calmaModunuDegistir('radio')" class="py-2.5 rounded-xl font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition" style="background: linear-gradient(135deg, var(--theme-primary), var(--theme-secondary)); color:#07111f;">
                     <i class="fa-solid fa-radio"></i><span>RADYO MODU</span>
                 </button>
-                <button id="mode-mp3-btn" type="button" onclick="calmaModunuDegistir('mp3')" class="py-3 rounded-xl font-extrabold text-sm flex items-center justify-center gap-2 transition" style="color: var(--text-muted);">
+                <button id="mode-mp3-btn" type="button" onclick="calmaModunuDegistir('mp3')" class="py-2.5 rounded-xl font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition" style="color: var(--text-muted);">
                     <i class="fa-solid fa-headphones"></i><span>MP3 MODU</span>
                 </button>
             </div>
@@ -424,10 +775,6 @@
                                 <button id="mp3-play-btn" type="button" onclick="mp3OynatDurdur()" class="w-20 h-20 rounded-full flex items-center justify-center text-2xl shadow-2xl" style="background:linear-gradient(135deg,var(--theme-primary),var(--theme-secondary));color:#07111f;" aria-label="Çal"><i id="mp3-play-icon" class="fa-solid fa-play ml-1"></i></button>
                                 <button type="button" onclick="mp3Sonraki()" class="w-12 h-12 rounded-full border flex items-center justify-center shadow" style="border-color:var(--panel-border);background:var(--btn-bg);color:var(--theme-primary);" aria-label="Sonraki şarkı"><i class="fa-solid fa-forward-step text-lg"></i></button>
                             </div>
-                            <div class="flex items-center justify-center gap-6 text-sm">
-                                <button id="mp3-shuffle-btn" type="button" onclick="mp3KaristirToggle()" class="flex items-center gap-2" style="color:var(--text-muted);"><i class="fa-solid fa-shuffle"></i><span>Karışık</span></button>
-                                <button id="mp3-repeat-btn" type="button" onclick="mp3TekrarToggle()" class="flex items-center gap-2" style="color:var(--text-muted);"><i class="fa-solid fa-repeat"></i><span>Tekrar: Kapalı</span></button>
-                            </div>
                         </div>
                     </div>
                     <!-- MP3 MODU HIZLI İŞLEMLER -->
@@ -445,6 +792,18 @@
                             <i class="fa-solid fa-list-ul text-sm"></i><span class="text-[10px] font-bold">Liste</span>
                         </button>
                     </div>
+                    <!-- RADYO EKRANINDAKİ GİBİ ALT FAVORİ VE SES KONTROLLERİ -->
+                    <div class="flex items-center justify-between pt-3 px-2 border-t" style="border-color:var(--panel-border);">
+                        <div class="flex items-center gap-1.5">
+                            <button id="mp3-favorite-btn" type="button" onclick="mp3AktifFavoriToggle()" class="text-slate-400 hover:text-red-500 transition text-xl p-2" title="Favorilere Ekle" aria-label="MP3 favorilere ekle"><i id="mp3-favorite-icon" class="fa-regular fa-heart"></i></button>
+                            <button id="mp3-shuffle-btn" type="button" onclick="mp3KaristirToggle()" class="transition text-lg p-2" style="color:var(--text-muted);" title="Karışık çalma" aria-label="Karışık çalma"><i class="fa-solid fa-shuffle"></i></button>
+                            <button id="mp3-repeat-btn" type="button" onclick="mp3TekrarToggle()" class="transition text-lg p-2" style="color:var(--text-muted);" title="Tekrar kapalı" aria-label="Tekrar modu"><i class="fa-solid fa-repeat"></i></button>
+                        </div>
+                        <div class="flex items-center gap-3 w-2/3 max-w-[200px]">
+                            <button type="button" onclick="sesSessizToggle()" class="transition" style="color:var(--theme-primary);" title="Sesi aç/kapat"><i id="mp3-volume-icon" class="fa-solid fa-volume-high text-sm"></i></button>
+                            <input type="range" id="mp3-volume-range" min="0" max="1" step="0.01" value="0.8" class="w-full h-1.5 rounded-lg appearance-none cursor-pointer" style="accent-color:var(--theme-primary);background:var(--panel-border);" aria-label="MP3 ses seviyesi">
+                        </div>
+                    </div>
                 </div>
 
 
@@ -457,7 +816,7 @@
             <div class="glass-panel w-full max-w-2xl h-full sm:h-auto sm:max-h-[88vh] sm:rounded-3xl rounded-none shadow-2xl flex flex-col overflow-hidden">
                 <div class="flex items-center justify-between gap-3 p-5 sm:p-6 border-b" style="border-color:var(--panel-border);background:var(--card-bg);">
                     <div class="flex items-center gap-3 min-w-0">
-                        <div class="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0" style="background:linear-gradient(135deg,var(--theme-primary),var(--theme-secondary));color:#07111f;"><i class="fa-solid fa-list-music text-xl"></i></div>
+                        <div class="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0" style="background:linear-gradient(135deg,var(--theme-primary),var(--theme-secondary));color:#07111f;"><i class="fa-solid fa-music text-xl"></i></div>
                         <div class="min-w-0">
                             <h3 class="text-xl font-extrabold">Müzik Listem</h3>
                             <p class="text-xs mt-1" style="color:var(--text-muted);">Klasörünü bağla veya cihazından müzik seç</p>
@@ -475,13 +834,22 @@
                         <input id="mp3-files-input" type="file" accept="audio/*,.mp3,.m4a,.aac,.ogg,.wav,.flac" multiple class="hidden">
                     </label>
                 </div>
-                <div class="flex items-center justify-between px-5 pt-4 pb-2">
-                    <div class="font-bold flex items-center gap-2"><i class="fa-solid fa-headphones" style="color:var(--theme-primary);"></i> Parçalar</div>
-                    <span id="mp3-track-count" class="text-xs font-bold px-3 py-1 rounded-full" style="color:var(--theme-primary);background:var(--btn-bg);">0 parça</span>
+                <div class="grid grid-cols-2 gap-2 px-4 sm:px-5 pt-4">
+                    <button id="mp3-tab-favorites" type="button" onclick="mp3ListeSekmesiDegistir('favorites')" class="rounded-xl py-2.5 text-xs sm:text-sm font-bold border transition" style="border-color:var(--panel-border);background:var(--card-bg);color:var(--text-muted);">
+                        <i class="fa-solid fa-heart text-red-500 mr-1"></i> Favorilerim <span id="mp3-favorite-count">0</span>
+                    </button>
+                    <button id="mp3-tab-tracks" type="button" onclick="mp3ListeSekmesiDegistir('tracks')" class="rounded-xl py-2.5 text-xs sm:text-sm font-bold border transition" style="border-color:var(--theme-primary);background:var(--btn-bg);color:var(--theme-primary);">
+                        <i class="fa-solid fa-headphones mr-1"></i> Parçalar <span id="mp3-track-count">0</span>
+                    </button>
                 </div>
-                <div id="mp3-track-list" class="space-y-2 px-4 sm:px-5 pb-3 pt-2 overflow-y-auto flex-1 min-h-0">
+                <section id="mp3-favorites-panel" class="px-4 sm:px-5 pt-3 overflow-y-auto flex-1 min-h-0 hidden">
+                    <div id="mp3-favorite-list" class="space-y-2 pb-3"></div>
+                </section>
+                <section id="mp3-tracks-panel" class="flex flex-col flex-1 min-h-0">
+                <div id="mp3-track-list" class="space-y-2 px-4 sm:px-5 pb-3 pt-3 overflow-y-auto flex-1 min-h-0">
                     <p class="text-center text-sm py-8" style="color:var(--text-muted);">Henüz müzik eklenmedi. Klasör bağlayın veya dosya seçin.</p>
                 </div>
+                </section>
                 <div class="p-4 border-t shrink-0" style="border-color:var(--panel-border);background:var(--card-bg);">
                     <button type="button" onclick="mp3ListeyiTemizle()" class="w-full rounded-xl py-3 flex items-center justify-center gap-2 text-sm font-bold border transition" style="border-color:rgba(239,68,68,.35);color:#ef4444;background:rgba(239,68,68,.08);">
                         <i class="fa-solid fa-trash-can"></i> Listeyi Temizle
@@ -841,11 +1209,16 @@
         // Modlar: radyo ve yerel MP3 oynatımı birbirinden ayrıdır.
         let aktifCalmaModu = 'radio';
         let mp3Parcalari = [];
+        let mp3Favoriler = [];
+        try { mp3Favoriler = JSON.parse(localStorage.getItem('sp_mp3_favoriler') || '[]'); } catch(e) { mp3Favoriler = []; }
         let mp3AktifIndeks = -1;
         let mp3NesneUrl = null;
         let mp3Karistir = false;
         let mp3Tekrar = false;
         let mp3Surukleme = false;
+
+        // Uygulama her açılışta Radyo Modu ile başlar.
+        try { localStorage.setItem('sp_calma_modu', 'radio'); } catch(e) {}
 
         function calmaModunuDegistir(mod) {
             if (mod !== 'radio' && mod !== 'mp3') return;
@@ -897,11 +1270,13 @@
         }
 
         function mp3DosyalariniEkle(dosyalar) {
-            const gelenler = Array.from(dosyalar || []).filter(f =>
-                /^audio\//i.test(f.type) || /\.(mp3|m4a|aac|ogg|wav|flac|opus)$/i.test(f.name)
-            );
+            // Yalnızca bilinen ses dosyası uzantılarını listeye al.
+            const desteklenenSesUzantilari = /\.(mp3|m4a|aac|ogg|oga|wav|flac|opus|weba|aif|aiff|wma)$/i;
+            const tumDosyalar = Array.from(dosyalar || []);
+            const gelenler = tumDosyalar.filter(f => desteklenenSesUzantilari.test(f.name));
+            const atlanan = tumDosyalar.length - gelenler.length;
             if (!gelenler.length) {
-                bildirimGoster('Seçilen klasörde desteklenen ses dosyası bulunamadı.');
+                bildirimGoster('Seçimde desteklenen ses dosyası bulunamadı. Görsel, video ve diğer dosyalar eklenmedi.');
                 return;
             }
             const varOlanlar = new Set(mp3Parcalari.map(f => `${f.name}|${f.size}|${f.lastModified}`));
@@ -914,8 +1289,103 @@
             });
             mp3Parcalari.sort((a,b) => a.name.localeCompare(b.name, 'tr'));
             mp3ListeyiCiz();
-            bildirimGoster(`${gelenler.length} ses dosyası tarandı.`);
+            bildirimGoster(`${gelenler.length} ses dosyası eklendi.${atlanan ? ` ${atlanan} ses dosyası olmayan dosya atlandı.` : ''}`);
             if (mp3AktifIndeks < 0 && mp3Parcalari.length) mp3SarkiSec(0, false);
+        }
+
+        function mp3DosyaAnahtari(dosya) { return `${dosya.name}|${dosya.size}|${dosya.lastModified}`; }
+        function mp3FavoriMi(dosya) { return mp3Favoriler.includes(mp3DosyaAnahtari(dosya)); }
+
+        function mp3AktifFavoriToggle() {
+            if (mp3AktifIndeks < 0 || !mp3Parcalari[mp3AktifIndeks]) { bildirimGoster('Önce bir müzik seçin.'); return; }
+            const key = mp3DosyaAnahtari(mp3Parcalari[mp3AktifIndeks]);
+            const ix = mp3Favoriler.indexOf(key);
+            if (ix >= 0) { mp3Favoriler.splice(ix, 1); bildirimGoster('Müzik favorilerden çıkarıldı.'); }
+            else { mp3Favoriler.push(key); bildirimGoster('Müzik favorilere eklendi.'); }
+            try { localStorage.setItem('sp_mp3_favoriler', JSON.stringify(mp3Favoriler)); } catch(e) {}
+            mp3ListeyiCiz();
+        }
+
+        function mp3FavoriIkonGuncelle() {
+            const ikon = document.getElementById('mp3-favorite-icon');
+            const aktif = mp3AktifIndeks >= 0 && mp3Parcalari[mp3AktifIndeks] && mp3FavoriMi(mp3Parcalari[mp3AktifIndeks]);
+            if (ikon) ikon.className = aktif ? 'fa-solid fa-heart text-red-500' : 'fa-regular fa-heart';
+        }
+
+        function mp3ListeSekmesiDegistir(sekme) {
+            const favorilerAcik = sekme === 'favorites';
+            const favoriPanel = document.getElementById('mp3-favorites-panel');
+            const parcaPanel = document.getElementById('mp3-tracks-panel');
+            const favoriButon = document.getElementById('mp3-tab-favorites');
+            const parcaButon = document.getElementById('mp3-tab-tracks');
+            if (favoriPanel) favoriPanel.classList.toggle('hidden', !favorilerAcik);
+            if (parcaPanel) parcaPanel.classList.toggle('hidden', favorilerAcik);
+            [[favoriButon, favorilerAcik], [parcaButon, !favorilerAcik]].forEach(([buton, aktif]) => {
+                if (!buton) return;
+                buton.style.borderColor = aktif ? 'var(--theme-primary)' : 'var(--panel-border)';
+                buton.style.background = aktif ? 'var(--btn-bg)' : 'var(--card-bg)';
+                buton.style.color = aktif ? 'var(--theme-primary)' : 'var(--text-muted)';
+            });
+        }
+
+        function mp3FavoriListesiniCiz() {
+            const alan = document.getElementById('mp3-favorite-list');
+            const sayac = document.getElementById('mp3-favorite-count');
+            if (!alan) return;
+            const favoriler = mp3Parcalari.map((dosya, indeks) => ({dosya, indeks})).filter(x => mp3FavoriMi(x.dosya));
+            if (sayac) sayac.textContent = `${favoriler.length}`;
+            alan.innerHTML = '';
+            if (!favoriler.length) {
+                alan.innerHTML = '<p class="text-xs py-2" style="color:var(--text-muted);">Henüz favori müzik eklenmedi. Çalardaki kalp simgesine dokunun.</p>';
+                return;
+            }
+            favoriler.forEach(({dosya, indeks}) => {
+                const satir = document.createElement('div');
+                satir.className = 'w-full flex items-center gap-2 p-2.5 rounded-xl border';
+                satir.style.cssText = `background:${indeks === mp3AktifIndeks ? 'var(--card-bg)' : 'transparent'};border-color:${indeks === mp3AktifIndeks ? 'var(--theme-primary)' : 'var(--panel-border)'};color:var(--text-main);`;
+
+                const kaldir = document.createElement('button');
+                kaldir.type = 'button';
+                kaldir.className = 'w-9 h-9 rounded-lg flex items-center justify-center shrink-0';
+                kaldir.style.cssText = 'color:#ef4444;background:rgba(239,68,68,.09);';
+                kaldir.title = 'Favorilerden kaldır';
+                kaldir.setAttribute('aria-label', 'Favorilerden kaldır');
+                kaldir.innerHTML = '<i class="fa-solid fa-trash-can text-xs"></i>';
+                kaldir.addEventListener('click', () => {
+                    const key = mp3DosyaAnahtari(dosya);
+                    const ad = dosya.name.replace(/\\.[^.]+$/, '');
+                    onayModaliniAc(
+                        'Favorilerden Kaldırılsın mı?',
+                        '"' + ad + '" favori listesinden çıkarılacak. Cihazdaki müzik dosyası ve normal parça listesi etkilenmeyecek.',
+                        () => {
+                            mp3Favoriler = mp3Favoriler.filter(x => x !== key);
+                            try { localStorage.setItem('sp_mp3_favoriler', JSON.stringify(mp3Favoriler)); } catch(e) {}
+                            mp3ListeyiCiz();
+                        }
+                    );
+                });
+
+                const cal = document.createElement('button');
+                cal.type = 'button';
+                cal.className = 'min-w-0 flex-1 flex items-center gap-3 text-left';
+                cal.innerHTML = `<span class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background:var(--btn-bg);color:var(--theme-primary);"><i class="fa-solid fa-music text-base"></i></span><span class="min-w-0 flex-1"><span class="block text-sm font-semibold truncate"></span><span class="block text-[10px] mt-0.5" style="color:var(--text-muted);"></span></span>`;
+                const metinler = cal.querySelectorAll('span.min-w-0 span');
+                metinler[0].textContent = dosya.name.replace(/\\.[^.]+$/, '');
+                metinler[1].textContent = `${(dosya.size / 1048576).toFixed(1)} MB`;
+                cal.addEventListener('click', () => mp3SarkiSec(indeks, true));
+
+                const oynat = document.createElement('button');
+                oynat.type = 'button';
+                oynat.className = 'w-9 h-9 rounded-lg flex items-center justify-center shrink-0';
+                oynat.style.cssText = 'background:var(--btn-bg);color:var(--theme-primary);';
+                oynat.title = 'Çal';
+                oynat.setAttribute('aria-label', 'Favori müziği çal');
+                oynat.innerHTML = '<i class="fa-solid fa-play text-xs"></i>';
+                oynat.addEventListener('click', () => mp3SarkiSec(indeks, true));
+
+                satir.append(kaldir, cal, oynat);
+                alan.appendChild(satir);
+            });
         }
 
         function mp3ListeyiCiz() {
@@ -925,6 +1395,7 @@
             if (sayac) sayac.textContent = `${mp3Parcalari.length} parça`;
             if (!mp3Parcalari.length) {
                 kapsayici.innerHTML = '<p class="text-center text-sm py-8" style="color:var(--text-muted);">Henüz müzik eklenmedi. Klasör bağlayın veya dosya seçin.</p>';
+                mp3FavoriListesiniCiz(); mp3FavoriIkonGuncelle();
                 return;
             }
             kapsayici.innerHTML = '';
@@ -942,17 +1413,32 @@
                 sil.innerHTML = '<i class="fa-solid fa-trash-can text-xs"></i>';
                 sil.addEventListener('click', () => mp3ListedenKaldir(indeks));
 
+                const favori = document.createElement('button');
+                favori.type = 'button';
+                favori.className = 'w-9 h-9 rounded-lg flex items-center justify-center shrink-0';
+                favori.style.color = mp3FavoriMi(dosya) ? '#ef4444' : 'var(--text-muted)';
+                favori.innerHTML = `<i class="fa-${mp3FavoriMi(dosya) ? 'solid' : 'regular'} fa-heart"></i>`;
+                favori.title = mp3FavoriMi(dosya) ? 'Favorilerden çıkar' : 'Favorilere ekle';
+                favori.addEventListener('click', () => {
+                    const key = mp3DosyaAnahtari(dosya), ix = mp3Favoriler.indexOf(key);
+                    if (ix >= 0) mp3Favoriler.splice(ix, 1); else mp3Favoriler.push(key);
+                    try { localStorage.setItem('sp_mp3_favoriler', JSON.stringify(mp3Favoriler)); } catch(e) {}
+                    mp3ListeyiCiz();
+                });
+
                 const cal = document.createElement('button');
                 cal.type = 'button';
                 cal.className = 'min-w-0 flex-1 flex items-center gap-3 text-left';
-                cal.innerHTML = `<span class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background:var(--btn-bg);color:var(--theme-primary);"><i class="fa-solid fa-compact-disc text-base"></i></span><span class="min-w-0 flex-1"><span class="block text-sm font-semibold truncate"></span><span class="block text-[10px] mt-0.5" style="color:var(--text-muted);"></span></span>`;
+                cal.innerHTML = `<span class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background:var(--btn-bg);color:var(--theme-primary);"><i class="fa-solid fa-music text-base"></i></span><span class="min-w-0 flex-1"><span class="block text-sm font-semibold truncate"></span><span class="block text-[10px] mt-0.5" style="color:var(--text-muted);"></span></span>`;
                 const metinler = cal.querySelectorAll('span.min-w-0 span');
                 metinler[0].textContent = dosya.name.replace(/\.[^.]+$/, '');
                 metinler[1].textContent = `${(dosya.size / 1048576).toFixed(1)} MB`;
                 cal.addEventListener('click', () => mp3SarkiSec(indeks, true));
-                satir.append(sil, cal);
+                satir.append(sil, favori, cal);
                 kapsayici.appendChild(satir);
             });
+            mp3FavoriListesiniCiz();
+            mp3FavoriIkonGuncelle();
         }
 
         // Önce modern onay penceresi gösterilir; cihazdaki gerçek dosya hiçbir zaman silinmez.
@@ -992,6 +1478,18 @@
         }
 
         function mp3ListeyiTemizle() {
+            if (!mp3Parcalari.length) {
+                bildirimGoster('Temizlenecek bir müzik listesi yok.');
+                return;
+            }
+            onayModaliniAc(
+                'Müzik Listesi Temizlensin mi?',
+                'Eklediğin tüm parçalar uygulamanın listesinden kaldırılacak. Favori kayıtların ve cihazındaki müzik dosyaları silinmeyecek.',
+                mp3ListeyiTemizleOnayla
+            );
+        }
+
+        function mp3ListeyiTemizleOnayla() {
             sesElementi.pause();
             oynatiliyorMu = false;
             if (mp3NesneUrl) URL.revokeObjectURL(mp3NesneUrl);
@@ -1147,8 +1645,10 @@
 
         function mp3TekrarToggle() {
             mp3Tekrar = !mp3Tekrar;
-            document.getElementById('mp3-repeat-btn').innerHTML = `<i class="fa-solid fa-repeat"></i><span>Tekrar: ${mp3Tekrar ? 'Açık' : 'Kapalı'}</span>`;
-            document.getElementById('mp3-repeat-btn').style.color = mp3Tekrar ? 'var(--theme-primary)' : 'var(--text-muted)';
+            const tekrarButonu = document.getElementById('mp3-repeat-btn');
+            tekrarButonu.title = mp3Tekrar ? 'Tekrar açık' : 'Tekrar kapalı';
+            tekrarButonu.setAttribute('aria-label', tekrarButonu.title);
+            tekrarButonu.style.color = mp3Tekrar ? 'var(--theme-primary)' : 'var(--text-muted)';
         }
 
         document.getElementById('mp3-folder-input').addEventListener('change', e => mp3DosyalariniEkle(e.target.files));
@@ -1905,12 +2405,22 @@
 
         function sesOlaylariniAyarla() {
             sesElementi.addEventListener('error', () => { sesiDurdur(); bildirimGoster("Yayın akışı kesildi."); });
+            const mp3SesCubugu = document.getElementById('mp3-volume-range');
+            if (mp3SesCubugu) mp3SesCubugu.addEventListener('input', e => aracSesSeviyesiniAyarla(e.target.value));
         }
 
         function sesSessizToggle() {
             sesElementi.muted = !sesElementi.muted;
             sessizlikIkonGuncelle();
+            mp3SesIkonunuGuncelle();
             aracSesKontrolleriniGuncelle();
+        }
+
+        function mp3SesIkonunuGuncelle() {
+            const ikon = document.getElementById('mp3-volume-icon');
+            if (!ikon) return;
+            ikon.className = (sesElementi.muted || sesElementi.volume === 0) ? 'fa-solid fa-volume-xmark text-sm text-red-500'
+                : (sesElementi.volume < 0.5 ? 'fa-solid fa-volume-low text-sm' : 'fa-solid fa-volume-high text-sm');
         }
 
         function aracSesSeviyesiniAyarla(deger) {
@@ -1918,7 +2428,10 @@
             sesElementi.volume = seviye;
             sesElementi.muted = (seviye === 0);
             if (sesSeviyeCubuk) sesSeviyeCubuk.value = seviye;
+            const mp3SesCubugu = document.getElementById('mp3-volume-range');
+            if (mp3SesCubugu) mp3SesCubugu.value = seviye;
             sessizlikIkonGuncelle();
+            mp3SesIkonunuGuncelle();
             aracSesKontrolleriniGuncelle();
         }
 
@@ -2285,5 +2798,63 @@
             });
         }
     </script>
+
+<script>
+(() => {
+    let ertelenmisYukleme = null;
+    const yukleBtn = document.getElementById('pwa-install-btn');
+
+    function yuklemeButonunuGoster() {
+        if (!yukleBtn) return;
+        yukleBtn.classList.remove('hidden');
+        yukleBtn.classList.add('flex');
+    }
+
+    window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        ertelenmisYukleme = event;
+        yuklemeButonunuGoster();
+    });
+
+    if (yukleBtn) {
+        yukleBtn.addEventListener('click', async () => {
+            if (ertelenmisYukleme) {
+                ertelenmisYukleme.prompt();
+                await ertelenmisYukleme.userChoice;
+                ertelenmisYukleme = null;
+                yukleBtn.classList.add('hidden');
+                yukleBtn.classList.remove('flex');
+                return;
+            }
+
+            const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+            if (ios) {
+                alert("Uygulamayı yüklemek için Paylaş düğmesine dokunun, ardından 'Ana Ekrana Ekle' seçeneğini seçin.");
+            } else if (window.matchMedia('(display-mode: standalone)').matches) {
+                alert("STREAM PULSE PRO zaten uygulama olarak yüklü.");
+            } else {
+                alert("Yükleme seçeneği henüz kullanılamıyor. Sayfayı Chrome üzerinden ve HTTPS bağlantısıyla açıp tarayıcı menüsünden 'Uygulamayı yükle' veya 'Ana ekrana ekle' seçeneğini kullanabilirsiniz.");
+            }
+        });
+    }
+
+    window.addEventListener('appinstalled', () => {
+        if (yukleBtn) {
+            yukleBtn.classList.add('hidden');
+            yukleBtn.classList.remove('flex');
+        }
+        ertelenmisYukleme = null;
+    });
+
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').catch(err => {
+                console.warn('PWA çevrimdışı desteği kaydedilemedi:', err);
+            });
+        });
+    }
+})();
+</script>
+
 </body>
 </html>
