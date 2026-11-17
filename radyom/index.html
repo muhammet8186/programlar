@@ -1220,59 +1220,35 @@
         // Uygulama her açılışta Radyo Modu ile başlar.
         try { localStorage.setItem('sp_calma_modu', 'radio'); } catch(e) {}
 
-        // Otomatik radyo yayın yönlendirme:
-        // Bilinen AAC+/SHOUTcast kaynakları HTTPS proxy üzerinden MP3'e dönüştürülür.
-        // Diğer adresler mevcut doğrudan oynatma yolunu kullanır.
-        const RADYO_PROXY_BASE = 'https://radyo-mp3.onrender.com/stream?url=';
-        const RADYO_PROXY_HOSTLARI = ['46.20.3.201', 'stream.rcast.net'];
-
+        // Sunucusuz yayın: tüm istasyonlar kendi adreslerinden doğrudan açılır.
         function radyoYayinBilgisi(url) {
             try {
                 const parsed = new URL(url);
-                const host = parsed.hostname.toLowerCase();
                 const path = (parsed.pathname + parsed.search).toLowerCase();
-                const bilinenAacKaynak = RADYO_PROXY_HOSTLARI.includes(host);
                 const hlsKaynak = /\\.m3u8?(?:$|[?&])/i.test(path);
-                const aacKaynak = /\\.(aac|aacp)(?:$|[?&])/i.test(path);
-                const httpKaynak = parsed.protocol === 'http:';
                 return {
-                    host,
                     protokol: parsed.protocol,
                     hlsKaynak,
-                    proxyUygun: bilinenAacKaynak || aacKaynak || httpKaynak || hlsKaynak,
-                    proxyOncelikli: bilinenAacKaynak || aacKaynak || httpKaynak,
                     tahminiTur: hlsKaynak ? 'HLS/M3U8' :
-                                (bilinenAacKaynak || aacKaynak) ? 'AAC/AAC+ veya SHOUTcast' :
-                                httpKaynak ? 'HTTP radyo akışı' : 'HTTPS doğrudan yayın'
+                                parsed.protocol === 'http:' ? 'HTTP doğrudan yayın' :
+                                'HTTPS doğrudan yayın'
                 };
             } catch (e) {
-                return { proxyUygun: false, proxyOncelikli: false, tahminiTur: 'Geçersiz adres' };
+                return { protokol: '', hlsKaynak: false, tahminiTur: 'Geçersiz adres' };
             }
         }
 
         function radyoOynatmaAdresi(url) {
-            const bilgi = radyoYayinBilgisi(url);
-            // HTTP/AAC gibi tarayıcı uyumsuzluğu yüksek kaynaklarda mevcut HTTPS proxy'yi dene.
-            // HTTPS HLS ve diğer yayınlar önce doğrudan açılır.
-            if (bilgi.proxyOncelikli) return RADYO_PROXY_BASE + encodeURIComponent(url);
             return url;
-        }
-
-        function radyoAlternatifAdresi(url, mevcutAdres) {
-            const proxyAdres = RADYO_PROXY_BASE + encodeURIComponent(url);
-            return mevcutAdres === proxyAdres ? url : proxyAdres;
         }
 
         function radyoYayinHataMesaji() {
             if (!aktifKanal) return 'Radyo yayını başlatılamadı.';
             const bilgi = radyoYayinBilgisi(aktifKanal.url);
-            if (bilgi.proxyUygun) {
-                return 'Proxy üzerinden yayın alınamadı. Render sunucusunu ve istasyon bağlantısını kontrol edin.';
-            }
             if (bilgi.protokol === 'http:') {
-                return 'HTTP yayını tarayıcı tarafından engellenmiş olabilir. Bu istasyon için HTTPS proxy desteği gerekli.';
+                return 'Bu HTTP yayını tarayıcı veya Android güvenlik ayarları tarafından engellenmiş olabilir.';
             }
-            return 'Yayın açılamadı. Adres, format veya sunucu bağlantısını kontrol edin.';
+            return 'Yayın açılamadı. İstasyon çevrimdışı, erişim kısıtlı veya ses formatı desteklenmiyor olabilir.';
         }
 
         function calmaModunuDegistir(mod) {
@@ -2069,7 +2045,6 @@
         }
 
         let radyoDenemeSayaci = 0;
-        let radyoOynatmaDenemesi = 0;
 
         async function sesiBaslat() {
             if (!aktifKanal || aktifCalmaModu !== 'radio') return;
@@ -2077,7 +2052,6 @@
             const ilkAdres = radyoOynatmaAdresi(kanalUrl);
             radyoDenemeSayaci++;
             const buDeneme = radyoDenemeSayaci;
-            radyoOynatmaDenemesi = 0;
 
             sesBaglaminiHazirla();
             try {
@@ -2095,30 +2069,9 @@
                 kanalListesiniCiz();
             } catch (err) {
                 if (buDeneme !== radyoDenemeSayaci) return;
-                console.warn('İlk radyo kaynağı açılamadı:', err);
-                const alternatif = radyoAlternatifAdresi(kanalUrl, ilkAdres);
-                if (alternatif && radyoOynatmaDenemesi === 0) {
-                    radyoOynatmaDenemesi = 1;
-                    try {
-                        bildirimGoster('Alternatif yayın bağlantısı deneniyor…');
-                        sesElementi.pause();
-                        sesElementi.src = alternatif;
-                        sesElementi.load();
-                        await sesElementi.play();
-                        if (buDeneme !== radyoDenemeSayaci) return;
-                        oynatiliyorMu = true;
-                        oynatIkon.className = 'fa-solid fa-pause text-3xl';
-                        aracOynatIkon.className = 'fa-solid fa-pause text-4xl sm:text-5xl';
-                        eqCubuklari.classList.remove('paused');
-                        medyaOturumunuGuncelle();
-                        kanalListesiniCiz();
-                        return;
-                    } catch (ikinciHata) {
-                        console.warn('Alternatif yayın da açılamadı:', ikinciHata);
-                    }
-                }
+                console.warn('Doğrudan radyo kaynağı açılamadı:', err);
                 if (buDeneme === radyoDenemeSayaci) {
-                    bildirimGoster('Yayın açılamadı. İstasyon çevrimdışı, erişim kısıtlı veya format desteklenmiyor olabilir.');
+                    bildirimGoster(radyoYayinHataMesaji());
                     sesiDurdur();
                 }
             }
