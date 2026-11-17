@@ -524,11 +524,12 @@
                             <select id="headsetButtonMode" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
                                 <option value="off">Kapalı</option>
                                 <option value="toggle">Tek basış: konuşmayı aç / kapat</option>
+                                <option value="hold">Basılı tut: basınca konuş / bırakınca dur</option>
                             </select>
                             <button id="enableHeadsetButtonBtn" type="button" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl px-3 py-2 text-xs">Kulaklık tuşunu etkinleştir</button>
                         </div>
                     </div>
-                    <p class="text-[10px] text-slate-500">Not: Bluetooth ses yönlendirmesi telefonun/işletim sisteminin ayarlarına bağlıdır. Kulaklık tuşu desteği tarayıcı ve kulaklık modeline göre değişir; tüm cihazlarda garanti edilemez. Tuşu etkinleştirmek için sayfada bu düğmeye dokunun.</p>
+                    <p class="text-[10px] text-slate-500">Not: Kablolu ve Bluetooth kulaklığın medya tuşu desteği telefon, tarayıcı ve kulaklık modeline bağlıdır. Basılı tutma modu, cihaz tuşun basılma ve bırakılma olaylarını ilettiğinde çalışır; bazı Bluetooth modelleri yalnızca tek basış olayı gönderir. Tuşu etkinleştirmek için sayfada bu düğmeye dokunun.</p>
                 </div>
                 </div>
                 <!-- GÜVENLİK VE KULLANICI İZİNLERİ -->
@@ -668,6 +669,8 @@
         const headsetStatus = document.getElementById('headsetStatus');
         let headsetButtonEnabled = false;
         let headsetToggleState = false;
+        let headsetHoldActive = false;
+        let lastHeadsetToggleAt = 0;
 
         const startRecBtn = document.getElementById('startRecBtn');
         const stopRecBtn = document.getElementById('stopRecBtn');
@@ -1280,38 +1283,85 @@
 
         function setHeadsetTransmission(active) {
             if (currentMode !== 'PTT') {
-                showToast('Kulaklık tuşu PTT modunda çalışır. Önce PTT modunu seçin.', 'warning');
+                if (active) showToast('Kulaklık tuşu PTT modunda çalışır. Önce PTT modunu seçin.', 'warning');
                 return;
             }
-            headsetToggleState = !!active;
-            if (headsetToggleState) startTransmission();
-            else stopTransmission();
+            const shouldTransmit = !!active;
+            headsetToggleState = shouldTransmit;
+            headsetHoldActive = shouldTransmit && headsetButtonMode.value === 'hold';
+            if (shouldTransmit) {
+                startTransmission();
+                headsetToggleState = isTransmitting;
+                headsetHoldActive = isTransmitting && headsetButtonMode.value === 'hold';
+            } else stopTransmission();
         }
 
         function toggleHeadsetTransmission() {
             if (!headsetButtonEnabled || headsetButtonMode.value !== 'toggle') return;
+            // Aynı fiziksel tuş bazı Android sürümlerinde hem klavye hem MediaSession olayı üretir.
+            // Kısa aralıkta gelen çift olayı tek basış olarak değerlendir.
+            const now = Date.now();
+            if (now - lastHeadsetToggleAt < 300) return;
+            lastHeadsetToggleAt = now;
             setHeadsetTransmission(!headsetToggleState);
         }
 
-        function enableHeadsetControls() {
+        function handleHeadsetKeyDown(e) {
+            if (!headsetButtonEnabled || !['MediaPlayPause', 'HeadsetHook'].includes(e.code)) return;
+            if (e.repeat) return;
+            e.preventDefault();
+            if (headsetButtonMode.value === 'toggle') {
+                toggleHeadsetTransmission();
+            } else if (headsetButtonMode.value === 'hold') {
+                if (!headsetHoldActive) setHeadsetTransmission(true);
+            }
+        }
+
+        function handleHeadsetKeyUp(e) {
+            if (!headsetButtonEnabled || !['MediaPlayPause', 'HeadsetHook'].includes(e.code)) return;
+            if (headsetButtonMode.value === 'hold' && headsetHoldActive) {
+                e.preventDefault();
+                setHeadsetTransmission(false);
+            }
+        }
+
+        function enableHeadsetControls(selectedMode) {
+            const mode = selectedMode || headsetButtonMode.value;
+            if (!['toggle', 'hold'].includes(mode)) {
+                disableHeadsetControls();
+                return;
+            }
             headsetButtonEnabled = true;
-            headsetButtonMode.value = 'toggle';
-            enableHeadsetButtonBtn.textContent = 'Kulaklık tuşu etkin';
-            headsetStatus.textContent = 'Tuş desteği etkin';
+            headsetButtonMode.value = mode;
+            headsetToggleState = false;
+            headsetHoldActive = false;
+            enableHeadsetButtonBtn.textContent = 'Kulaklık tuşunu devre dışı bırak';
+            headsetStatus.textContent = mode === 'hold' ? 'Basılı tutma etkin' : 'Tek basış etkin';
             try {
                 if ('mediaSession' in navigator) {
-                    navigator.mediaSession.setActionHandler('play', () => setHeadsetTransmission(true));
-                    navigator.mediaSession.setActionHandler('pause', () => setHeadsetTransmission(false));
-                    navigator.mediaSession.metadata = new MediaMetadata({ title: 'Telsiz PTT', artist: 'PMR Tactical Pro' });
+                    // Bazı Android cihazlar medya tuşlarını klavye olayı yerine MediaSession'a iletir.
+                    // Play/Pause eylemleri, desteklenen cihazlarda PTT açma/kapatma için kullanılır.
+                    navigator.mediaSession.setActionHandler('play', () => {
+                        if (headsetButtonMode.value === 'toggle') toggleHeadsetTransmission();
+                        else setHeadsetTransmission(true);
+                    });
+                    navigator.mediaSession.setActionHandler('pause', () => {
+                        if (headsetButtonMode.value === 'toggle') toggleHeadsetTransmission();
+                        else setHeadsetTransmission(false);
+                    });
+                    if (typeof MediaMetadata !== 'undefined') {
+                        navigator.mediaSession.metadata = new MediaMetadata({ title: 'Telsiz PTT', artist: 'PMR Tactical Pro' });
+                    }
                 }
             } catch (err) { console.log('MediaSession headset control unavailable', err); }
-            localStorage.setItem('pmrHeadsetButtonMode', 'toggle');
-            showToast('Kulaklık tuşu desteği açıldı. Tuş işlevi cihaz/tarayıcı desteğine bağlıdır.', 'success');
+            localStorage.setItem('pmrHeadsetButtonMode', mode);
+            showToast(mode === 'hold' ? 'Basılı tutarak PTT etkinleştirildi.' : 'Tek basış PTT etkinleştirildi.', 'success');
         }
 
         function disableHeadsetControls() {
             headsetButtonEnabled = false;
             headsetToggleState = false;
+            headsetHoldActive = false;
             headsetButtonMode.value = 'off';
             enableHeadsetButtonBtn.textContent = 'Kulaklık tuşunu etkinleştir';
             try {
@@ -1856,6 +1906,7 @@
             if (!isTransmitting || !isPowerOn) return;
             isTransmitting = false;
             headsetToggleState = false;
+            headsetHoldActive = false;
             if (localStream && localStream.getAudioTracks()[0]) {
                 localStream.getAudioTracks()[0].enabled = false;
             }
@@ -1985,18 +2036,20 @@
         audioOutputSelect.addEventListener('change', applyAudioOutput);
         enableHeadsetButtonBtn.addEventListener('click', () => {
             if (headsetButtonEnabled) disableHeadsetControls();
-            else enableHeadsetControls();
+            else if (headsetButtonMode.value === 'off') {
+                headsetButtonMode.value = 'toggle';
+                enableHeadsetControls('toggle');
+            } else enableHeadsetControls(headsetButtonMode.value);
         });
         headsetButtonMode.addEventListener('change', () => {
-            if (headsetButtonMode.value === 'toggle') enableHeadsetControls();
-            else disableHeadsetControls();
+            if (headsetButtonMode.value === 'off') disableHeadsetControls();
+            else enableHeadsetControls(headsetButtonMode.value);
         });
-        window.addEventListener('keydown', (e) => {
-            if (!headsetButtonEnabled || headsetButtonMode.value !== 'toggle') return;
-            if (['MediaPlayPause', 'HeadsetHook'].includes(e.code) && !e.repeat) {
-                e.preventDefault();
-                toggleHeadsetTransmission();
-            }
+        window.addEventListener('keydown', handleHeadsetKeyDown);
+        window.addEventListener('keyup', handleHeadsetKeyUp);
+        // Tuş bırakma olayı tarayıcıya ulaşmazsa mikrofonun açık kalmasını önle.
+        window.addEventListener('blur', () => {
+            if (headsetButtonMode.value === 'hold' && headsetHoldActive) setHeadsetTransmission(false);
         });
         if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
             navigator.mediaDevices.addEventListener('devicechange', refreshAudioDevices);
@@ -2005,7 +2058,7 @@
             const savedOutput = localStorage.getItem('pmrAudioOutputId');
             if (savedOutput) audioOutputSelect.value = savedOutput;
             const savedHeadsetMode = localStorage.getItem('pmrHeadsetButtonMode');
-            if (savedHeadsetMode === 'toggle') enableHeadsetControls();
+            if (savedHeadsetMode === 'toggle' || savedHeadsetMode === 'hold') enableHeadsetControls(savedHeadsetMode);
             refreshAudioDevices();
         } catch (err) {}
 
