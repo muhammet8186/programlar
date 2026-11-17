@@ -1710,6 +1710,8 @@
             kaydedilenTemaVeModuYukle();
             kategorileriArayUzeYansit();
             
+            // Her uygulama açılışında GitHub'daki güncel radyo listesini indir.
+            // İnternet yoksa cihazda kayıtlı son liste korunur.
             await githubM3uOtomatikYukle();
 
             kanalListesiniCiz();
@@ -1729,7 +1731,7 @@
                 const res = await fetch(GITHUB_M3U_URL);
                 if (!res.ok) throw new Error("GitHub M3U dosyası alınamadı");
                 const metin = await res.text();
-                m3uMetniniIsle(metin, true);
+                m3uMetniniIsle(metin, true, 'github');
             } catch (e) {
                 console.warn("GitHub otomatik kanal yükleme hatası (CORS veya ağ sorunu):", e);
             }
@@ -2193,7 +2195,12 @@
             }
         }
 
-        function m3uMetniniIsle(icerik, ilkAcilisSessiz = false) {
+        function m3uMetniniIsle(icerik, ilkAcilisSessiz = false, kaynak = 'manual') {
+            // GitHub listesi her açılışta baştan eşitlenir; kullanıcı kanalları korunur.
+            if (kaynak === 'github') {
+                kanallar = kanallar.filter(k => k.kaynak !== 'github');
+            }
+
             const satirlar = icerik.split('\n');
             let eklenenSayisi = 0;
             let geciciAd = '';
@@ -2231,7 +2238,8 @@
                             url: yayinUrl,
                             genre: geciciTur || kategoriler[0],
                             logo: geciciLogo || '',
-                            isPreset: false
+                            isPreset: false,
+                            kaynak: kaynak === 'github' ? 'github' : 'kullanici'
                         });
                         eklenenSayisi++;
                     }
