@@ -1129,11 +1129,6 @@
     </div>
 
     <audio id="audio-element" preload="none" crossorigin="anonymous"></audio>
-    <!-- Gizli WebView yedek oynatıcı: başarısız doğrudan akışlarda istasyon sayfasını dener. -->
-    <iframe id="radyo-webview-yedek" title="Radyo yedek oynatıcı" aria-hidden="true"
-        allow="autoplay; encrypted-media" referrerpolicy="no-referrer"
-        style="position:fixed;width:1px;height:1px;left:-10px;bottom:0;opacity:0;pointer-events:none;border:0;"
-        tabindex="-1"></iframe>
 
     <!-- JAVASCRIPT ÇALIŞMA MOTORU -->
     <script>
@@ -1230,42 +1225,6 @@
         // Diğer adresler mevcut doğrudan oynatma yolunu kullanır.
         const RADYO_PROXY_BASE = 'https://radyo-mp3.onrender.com/stream?url=';
         const RADYO_PROXY_HOSTLARI = ['46.20.3.201', 'stream.rcast.net'];
-        const radyoWebViewYedek = document.getElementById('radyo-webview-yedek');
-        let radyoYedekZamanlayici = null;
-        let radyoOynatmaDenemeNo = 0;
-        let radyoWebViewAktif = false;
-
-        function radyoYedegiTemizle() {
-            if (radyoYedekZamanlayici) clearTimeout(radyoYedekZamanlayici);
-            radyoYedekZamanlayici = null;
-            radyoWebViewAktif = false;
-            if (radyoWebViewYedek) radyoWebViewYedek.src = 'about:blank';
-        }
-
-        function radyoWebViewYedeginiBaslat(denemeNo) {
-            if (denemeNo !== radyoOynatmaDenemeNo || !aktifKanal || aktifCalmaModu !== 'radio') return;
-            const kaynak = aktifKanal.url;
-            if (!/^https?:\/\//i.test(kaynak)) {
-                bildirimGoster('Bu yayın adresi WebView yedeğinde açılamıyor.');
-                return;
-            }
-            // İlk oynatıcı başarısız oldu: kaynak adresini görünmez WebView içinde dene.
-            sesElementi.pause();
-            radyoWebViewAktif = true;
-            radyoWebViewYedek.src = kaynak;
-            bildirimGoster('Normal oynatıcı başarısız. Gizli WebView yedek oynatıcı deneniyor…');
-        }
-
-        function radyoWebViewYedeginiZamanla() {
-            if (aktifCalmaModu !== 'radio' || !aktifKanal) return;
-            if (radyoYedekZamanlayici) clearTimeout(radyoYedekZamanlayici);
-            const denemeNo = ++radyoOynatmaDenemeNo;
-            radyoYedekZamanlayici = setTimeout(() => {
-                if (denemeNo === radyoOynatmaDenemeNo && sesElementi.paused && !radyoWebViewAktif) {
-                    radyoWebViewYedeginiBaslat(denemeNo);
-                }
-            }, 8000);
-        }
 
         function radyoYayinBilgisi(url) {
             try {
@@ -1273,26 +1232,35 @@
                 const host = parsed.hostname.toLowerCase();
                 const path = (parsed.pathname + parsed.search).toLowerCase();
                 const bilinenAacKaynak = RADYO_PROXY_HOSTLARI.includes(host);
-                const uzantiIpuclari = /\\.(aac|aacp|m3u8?)(?:$|[?&])/i.test(path);
+                const hlsKaynak = /\\.m3u8?(?:$|[?&])/i.test(path);
+                const aacKaynak = /\\.(aac|aacp)(?:$|[?&])/i.test(path);
                 const httpKaynak = parsed.protocol === 'http:';
                 return {
                     host,
                     protokol: parsed.protocol,
-                    proxyUygun: bilinenAacKaynak,
-                    tahminiTur: bilinenAacKaynak || uzantiIpuclari ? 'AAC/AAC+ veya SHOUTcast' :
-                                httpKaynak ? 'HTTP radyo akışı' : 'Doğrudan yayın'
+                    hlsKaynak,
+                    proxyUygun: bilinenAacKaynak || aacKaynak || httpKaynak || hlsKaynak,
+                    proxyOncelikli: bilinenAacKaynak || aacKaynak || httpKaynak,
+                    tahminiTur: hlsKaynak ? 'HLS/M3U8' :
+                                (bilinenAacKaynak || aacKaynak) ? 'AAC/AAC+ veya SHOUTcast' :
+                                httpKaynak ? 'HTTP radyo akışı' : 'HTTPS doğrudan yayın'
                 };
             } catch (e) {
-                return { proxyUygun: false, tahminiTur: 'Geçersiz adres' };
+                return { proxyUygun: false, proxyOncelikli: false, tahminiTur: 'Geçersiz adres' };
             }
         }
 
         function radyoOynatmaAdresi(url) {
             const bilgi = radyoYayinBilgisi(url);
-            if (bilgi.proxyUygun) {
-                return RADYO_PROXY_BASE + encodeURIComponent(url);
-            }
+            // HTTP/AAC gibi tarayıcı uyumsuzluğu yüksek kaynaklarda mevcut HTTPS proxy'yi dene.
+            // HTTPS HLS ve diğer yayınlar önce doğrudan açılır.
+            if (bilgi.proxyOncelikli) return RADYO_PROXY_BASE + encodeURIComponent(url);
             return url;
+        }
+
+        function radyoAlternatifAdresi(url, mevcutAdres) {
+            const proxyAdres = RADYO_PROXY_BASE + encodeURIComponent(url);
+            return mevcutAdres === proxyAdres ? url : proxyAdres;
         }
 
         function radyoYayinHataMesaji() {
@@ -1319,7 +1287,6 @@
             if (aracOynatIkon) aracOynatIkon.className = 'fa-solid fa-play text-4xl sm:text-5xl ml-1';
             if (eqCubuklari) eqCubuklari.classList.add('paused');
 
-            if (mod !== 'radio') { radyoOynatmaDenemeNo++; radyoYedegiTemizle(); }
             aktifCalmaModu = mod;
             document.body.classList.toggle('mp3-mode', mod === 'mp3');
             if (mod === 'radio' && aktifKanal) {
@@ -2054,8 +2021,6 @@
             const hedef = kanallar.find(s => s.id === id);
             if (!hedef) return;
 
-            radyoOynatmaDenemeNo++;
-            radyoYedegiTemizle();
             aktifKanal = hedef;
             document.getElementById('aktif-kanal-ad').innerText = aktifKanal.name;
             document.getElementById('aktif-kanal-tur').innerText = aktifKanal.genre;
@@ -2103,42 +2068,96 @@
             else sesiBaslat();
         }
 
-        function sesiBaslat() {
-            radyoYedegiTemizle();
-            radyoOynatmaDenemeNo++;
+        let radyoDenemeSayaci = 0;
+        let radyoOynatmaDenemesi = 0;
+
+        async function sesiBaslat() {
+            if (!aktifKanal || aktifCalmaModu !== 'radio') return;
+            const kanalUrl = aktifKanal.url;
+            const ilkAdres = radyoOynatmaAdresi(kanalUrl);
+            radyoDenemeSayaci++;
+            const buDeneme = radyoDenemeSayaci;
+            radyoOynatmaDenemesi = 0;
+
             sesBaglaminiHazirla();
-            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-            if (aktifCalmaModu === 'radio') radyoWebViewYedeginiZamanla();
-            sesElementi.play().then(() => {
-                if (radyoYedekZamanlayici) clearTimeout(radyoYedekZamanlayici);
-                radyoYedekZamanlayici = null;
+            try {
+                if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume();
+                sesElementi.pause();
+                sesElementi.src = ilkAdres;
+                sesElementi.load();
+                await sesElementi.play();
+                if (buDeneme !== radyoDenemeSayaci) return;
                 oynatiliyorMu = true;
                 oynatIkon.className = 'fa-solid fa-pause text-3xl';
                 aracOynatIkon.className = 'fa-solid fa-pause text-4xl sm:text-5xl';
                 eqCubuklari.classList.remove('paused');
+                medyaOturumunuGuncelle();
                 kanalListesiniCiz();
-            }).catch(err => {
-                console.error("Oynatma hatası:", err);
-                if (aktifCalmaModu === 'radio' && aktifKanal) {
-                    if (radyoYedekZamanlayici) clearTimeout(radyoYedekZamanlayici);
-                    radyoYedekZamanlayici = null;
-                    radyoWebViewYedeginiBaslat(radyoOynatmaDenemeNo);
-                } else {
-                    bildirimGoster("Ses dosyası başlatılamadı. Dosya biçimini veya adresini kontrol edin.");
+            } catch (err) {
+                if (buDeneme !== radyoDenemeSayaci) return;
+                console.warn('İlk radyo kaynağı açılamadı:', err);
+                const alternatif = radyoAlternatifAdresi(kanalUrl, ilkAdres);
+                if (alternatif && radyoOynatmaDenemesi === 0) {
+                    radyoOynatmaDenemesi = 1;
+                    try {
+                        bildirimGoster('Alternatif yayın bağlantısı deneniyor…');
+                        sesElementi.pause();
+                        sesElementi.src = alternatif;
+                        sesElementi.load();
+                        await sesElementi.play();
+                        if (buDeneme !== radyoDenemeSayaci) return;
+                        oynatiliyorMu = true;
+                        oynatIkon.className = 'fa-solid fa-pause text-3xl';
+                        aracOynatIkon.className = 'fa-solid fa-pause text-4xl sm:text-5xl';
+                        eqCubuklari.classList.remove('paused');
+                        medyaOturumunuGuncelle();
+                        kanalListesiniCiz();
+                        return;
+                    } catch (ikinciHata) {
+                        console.warn('Alternatif yayın da açılamadı:', ikinciHata);
+                    }
+                }
+                if (buDeneme === radyoDenemeSayaci) {
+                    bildirimGoster('Yayın açılamadı. İstasyon çevrimdışı, erişim kısıtlı veya format desteklenmiyor olabilir.');
                     sesiDurdur();
                 }
-            });
+            }
+        }
+
+        function medyaOturumunuGuncelle() {
+            if (!('mediaSession' in navigator)) return;
+            try {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: aktifKanal ? aktifKanal.name : 'STREAM PULSE PRO',
+                    artist: 'Canlı İnternet Radyosu',
+                    album: 'STREAM PULSE PRO',
+                    artwork: aktifKanal && aktifKanal.logo ? [
+                        { src: aktifKanal.logo, sizes: '512x512', type: 'image/png' }
+                    ] : []
+                });
+                navigator.mediaSession.setActionHandler('play', () => {
+                    if (aktifCalmaModu === 'radio') sesiBaslat();
+                    else mp3Cal();
+                });
+                navigator.mediaSession.setActionHandler('pause', () => {
+                    if (aktifCalmaModu === 'radio') sesiDurdur();
+                    else mp3Durdur();
+                });
+                navigator.mediaSession.setActionHandler('stop', () => sesiDurdur());
+            } catch (e) {
+                console.debug('Media Session bu ortamda tam desteklenmiyor:', e);
+            }
         }
 
         function sesiDurdur() {
-            radyoOynatmaDenemeNo++;
-            radyoYedegiTemizle();
+            radyoDenemeSayaci++;
             if (kayittaMi) kaydiDurdur();
             sesElementi.pause();
             oynatiliyorMu = false;
             oynatIkon.className = 'fa-solid fa-play text-3xl ml-1';
             aracOynatIkon.className = 'fa-solid fa-play text-4xl sm:text-5xl ml-1';
             eqCubuklari.classList.add('paused');
+            try { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'; } catch(e) {}
             kanalListesiniCiz();
         }
 
@@ -2507,21 +2526,7 @@
         }
 
         function sesOlaylariniAyarla() {
-            sesElementi.addEventListener('playing', () => {
-                if (radyoYedekZamanlayici) clearTimeout(radyoYedekZamanlayici);
-                radyoYedekZamanlayici = null;
-                if (radyoWebViewAktif) radyoYedegiTemizle();
-            });
-            sesElementi.addEventListener('error', () => {
-                if (aktifCalmaModu === 'radio' && aktifKanal) {
-                    if (radyoYedekZamanlayici) clearTimeout(radyoYedekZamanlayici);
-                    radyoYedekZamanlayici = null;
-                    radyoWebViewYedeginiBaslat(radyoOynatmaDenemeNo);
-                } else {
-                    sesiDurdur();
-                    bildirimGoster(radyoYayinHataMesaji());
-                }
-            });
+            sesElementi.addEventListener('error', () => { sesiDurdur(); bildirimGoster(radyoYayinHataMesaji()); });
             const mp3SesCubugu = document.getElementById('mp3-volume-range');
             if (mp3SesCubugu) mp3SesCubugu.addEventListener('input', e => aracSesSeviyesiniAyarla(e.target.value));
         }
