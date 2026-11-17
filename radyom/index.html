@@ -1217,8 +1217,63 @@
         let mp3Tekrar = false;
         let mp3Surukleme = false;
 
-        // Uygulama her açılışta Radyo Modu ile başlar.
-        try { localStorage.setItem('sp_calma_modu', 'radio'); } catch(e) {}
+        // MP3 kitaplığı cihazda IndexedDB içinde saklanır; sayfa yenilense de liste korunur.
+        const MP3_DB_ADI = 'StreamPulseMP3Kitaplik';
+        const MP3_DB_DEPO = 'parcalar';
+        function mp3VeritabaniAc() {
+            return new Promise((resolve, reject) => {
+                if (!('indexedDB' in window)) { reject(new Error('IndexedDB desteklenmiyor')); return; }
+                const req = indexedDB.open(MP3_DB_ADI, 1);
+                req.onupgradeneeded = () => {
+                    if (!req.result.objectStoreNames.contains(MP3_DB_DEPO)) {
+                        req.result.createObjectStore(MP3_DB_DEPO, { keyPath: 'id' });
+                    }
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error || new Error('MP3 veritabanı açılamadı'));
+            });
+        }
+        function mp3KayitId(dosya) { return `${dosya.name}|${dosya.size}|${dosya.lastModified}`; }
+        async function mp3KitapliginiKaydet() {
+            const db = await mp3VeritabaniAc();
+            try {
+                await new Promise((resolve, reject) => {
+                    const tx = db.transaction(MP3_DB_DEPO, 'readwrite');
+                    const depo = tx.objectStore(MP3_DB_DEPO);
+                    depo.clear();
+                    mp3Parcalari.forEach((dosya, sira) => depo.put({
+                        id: mp3KayitId(dosya), dosya, ad: dosya.name, boyut: dosya.size,
+                        sonDegisme: dosya.lastModified, yol: dosya.webkitRelativePath || '', sira
+                    }));
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error || new Error('MP3 listesi kaydedilemedi'));
+                    tx.onabort = () => reject(tx.error || new Error('MP3 kayıt işlemi iptal edildi'));
+                });
+            } finally { db.close(); }
+        }
+        async function mp3KitapliginiYukle() {
+            const db = await mp3VeritabaniAc();
+            try {
+                const kayitlar = await new Promise((resolve, reject) => {
+                    const tx = db.transaction(MP3_DB_DEPO, 'readonly');
+                    const req = tx.objectStore(MP3_DB_DEPO).getAll();
+                    req.onsuccess = () => resolve(req.result || []);
+                    req.onerror = () => reject(req.error || new Error('MP3 listesi okunamadı'));
+                });
+                mp3Parcalari = kayitlar.sort((a,b) => a.sira - b.sira).map(k => {
+                    let dosya = k.dosya;
+                    if (dosya && typeof dosya.name !== 'string') {
+                        dosya = new File([dosya], k.ad, { type: dosya.type || '', lastModified: k.sonDegisme || 0 });
+                    }
+                    if (dosya && k.yol && !dosya.webkitRelativePath) {
+                        try { Object.defineProperty(dosya, 'webkitRelativePath', { value: k.yol }); } catch(e) {}
+                    }
+                    return dosya;
+                }).filter(Boolean);
+            } finally { db.close(); }
+        }
+
+        // Son kullanılan mod korunur; ilk kurulumda varsayılan mod Radyo'dur.
 
         // Sunucusuz yayın: tüm istasyonlar kendi adreslerinden doğrudan açılır.
         function radyoYayinBilgisi(url) {
@@ -1319,6 +1374,7 @@
                 }
             });
             mp3Parcalari.sort((a,b) => a.name.localeCompare(b.name, 'tr'));
+            mp3KitapliginiKaydet().catch(e => console.warn('MP3 listesi kalıcı kaydedilemedi:', e));
             mp3ListeyiCiz();
             bildirimGoster(`${gelenler.length} ses dosyası eklendi.${atlanan ? ` ${atlanan} ses dosyası olmayan dosya atlandı.` : ''}`);
             if (mp3AktifIndeks < 0 && mp3Parcalari.length) mp3SarkiSec(0, false);
@@ -1504,6 +1560,7 @@
             } else if (indeks < mp3AktifIndeks) {
                 mp3AktifIndeks--;
             }
+            mp3KitapliginiKaydet().catch(e => console.warn('MP3 listesi kaydedilemedi:', e));
             mp3ListeyiCiz();
             bildirimGoster('Müzik yalnızca listeden kaldırıldı; cihazdaki dosya silinmedi.');
         }
@@ -1535,6 +1592,7 @@
             document.getElementById('mp3-seek').value = 0;
             document.getElementById('mp3-current-time').textContent = '00:00';
             document.getElementById('mp3-duration').textContent = '00:00';
+            mp3KitapliginiKaydet().catch(e => console.warn('MP3 listesi kaydedilemedi:', e));
             mp3ListeyiCiz();
             bildirimGoster('Müzik listesi temizlendi. Cihazdaki dosyalar silinmedi.');
         }
@@ -1706,6 +1764,8 @@
 
         window.addEventListener('DOMContentLoaded', async () => {
             veriDeposunuYukle();
+            try { await mp3KitapliginiYukle(); }
+            catch (e) { console.warn('Kayıtlı MP3 kitaplığı yüklenemedi:', e); }
             temaSeciciyiOlustur();
             kaydedilenTemaVeModuYukle();
             kategorileriArayUzeYansit();
@@ -2196,64 +2256,87 @@
         }
 
         function m3uMetniniIsle(icerik, ilkAcilisSessiz = false, kaynak = 'manual') {
-            // GitHub listesi her açılışta baştan eşitlenir; kullanıcı kanalları korunur.
-            if (kaynak === 'github') {
-                kanallar = kanallar.filter(k => k.kaynak !== 'github');
-            }
-
-            const satirlar = icerik.split('\n');
+            const satirlar = String(icerik || '').split(/\r?\n/);
             let eklenenSayisi = 0;
+            let guncellenenSayisi = 0;
             let geciciAd = '';
             let geciciTur = kategoriler[0] || 'Özel';
             let geciciLogo = '';
+            let geciciTvgId = '';
+            const githubKaynakli = kaynak === 'github';
 
-            const mevcutUrlSet = new Set(kanallar.map(k => k.url.trim().toLowerCase()));
+            const nrm = v => String(v || '').trim().toLocaleLowerCase('tr');
+            const attr = (satir, ad) => {
+                const esc = ad.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const m = satir.match(new RegExp('(?:^|\\s)' + esc + '="([^"]*)"', 'i'));
+                return m ? m[1].trim() : '';
+            };
 
             satirlar.forEach(satir => {
                 satir = satir.trim();
                 if (satir.startsWith('#EXTINF:')) {
-                    const adEslesme = satir.split(',');
-                    if (adEslesme.length > 1) geciciAd = adEslesme[1].trim();
-                    const logoEslesme = satir.match(/tvg-logo="([^"]+)"/);
-                    if (logoEslesme) geciciLogo = logoEslesme[1];
-                    const turEslesme = satir.match(/group-title="([^"]+)"/);
-                    if (turEslesme) {
-                        geciciTur = turEslesme[1];
-                        if (!kategoriler.includes(geciciTur)) {
-                            kategoriler.push(geciciTur);
-                            kategorileriKaydet();
-                            kategorileriArayUzeYansit();
-                        }
-                    }
-                } else if (satir.length > 0 && !satir.startsWith('#')) {
-                    const yayinUrl = satir.trim();
-                    const temizUrlKucuk = yayinUrl.toLowerCase();
+                    const virgul = satir.lastIndexOf(',');
+                    geciciAd = virgul >= 0 ? satir.slice(virgul + 1).trim() : '';
+                    geciciLogo = attr(satir, 'tvg-logo');
+                    geciciTvgId = attr(satir, 'tvg-id');
+                    geciciTur = attr(satir, 'group-title') || kategoriler[0] || 'Özel';
+                } else if (satir && !satir.startsWith('#')) {
+                    const yayinUrl = satir;
+                    const ad = geciciAd || `Radyo ${kanallar.length + 1}`;
+                    const tur = geciciTur || kategoriler[0] || 'Özel';
+                    let bulunan = null;
 
-                    if (!mevcutUrlSet.has(temizUrlKucuk)) {
-                        mevcutUrlSet.add(temizUrlKucuk);
-                        const yeniId = 'kanal_' + Date.now() + Math.random().toString(36).substring(2, 5);
+                    if (githubKaynakli) {
+                        const githubKanallari = kanallar.filter(k => k.kaynak === 'github');
+                        if (geciciTvgId) bulunan = githubKanallari.find(k => nrm(k.tvgId) === nrm(geciciTvgId));
+                        if (!bulunan) bulunan = githubKanallari.find(k => nrm(k.url) === nrm(yayinUrl));
+                        // tvg-id bulunmayan eski M3U kayıtlarında isim + kategori eşleşmesiyle URL değişimini yakala.
+                        if (!bulunan) bulunan = githubKanallari.find(k => nrm(k.name) === nrm(ad) && nrm(k.genre) === nrm(tur));
+                        // Aynı URL kullanıcının kendi kanalında varsa kopya oluşturma; kullanıcı kaydına dokunma.
+                        if (!bulunan) bulunan = kanallar.find(k => nrm(k.url) === nrm(yayinUrl));
+                    } else {
+                        bulunan = kanallar.find(k => nrm(k.url) === nrm(yayinUrl));
+                    }
+
+                    if (bulunan) {
+                        if (githubKaynakli && bulunan.kaynak === 'github') {
+                            const degisti = bulunan.name !== ad || bulunan.url !== yayinUrl ||
+                                (bulunan.logo || '') !== geciciLogo || (bulunan.genre || '') !== tur ||
+                                (bulunan.tvgId || '') !== geciciTvgId;
+                            bulunan.name = ad;
+                            bulunan.url = yayinUrl;
+                            bulunan.logo = geciciLogo;
+                            bulunan.genre = tur;
+                            bulunan.tvgId = geciciTvgId;
+                            bulunan.kaynak = 'github';
+                            if (degisti) guncellenenSayisi++;
+                        }
+                    } else {
                         kanallar.push({
-                            id: yeniId,
-                            name: geciciAd || `Radyo ${kanallar.length + 1}`,
-                            url: yayinUrl,
-                            genre: geciciTur || kategoriler[0],
-                            logo: geciciLogo || '',
-                            isPreset: false,
-                            kaynak: kaynak === 'github' ? 'github' : 'kullanici'
+                            id: 'kanal_' + Date.now() + Math.random().toString(36).substring(2, 7),
+                            name: ad, url: yayinUrl, genre: tur, logo: geciciLogo,
+                            tvgId: geciciTvgId, isPreset: false,
+                            kaynak: githubKaynakli ? 'github' : 'kullanici'
                         });
                         eklenenSayisi++;
                     }
+
+                    if (!kategoriler.includes(tur)) kategoriler.push(tur);
                     geciciAd = '';
                     geciciLogo = '';
-                    geciciTur = kategoriler[0];
+                    geciciTvgId = '';
+                    geciciTur = kategoriler[0] || 'Özel';
                 }
             });
 
+            // GitHub'dan artık gelmeyen kanallar da yerel kayıtta tutulur; hiçbir kanal topluca silinmez.
+            kategorileriKaydet();
             ozelKanallariKaydet();
+            kategorileriArayUzeYansit();
             kanalListesiniCiz();
             if (!ilkAcilisSessiz) {
                 modalToggle('modal-ayarlar', false);
-                bildirimGoster(`${eklenenSayisi} yeni kanal eklendi!`);
+                bildirimGoster(`${eklenenSayisi} yeni kanal eklendi, ${guncellenenSayisi} kanal güncellendi. Eski kanallar korundu.`);
             }
         }
 
