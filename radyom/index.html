@@ -343,9 +343,9 @@
                 margin-top: 9px !important;
             }
             #mp3-mode-view #mp3-play-btn {
-                width: 58px !important;
-                height: 58px !important;
-                font-size: 19px !important;
+                width: 72px !important;
+                height: 72px !important;
+                font-size: 23px !important;
             }
             #mp3-mode-view .w-12.h-12 {
                 width: 42px !important;
@@ -772,7 +772,7 @@
                             </div>
                             <div class="flex items-center justify-center gap-6">
                                 <button type="button" onclick="mp3Onceki()" class="w-12 h-12 rounded-full border flex items-center justify-center shadow" style="border-color:var(--panel-border);background:var(--btn-bg);color:var(--theme-primary);" aria-label="Önceki şarkı"><i class="fa-solid fa-backward-step text-lg"></i></button>
-                                <button id="mp3-play-btn" type="button" onclick="mp3OynatDurdur()" class="w-20 h-20 rounded-full flex items-center justify-center text-2xl shadow-2xl" style="background:linear-gradient(135deg,var(--theme-primary),var(--theme-secondary));color:#07111f;" aria-label="Çal"><i id="mp3-play-icon" class="fa-solid fa-play ml-1"></i></button>
+                                <button id="mp3-play-btn" type="button" onclick="mp3OynatDurdur()" class="w-24 h-24 rounded-full flex items-center justify-center text-2xl shadow-2xl" style="background:linear-gradient(135deg,var(--theme-primary),var(--theme-secondary));color:#07111f;" aria-label="Çal"><i id="mp3-play-icon" class="fa-solid fa-play ml-1"></i></button>
                                 <button type="button" onclick="mp3Sonraki()" class="w-12 h-12 rounded-full border flex items-center justify-center shadow" style="border-color:var(--panel-border);background:var(--btn-bg);color:var(--theme-primary);" aria-label="Sonraki şarkı"><i class="fa-solid fa-forward-step text-lg"></i></button>
                             </div>
                         </div>
@@ -1272,6 +1272,13 @@
                     }
                     return dosya;
                 }).filter(Boolean);
+
+                // Son seçilen MP3'ü dosya kimliği üzerinden geri yükle.
+                const sonSecilenMp3 = localStorage.getItem('sp_mp3_son_secilen');
+                if (sonSecilenMp3) {
+                    const bulunanIndeks = mp3Parcalari.findIndex(dosya => mp3DosyaAnahtari(dosya) === sonSecilenMp3);
+                    if (bulunanIndeks >= 0) mp3AktifIndeks = bulunanIndeks;
+                }
             } finally { db.close(); }
         }
 
@@ -1349,6 +1356,13 @@
             localStorage.setItem('sp_calma_modu', mod);
             if (mod === 'mp3') {
                 mp3ListeyiCiz();
+                // MP3 moduna girildiğinde son seçilen parça otomatik başlasın.
+                if (mp3Parcalari.length) {
+                    if (mp3AktifIndeks < 0 || !mp3Parcalari[mp3AktifIndeks]) {
+                        mp3SarkiSec(0, false);
+                    }
+                    mp3Cal();
+                }
                 requestAnimationFrame(() => {
                     const c = document.getElementById('mp3-gorsellestirici-canvas');
                     if (c && c.parentElement) {
@@ -1635,6 +1649,7 @@
             if (indeks < 0 || indeks >= mp3Parcalari.length) return;
             mp3AktifIndeks = indeks;
             const dosya = mp3Parcalari[indeks];
+            try { localStorage.setItem('sp_mp3_son_secilen', mp3DosyaAnahtari(dosya)); } catch(e) {}
             if (mp3NesneUrl) URL.revokeObjectURL(mp3NesneUrl);
             mp3NesneUrl = URL.createObjectURL(dosya);
             sesElementi.src = mp3NesneUrl;
