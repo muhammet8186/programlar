@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>PMR Tactical Pro - Commander Edition</title>
+    <meta name="theme-color" content="#020804">
+    <meta name="application-name" content="PMR Tactical Pro">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PMR Tactical Pro">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -243,6 +251,11 @@
         <button id="sosBtn" type="button" class="bg-red-950/80 hover:bg-red-900 border border-red-600 text-red-400 hover:text-white px-2.5 py-2 rounded-2xl font-lcd font-black text-[11px] tracking-wider shadow-lg transition active:scale-95 cursor-pointer flex items-center gap-1">
             <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
             <span>SOS</span>
+        </button>
+
+        <!-- UYGULAMAYI YÜKLE: yalnızca desteklenen tarayıcılarda görünür -->
+        <button id="installAppBtn" type="button" class="hidden bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700 text-emerald-300 px-2 py-2 rounded-2xl font-lcd font-black text-[10px] shadow-lg transition active:scale-95 cursor-pointer" aria-label="Uygulamayı yükle">
+            <span aria-hidden="true">⬇</span><span class="hidden sm:inline"> YÜKLE</span>
         </button>
 
         <!-- SAĞ: KANAL VE AYARLAR -->
@@ -2354,6 +2367,64 @@
         modeMenuBtn.addEventListener('click', showModeMenu);
         window.addEventListener('pagehide', stopLocalMonitor);
         window.addEventListener('resize', () => { if (localMonitorActive) drawLocalMicWave(); });
+    </script>
+
+    <!-- PWA: yükleme istemi ve Service Worker kaydı. Telsiz işlevlerinin koduna müdahale etmez. -->
+    <script>
+    (() => {
+        const installButton = document.getElementById('installAppBtn');
+        if (!installButton) return;
+        let installPromptEvent = null;
+        const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+        if (isStandalone) {
+            installButton.classList.add('hidden');
+        } else if (isIOS) {
+            installButton.classList.remove('hidden');
+            installButton.setAttribute('aria-label', 'Ana ekrana ekleme talimatı');
+            installButton.addEventListener('click', () => {
+                const message = 'iPhone/iPad: Safari paylaşım düğmesine dokunun, ardından “Ana Ekrana Ekle” seçeneğini seçin.';
+                if (typeof showToast === 'function') showToast(message, 'info');
+                else alert(message);
+            });
+        }
+
+        window.addEventListener('beforeinstallprompt', event => {
+            event.preventDefault();
+            installPromptEvent = event;
+            if (!isStandalone) installButton.classList.remove('hidden');
+        });
+
+        installButton.addEventListener('click', async () => {
+            if (!installPromptEvent) {
+                if (!isIOS && !isStandalone) {
+                    const message = 'Yükleme seçeneği görünmüyorsa Chrome menüsünden “Uygulamayı yükle” veya “Ana ekrana ekle” seçeneğini kullanın. Site HTTPS üzerinden açılmalıdır.';
+                    if (typeof showToast === 'function') showToast(message, 'info');
+                    else alert(message);
+                }
+                return;
+            }
+            installPromptEvent.prompt();
+            await installPromptEvent.userChoice;
+            installPromptEvent = null;
+            installButton.classList.add('hidden');
+        });
+
+        window.addEventListener('appinstalled', () => {
+            installPromptEvent = null;
+            installButton.classList.add('hidden');
+            if (typeof showToast === 'function') showToast('PMR Tactical Pro cihaza yüklendi.', 'success');
+        });
+
+        if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(error => {
+                    console.warn('Service Worker kaydedilemedi:', error);
+                });
+            });
+        }
+    })();
     </script>
 </body>
 </html>
