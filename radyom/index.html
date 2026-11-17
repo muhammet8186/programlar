@@ -1220,19 +1220,50 @@
         // Uygulama her açılışta Radyo Modu ile başlar.
         try { localStorage.setItem('sp_calma_modu', 'radio'); } catch(e) {}
 
-        // AAC/AAC+ SHOUTcast yayınlarını HTTPS proxy üzerinden MP3 olarak oynat.
+        // Otomatik radyo yayın yönlendirme:
+        // Bilinen AAC+/SHOUTcast kaynakları HTTPS proxy üzerinden MP3'e dönüştürülür.
+        // Diğer adresler mevcut doğrudan oynatma yolunu kullanır.
         const RADYO_PROXY_BASE = 'https://radyo-mp3.onrender.com/stream?url=';
-        function radyoOynatmaAdresi(url) {
+        const RADYO_PROXY_HOSTLARI = ['46.20.3.201', 'stream.rcast.net'];
+
+        function radyoYayinBilgisi(url) {
             try {
                 const parsed = new URL(url);
-                const proxyHostlari = ['46.20.3.201', 'stream.rcast.net'];
-                if (proxyHostlari.includes(parsed.hostname.toLowerCase())) {
-                    return RADYO_PROXY_BASE + encodeURIComponent(parsed.href);
-                }
+                const host = parsed.hostname.toLowerCase();
+                const path = (parsed.pathname + parsed.search).toLowerCase();
+                const bilinenAacKaynak = RADYO_PROXY_HOSTLARI.includes(host);
+                const uzantiIpuclari = /\\.(aac|aacp|m3u8?)(?:$|[?&])/i.test(path);
+                const httpKaynak = parsed.protocol === 'http:';
+                return {
+                    host,
+                    protokol: parsed.protocol,
+                    proxyUygun: bilinenAacKaynak,
+                    tahminiTur: bilinenAacKaynak || uzantiIpuclari ? 'AAC/AAC+ veya SHOUTcast' :
+                                httpKaynak ? 'HTTP radyo akışı' : 'Doğrudan yayın'
+                };
             } catch (e) {
-                console.warn('Radyo adresi çözümlenemedi:', url);
+                return { proxyUygun: false, tahminiTur: 'Geçersiz adres' };
+            }
+        }
+
+        function radyoOynatmaAdresi(url) {
+            const bilgi = radyoYayinBilgisi(url);
+            if (bilgi.proxyUygun) {
+                return RADYO_PROXY_BASE + encodeURIComponent(url);
             }
             return url;
+        }
+
+        function radyoYayinHataMesaji() {
+            if (!aktifKanal) return 'Radyo yayını başlatılamadı.';
+            const bilgi = radyoYayinBilgisi(aktifKanal.url);
+            if (bilgi.proxyUygun) {
+                return 'Proxy üzerinden yayın alınamadı. Render sunucusunu ve istasyon bağlantısını kontrol edin.';
+            }
+            if (bilgi.protokol === 'http:') {
+                return 'HTTP yayını tarayıcı tarafından engellenmiş olabilir. Bu istasyon için HTTPS proxy desteği gerekli.';
+            }
+            return 'Yayın açılamadı. Adres, format veya sunucu bağlantısını kontrol edin.';
         }
 
         function calmaModunuDegistir(mod) {
@@ -2419,7 +2450,7 @@
         }
 
         function sesOlaylariniAyarla() {
-            sesElementi.addEventListener('error', () => { sesiDurdur(); bildirimGoster("Yayın akışı kesildi."); });
+            sesElementi.addEventListener('error', () => { sesiDurdur(); bildirimGoster(radyoYayinHataMesaji()); });
             const mp3SesCubugu = document.getElementById('mp3-volume-range');
             if (mp3SesCubugu) mp3SesCubugu.addEventListener('input', e => aracSesSeviyesiniAyarla(e.target.value));
         }
