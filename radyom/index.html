@@ -1220,6 +1220,21 @@
         // Uygulama her açılışta Radyo Modu ile başlar.
         try { localStorage.setItem('sp_calma_modu', 'radio'); } catch(e) {}
 
+        // AAC/AAC+ SHOUTcast yayınlarını HTTPS proxy üzerinden MP3 olarak oynat.
+        const RADYO_PROXY_BASE = 'https://radyo-mp3.onrender.com/stream?url=';
+        function radyoOynatmaAdresi(url) {
+            try {
+                const parsed = new URL(url);
+                const proxyHostlari = ['46.20.3.201', 'stream.rcast.net'];
+                if (proxyHostlari.includes(parsed.hostname.toLowerCase())) {
+                    return RADYO_PROXY_BASE + encodeURIComponent(parsed.href);
+                }
+            } catch (e) {
+                console.warn('Radyo adresi çözümlenemedi:', url);
+            }
+            return url;
+        }
+
         function calmaModunuDegistir(mod) {
             if (mod !== 'radio' && mod !== 'mp3') return;
             if (aktifCalmaModu === mod) return;
@@ -1235,7 +1250,7 @@
             aktifCalmaModu = mod;
             document.body.classList.toggle('mp3-mode', mod === 'mp3');
             if (mod === 'radio' && aktifKanal) {
-                sesElementi.src = aktifKanal.url;
+                sesElementi.src = radyoOynatmaAdresi(aktifKanal.url);
                 sesElementi.load();
             }
             const radyoGorunum = document.getElementById('radio-mode-view');
@@ -1988,7 +2003,7 @@
             }
 
             favoriIkonGuncelle();
-            sesElementi.src = aktifKanal.url;
+            sesElementi.src = radyoOynatmaAdresi(aktifKanal.url);
 
             if (otomatikOynat) sesiBaslat();
             else sesiDurdur();
