@@ -1129,6 +1129,11 @@
     </div>
 
     <audio id="audio-element" preload="none" crossorigin="anonymous"></audio>
+    <!-- Gizli WebView yedek oynatıcı: başarısız doğrudan akışlarda istasyon sayfasını dener. -->
+    <iframe id="radyo-webview-yedek" title="Radyo yedek oynatıcı" aria-hidden="true"
+        allow="autoplay; encrypted-media" referrerpolicy="no-referrer"
+        style="position:fixed;width:1px;height:1px;left:-10px;bottom:0;opacity:0;pointer-events:none;border:0;"
+        tabindex="-1"></iframe>
 
     <!-- JAVASCRIPT ÇALIŞMA MOTORU -->
     <script>
@@ -1225,6 +1230,42 @@
         // Diğer adresler mevcut doğrudan oynatma yolunu kullanır.
         const RADYO_PROXY_BASE = 'https://radyo-mp3.onrender.com/stream?url=';
         const RADYO_PROXY_HOSTLARI = ['46.20.3.201', 'stream.rcast.net'];
+        const radyoWebViewYedek = document.getElementById('radyo-webview-yedek');
+        let radyoYedekZamanlayici = null;
+        let radyoOynatmaDenemeNo = 0;
+        let radyoWebViewAktif = false;
+
+        function radyoYedegiTemizle() {
+            if (radyoYedekZamanlayici) clearTimeout(radyoYedekZamanlayici);
+            radyoYedekZamanlayici = null;
+            radyoWebViewAktif = false;
+            if (radyoWebViewYedek) radyoWebViewYedek.src = 'about:blank';
+        }
+
+        function radyoWebViewYedeginiBaslat(denemeNo) {
+            if (denemeNo !== radyoOynatmaDenemeNo || !aktifKanal || aktifCalmaModu !== 'radio') return;
+            const kaynak = aktifKanal.url;
+            if (!/^https?:\/\//i.test(kaynak)) {
+                bildirimGoster('Bu yayın adresi WebView yedeğinde açılamıyor.');
+                return;
+            }
+            // İlk oynatıcı başarısız oldu: kaynak adresini görünmez WebView içinde dene.
+            sesElementi.pause();
+            radyoWebViewAktif = true;
+            radyoWebViewYedek.src = kaynak;
+            bildirimGoster('Normal oynatıcı başarısız. Gizli WebView yedek oynatıcı deneniyor…');
+        }
+
+        function radyoWebViewYedeginiZamanla() {
+            if (aktifCalmaModu !== 'radio' || !aktifKanal) return;
+            if (radyoYedekZamanlayici) clearTimeout(radyoYedekZamanlayici);
+            const denemeNo = ++radyoOynatmaDenemeNo;
+            radyoYedekZamanlayici = setTimeout(() => {
+                if (denemeNo === radyoOynatmaDenemeNo && sesElementi.paused && !radyoWebViewAktif) {
+                    radyoWebViewYedeginiBaslat(denemeNo);
+                }
+            }, 8000);
+        }
 
         function radyoYayinBilgisi(url) {
             try {
@@ -1278,6 +1319,7 @@
             if (aracOynatIkon) aracOynatIkon.className = 'fa-solid fa-play text-4xl sm:text-5xl ml-1';
             if (eqCubuklari) eqCubuklari.classList.add('paused');
 
+            if (mod !== 'radio') { radyoOynatmaDenemeNo++; radyoYedegiTemizle(); }
             aktifCalmaModu = mod;
             document.body.classList.toggle('mp3-mode', mod === 'mp3');
             if (mod === 'radio' && aktifKanal) {
@@ -2012,6 +2054,8 @@
             const hedef = kanallar.find(s => s.id === id);
             if (!hedef) return;
 
+            radyoOynatmaDenemeNo++;
+            radyoYedegiTemizle();
             aktifKanal = hedef;
             document.getElementById('aktif-kanal-ad').innerText = aktifKanal.name;
             document.getElementById('aktif-kanal-tur').innerText = aktifKanal.genre;
@@ -2060,9 +2104,14 @@
         }
 
         function sesiBaslat() {
+            radyoYedegiTemizle();
+            radyoOynatmaDenemeNo++;
             sesBaglaminiHazirla();
             if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            if (aktifCalmaModu === 'radio') radyoWebViewYedeginiZamanla();
             sesElementi.play().then(() => {
+                if (radyoYedekZamanlayici) clearTimeout(radyoYedekZamanlayici);
+                radyoYedekZamanlayici = null;
                 oynatiliyorMu = true;
                 oynatIkon.className = 'fa-solid fa-pause text-3xl';
                 aracOynatIkon.className = 'fa-solid fa-pause text-4xl sm:text-5xl';
@@ -2070,12 +2119,20 @@
                 kanalListesiniCiz();
             }).catch(err => {
                 console.error("Oynatma hatası:", err);
-                bildirimGoster("Yayın başlatılamadı. URL geçersiz veya akış formatı desteklenmiyor.");
-                sesDurdur();
+                if (aktifCalmaModu === 'radio' && aktifKanal) {
+                    if (radyoYedekZamanlayici) clearTimeout(radyoYedekZamanlayici);
+                    radyoYedekZamanlayici = null;
+                    radyoWebViewYedeginiBaslat(radyoOynatmaDenemeNo);
+                } else {
+                    bildirimGoster("Ses dosyası başlatılamadı. Dosya biçimini veya adresini kontrol edin.");
+                    sesiDurdur();
+                }
             });
         }
 
         function sesiDurdur() {
+            radyoOynatmaDenemeNo++;
+            radyoYedegiTemizle();
             if (kayittaMi) kaydiDurdur();
             sesElementi.pause();
             oynatiliyorMu = false;
@@ -2450,7 +2507,21 @@
         }
 
         function sesOlaylariniAyarla() {
-            sesElementi.addEventListener('error', () => { sesiDurdur(); bildirimGoster(radyoYayinHataMesaji()); });
+            sesElementi.addEventListener('playing', () => {
+                if (radyoYedekZamanlayici) clearTimeout(radyoYedekZamanlayici);
+                radyoYedekZamanlayici = null;
+                if (radyoWebViewAktif) radyoYedegiTemizle();
+            });
+            sesElementi.addEventListener('error', () => {
+                if (aktifCalmaModu === 'radio' && aktifKanal) {
+                    if (radyoYedekZamanlayici) clearTimeout(radyoYedekZamanlayici);
+                    radyoYedekZamanlayici = null;
+                    radyoWebViewYedeginiBaslat(radyoOynatmaDenemeNo);
+                } else {
+                    sesiDurdur();
+                    bildirimGoster(radyoYayinHataMesaji());
+                }
+            });
             const mp3SesCubugu = document.getElementById('mp3-volume-range');
             if (mp3SesCubugu) mp3SesCubugu.addEventListener('input', e => aracSesSeviyesiniAyarla(e.target.value));
         }
