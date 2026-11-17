@@ -1216,6 +1216,7 @@
         let mp3Karistir = false;
         let mp3Tekrar = false;
         let mp3Surukleme = false;
+        let mp3AktifListeSekmesi = localStorage.getItem('sp_mp3_liste_sekmesi') === 'favorites' ? 'favorites' : 'tracks';
 
         // MP3 kitaplığı cihazda IndexedDB içinde saklanır; sayfa yenilense de liste korunur.
         const MP3_DB_ADI = 'StreamPulseMP3Kitaplik';
@@ -1401,6 +1402,8 @@
 
         function mp3ListeSekmesiDegistir(sekme) {
             const favorilerAcik = sekme === 'favorites';
+            mp3AktifListeSekmesi = favorilerAcik ? 'favorites' : 'tracks';
+            try { localStorage.setItem('sp_mp3_liste_sekmesi', mp3AktifListeSekmesi); } catch(e) {}
             const favoriPanel = document.getElementById('mp3-favorites-panel');
             const parcaPanel = document.getElementById('mp3-tracks-panel');
             const favoriButon = document.getElementById('mp3-tab-favorites');
@@ -1413,6 +1416,24 @@
                 buton.style.background = aktif ? 'var(--btn-bg)' : 'var(--card-bg)';
                 buton.style.color = aktif ? 'var(--theme-primary)' : 'var(--text-muted)';
             });
+
+            // Sekme değişince mevcut parça yeni listenin dışında kalıyorsa,
+            // yalnızca seçilen listenin ilk parçasına geç.
+            const kuyruk = mp3CalmaKuyrugu();
+            if (kuyruk.length && !kuyruk.includes(mp3AktifIndeks)) {
+                const devamEt = oynatiliyorMu && aktifCalmaModu === 'mp3';
+                mp3SarkiSec(kuyruk[0], devamEt);
+            } else if (!kuyruk.length && oynatiliyorMu && aktifCalmaModu === 'mp3') {
+                mp3Durdur();
+                bildirimGoster(favorilerAcik ? 'Henüz favori müzik yok.' : 'Çalınacak parça bulunamadı.');
+            }
+        }
+
+        function mp3CalmaKuyrugu() {
+            const indeksler = mp3Parcalari.map((_, i) => i);
+            return mp3AktifListeSekmesi === 'favorites'
+                ? indeksler.filter(i => mp3FavoriMi(mp3Parcalari[i]))
+                : indeksler;
         }
 
         function mp3FavoriListesiniCiz() {
@@ -1628,9 +1649,12 @@
         }
 
         async function mp3Cal() {
-            if (mp3AktifIndeks < 0 && mp3Parcalari.length) mp3SarkiSec(0, false);
-            if (mp3AktifIndeks < 0) {
-                bildirimGoster('Önce bir müzik klasörü veya dosya seçin.');
+            const kuyruk = mp3CalmaKuyrugu();
+            if (mp3AktifIndeks < 0 || !kuyruk.includes(mp3AktifIndeks)) {
+                if (kuyruk.length) mp3SarkiSec(kuyruk[0], false);
+            }
+            if (mp3AktifIndeks < 0 || !mp3CalmaKuyrugu().includes(mp3AktifIndeks)) {
+                bildirimGoster(mp3AktifListeSekmesi === 'favorites' ? 'Önce favorilerinize müzik ekleyin.' : 'Önce bir müzik klasörü veya dosya seçin.');
                 return;
             }
             try {
@@ -1665,30 +1689,34 @@
         }
 
         function mp3Sonraki() {
-            if (!mp3Parcalari.length) return;
-            const yeni = mp3Karistir ? Math.floor(Math.random() * mp3Parcalari.length) : (mp3AktifIndeks + 1) % mp3Parcalari.length;
+            const kuyruk = mp3CalmaKuyrugu();
+            if (!kuyruk.length) { bildirimGoster(mp3AktifListeSekmesi === 'favorites' ? 'Henüz favori müzik yok.' : 'Çalınacak parça bulunamadı.'); return; }
+            const konum = kuyruk.indexOf(mp3AktifIndeks);
+            const yeni = mp3Karistir && kuyruk.length > 1
+                ? kuyruk[Math.floor(Math.random() * kuyruk.length)]
+                : kuyruk[(konum < 0 ? 0 : konum + 1) % kuyruk.length];
             mp3SarkiSec(yeni, true);
         }
 
         function mp3Onceki() {
-            if (!mp3Parcalari.length) return;
-            if (sesElementi.currentTime > 3) { sesElementi.currentTime = 0; return; }
-            const yeni = (mp3AktifIndeks - 1 + mp3Parcalari.length) % mp3Parcalari.length;
+            const kuyruk = mp3CalmaKuyrugu();
+            if (!kuyruk.length) { bildirimGoster(mp3AktifListeSekmesi === 'favorites' ? 'Henüz favori müzik yok.' : 'Çalınacak parça bulunamadı.'); return; }
+            if (sesElementi.currentTime > 3 && kuyruk.includes(mp3AktifIndeks)) { sesElementi.currentTime = 0; return; }
+            const konum = kuyruk.indexOf(mp3AktifIndeks);
+            const yeni = kuyruk[(konum < 0 ? 0 : konum - 1 + kuyruk.length) % kuyruk.length];
             mp3SarkiSec(yeni, true);
         }
 
 
         function mp3RastgeleCal() {
-            if (!mp3Parcalari.length) {
-                bildirimGoster('Rastgele çalmak için önce müzik klasörü veya dosya seçin.');
+            const kuyruk = mp3CalmaKuyrugu();
+            if (!kuyruk.length) {
+                bildirimGoster(mp3AktifListeSekmesi === 'favorites' ? 'Henüz favori müzik yok.' : 'Rastgele çalmak için önce müzik klasörü veya dosya seçin.');
                 return;
             }
-            if (mp3Parcalari.length === 1) {
-                mp3SarkiSec(0, true);
-                return;
-            }
-            let yeni = mp3AktifIndeks;
-            while (yeni === mp3AktifIndeks) yeni = Math.floor(Math.random() * mp3Parcalari.length);
+            if (kuyruk.length === 1) { mp3SarkiSec(kuyruk[0], true); return; }
+            let secenekler = kuyruk.filter(i => i !== mp3AktifIndeks);
+            const yeni = secenekler[Math.floor(Math.random() * secenekler.length)];
             mp3SarkiSec(yeni, true);
         }
 
@@ -1769,6 +1797,7 @@
             temaSeciciyiOlustur();
             kaydedilenTemaVeModuYukle();
             kategorileriArayUzeYansit();
+            mp3ListeSekmesiDegistir(mp3AktifListeSekmesi);
             
             // Her uygulama açılışında GitHub'daki güncel radyo listesini indir.
             // İnternet yoksa cihazda kayıtlı son liste korunur.
@@ -2089,11 +2118,21 @@
             kanalListesiniCiz();
         }
 
+        function radyoCalmaKuyrugu() {
+            return kanallar.filter(st => {
+                if (aktifKategori === 'Favoriler') return favoriler.includes(st.id);
+                if (aktifKategori === 'Özel') return !st.isPreset;
+                if (aktifKategori === 'Tümü') return true;
+                return st.genre === aktifKategori;
+            });
+        }
+
         function rastgeleKanalCal() {
-            if (kanallar.length === 0) return;
-            const rastgeleIndeks = Math.floor(Math.random() * kanallar.length);
-            kanalSec(kanallar[rastgeleIndeks].id, true);
-            bildirimGoster(`Rastgele Kanal: ${kanallar[rastgeleIndeks].name}`);
+            const kuyruk = radyoCalmaKuyrugu();
+            if (!kuyruk.length) { bildirimGoster('Seçili listede çalınacak kanal bulunamadı.'); return; }
+            const secilen = kuyruk[Math.floor(Math.random() * kuyruk.length)];
+            kanalSec(secilen.id, true);
+            bildirimGoster(`Rastgele Kanal: ${secilen.name}`);
         }
 
         function oynatVeyaDurdur() {
@@ -2177,15 +2216,17 @@
         }
 
         function sonrakiKanaliCal() {
-            if (kanallar.length === 0) return;
-            let idx = kanallar.findIndex(s => s.id === (aktifKanal ? aktifKanal.id : ''));
-            kanalSec(kanallar[(idx + 1) % kanallar.length].id, true);
+            const kuyruk = radyoCalmaKuyrugu();
+            if (!kuyruk.length) { bildirimGoster('Seçili listede çalınacak kanal bulunamadı.'); return; }
+            const idx = kuyruk.findIndex(s => s.id === (aktifKanal ? aktifKanal.id : ''));
+            kanalSec(kuyruk[(idx < 0 ? 0 : idx + 1) % kuyruk.length].id, true);
         }
 
         function oncekiKanaliCal() {
-            if (kanallar.length === 0) return;
-            let idx = kanallar.findIndex(s => s.id === (aktifKanal ? aktifKanal.id : ''));
-            kanalSec(kanallar[(idx - 1 + kanallar.length) % kanallar.length].id, true);
+            const kuyruk = radyoCalmaKuyrugu();
+            if (!kuyruk.length) { bildirimGoster('Seçili listede çalınacak kanal bulunamadı.'); return; }
+            const idx = kuyruk.findIndex(s => s.id === (aktifKanal ? aktifKanal.id : ''));
+            kanalSec(kuyruk[(idx < 0 ? 0 : idx - 1 + kuyruk.length) % kuyruk.length].id, true);
         }
 
         function kaydiBaslatDurdur() {
@@ -2557,6 +2598,16 @@
             aktifKategori = kat;
             kategorileriArayUzeYansit();
             kanalListesiniCiz();
+
+            // Kategori/favori filtresi değişince, mevcut kanal yeni listenin
+            // dışında kalıyorsa oynatma da seçilen listeye taşınır.
+            const kuyruk = radyoCalmaKuyrugu();
+            if (kuyruk.length && !kuyruk.some(st => aktifKanal && st.id === aktifKanal.id)) {
+                kanalSec(kuyruk[0].id, oynatiliyorMu && aktifCalmaModu === 'radio');
+            } else if (!kuyruk.length && oynatiliyorMu && aktifCalmaModu === 'radio') {
+                sesiDurdur();
+                bildirimGoster('Seçilen listede kanal bulunamadı.');
+            }
         }
 
         function aramaDinleyicisiKur() {
