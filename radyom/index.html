@@ -1208,6 +1208,7 @@
 
         // Modlar: radyo ve yerel MP3 oynatımı birbirinden ayrıdır.
         let aktifCalmaModu = 'radio';
+        let calmaModuIslemNo = 0;
         let mp3Parcalari = [];
         let mp3Favoriler = [];
         try { mp3Favoriler = JSON.parse(localStorage.getItem('sp_mp3_favoriler') || '[]'); } catch(e) { mp3Favoriler = []; }
@@ -1311,9 +1312,14 @@
             if (mod !== 'radio' && mod !== 'mp3') return;
             if (aktifCalmaModu === mod) return;
 
-            // Radyo modundan çıkarken açık bir yayın kaydı varsa güvenli biçimde bitir.
+            // Mod değişiminde bekleyen play() işlemlerini geçersiz kıl.
+            // Böylece önceki modun sesi geç tamamlanıp yeniden başlamaz.
+            calmaModuIslemNo++;
+            radyoDenemeSayaci++;
             if (kayittaMi) kaydiDurdur();
             sesElementi.pause();
+            sesElementi.removeAttribute('src');
+            sesElementi.load();
             oynatiliyorMu = false;
             if (oynatIkon) oynatIkon.className = 'fa-solid fa-play text-3xl ml-1';
             if (aracOynatIkon) aracOynatIkon.className = 'fa-solid fa-play text-4xl sm:text-5xl ml-1';
@@ -1649,6 +1655,8 @@
         }
 
         async function mp3Cal() {
+            if (aktifCalmaModu !== 'mp3') return;
+            const buIslem = calmaModuIslemNo;
             const kuyruk = mp3CalmaKuyrugu();
             if (mp3AktifIndeks < 0 || !kuyruk.includes(mp3AktifIndeks)) {
                 if (kuyruk.length) mp3SarkiSec(kuyruk[0], false);
@@ -1661,6 +1669,10 @@
                 sesBaglaminiHazirla();
                 if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume();
                 await sesElementi.play();
+                if (aktifCalmaModu !== 'mp3' || buIslem !== calmaModuIslemNo) {
+                    sesElementi.pause();
+                    return;
+                }
                 oynatiliyorMu = true;
                 const plak = document.getElementById('mp3-vinyl-disc');
                 if (plak) plak.classList.add('is-playing');
@@ -1684,7 +1696,8 @@
         }
 
         function mp3OynatDurdur() {
-            if (oynatiliyorMu && aktifCalmaModu === 'mp3') mp3Durdur();
+            if (aktifCalmaModu !== 'mp3') return;
+            if (oynatiliyorMu) mp3Durdur();
             else mp3Cal();
         }
 
@@ -2136,6 +2149,7 @@
         }
 
         function oynatVeyaDurdur() {
+            if (aktifCalmaModu !== 'radio') return;
             if (!aktifKanal) {
                 if (kanallar.length > 0) kanalSec(kanallar[0].id, true);
                 else bildirimGoster("Lütfen önce kanal listesine radyo ekleyin.");
@@ -2161,7 +2175,10 @@
                 sesElementi.src = ilkAdres;
                 sesElementi.load();
                 await sesElementi.play();
-                if (buDeneme !== radyoDenemeSayaci) return;
+                if (buDeneme !== radyoDenemeSayaci || aktifCalmaModu !== 'radio') {
+                    sesElementi.pause();
+                    return;
+                }
                 oynatiliyorMu = true;
                 oynatIkon.className = 'fa-solid fa-pause text-3xl';
                 aracOynatIkon.className = 'fa-solid fa-pause text-4xl sm:text-5xl';
