@@ -143,7 +143,53 @@
         .drive-volume-label { color: #f8fafc; font-size: 1rem; font-weight: 800; }
         body.mp3-mode #btn-kayit-ana,
         body.mp3-mode #btn-kayit-arac { display: none !important; }
-    </style>
+    
+        /* MP3 plak animasyonu: yalnızca müzik çalarken döner */
+        .mp3-vinyl-disc {
+            position: relative;
+            width: 82%;
+            height: 82%;
+            border-radius: 50%;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at center, #111827 0 5%, transparent 5.5%),
+                repeating-radial-gradient(circle at center, #252b36 0 1px, #090d16 2px 4px, #171d29 5px 6px),
+                radial-gradient(circle at 35% 28%, #3b4351, #080b12 65%);
+            border: 2px solid rgba(255,255,255,.13);
+            box-shadow: 0 8px 25px rgba(0,0,0,.55), inset 0 0 18px rgba(255,255,255,.08);
+            transform: rotate(0deg);
+        }
+        .mp3-vinyl-disc.is-playing { animation: mp3-vinyl-spin 2.8s linear infinite; }
+        .mp3-vinyl-grooves {
+            position:absolute; inset:9%; border-radius:50%;
+            border:1px solid rgba(255,255,255,.12);
+            box-shadow: 0 0 0 5px rgba(255,255,255,.025), 0 0 0 10px rgba(255,255,255,.045),
+                        0 0 0 15px rgba(255,255,255,.025), 0 0 0 20px rgba(255,255,255,.04),
+                        0 0 0 25px rgba(255,255,255,.025);
+        }
+        .mp3-vinyl-label {
+            position:absolute; width:31%; height:31%; left:34.5%; top:34.5%;
+            border-radius:50%; display:flex; align-items:center; justify-content:center;
+            color:#111827; font-size:clamp(15px,4vw,24px);
+            background:radial-gradient(circle at 35% 30%, var(--theme-secondary), var(--theme-primary) 72%);
+            border:3px solid rgba(8,12,22,.9);
+            box-shadow:0 0 0 2px rgba(255,255,255,.15);
+        }
+        .mp3-vinyl-hole {
+            position:absolute; width:7px; height:7px; border-radius:50%;
+            background:#080b12; border:1px solid rgba(255,255,255,.35);
+            left:calc(50% - 3.5px); top:calc(50% - 3.5px);
+        }
+        .mp3-vinyl-shine {
+            position:absolute; inset:0; border-radius:50%;
+            background:linear-gradient(125deg,rgba(255,255,255,.22),transparent 25%,transparent 62%,rgba(255,255,255,.08));
+            pointer-events:none;
+        }
+        @keyframes mp3-vinyl-spin { to { transform:rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) {
+            .mp3-vinyl-disc.is-playing { animation-duration:12s; }
+        }
+</style>
 </head>
 <body class="font-sans min-h-screen flex flex-col justify-between selection:bg-[var(--theme-primary)] selection:text-black overflow-x-hidden relative">
 
@@ -335,28 +381,53 @@
                         </div>
                     </div>
 
-                    <div class="rounded-2xl p-4 text-center space-y-3" style="background:var(--card-bg);border:1px solid var(--panel-border);">
-                        <div class="w-40 h-40 max-w-full mx-auto rounded-2xl flex items-center justify-center shadow-xl" style="background:linear-gradient(135deg,var(--theme-primary),var(--theme-secondary));">
-                            <i class="fa-solid fa-music text-6xl text-slate-950/80"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h3 id="mp3-current-title" class="text-lg font-extrabold truncate">Henüz şarkı seçilmedi</h3>
-                            <p id="mp3-current-subtitle" class="text-xs truncate mt-1" style="color:var(--text-muted);">Müzik klasörü veya dosya seçin</p>
-                        </div>
-                        <div class="space-y-2">
-                            <input id="mp3-seek" type="range" min="0" max="100" value="0" step="0.1" class="w-full" style="accent-color:var(--theme-primary);" aria-label="Şarkı konumu">
-                            <div class="flex justify-between text-xs font-mono" style="color:var(--text-muted);">
-                                <span id="mp3-current-time">00:00</span><span id="mp3-duration">00:00</span>
+                    <div class="w-full flex flex-col items-center text-center">
+                        <!-- MP3 KAPAK / LOGO: radyo ekranındaki görsel ile aynı ölçü ve konum -->
+                        <div class="relative group my-2 z-20">
+                            <div class="absolute -inset-2 rounded-2xl blur-lg opacity-40 group-hover:opacity-75 transition duration-500" style="background:linear-gradient(to right,var(--theme-primary),var(--theme-secondary));"></div>
+                            <div class="relative w-44 h-44 sm:w-52 sm:h-52 rounded-2xl bg-slate-900 border border-slate-700/60 overflow-hidden shadow-2xl flex items-center justify-center" style="background:linear-gradient(145deg,#1e293b,#0f172a);">
+                                <div id="mp3-vinyl-disc" class="mp3-vinyl-disc" aria-label="Dönen plak animasyonu">
+                                    <div class="mp3-vinyl-grooves"></div>
+                                    <div class="mp3-vinyl-label">
+                                        <i class="fa-solid fa-music"></i>
+                                        <span class="mp3-vinyl-hole"></span>
+                                    </div>
+                                    <span class="mp3-vinyl-shine"></span>
+                                </div>
                             </div>
                         </div>
-                        <div class="flex items-center justify-center gap-7 pt-1">
-                            <button type="button" onclick="mp3Onceki()" class="w-12 h-12 rounded-full border flex items-center justify-center" style="border-color:var(--panel-border);color:var(--theme-primary);" aria-label="Önceki şarkı"><i class="fa-solid fa-backward-step text-xl"></i></button>
-                            <button id="mp3-play-btn" type="button" onclick="mp3OynatDurdur()" class="w-16 h-16 rounded-full flex items-center justify-center text-2xl shadow-lg" style="background:linear-gradient(135deg,var(--theme-primary),var(--theme-secondary));color:#07111f;" aria-label="Çal"><i id="mp3-play-icon" class="fa-solid fa-play ml-1"></i></button>
-                            <button type="button" onclick="mp3Sonraki()" class="w-12 h-12 rounded-full border flex items-center justify-center" style="border-color:var(--panel-border);color:var(--theme-primary);" aria-label="Sonraki şarkı"><i class="fa-solid fa-forward-step text-xl"></i></button>
+
+                        <div class="mt-4 w-full z-20">
+                            <span class="inline-block px-3 py-1 rounded-lg text-xs font-semibold tracking-wide mb-2 uppercase border" style="background:var(--card-bg);border-color:var(--panel-border);color:var(--theme-primary);">MP3 ÇALAR</span>
+                            <h2 id="mp3-current-title" class="text-2xl sm:text-3xl font-extrabold tracking-tight truncate">Henüz şarkı seçilmedi</h2>
+                            <p id="mp3-current-subtitle" class="text-xs sm:text-sm mt-1 truncate" style="color:var(--text-muted);">Müzik klasörü veya dosya seçin</p>
                         </div>
-                        <div class="flex items-center justify-center gap-6 text-sm">
-                            <button id="mp3-shuffle-btn" type="button" onclick="mp3KaristirToggle()" class="flex items-center gap-2" style="color:var(--text-muted);"><i class="fa-solid fa-shuffle"></i><span>Karışık</span></button>
-                            <button id="mp3-repeat-btn" type="button" onclick="mp3TekrarToggle()" class="flex items-center gap-2" style="color:var(--text-muted);"><i class="fa-solid fa-repeat"></i><span>Tekrar: Kapalı</span></button>
+
+                        <!-- Radyo ekranıyla aynı konum ve boyutta görselleştirici -->
+                        <div class="w-full h-28 sm:h-32 mt-4 rounded-xl bg-slate-900/90 border border-slate-800 overflow-hidden relative z-20 shadow-inner group">
+                            <canvas id="mp3-gorsellestirici-canvas" class="w-full h-full pointer-events-none"></canvas>
+                            <button type="button" onclick="gorsellestiriciModuDegistir()" class="absolute top-2 right-2 px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 border text-[11px] font-bold transition flex items-center gap-1.5 shadow-md" style="border-color:var(--panel-border);color:var(--theme-primary);">
+                                <i class="fa-solid fa-wand-magic-sparkles text-xs"></i><span id="mp3-gorsel-mod-etiket">Neon Çubuklar</span>
+                            </button>
+                        </div>
+
+                        <!-- Oynatma kontrolleri -->
+                        <div class="w-full mt-6 space-y-5 z-20">
+                            <div class="space-y-2">
+                                <input id="mp3-seek" type="range" min="0" max="100" value="0" step="0.1" class="w-full" style="accent-color:var(--theme-primary);" aria-label="Şarkı konumu">
+                                <div class="flex justify-between text-xs font-mono" style="color:var(--text-muted);">
+                                    <span id="mp3-current-time">00:00</span><span id="mp3-duration">00:00</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-center gap-6">
+                                <button type="button" onclick="mp3Onceki()" class="w-12 h-12 rounded-full border flex items-center justify-center shadow" style="border-color:var(--panel-border);background:var(--btn-bg);color:var(--theme-primary);" aria-label="Önceki şarkı"><i class="fa-solid fa-backward-step text-lg"></i></button>
+                                <button id="mp3-play-btn" type="button" onclick="mp3OynatDurdur()" class="w-20 h-20 rounded-full flex items-center justify-center text-2xl shadow-2xl" style="background:linear-gradient(135deg,var(--theme-primary),var(--theme-secondary));color:#07111f;" aria-label="Çal"><i id="mp3-play-icon" class="fa-solid fa-play ml-1"></i></button>
+                                <button type="button" onclick="mp3Sonraki()" class="w-12 h-12 rounded-full border flex items-center justify-center shadow" style="border-color:var(--panel-border);background:var(--btn-bg);color:var(--theme-primary);" aria-label="Sonraki şarkı"><i class="fa-solid fa-forward-step text-lg"></i></button>
+                            </div>
+                            <div class="flex items-center justify-center gap-6 text-sm">
+                                <button id="mp3-shuffle-btn" type="button" onclick="mp3KaristirToggle()" class="flex items-center gap-2" style="color:var(--text-muted);"><i class="fa-solid fa-shuffle"></i><span>Karışık</span></button>
+                                <button id="mp3-repeat-btn" type="button" onclick="mp3TekrarToggle()" class="flex items-center gap-2" style="color:var(--text-muted);"><i class="fa-solid fa-repeat"></i><span>Tekrar: Kapalı</span></button>
+                            </div>
                         </div>
                     </div>
                     <!-- MP3 MODU HIZLI İŞLEMLER -->
@@ -394,17 +465,13 @@
                     </div>
                     <button type="button" onclick="mp3ListeEkraniniKapat()" class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background:var(--btn-bg);color:var(--text-muted);" aria-label="Müzik listesini kapat"><i class="fa-solid fa-xmark text-xl"></i></button>
                 </div>
-                <div class="grid grid-cols-2 gap-3 p-4 sm:p-5 border-b" style="border-color:var(--panel-border);">
-                    <label class="cursor-pointer rounded-2xl border p-4 flex flex-col items-center gap-2 text-center font-bold text-sm transition" style="border-color:var(--theme-primary);background:var(--card-bg);">
-                        <span class="w-11 h-11 rounded-xl flex items-center justify-center" style="background:var(--btn-bg);color:var(--theme-primary);"><i class="fa-solid fa-folder-open text-xl"></i></span>
-                        <span>Klasör Bağla</span>
-                        <span class="text-[10px] font-normal" style="color:var(--text-muted);">Bir klasördeki müzikleri ekle</span>
+                <div class="grid grid-cols-2 gap-2 px-4 py-3 sm:px-5 border-b" style="border-color:var(--panel-border);">
+                    <label class="cursor-pointer rounded-xl border px-3 py-2 flex items-center justify-center gap-2 text-center font-bold text-xs transition active:scale-[.98]" style="border-color:var(--theme-primary);background:var(--card-bg);color:var(--theme-primary);">
+                        <i class="fa-solid fa-folder-open text-base"></i><span>Klasör Bağla</span>
                         <input id="mp3-folder-input" type="file" accept="audio/*,.mp3,.m4a,.aac,.ogg,.wav,.flac" webkitdirectory directory multiple class="hidden">
                     </label>
-                    <label class="cursor-pointer rounded-2xl border p-4 flex flex-col items-center gap-2 text-center font-bold text-sm transition" style="border-color:var(--panel-border);background:var(--card-bg);">
-                        <span class="w-11 h-11 rounded-xl flex items-center justify-center" style="background:var(--btn-bg);color:var(--theme-primary);"><i class="fa-solid fa-file-audio text-xl"></i></span>
-                        <span>Dosya Seç</span>
-                        <span class="text-[10px] font-normal" style="color:var(--text-muted);">Tek veya birden fazla müzik</span>
+                    <label class="cursor-pointer rounded-xl border px-3 py-2 flex items-center justify-center gap-2 text-center font-bold text-xs transition active:scale-[.98]" style="border-color:var(--panel-border);background:var(--card-bg);color:var(--theme-primary);">
+                        <i class="fa-solid fa-file-audio text-base"></i><span>Dosya Seç</span>
                         <input id="mp3-files-input" type="file" accept="audio/*,.mp3,.m4a,.aac,.ogg,.wav,.flac" multiple class="hidden">
                     </label>
                 </div>
@@ -412,8 +479,13 @@
                     <div class="font-bold flex items-center gap-2"><i class="fa-solid fa-headphones" style="color:var(--theme-primary);"></i> Parçalar</div>
                     <span id="mp3-track-count" class="text-xs font-bold px-3 py-1 rounded-full" style="color:var(--theme-primary);background:var(--btn-bg);">0 parça</span>
                 </div>
-                <div id="mp3-track-list" class="space-y-2 px-4 sm:px-5 pb-5 pt-2 overflow-y-auto flex-1 min-h-0">
+                <div id="mp3-track-list" class="space-y-2 px-4 sm:px-5 pb-3 pt-2 overflow-y-auto flex-1 min-h-0">
                     <p class="text-center text-sm py-8" style="color:var(--text-muted);">Henüz müzik eklenmedi. Klasör bağlayın veya dosya seçin.</p>
+                </div>
+                <div class="p-4 border-t shrink-0" style="border-color:var(--panel-border);background:var(--card-bg);">
+                    <button type="button" onclick="mp3ListeyiTemizle()" class="w-full rounded-xl py-3 flex items-center justify-center gap-2 text-sm font-bold border transition" style="border-color:rgba(239,68,68,.35);color:#ef4444;background:rgba(239,68,68,.08);">
+                        <i class="fa-solid fa-trash-can"></i> Listeyi Temizle
+                    </button>
                 </div>
             </div>
         </div>
@@ -586,6 +658,14 @@
                     <button onclick="uykuZamanlayiciAyarla(45)" class="theme-btn py-3 rounded-xl text-sm font-semibold transition">45 Dakika</button>
                     <button onclick="uykuZamanlayiciAyarla(60)" class="theme-btn py-3 rounded-xl text-sm font-semibold transition">60 Dakika</button>
                 </div>
+                <div class="border-t pt-4 space-y-2 text-left" style="border-color:var(--panel-border);">
+                    <label for="uyku-manuel-dakika" class="block text-xs font-bold" style="color:var(--text-muted);">Manuel zamanlama (dakika)</label>
+                    <div class="flex gap-2">
+                        <input id="uyku-manuel-dakika" type="number" min="1" max="1440" step="1" value="20" inputmode="numeric" class="min-w-0 flex-1 rounded-xl px-3 py-2.5 text-sm border" style="background:var(--card-bg);border-color:var(--panel-border);color:var(--text-main);" placeholder="Dakika girin">
+                        <button type="button" onclick="uykuManuelZamanla()" class="px-4 rounded-xl text-sm font-bold shadow" style="background:var(--theme-primary);color:#07111f;">Başlat</button>
+                    </div>
+                    <p class="text-[10px]" style="color:var(--text-muted);">Radyo ve MP3 modunda geçerlidir. Süre dolunca çalma durur.</p>
+                </div>
                 <div id="aktif-uyku-bilgi" class="hidden p-3 rounded-xl border text-xs font-medium flex items-center justify-between" style="background: var(--card-bg); border-color: var(--theme-primary); color: var(--theme-primary);">
                     <span>Kalan Süre: <strong id="uyku-geri-sayim">--:--</strong></span>
                     <button onclick="uykuZamanlayiciIptal()" class="text-red-500 hover:underline font-bold">İptal Et</button>
@@ -602,6 +682,31 @@
                         <h3 class="text-lg font-bold">İstasyon, Kategori & M3U Yönetimi</h3>
                     </div>
                     <button onclick="modalToggle('modal-ayarlar', false)" class="p-1" style="color: var(--text-muted);"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+
+                <!-- SES EKOLAYZERİ -->
+                <div class="space-y-4 pb-4 border-b" style="border-color:var(--panel-border);">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="text-xs font-bold uppercase tracking-wider" style="color:var(--text-muted);">Ses Ekolayzeri</h4>
+                            <p class="text-[11px] mt-1" style="color:var(--text-muted);">Radyo ve MP3 sesini birlikte ayarlar</p>
+                        </div>
+                        <button type="button" onclick="ekolayzerSifirla()" class="text-xs font-bold px-3 py-2 rounded-lg border" style="border-color:var(--panel-border);color:var(--theme-primary);">Sıfırla</button>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="flex justify-between text-xs mb-1"><label for="eq-bass">Bas</label><output id="eq-bass-value">0 dB</output></div>
+                            <input id="eq-bass" type="range" min="-12" max="12" step="1" value="0" oninput="ekolayzerAyarla()" class="w-full" style="accent-color:var(--theme-primary);">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1"><label for="eq-mid">Orta</label><output id="eq-mid-value">0 dB</output></div>
+                            <input id="eq-mid" type="range" min="-12" max="12" step="1" value="0" oninput="ekolayzerAyarla()" class="w-full" style="accent-color:var(--theme-primary);">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1"><label for="eq-treble">Tiz</label><output id="eq-treble-value">0 dB</output></div>
+                            <input id="eq-treble" type="range" min="-12" max="12" step="1" value="0" oninput="ekolayzerAyarla()" class="w-full" style="accent-color:var(--theme-primary);">
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Kategori Yönetimi Bölümü -->
@@ -716,6 +821,9 @@
         let analyser = null;
         let gorselKaynak = null;
         let destStreamNode = null;
+        let eqBassNode = null;
+        let eqMidNode = null;
+        let eqTrebleNode = null;
 
         let mediaKaydedici = null;
         let kayitParcalari = [];
@@ -773,7 +881,16 @@
             const altBaslik = document.querySelector('header p');
             if (altBaslik) altBaslik.textContent = mod === 'radio' ? 'Akıllı İnternet Radyo Stüdyosu' : 'Cihazındaki Müzik Çalar';
             localStorage.setItem('sp_calma_modu', mod);
-            if (mod === 'mp3') mp3ListeyiCiz();
+            if (mod === 'mp3') {
+                mp3ListeyiCiz();
+                requestAnimationFrame(() => {
+                    const c = document.getElementById('mp3-gorsellestirici-canvas');
+                    if (c && c.parentElement) {
+                        c.width = c.parentElement.clientWidth;
+                        c.height = c.parentElement.clientHeight;
+                    }
+                });
+            }
             const aracEkrani = document.getElementById('arac-modu-ekran');
             if (aracEkrani && !aracEkrani.classList.contains('hidden')) aracModunuAc(true);
             bildirimGoster(mod === 'radio' ? 'Radyo Modu açıldı' : 'MP3 Modu açıldı');
@@ -805,22 +922,92 @@
             const kapsayici = document.getElementById('mp3-track-list');
             const sayac = document.getElementById('mp3-track-count');
             if (!kapsayici) return;
-            sayac.textContent = `${mp3Parcalari.length} parça`;
+            if (sayac) sayac.textContent = `${mp3Parcalari.length} parça`;
             if (!mp3Parcalari.length) {
-                kapsayici.innerHTML = '<p class="text-center text-sm py-6" style="color:var(--text-muted);">Henüz müzik eklenmedi. Klasör bağlayın veya dosya seçin.</p>';
+                kapsayici.innerHTML = '<p class="text-center text-sm py-8" style="color:var(--text-muted);">Henüz müzik eklenmedi. Klasör bağlayın veya dosya seçin.</p>';
                 return;
             }
             kapsayici.innerHTML = '';
             mp3Parcalari.forEach((dosya, indeks) => {
-                const satir = document.createElement('button');
-                satir.type = 'button';
-                satir.className = 'w-full flex items-center gap-3 p-3 rounded-xl text-left border transition';
+                const satir = document.createElement('div');
+                satir.className = 'w-full flex items-center gap-2 p-2.5 rounded-xl border transition';
                 satir.style.cssText = `background:${indeks === mp3AktifIndeks ? 'var(--card-bg)' : 'transparent'};border-color:${indeks === mp3AktifIndeks ? 'var(--theme-primary)' : 'var(--panel-border)'};color:var(--text-main);`;
-                satir.innerHTML = `<span class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background:var(--card-bg);color:var(--theme-primary);"><i class="fa-solid fa-music"></i></span><span class="min-w-0 flex-1"><span class="block text-sm font-bold truncate"></span><span class="block text-[10px] mt-1" style="color:var(--text-muted);">${(dosya.size / 1048576).toFixed(1)} MB</span></span><i class="fa-solid ${indeks === mp3AktifIndeks && oynatiliyorMu ? 'fa-volume-high' : 'fa-play'} text-xs" style="color:var(--theme-primary);"></i>`;
-                satir.querySelector('.min-w-0 span').textContent = dosya.name.replace(/\.[^.]+$/, '');
-                satir.addEventListener('click', () => mp3SarkiSec(indeks, true));
+
+                const sil = document.createElement('button');
+                sil.type = 'button';
+                sil.className = 'w-9 h-9 rounded-lg flex items-center justify-center shrink-0';
+                sil.style.cssText = 'color:#ef4444;background:rgba(239,68,68,.09);';
+                sil.title = 'Sadece listeden kaldır';
+                sil.setAttribute('aria-label', 'Müziği listeden kaldır');
+                sil.innerHTML = '<i class="fa-solid fa-trash-can text-xs"></i>';
+                sil.addEventListener('click', () => mp3ListedenKaldir(indeks));
+
+                const cal = document.createElement('button');
+                cal.type = 'button';
+                cal.className = 'min-w-0 flex-1 flex items-center gap-3 text-left';
+                cal.innerHTML = `<span class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background:var(--btn-bg);color:var(--theme-primary);"><i class="fa-solid fa-compact-disc text-base"></i></span><span class="min-w-0 flex-1"><span class="block text-sm font-semibold truncate"></span><span class="block text-[10px] mt-0.5" style="color:var(--text-muted);"></span></span>`;
+                const metinler = cal.querySelectorAll('span.min-w-0 span');
+                metinler[0].textContent = dosya.name.replace(/\.[^.]+$/, '');
+                metinler[1].textContent = `${(dosya.size / 1048576).toFixed(1)} MB`;
+                cal.addEventListener('click', () => mp3SarkiSec(indeks, true));
+                satir.append(sil, cal);
                 kapsayici.appendChild(satir);
             });
+        }
+
+        // Önce modern onay penceresi gösterilir; cihazdaki gerçek dosya hiçbir zaman silinmez.
+        function mp3ListedenKaldir(indeks) {
+            if (indeks < 0 || indeks >= mp3Parcalari.length) return;
+            const dosyaAdi = mp3Parcalari[indeks].name.replace(/\\.[^.]+$/, '');
+            onayModaliniAc(
+                'Müzik Listeden Kaldırılsın mı?',
+                '"' + dosyaAdi + '" yalnızca uygulamanın müzik listesinden kaldırılacak. Cihazındaki dosya silinmeyecek.',
+                () => mp3ListedenKaldirOnayla(indeks)
+            );
+        }
+
+        function mp3ListedenKaldirOnayla(indeks) {
+            if (indeks < 0 || indeks >= mp3Parcalari.length) return;
+            const aktifSiliniyor = indeks === mp3AktifIndeks;
+            mp3Parcalari.splice(indeks, 1);
+            if (aktifSiliniyor) {
+                sesElementi.pause();
+                oynatiliyorMu = false;
+                if (mp3NesneUrl) URL.revokeObjectURL(mp3NesneUrl);
+                mp3NesneUrl = null;
+                mp3AktifIndeks = -1;
+                sesElementi.removeAttribute('src');
+                sesElementi.load();
+                document.getElementById('mp3-current-title').textContent = 'Henüz şarkı seçilmedi';
+                document.getElementById('mp3-current-subtitle').textContent = 'Müzik klasörü veya dosya seçin';
+                document.getElementById('mp3-play-icon').className = 'fa-solid fa-play ml-1';
+                document.getElementById('mp3-seek').value = 0;
+                document.getElementById('mp3-current-time').textContent = '00:00';
+                document.getElementById('mp3-duration').textContent = '00:00';
+            } else if (indeks < mp3AktifIndeks) {
+                mp3AktifIndeks--;
+            }
+            mp3ListeyiCiz();
+            bildirimGoster('Müzik yalnızca listeden kaldırıldı; cihazdaki dosya silinmedi.');
+        }
+
+        function mp3ListeyiTemizle() {
+            sesElementi.pause();
+            oynatiliyorMu = false;
+            if (mp3NesneUrl) URL.revokeObjectURL(mp3NesneUrl);
+            mp3NesneUrl = null;
+            mp3Parcalari = [];
+            mp3AktifIndeks = -1;
+            sesElementi.removeAttribute('src');
+            sesElementi.load();
+            document.getElementById('mp3-current-title').textContent = 'Henüz şarkı seçilmedi';
+            document.getElementById('mp3-current-subtitle').textContent = 'Müzik klasörü veya dosya seçin';
+            document.getElementById('mp3-play-icon').className = 'fa-solid fa-play ml-1';
+            document.getElementById('mp3-seek').value = 0;
+            document.getElementById('mp3-current-time').textContent = '00:00';
+            document.getElementById('mp3-duration').textContent = '00:00';
+            mp3ListeyiCiz();
+            bildirimGoster('Müzik listesi temizlendi. Cihazdaki dosyalar silinmedi.');
         }
 
         function mp3ZamanYaz(saniye) {
@@ -860,8 +1047,12 @@
                 return;
             }
             try {
+                sesBaglaminiHazirla();
+                if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume();
                 await sesElementi.play();
                 oynatiliyorMu = true;
+                const plak = document.getElementById('mp3-vinyl-disc');
+                if (plak) plak.classList.add('is-playing');
                 document.getElementById('mp3-play-icon').className = 'fa-solid fa-pause';
                 if (aracOynatIkon) aracOynatIkon.className = 'fa-solid fa-pause text-4xl sm:text-5xl';
                 mp3ListeyiCiz();
@@ -874,6 +1065,8 @@
         function mp3Durdur() {
             sesElementi.pause();
             oynatiliyorMu = false;
+            const plak = document.getElementById('mp3-vinyl-disc');
+            if (plak) plak.classList.remove('is-playing');
             document.getElementById('mp3-play-icon').className = 'fa-solid fa-play ml-1';
             if (aracOynatIkon) aracOynatIkon.className = 'fa-solid fa-play text-4xl sm:text-5xl ml-1';
             mp3ListeyiCiz();
@@ -1124,9 +1317,9 @@
 
         function gorselEtiketGuncelle() {
             const etiket = document.getElementById('gorsel-mod-etiket');
-            if (etiket && GORSEL_MODLARI[aktifGorselIndeks]) {
-                etiket.innerText = GORSEL_MODLARI[aktifGorselIndeks].name;
-            }
+            const mp3Etiket = document.getElementById('mp3-gorsel-mod-etiket');
+            if (etiket && GORSEL_MODLARI[aktifGorselIndeks]) etiket.innerText = GORSEL_MODLARI[aktifGorselIndeks].name;
+            if (mp3Etiket && GORSEL_MODLARI[aktifGorselIndeks]) mp3Etiket.innerText = GORSEL_MODLARI[aktifGorselIndeks].name;
         }
 
         function temaSeciciyiOlustur() {
@@ -1599,6 +1792,54 @@
             }
         }
 
+        function uykuManuelZamanla() {
+            const alan = document.getElementById('uyku-manuel-dakika');
+            const dakika = alan ? Number.parseInt(alan.value, 10) : NaN;
+            if (!Number.isFinite(dakika) || dakika < 1 || dakika > 1440) {
+                bildirimGoster('Lütfen 1 ile 1440 dakika arasında bir süre girin.');
+                return;
+            }
+            uykuZamanlayiciAyarla(dakika);
+        }
+
+        function ekolayzerAyarla() {
+            const ayarlar = [
+                ['eq-bass', 'eq-bass-value', eqBassNode],
+                ['eq-mid', 'eq-mid-value', eqMidNode],
+                ['eq-treble', 'eq-treble-value', eqTrebleNode]
+            ];
+            ayarlar.forEach(([id, outputId, node]) => {
+                const alan = document.getElementById(id);
+                const cikti = document.getElementById(outputId);
+                if (!alan) return;
+                const deger = Math.max(-12, Math.min(12, Number(alan.value) || 0));
+                if (node) node.gain.setTargetAtTime(deger, audioCtx.currentTime, 0.02);
+                if (cikti) cikti.textContent = `${deger > 0 ? '+' : ''}${deger} dB`;
+                try { localStorage.setItem('streamPulseEQ_' + id, String(deger)); } catch(e) {}
+            });
+        }
+
+        function ekolayzerSifirla() {
+            ['eq-bass', 'eq-mid', 'eq-treble'].forEach(id => {
+                const alan = document.getElementById(id);
+                if (alan) alan.value = '0';
+            });
+            ekolayzerAyarla();
+            bildirimGoster('Ekolayzer varsayılan ayarlara döndürüldü.');
+        }
+
+        function ekolayzerAyarlariniYukle() {
+            ['eq-bass', 'eq-mid', 'eq-treble'].forEach(id => {
+                const alan = document.getElementById(id);
+                if (!alan) return;
+                try {
+                    const kayitli = localStorage.getItem('streamPulseEQ_' + id);
+                    if (kayitli !== null) alan.value = String(Math.max(-12, Math.min(12, Number(kayitli) || 0)));
+                } catch(e) {}
+            });
+            ekolayzerAyarla();
+        }
+
         function uykuZamanlayiciAyarla(dakika) {
             if (uykuSayacId) clearInterval(uykuSayacId);
             uykuKalanSaniye = dakika * 60;
@@ -1718,15 +1959,35 @@
                 analyser.fftSize = 64;
                 gorselKaynak = audioCtx.createMediaElementSource(sesElementi);
                 destStreamNode = audioCtx.createMediaStreamDestination();
-                gorselKaynak.connect(analyser);
-                gorselKaynak.connect(destStreamNode);
+
+                eqBassNode = audioCtx.createBiquadFilter();
+                eqBassNode.type = 'lowshelf';
+                eqBassNode.frequency.value = 180;
+                eqMidNode = audioCtx.createBiquadFilter();
+                eqMidNode.type = 'peaking';
+                eqMidNode.frequency.value = 1000;
+                eqMidNode.Q.value = 0.8;
+                eqTrebleNode = audioCtx.createBiquadFilter();
+                eqTrebleNode.type = 'highshelf';
+                eqTrebleNode.frequency.value = 5000;
+
+                gorselKaynak.connect(eqBassNode);
+                eqBassNode.connect(eqMidNode);
+                eqMidNode.connect(eqTrebleNode);
+                eqTrebleNode.connect(analyser);
                 analyser.connect(audioCtx.destination);
+                eqTrebleNode.connect(destStreamNode);
+                ekolayzerAyarla();
             } catch(e) { console.warn(e); }
         }
+
+        document.addEventListener('DOMContentLoaded', ekolayzerAyarlariniYukle);
+        if (document.readyState !== 'loading') ekolayzerAyarlariniYukle();
 
         function gorsellestiricileriBaslat() {
             const canvasAna = document.getElementById('gorsellestirici-canvas');
             const canvasArac = document.getElementById('arac-gorsel-canvas');
+            const canvasMp3 = document.getElementById('mp3-gorsellestirici-canvas');
             
             function boyutlandir() {
                 if (canvasAna && canvasAna.parentElement) {
@@ -1737,6 +1998,10 @@
                     canvasArac.width = canvasArac.parentElement.clientWidth;
                     canvasArac.height = canvasArac.parentElement.clientHeight;
                 }
+                if (canvasMp3 && canvasMp3.parentElement) {
+                    canvasMp3.width = canvasMp3.parentElement.clientWidth;
+                    canvasMp3.height = canvasMp3.parentElement.clientHeight;
+                }
             }
             boyutlandir();
             window.addEventListener('resize', boyutlandir);
@@ -1744,9 +2009,13 @@
             function kareCiz() {
                 requestAnimationFrame(kareCiz);
 
-                [ { c: canvasAna, primary: '#00f2fe' }, { c: canvasArac, primary: '#f59e0b' } ].forEach(hedef => {
+                [ { c: canvasAna, primary: '#00f2fe' }, { c: canvasArac, primary: '#f59e0b' }, { c: canvasMp3, primary: '#00f2fe' } ].forEach(hedef => {
                     if (!hedef.c) return;
                     if (hedef.c.clientWidth === 0 || hedef.c.clientHeight === 0) return;
+                    if (hedef.c.width !== hedef.c.clientWidth || hedef.c.height !== hedef.c.clientHeight) {
+                        hedef.c.width = hedef.c.clientWidth;
+                        hedef.c.height = hedef.c.clientHeight;
+                    }
 
                     const ctx = hedef.c.getContext('2d');
                     const w = hedef.c.width;
