@@ -468,6 +468,26 @@
 
   <!-- MAIN CONTENT CONTAINER -->
   <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
+
+    <!-- HOME QUICK FOLDER SYNC: visible immediately on the modern home screen -->
+    <section id="homeFolderSyncCard" class="mb-5 relative overflow-hidden rounded-3xl border border-indigo-200 bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-500 p-4 sm:p-5 text-white shadow-xl">
+      <div class="absolute -right-6 -top-8 h-32 w-32 rounded-full bg-white/10"></div>
+      <div class="absolute right-16 -bottom-10 h-24 w-24 rounded-full bg-white/10"></div>
+      <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="h-12 w-12 shrink-0 rounded-2xl bg-white/20 flex items-center justify-center text-2xl shadow-inner">
+            <i class="fa-solid fa-folder-tree"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="font-black text-lg sm:text-xl leading-tight">Video Klasörünü Eşitle</h3>
+            <p id="homeFolderSyncStatus" class="text-xs sm:text-sm text-white/85 mt-1">Yeni videoları bulmak ve silinenleri listeden kaldırmak için eşitle.</p>
+          </div>
+        </div>
+        <button id="homeRescanFolderBtn" type="button" class="shrink-0 w-full sm:w-auto bg-white text-indigo-700 hover:bg-indigo-50 font-black px-5 py-3 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition active:scale-95">
+          <i class="fa-solid fa-rotate"></i><span>Klasörü Eşitle</span>
+        </button>
+      </div>
+    </section>
     
     <!-- Top Status Bar -->
     <div class="flex items-center justify-between mb-5">
@@ -697,12 +717,12 @@
           <span>Klasör Bağla</span>
         </button>
         <button id="parentRescanFolderBtn" class="w-full bg-indigo-100 hover:bg-indigo-200 text-indigo-800 font-black py-2.5 rounded-2xl flex items-center justify-center gap-2 text-sm">
-          <i class="fa-solid fa-rotate"></i><span>Klasörü Yeniden Tara</span>
+          <i class="fa-solid fa-rotate"></i><span>Klasörü Eşitle</span>
         </button>
         <button id="parentUnlinkFolderBtn" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 rounded-2xl flex items-center justify-center gap-2 text-xs">
           <i class="fa-solid fa-link-slash"></i><span>Klasör Bağlantısını Kaldır</span>
         </button>
-        <p id="folderConnectionStatus" class="text-xs text-gray-500 text-center">Klasör bağlandığında videolar kopyalanmadan doğrudan seçtiğin klasörden okunur.</p>
+        <p id="folderConnectionStatus" class="text-xs text-gray-500 text-center">Klasör bağlandığında yeni videoları bulmak veya silinenleri listeden kaldırmak için “Klasörü Eşitle” düğmesine dokun. Videolar telefondaki klasöründe kalır.</p>
 
         <div class="pt-2">
           <h4 class="font-black text-gray-700 text-sm mb-2">Kayıtlı Videolar</h4>
@@ -812,6 +832,30 @@
     });
     document.getElementById('parentRescanFolderBtn').addEventListener('click', async () => {
       await rescanLinkedVideoFolder(true);
+    });
+    // Ana ekrandaki hızlı eşitleme düğmesi: bağlantı varsa tara, yoksa ilk klasörü bağla.
+    document.getElementById('homeRescanFolderBtn').addEventListener('click', async () => {
+      const button = document.getElementById('homeRescanFolderBtn');
+      const label = button.querySelector('span');
+      const status = document.getElementById('homeFolderSyncStatus');
+      button.disabled = true;
+      button.classList.add('opacity-70');
+      if (label) label.textContent = linkedFolderHandle ? 'Eşitleniyor…' : 'Klasör seçiliyor…';
+      if (status) status.textContent = linkedFolderHandle ? 'Bağlı klasör kontrol ediliyor…' : 'Henüz klasör bağlı değil. Bir klasör seçerek bağlantıyı başlat.';
+      try {
+        if (linkedFolderHandle) {
+          await rescanLinkedVideoFolder(true);
+        } else {
+          await connectVideoFolder();
+        }
+      } finally {
+        button.disabled = false;
+        button.classList.remove('opacity-70');
+        if (label) label.textContent = 'Klasörü Eşitle';
+        if (status) status.textContent = linkedFolderHandle
+          ? 'Klasör bağlantın hazır. Yeni, değişen ve silinen videoları kontrol et.'
+          : 'Yeni videoları bulmak ve silinenleri listeden kaldırmak için eşitle.';
+      }
     });
     document.getElementById('parentUnlinkFolderBtn').addEventListener('click', async () => {
       await unlinkVideoFolder();
@@ -1066,6 +1110,35 @@
       });
     }
 
+    // Klasörün güncel listesini birebir yazar; silinen dosyaların eski kısayollarını temizler.
+    // Yalnızca folderShortcuts deposu değiştirilir; cihazdan ayrıca eklenen videolara dokunulmaz.
+    function replaceFolderShortcuts(videos) {
+      return new Promise((resolve, reject) => {
+        if (!db) return reject(new Error('Veritabanı hazır değil.'));
+        let tx;
+        try {
+          tx = db.transaction('folderShortcuts', 'readwrite');
+          const store = tx.objectStore('folderShortcuts');
+          store.clear();
+          (videos || []).forEach(v => store.put({
+            id: v.id,
+            title: v.title,
+            category: v.category || 'cartoons',
+            size: Number(v.size || 0),
+            lastModified: Number(v.lastModified || 0),
+            mimeType: String(v.mimeType || ''),
+            sourceFolder: String(v.sourceFolder || ''),
+            relativePath: String(v.relativePath || v.sourcePath || v.title || ''),
+            isFolderLinked: true,
+            shortcutOnly: true
+          }));
+        } catch (error) { reject(error); return; }
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error || new Error('Klasör listesi güncellenemedi.'));
+        tx.onabort = () => reject(tx.error || new Error('Klasör listesi güncellenemedi.'));
+      });
+    }
+
     function readFolderShortcuts() {
       return new Promise((resolve, reject) => {
         if (!db || !db.objectStoreNames.contains('folderShortcuts')) return resolve([]);
@@ -1138,7 +1211,15 @@
         const previousShortcuts = await readFolderShortcuts().catch(() => []);
         const previousCategories = new Map(previousShortcuts.map(v => [String(v.id), v.category]));
         linkedFolderVideos.forEach(v => { if (previousCategories.has(String(v.id))) v.category = previousCategories.get(String(v.id)); });
-        await saveFolderShortcuts(linkedFolderVideos);
+        const currentById = new Map(linkedFolderVideos.map(v => [String(v.id), v]));
+        const added = linkedFolderVideos.filter(v => !previousCategories.has(String(v.id)));
+        const previousById = new Map(previousShortcuts.map(v => [String(v.id), v]));
+        const changed = linkedFolderVideos.filter(v => {
+          const old = previousById.get(String(v.id));
+          return old && (Number(old.size || 0) !== Number(v.size || 0) || Number(old.lastModified || 0) !== Number(v.lastModified || 0));
+        });
+        const removed = previousShortcuts.filter(v => !currentById.has(String(v.id)));
+        await replaceFolderShortcuts(linkedFolderVideos);
 
         // Daha önce IndexedDB'ye kopyalanmış aynı dosya varsa çift göstermemek için
         // klasör kaydını değil, mevcut yerel kaydı gösteririz.
@@ -1149,8 +1230,17 @@
         );
 
         await loadVideosFromDB();
-        updateFolderConnectionStatus(`${linkedFolderName}: ${linkedFolderVideos.length} video bağlı. Dosyalar kopyalanmadı.`);
-        if (showNotice) await showAppNotice(`${linkedFolderVideos.length} video klasörden bulundu.\n\nVideolar telefonun klasöründe kalıyor; uygulamaya kopyalanmadı.`, 'Klasör bağlandı', 'success');
+        const changes = [];
+        if (added.length) changes.push(`${added.length} yeni video eklendi`);
+        if (changed.length) changes.push(`${changed.length} video güncellendi`);
+        if (removed.length) changes.push(`${removed.length} video kaldırıldı`);
+        updateFolderConnectionStatus(`${linkedFolderName}: ${linkedFolderVideos.length} video bağlı. ${changes.length ? changes.join(', ') + '.' : 'Liste güncel.'} Dosyalar kopyalanmadı.`);
+        if (showNotice) {
+          const message = changes.length ? changes.join(', ') + '.' : `${linkedFolderVideos.length} video kontrol edildi; değişiklik bulunmadı.`;
+          await showAppNotice(`${message}\n\nVideolar telefonun klasöründe kalıyor; uygulamaya kopyalanmadı.`, 'Klasör eşitlemesi tamamlandı', 'success');
+        } else if (changes.length) {
+          await showAppNotice(`Klasör listesi yenilendi.\n\n${changes.join(', ')}.\n\nKategori seçimlerin korundu.`, 'Video listesi güncellendi', 'success');
+        }
       } catch (error) {
         console.error('Klasör taranamadı:', error);
         updateFolderConnectionStatus('Klasör taranamadı: ' + (error.message || 'Erişim hatası'), true);
@@ -1247,7 +1337,7 @@
           });
           const removed = previousShortcuts.filter(v => !currentById.has(String(v.id)));
 
-          await saveFolderShortcuts(linkedFolderVideos);
+          await replaceFolderShortcuts(linkedFolderVideos);
           await loadVideosFromDB();
 
           const updateParts = [];
@@ -1276,6 +1366,9 @@
         updateFolderConnectionStatus('Kayıtlı klasör açılamadı: ' + (error.message || error.name || 'Erişim hatası'), true);
       }
     }
+
+    // Android Chrome klasör izinlerini ve dosya erişimini güvenilir biçimde yönetmek için
+    // sürekli arka plan taraması yerine ebeveyn panelindeki “Klasörü Eşitle” düğmesi kullanılır.
 
     async function unlinkVideoFolder() {
       linkedFolderHandle = null;
