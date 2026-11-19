@@ -1188,29 +1188,59 @@
       folderInput.click();
     }
 
-    async function restoreSavedFolderHandle() {
+    let folderRestoreInProgress = false;
+    let lastFolderRestoreAt = 0;
+
+    async function restoreSavedFolderHandle(options = {}) {
+      if (folderRestoreInProgress) return;
+      folderRestoreInProgress = true;
       try {
         const saved = await readSavedFolderHandle();
-        if (!saved || !saved.handle) return;
+        if (!saved || !saved.handle) {
+          const shortcuts = await readFolderShortcuts().catch(() => []);
+          if (shortcuts.length) {
+            updateFolderConnectionStatus(`${shortcuts.length} video kısayolu kayıtlı. Bu tarayıcı kalıcı klasör tanıtıcısı saklamamış; videolara erişmek için aynı klasörü yeniden seçin.`, true);
+          }
+          return;
+        }
+
         linkedFolderHandle = saved.handle;
         linkedFolderName = saved.name || saved.handle.name || 'Video klasörü';
+
+        // Sayfa açılışında yalnızca daha önce verilmiş izinle otomatik tarama yapılır.
+        // Tarayıcı izin isteğini kullanıcı etkileşimi olmadan açamayabilir.
         const permission = await linkedFolderHandle.queryPermission({ mode: 'read' });
         if (permission === 'granted') {
+          updateFolderConnectionStatus(`${linkedFolderName}: kayıtlı klasör otomatik bağlanıyor…`);
           linkedFolderVideos = await scanDirectoryHandle(linkedFolderHandle);
           const previousShortcuts = await readFolderShortcuts().catch(() => []);
           const previousCategories = new Map(previousShortcuts.map(v => [String(v.id), v.category]));
-          linkedFolderVideos.forEach(v => { if (previousCategories.has(String(v.id))) v.category = previousCategories.get(String(v.id)); });
+          linkedFolderVideos.forEach(v => {
+            if (previousCategories.has(String(v.id))) v.category = previousCategories.get(String(v.id));
+          });
           await saveFolderShortcuts(linkedFolderVideos);
           await loadVideosFromDB();
-          updateFolderConnectionStatus(`${linkedFolderName}: ${linkedFolderVideos.length} video bağlı.`);
+          updateFolderConnectionStatus(`${linkedFolderName}: ${linkedFolderVideos.length} video otomatik bağlandı.`);
+          lastFolderRestoreAt = Date.now();
+        } else if (permission === 'prompt') {
+          updateFolderConnectionStatus(`${linkedFolderName} kayıtlı. Chrome izin istediğinde “Klasörü Yeniden Tara” düğmesine bir kez basın; izin verilirse sonraki açılışlarda otomatik bağlanır.`);
         } else {
-          updateFolderConnectionStatus(`${linkedFolderName} kayıtlı. Yeniden Tara düğmesiyle klasör iznini yenile.`);
+          updateFolderConnectionStatus(`${linkedFolderName} kayıtlı ancak klasör izni reddedilmiş. “Klasörü Yeniden Tara” ile tekrar izin verin.`, true);
         }
       } catch (error) {
         console.warn('Kayıtlı klasör bağlantısı geri yüklenemedi:', error);
-        updateFolderConnectionStatus('Klasör bağlantısını yenilemek için yeniden bağlayın.', true);
+        updateFolderConnectionStatus('Kayıtlı klasöre otomatik erişilemedi. “Klasörü Yeniden Tara” ile tekrar deneyin.', true);
+      } finally {
+        folderRestoreInProgress = false;
       }
     }
+
+    // Uygulama arka plandan tekrar açıldığında izin zaten verilmişse klasörü yeniden tara.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && db && Date.now() - lastFolderRestoreAt > 15000) {
+        restoreSavedFolderHandle();
+      }
+    });
 
     async function unlinkVideoFolder() {
       linkedFolderHandle = null;
