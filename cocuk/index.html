@@ -1225,15 +1225,47 @@
 
         const permission = await linkedFolderHandle.queryPermission({ mode: 'read' });
         if (permission === 'granted') {
-          linkedFolderVideos = await scanDirectoryHandle(linkedFolderHandle);
+          updateFolderConnectionStatus(`${linkedFolderName} klasörü kontrol ediliyor…`);
           const previousShortcuts = await readFolderShortcuts().catch(() => []);
-          const previousCategories = new Map(previousShortcuts.map(v => [String(v.id), v.category]));
+          const previousById = new Map(previousShortcuts.map(v => [String(v.id), v]));
+          linkedFolderVideos = await scanDirectoryHandle(linkedFolderHandle);
+
+          // Var olan kategori seçimlerini koru; yeni videolar varsayılan kategoriyle eklensin.
           linkedFolderVideos.forEach(v => {
-            if (previousCategories.has(String(v.id))) v.category = previousCategories.get(String(v.id));
+            const previous = previousById.get(String(v.id));
+            if (previous && previous.category) v.category = previous.category;
           });
+
+          const currentById = new Map(linkedFolderVideos.map(v => [String(v.id), v]));
+          const added = linkedFolderVideos.filter(v => !previousById.has(String(v.id)));
+          const changed = linkedFolderVideos.filter(v => {
+            const old = previousById.get(String(v.id));
+            return old && (
+              Number(old.size || 0) !== Number(v.size || 0) ||
+              Number(old.lastModified || 0) !== Number(v.lastModified || 0)
+            );
+          });
+          const removed = previousShortcuts.filter(v => !currentById.has(String(v.id)));
+
           await saveFolderShortcuts(linkedFolderVideos);
           await loadVideosFromDB();
-          updateFolderConnectionStatus(`${linkedFolderName}: ${linkedFolderVideos.length} video otomatik bağlandı.`);
+
+          const updateParts = [];
+          if (added.length) updateParts.push(`${added.length} yeni video eklendi`);
+          if (changed.length) updateParts.push(`${changed.length} video güncellendi`);
+          if (removed.length) updateParts.push(`${removed.length} video klasörden kaldırıldı`);
+
+          if (updateParts.length) {
+            const summary = updateParts.join(', ') + '.';
+            updateFolderConnectionStatus(`${linkedFolderName}: ${summary}`);
+            await showAppNotice(
+              `Klasör bağlantı listesi yenilendi.\n\n${summary}\n\nMevcut kategori seçimlerin korundu.`,
+              'Klasör listesi güncellendi',
+              'success'
+            );
+          } else {
+            updateFolderConnectionStatus(`${linkedFolderName}: ${linkedFolderVideos.length} video kontrol edildi. Liste güncel.`);
+          }
         } else if (permission === 'prompt') {
           updateFolderConnectionStatus(`${linkedFolderName} kayıtlı. Chrome erişim izni bekliyor; “Klasörü Yeniden Tara” düğmesine dokunup izni onaylayın.`);
         } else {
