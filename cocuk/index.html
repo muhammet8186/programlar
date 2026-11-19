@@ -1021,6 +1021,86 @@
       });
     }
 
+    // TÜM KİTAPLIĞI TEMİZLE
+    async function clearEntireVideoLibrary() {
+      if (!db) {
+        alert('Video kitaplığı henüz hazır değil. Birkaç saniye sonra tekrar deneyin.');
+        return;
+      }
+
+      if (localVideosList.length === 0) {
+        alert('Kitaplık zaten boş.');
+        return;
+      }
+
+      const confirmed = confirm(
+        `Kitaplıktaki ${localVideosList.length} video kalıcı olarak silinecek.\n\nBu işlem geri alınamaz. Devam etmek istiyor musunuz?`
+      );
+      if (!confirmed) return;
+
+      const clearButton = document.getElementById('parentClearDbBtn');
+      const previousButtonText = clearButton ? clearButton.innerHTML : '';
+      if (clearButton) {
+        clearButton.disabled = true;
+        clearButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Temizleniyor…</span>';
+      }
+
+      try {
+        // Açık video oynatımını ve geçici Blob URL'sini güvenli biçimde kapat.
+        if (mainVideoPlayer) {
+          mainVideoPlayer.pause();
+          mainVideoPlayer.removeAttribute('src');
+          mainVideoPlayer.load();
+        }
+        if (activeVideoUrl) {
+          URL.revokeObjectURL(activeVideoUrl);
+          activeVideoUrl = null;
+        }
+        activeVideoRecord = null;
+        thumbnailCache.clear();
+
+        await new Promise((resolve, reject) => {
+          let tx;
+          try {
+            tx = db.transaction(['videos'], 'readwrite');
+            tx.objectStore('videos').clear();
+          } catch (error) {
+            reject(error);
+            return;
+          }
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error || new Error('Kitaplık temizlenemedi.'));
+          tx.onabort = () => reject(tx.error || new Error('Temizleme işlemi iptal edildi.'));
+        });
+
+        localVideosList = [];
+        currentCategory = 'all';
+        if (searchInput) searchInput.value = '';
+        renderCategoryTabs();
+        await loadVideosFromDB();
+        alert('Tüm kitaplık başarıyla temizlendi. Videolar bu cihazdan silindi.');
+      } catch (error) {
+        console.error('Tüm kitaplık temizlenemedi:', error);
+        alert('Kitaplık temizlenirken bir hata oluştu: ' + (error.message || 'Bilinmeyen hata'));
+        try { await loadVideosFromDB(); } catch (reloadError) {
+          console.error('Kitaplık yeniden yüklenemedi:', reloadError);
+        }
+      } finally {
+        if (clearButton) {
+          clearButton.disabled = false;
+          clearButton.innerHTML = previousButtonText;
+        }
+      }
+    }
+
+    const parentClearDbBtn = document.getElementById('parentClearDbBtn');
+    if (parentClearDbBtn) {
+      parentClearDbBtn.addEventListener('click', clearEntireVideoLibrary);
+    }
+    if (clearAllVideosBtn) {
+      clearAllVideosBtn.addEventListener('click', clearEntireVideoLibrary);
+    }
+
     // RENDER CATEGORY TABS
     function renderCategoryTabs() {
       categoryTabs.innerHTML = categoriesData.map(cat => `
