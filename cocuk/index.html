@@ -1009,7 +1009,17 @@
           db = null;
           alert('Video kitaplığı başka bir sekmede güncellendi. Sayfayı yenileyin.');
         };
-        loadVideosFromDB().then(() => restoreSavedFolderHandle());
+        loadVideosFromDB().then(async () => {
+          // Uygulama her açıldığında daha önce bağlanmış klasörü otomatik kontrol et.
+          // Tarayıcı izni 'granted' ise restoreSavedFolderHandle klasörü hemen tarar.
+          const homeStatus = document.getElementById('homeFolderSyncStatus');
+          if (homeStatus) homeStatus.textContent = 'Kayıtlı video klasörü kontrol ediliyor…';
+          await restoreSavedFolderHandle();
+        }).catch(error => {
+          console.error('Başlangıç video kitaplığı yüklenemedi:', error);
+          const homeStatus = document.getElementById('homeFolderSyncStatus');
+          if (homeStatus) homeStatus.textContent = 'Video kitaplığı yüklenemedi. Sayfayı yenileyip tekrar deneyin.';
+        });
       };
 
       request.onerror = function(e) {
@@ -1026,9 +1036,13 @@
     // KLASÖRÜ DOĞRUDAN BAĞLA: Video dosyaları IndexedDB'ye kopyalanmaz.
     function updateFolderConnectionStatus(message, isError = false) {
       const el = document.getElementById('folderConnectionStatus');
-      if (!el) return;
-      el.textContent = message;
-      el.className = 'text-xs text-center ' + (isError ? 'text-rose-600 font-bold' : 'text-gray-500');
+      if (el) {
+        el.textContent = message;
+        el.className = 'text-xs text-center ' + (isError ? 'text-rose-600 font-bold' : 'text-gray-500');
+      }
+      // Ana ekrandaki eşitleme kartı da başlangıç taramasının durumunu göstersin.
+      const homeStatus = document.getElementById('homeFolderSyncStatus');
+      if (homeStatus) homeStatus.textContent = message;
     }
 
     function saveFolderHandle(handle) {
@@ -1322,6 +1336,47 @@
       folderInput.click();
     }
 
+    // Chrome izni daha önce verilmemişse ilk açılışta modern uygulama penceresi göster.
+    // Native izin penceresi yalnızca kullanıcının butona dokunmasıyla açılabilir.
+    function showFolderPermissionPrompt(permissionState = 'prompt') {
+      ensureAppNoticeHost();
+      const backdrop = document.getElementById('appNoticeBackdrop');
+      const icon = document.getElementById('appNoticeIcon');
+      const ok = document.getElementById('appNoticeOk');
+      const cancel = document.getElementById('appNoticeCancel');
+      document.getElementById('appNoticeTitle').textContent = 'Video klasörüne erişim izni';
+      document.getElementById('appNoticeMessage').textContent =
+        `${linkedFolderName || 'Bağlı video klasörü'} kayıtlı. Videolarını otomatik gösterebilmemiz için Chrome'un klasör erişim iznini onaylamalısın.\n\n“İzin Ver ve Eşitle” düğmesine dokunduğunda Chrome izin penceresi açılacak. Videolar telefonunda kalır; uygulamaya kopyalanmaz.`;
+      icon.className = 'mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600 text-2xl';
+      icon.innerHTML = '<i class="fa-solid fa-folder-open"></i>';
+      cancel.classList.add('hidden');
+      ok.textContent = 'İzin Ver ve Eşitle';
+      ok.className = 'flex-1 rounded-2xl bg-indigo-600 px-4 py-3 font-bold text-white shadow-lg';
+      backdrop.classList.remove('hidden');
+      backdrop.classList.add('flex');
+      ok.addEventListener('click', async () => {
+        backdrop.classList.add('hidden');
+        backdrop.classList.remove('flex');
+        if (!linkedFolderHandle || typeof linkedFolderHandle.requestPermission !== 'function') {
+          await showAppNotice('Kayıtlı klasör bağlantısı bu tarayıcıda kullanılamıyor. Ana ekrandaki “Klasörü Eşitle” düğmesine basıp klasörü yeniden seç.', 'Klasör yeniden bağlanmalı', 'warning');
+          return;
+        }
+        try {
+          // requestPermission doğrudan kullanıcı tıklamasının içinde çağrılmalı.
+          const permission = await linkedFolderHandle.requestPermission({ mode: 'read' });
+          if (permission === 'granted') {
+            await rescanLinkedVideoFolder(true);
+          } else {
+            updateFolderConnectionStatus('Klasör izni verilmedi. Videoları görmek için ana ekrandaki “Klasörü Eşitle” düğmesinden tekrar izin ver.', true);
+            await showAppNotice('Klasör izni verilmedi. Eşitleme için Chrome izin penceresinde izin vermelisin.', 'İzin verilmedi', 'warning');
+          }
+        } catch (error) {
+          console.error('Klasör izni istenirken hata:', error);
+          await showAppNotice('Klasör izni alınamadı. Ana ekrandaki “Klasörü Eşitle” düğmesiyle tekrar deneyebilirsin.\n\n' + (error.message || 'Bilinmeyen hata'), 'İzin hatası', 'error');
+        }
+      }, { once: true });
+    }
+
     async function restoreSavedFolderHandle() {
       try {
         const saved = await readSavedFolderHandle();
@@ -1389,9 +1444,11 @@
             updateFolderConnectionStatus(`${linkedFolderName}: ${linkedFolderVideos.length} video kontrol edildi. Liste güncel.`);
           }
         } else if (permission === 'prompt') {
-          updateFolderConnectionStatus(`${linkedFolderName} kayıtlı. Chrome erişim izni bekliyor; “Klasörü Yeniden Tara” düğmesine dokunup izni onaylayın.`);
+          updateFolderConnectionStatus(`${linkedFolderName} kayıtlı. Klasör erişim izni gerekiyor.`);
+          showFolderPermissionPrompt(permission);
         } else {
-          updateFolderConnectionStatus(`${linkedFolderName} kayıtlı ancak erişim izni reddedilmiş. “Klasörü Yeniden Tara” ile yeniden izin verin.`, true);
+          updateFolderConnectionStatus(`${linkedFolderName} kayıtlı ancak erişim izni reddedilmiş. Yeniden izin vermen gerekiyor.`, true);
+          showFolderPermissionPrompt(permission);
         }
       } catch (error) {
         console.error('Kayıtlı klasör bağlantısı geri yüklenemedi:', error);
