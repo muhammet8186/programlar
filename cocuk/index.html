@@ -1237,6 +1237,8 @@
           );
           return;
         }
+        // Bu klasörde yeniden bulunan videoları eski gizleme listesinden çıkar.
+        unhideFolderVideoIds(linkedFolderVideos);
         const previousShortcuts = await readFolderShortcuts().catch(() => []);
         const previousCategories = new Map(previousShortcuts.map(v => [String(v.id), v.category]));
         linkedFolderVideos.forEach(v => { if (previousCategories.has(String(v.id))) v.category = previousCategories.get(String(v.id)); });
@@ -1348,6 +1350,7 @@
           const previousShortcuts = await readFolderShortcuts().catch(() => []);
           const previousById = new Map(previousShortcuts.map(v => [String(v.id), v]));
           linkedFolderVideos = await scanDirectoryHandle(linkedFolderHandle);
+          unhideFolderVideoIds(linkedFolderVideos);
 
           // Var olan kategori seçimlerini koru; yeni videolar varsayılan kategoriyle eklensin.
           linkedFolderVideos.forEach(v => {
@@ -1438,6 +1441,7 @@
           isFolderLinked: true
         };
       });
+      unhideFolderVideoIds(linkedFolderVideos);
       await saveFolderShortcuts(linkedFolderVideos);
       await loadVideosFromDB();
       updateFolderConnectionStatus(`${linkedFolderName}: ${linkedFolderVideos.length} video bulundu. Kısayollar kalıcı kaydedildi; dosyalar kopyalanmadı. Sayfayı yeniden açınca klasörü tekrar seçmen yeterli.`);
@@ -1488,6 +1492,18 @@
       } catch (error) {
         throw new Error('Liste tercihi kaydedilemedi: ' + (error.message || 'Depolama hatası'));
       }
+    }
+
+    // Klasör eşitlemesi yapılan videoları eski 'listeyi temizle' gizleme
+    // kaydından çıkar. Böylece klasör tekrar bağlandığında videolar görünür.
+    // Cihazdan ayrıca eklenen videoların gizlilik tercihleri korunur.
+    function unhideFolderVideoIds(videos) {
+      const hiddenIds = getHiddenVideoIds();
+      let changed = false;
+      (videos || []).forEach(video => {
+        if (video && video.id && hiddenIds.delete(String(video.id))) changed = true;
+      });
+      if (changed) saveHiddenVideoIds(hiddenIds);
     }
 
     function restoreHiddenVideos() {
