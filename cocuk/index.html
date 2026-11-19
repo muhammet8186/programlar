@@ -1166,10 +1166,14 @@
 
       if (typeof window.showDirectoryPicker === 'function') {
         try {
+          // Android Chrome'da klasör seçimi kullanıcı dokunuşuyla açılmalıdır.
           const handle = await window.showDirectoryPicker({ mode: 'read' });
-          const permission = await handle.requestPermission({ mode: 'read' });
+          let permission = await handle.queryPermission({ mode: 'read' });
           if (permission !== 'granted') {
-            await showAppNotice('Klasöre erişim izni verilmedi.', 'İzin gerekli', 'warning');
+            permission = await handle.requestPermission({ mode: 'read' });
+          }
+          if (permission !== 'granted') {
+            await showAppNotice('Klasör erişim izni verilmedi. Aynı klasöre erişmek için izin vermen gerekiyor.', 'İzin gerekli', 'warning');
             return;
           }
           linkedFolderHandle = handle;
@@ -1179,27 +1183,34 @@
           return;
         } catch (error) {
           if (error && error.name === 'AbortError') return;
-          console.warn('Doğrudan klasör erişimi kullanılamadı:', error);
-          await showAppNotice('Bu tarayıcı doğrudan klasör bağlantısını desteklemiyor. Klasör seçme ekranını açacağım. Bu modda videolar kopyalanmaz; sayfa yenilenince klasörü yeniden seçmen gerekir.', 'Uyumluluk modu', 'info');
+          // API mevcutken oluşan hatayı sessizce webkitdirectory moduna düşürme:
+          // bu, kalıcı klasör bağlantısının kurulmadığını kullanıcıdan gizliyordu.
+          console.error('Doğrudan klasör bağlantısı kurulamadı:', error);
+          updateFolderConnectionStatus('Klasör bağlantısı kurulamadı: ' + (error.message || error.name || 'Bilinmeyen hata'), true);
+          await showAppNotice(
+            'Chrome klasör bağlantısını kuramadı. Programı Chrome üzerinden HTTPS adresinde açtığını kontrol et.\n\nHata: ' + (error.message || error.name || 'Bilinmeyen hata'),
+            'Klasör bağlantı hatası',
+            'error'
+          );
+          return;
         }
       }
 
-      // Fallback: webkitdirectory File nesnelerini yalnızca bellekte tutar, IndexedDB'ye yazmaz.
+      // Yalnızca File System Access API bulunmuyorsa geçici dosya seçme yöntemine geç.
+      // Bu yöntemde tarayıcı klasör tanıtıcısı saklayamaz; yeniden açınca klasör tekrar seçilir.
       folderInput.click();
     }
 
-    let folderRestoreInProgress = false;
-    let lastFolderRestoreAt = 0;
-
-    async function restoreSavedFolderHandle(options = {}) {
-      if (folderRestoreInProgress) return;
-      folderRestoreInProgress = true;
+    async function restoreSavedFolderHandle() {
       try {
         const saved = await readSavedFolderHandle();
         if (!saved || !saved.handle) {
           const shortcuts = await readFolderShortcuts().catch(() => []);
           if (shortcuts.length) {
-            updateFolderConnectionStatus(`${shortcuts.length} video kısayolu kayıtlı. Bu tarayıcı kalıcı klasör tanıtıcısı saklamamış; videolara erişmek için aynı klasörü yeniden seçin.`, true);
+            updateFolderConnectionStatus(
+              `${shortcuts.length} video kısayolu kayıtlı. Bu tarayıcı klasör erişim tanıtıcısı saklamamış; videoları açmak için aynı klasörü yeniden seçin.`,
+              true
+            );
           }
           return;
         }
@@ -1207,11 +1218,13 @@
         linkedFolderHandle = saved.handle;
         linkedFolderName = saved.name || saved.handle.name || 'Video klasörü';
 
-        // Sayfa açılışında yalnızca daha önce verilmiş izinle otomatik tarama yapılır.
-        // Tarayıcı izin isteğini kullanıcı etkileşimi olmadan açamayabilir.
+        if (typeof linkedFolderHandle.queryPermission !== 'function') {
+          updateFolderConnectionStatus('Kayıtlı klasör tanıtıcısı bu tarayıcıda kullanılamıyor. Aynı klasörü yeniden bağlayın.', true);
+          return;
+        }
+
         const permission = await linkedFolderHandle.queryPermission({ mode: 'read' });
         if (permission === 'granted') {
-          updateFolderConnectionStatus(`${linkedFolderName}: kayıtlı klasör otomatik bağlanıyor…`);
           linkedFolderVideos = await scanDirectoryHandle(linkedFolderHandle);
           const previousShortcuts = await readFolderShortcuts().catch(() => []);
           const previousCategories = new Map(previousShortcuts.map(v => [String(v.id), v.category]));
@@ -1221,26 +1234,16 @@
           await saveFolderShortcuts(linkedFolderVideos);
           await loadVideosFromDB();
           updateFolderConnectionStatus(`${linkedFolderName}: ${linkedFolderVideos.length} video otomatik bağlandı.`);
-          lastFolderRestoreAt = Date.now();
         } else if (permission === 'prompt') {
-          updateFolderConnectionStatus(`${linkedFolderName} kayıtlı. Chrome izin istediğinde “Klasörü Yeniden Tara” düğmesine bir kez basın; izin verilirse sonraki açılışlarda otomatik bağlanır.`);
+          updateFolderConnectionStatus(`${linkedFolderName} kayıtlı. Chrome erişim izni bekliyor; “Klasörü Yeniden Tara” düğmesine dokunup izni onaylayın.`);
         } else {
-          updateFolderConnectionStatus(`${linkedFolderName} kayıtlı ancak klasör izni reddedilmiş. “Klasörü Yeniden Tara” ile tekrar izin verin.`, true);
+          updateFolderConnectionStatus(`${linkedFolderName} kayıtlı ancak erişim izni reddedilmiş. “Klasörü Yeniden Tara” ile yeniden izin verin.`, true);
         }
       } catch (error) {
-        console.warn('Kayıtlı klasör bağlantısı geri yüklenemedi:', error);
-        updateFolderConnectionStatus('Kayıtlı klasöre otomatik erişilemedi. “Klasörü Yeniden Tara” ile tekrar deneyin.', true);
-      } finally {
-        folderRestoreInProgress = false;
+        console.error('Kayıtlı klasör bağlantısı geri yüklenemedi:', error);
+        updateFolderConnectionStatus('Kayıtlı klasör açılamadı: ' + (error.message || error.name || 'Erişim hatası'), true);
       }
     }
-
-    // Uygulama arka plandan tekrar açıldığında izin zaten verilmişse klasörü yeniden tara.
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && db && Date.now() - lastFolderRestoreAt > 15000) {
-        restoreSavedFolderHandle();
-      }
-    });
 
     async function unlinkVideoFolder() {
       linkedFolderHandle = null;
