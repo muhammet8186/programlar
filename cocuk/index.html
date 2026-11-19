@@ -859,7 +859,7 @@
       fileInput.click();
     }
 
-    const VIDEO_EXTENSION_RE = /\.(mp4|webm|ogg|ogv|mov|m4v|avi|mkv|3gp|mpeg|mpg)$/i;
+    const VIDEO_EXTENSION_RE = /\.(mp4|webm|ogg|ogv|mov|m4v|avi|mkv|3gp|3g2|mpeg|mpg|m2ts|mts|ts|m2v|mp2v|flv|wmv|vob|divx)$/i;
 
     function isSupportedVideoFile(file) {
       if (!file || !file.name) return false;
@@ -1148,13 +1148,35 @@
 
     async function scanDirectoryHandle(directoryHandle) {
       const found = [];
+      let unreadable = 0;
       async function walk(dir, relativePath = '') {
-        for await (const [name, entry] of dir.entries()) {
+        let entries = [];
+        // Android Chrome sürümleri arasında entries()/values() desteği farklı olabildiğinden
+        // önce values(), gerekirse entries() kullanılır.
+        try {
+          if (typeof dir.values === 'function') {
+            for await (const entry of dir.values()) entries.push([entry.name, entry]);
+          } else if (typeof dir.entries === 'function') {
+            for await (const pair of dir.entries()) entries.push(pair);
+          } else {
+            throw new Error('Bu tarayıcı klasör içeriğini listeleyemiyor.');
+          }
+        } catch (iterationError) {
+          if (typeof dir.entries === 'function' && entries.length === 0) {
+            for await (const pair of dir.entries()) entries.push(pair);
+          } else {
+            throw iterationError;
+          }
+        }
+
+        for (const [entryName, entry] of entries) {
+          const name = String(entryName || entry.name || '');
           const path = relativePath ? relativePath + '/' + name : name;
           if (entry.kind === 'directory') {
             await walk(entry, path);
-          } else if (entry.kind === 'file' && VIDEO_EXTENSION_RE.test(name)) {
+          } else if (entry.kind === 'file') {
             try {
+              // Yalnızca uzantıya güvenme: bazı Android dosyalarında MIME türü belirleyicidir.
               const file = await entry.getFile();
               if (!isSupportedVideoFile(file)) continue;
               found.push({
@@ -1171,12 +1193,14 @@
                 fileHandle: entry
               });
             } catch (error) {
+              unreadable++;
               console.warn('Dosya okunamadı:', path, error);
             }
           }
         }
       }
       await walk(directoryHandle);
+      found.unreadableCount = unreadable;
       return found;
     }
 
@@ -1202,6 +1226,17 @@
 
         updateFolderConnectionStatus('Klasör taranıyor: ' + linkedFolderName + '…');
         linkedFolderVideos = await scanDirectoryHandle(linkedFolderHandle);
+        if (!linkedFolderVideos.length) {
+          const detail = linkedFolderVideos.unreadableCount
+            ? ` Klasörde okunamayan ${linkedFolderVideos.unreadableCount} dosya var.`
+            : ' Seçilen klasörde desteklenen video dosyası bulunamadı veya tarayıcı dosyaları listeleyemedi.';
+          updateFolderConnectionStatus(`${linkedFolderName}: 0 video bulundu.${detail}`, true);
+          if (showNotice) await showAppNotice(
+            `Klasör bağlantısı kuruldu ancak video bulunamadı.${detail} Önceki video kısayolların korunmuştur. MP4, MKV, MOV veya WebM dosyalarının bulunduğu klasörü seçtiğinden emin ol.`,
+            'Video bulunamadı', 'warning'
+          );
+          return;
+        }
         const previousShortcuts = await readFolderShortcuts().catch(() => []);
         const previousCategories = new Map(previousShortcuts.map(v => [String(v.id), v.category]));
         linkedFolderVideos.forEach(v => { if (previousCategories.has(String(v.id))) v.category = previousCategories.get(String(v.id)); });
