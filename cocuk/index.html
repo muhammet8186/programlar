@@ -1,1 +1,1562 @@
+<!DOCTYPE html>
+<html lang="tr" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#ff496c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <title>Çocuk Tüpü - Yerel Video Oynatıcı</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Playful Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Mali:wght@500;700&display=swap" rel="stylesheet">
 
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            fredoka: ['Fredoka', 'sans-serif'],
+            mali: ['Mali', 'cursive']
+          },
+          colors: {
+            ytk: {
+              red: '#FF2A4B',
+              yellow: '#FFC83B',
+              blue: '#00C2FF',
+              green: '#20E070',
+              purple: '#9258FF',
+              orange: '#FF8800',
+              cream: '#FFFBF0'
+            }
+          },
+          boxShadow: {
+            'bouncy': '0 8px 0 0 rgba(0,0,0,0.15)',
+            'bouncy-sm': '0 4px 0 0 rgba(0,0,0,0.12)',
+            'card-hover': '0 12px 24px -6px rgba(0,0,0,0.2)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Fredoka', sans-serif;
+      background-color: #FFFDF7;
+      background-image: radial-gradient(#E8F6FF 3px, transparent 3px);
+      background-size: 28px 28px;
+    }
+
+    /* Floating Particles Animation */
+    @keyframes floatUp {
+      0% { transform: translateY(0) scale(1) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(-160px) scale(1.6) rotate(20deg); opacity: 0; }
+    }
+
+    .emoji-particle {
+      position: absolute;
+      pointer-events: none;
+      font-size: 2.5rem;
+      animation: floatUp 1.2s ease-out forwards;
+      z-index: 100;
+    }
+
+    /* Custom Bouncy Animations */
+    @keyframes bounceSubtle {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .animate-bounce-subtle {
+      animation: bounceSubtle 2.5s infinite ease-in-out;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.85); opacity: 0; }
+      70% { transform: scale(1.03); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .pop-in {
+      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      height: 10px;
+      width: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #FFEBB8;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #FF2A4B;
+      border-radius: 10px;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* ---- Modern, polished visual layer ---- */
+    :root {
+      --ink: #20264b;
+      --coral: #ff496c;
+      --sky: #35bdf4;
+      --sun: #ffd35c;
+      --mint: #43d9a3;
+      --surface: rgba(255,255,255,.92);
+    }
+
+    body {
+      color: var(--ink);
+      background-color: #f8fbff;
+      background-image:
+        radial-gradient(circle at 8% 12%, rgba(255,211,92,.20) 0 90px, transparent 92px),
+        radial-gradient(circle at 92% 32%, rgba(53,189,244,.13) 0 130px, transparent 132px),
+        radial-gradient(#dceeff 1.5px, transparent 1.5px);
+      background-size: auto, auto, 24px 24px;
+    }
+
+    header.sticky {
+      background: rgba(255,255,255,.88) !important;
+      border-bottom: 1px solid rgba(255,211,92,.9) !important;
+      box-shadow: 0 8px 28px rgba(41,57,110,.08) !important;
+      backdrop-filter: blur(18px);
+    }
+
+    header .max-w-7xl { min-height: 54px; }
+    header .group > div:first-child {
+      box-shadow: 0 7px 0 rgba(255,73,108,.15), 0 10px 22px rgba(255,73,108,.16);
+    }
+    header input#searchInput {
+      min-height: 44px;
+      border: 2px solid #f3df9e !important;
+      background: #fffdf6 !important;
+      box-shadow: 0 4px 14px rgba(42,61,112,.05) !important;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+    }
+    header input#searchInput:focus {
+      background: #fff !important;
+      border-color: #35bdf4 !important;
+      box-shadow: 0 0 0 4px rgba(53,189,244,.14) !important;
+    }
+
+    button {
+      transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+    }
+    button:focus-visible, input:focus-visible {
+      outline: 3px solid rgba(53,189,244,.75);
+      outline-offset: 3px;
+    }
+    button:active { filter: brightness(.97); }
+
+    #categoryTabs { padding-top: 5px; padding-bottom: 5px; }
+    #categoryTabs button {
+      border: 1px solid rgba(50,67,120,.08);
+      box-shadow: 0 4px 10px rgba(34,49,96,.06) !important;
+      padding: 10px 16px;
+    }
+    #categoryTabs button:hover { transform: translateY(-2px); }
+    #categoryTabs button span:first-child { width: 30px; height: 30px; border-radius: 11px; }
+
+    main { padding-top: clamp(18px, 3vw, 32px) !important; }
+    #currentCategoryTitle { letter-spacing: -.035em; color: #22294f; }
+    #categoryIconBadge { box-shadow: 0 7px 16px rgba(38,70,130,.16) !important; }
+    #videoCountLabel { font-size: 13px; color: #7d86a5; }
+
+    #videoGrid > div {
+      border: 1px solid rgba(91,111,165,.13) !important;
+      border-radius: 24px !important;
+      box-shadow: 0 8px 24px rgba(35,49,98,.08) !important;
+      transition: transform .22s ease, box-shadow .22s ease;
+      background: rgba(255,255,255,.96) !important;
+    }
+    #videoGrid > div:hover {
+      transform: translateY(-5px) !important;
+      box-shadow: 0 17px 35px rgba(35,49,98,.14) !important;
+    }
+    #videoGrid > div > div:nth-child(2) { padding: 16px !important; }
+    #videoGrid > div > div:nth-child(2) h3 { color: #282e55; font-size: 15px; }
+    #videoGrid > div > div:first-of-type { background: linear-gradient(135deg,#fff0c5,#e5f7ff) !important; }
+    #videoGrid > div > div:first-of-type > i { color: #9adcf5 !important; }
+    #videoGrid > div > div:first-of-type > div > div {
+      box-shadow: 0 6px 18px rgba(255,73,108,.28);
+    }
+
+    #emptyStateView {
+      border: 2px dashed #f2cf66 !important;
+      border-radius: 32px !important;
+      background: rgba(255,255,255,.9) !important;
+      box-shadow: 0 18px 50px rgba(37,57,108,.08) !important;
+    }
+    #emptyStateView h3 { letter-spacing: -.03em; }
+    #emptyStateView p { max-width: 430px; }
+
+    #noResultsView { color: #6b7393; }
+    footer {
+      border-top: 1px solid #d8edfb !important;
+      background: rgba(255,255,255,.9) !important;
+    }
+
+    #videoModal > div { box-shadow: 0 24px 90px rgba(0,0,0,.45); }
+    #videoModal > div > div:first-child { background: linear-gradient(90deg,#ffda6b,#ffe9a6) !important; }
+    #videoModal .bg-gray-800 { background: #171d32 !important; }
+    #videoProgressSlider { accent-color: #ff496c; }
+    .video-thumb { width:100%; height:100%; object-fit:cover; position:absolute; inset:0; }
+    #playerShell:fullscreen, #playerShell:-webkit-full-screen {
+      width:100vw !important; height:100dvh !important; max-width:none !important; max-height:100dvh !important;
+      border:0 !important; border-radius:0 !important; padding:0 !important; margin:0 !important;
+      display:flex !important; flex-direction:column !important; overflow:hidden !important; background:#090d19 !important;
+    }
+    #playerShell:fullscreen > .relative.bg-black, #playerShell:-webkit-full-screen > .relative.bg-black {
+      flex:1 1 auto !important; min-height:0 !important; max-height:none !important;
+    }
+    #playerShell:fullscreen #mainVideoPlayer, #playerShell:-webkit-full-screen #mainVideoPlayer {
+      max-height:none !important; height:100% !important; width:100% !important;
+    }
+    #playerShell:fullscreen #relatedVideosPanel, #playerShell:-webkit-full-screen #relatedVideosPanel {
+      flex:0 0 auto !important; max-height:24dvh; overflow:hidden; padding-bottom:max(10px, env(safe-area-inset-bottom)) !important;
+    }
+    #playerShell:fullscreen #relatedVideosList, #playerShell:-webkit-full-screen #relatedVideosList { max-height:18dvh; }
+    /* Yatay tam ekran: üstte video, altta YouTube Kids benzeri video şeridi */
+    #landscapeSeekControls { display:none; }
+    @media (orientation: landscape) and (max-height: 600px) {
+      #landscapeSeekControls {
+        display:flex; position:absolute; z-index:12; left:8px; right:8px; bottom:8px;
+        align-items:center; gap:7px; padding:6px 8px; border-radius:10px;
+        background:rgba(0,0,0,.78); color:#fff; font-size:12px; font-weight:700;
+        opacity:0; pointer-events:none; transition:opacity .18s ease;
+      }
+      #playerShell.controls-visible #landscapeSeekControls { opacity:1; pointer-events:auto; }
+      #landscapeSeekControls input { flex:1; min-width:20px; height:20px; accent-color:#ff496c; cursor:pointer; }
+      #landscapeSeekControls span { min-width:38px; text-align:center; font-variant-numeric:tabular-nums; }
+      #landscapeSeekControls button { flex:0 0 auto; border-radius:7px; padding:5px 7px; background:#333; color:white; }
+      #playerShell:fullscreen, #playerShell:-webkit-full-screen {
+        display:grid !important; grid-template-columns:minmax(0, 1fr); grid-template-rows:minmax(0,1fr) 62px;
+        height:100dvh !important; width:100vw !important; background:#000 !important;
+      }
+      /* Yatay modda başlık/kapak çubuğunu gizle; video alanı ana alanı doldursun. */
+      #playerShell:fullscreen > div:first-child, #playerShell:-webkit-full-screen > div:first-child { display:none !important; }
+      #playerShell:fullscreen > .relative.bg-black, #playerShell:-webkit-full-screen > .relative.bg-black {
+        flex:none !important; height:calc(100dvh - 62px) !important; min-height:0 !important; background:#000 !important;
+      }
+      #playerShell:fullscreen #mainVideoPlayer, #playerShell:-webkit-full-screen #mainVideoPlayer {
+        width:100% !important; height:100% !important; max-height:none !important; object-fit:contain !important;
+      }
+      /* Yatay tam ekranda oynatma/alkış kontrollerini gizle, video şeridini ince tut. */
+      #playerShell:fullscreen > .bg-gray-800, #playerShell:-webkit-full-screen > .bg-gray-800 { display:none !important; }
+      /* Video alanına dokununca oynat/durdur; gösterge kısa süreliğine görünür. */
+      #playerShell:fullscreen #centerPlayOverlay, #playerShell:-webkit-full-screen #centerPlayOverlay {
+        display:flex !important; opacity:0 !important; background:transparent !important;
+      }
+      #playerShell:fullscreen #centerPlayOverlay > div, #playerShell:-webkit-full-screen #centerPlayOverlay > div {
+        width:54px !important; height:54px !important; font-size:22px !important; opacity:.82;
+      }
+      #playerShell:fullscreen #relatedVideosPanel, #playerShell:-webkit-full-screen #relatedVideosPanel {
+        height:62px !important; max-height:62px !important; min-height:62px !important; padding:3px 8px 4px !important; background:#000 !important; border-top:1px solid #292929 !important;
+      }
+      #playerShell:fullscreen #relatedVideosPanel h4, #playerShell:-webkit-full-screen #relatedVideosPanel h4 { display:none !important; }
+      #playerShell:fullscreen #relatedVideosPanel > div:first-child, #playerShell:-webkit-full-screen #relatedVideosPanel > div:first-child { display:none !important; }
+      #playerShell:fullscreen #relatedVideosList, #playerShell:-webkit-full-screen #relatedVideosList { height:54px !important; max-height:54px !important; gap:6px !important; padding:0 0 2px !important; align-items:center !important; }
+      #playerShell:fullscreen .related-video, #playerShell:-webkit-full-screen .related-video { flex:0 0 76px !important; width:76px !important; height:48px !important; border-width:1px !important; border-radius:5px !important; }
+      #playerShell:fullscreen .related-video img, #playerShell:-webkit-full-screen .related-video img { height:46px !important; width:100% !important; object-fit:cover !important; }
+      #playerShell:fullscreen .related-video span, #playerShell:-webkit-full-screen .related-video span { display:none !important; }
+    }
+    #closeVideoModal { display:none !important; }
+    #relatedVideosPanel { background:#11172b; border-top:1px solid rgba(255,255,255,.1); padding:10px 14px 14px; }
+    #relatedVideosList { display:flex; gap:10px; overflow-x:auto; padding:2px 2px 8px; scrollbar-width:thin; }
+    .related-video { flex:0 0 138px; width:138px; text-align:left; color:#fff; background:#202944; border:2px solid transparent; border-radius:13px; overflow:hidden; }
+    .related-video { transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease; transform-origin:center; }
+    .related-video:hover, .related-video:focus-visible, .related-video:active { transform:scale(1.09); z-index:2; box-shadow:0 8px 20px rgba(0,0,0,.38); border-color:#ffd76b; }
+    .related-video.active { border-color:#ffd76b; }
+    .related-video img { display:block; width:100%; height:78px; object-fit:cover; background:#e8f6ff; transition:transform .22s ease; }
+    .related-video:hover img, .related-video:focus-visible img { transform:scale(1.06); }
+    .related-video span { display:block; padding:7px; font-size:11px; font-weight:700; line-height:1.25; }
+    @media (max-width:640px) { #relatedVideosPanel { padding:9px 10px 12px; } .related-video { flex-basis:118px; width:118px; } .related-video img { height:67px; } }
+
+
+    /* Açılış sayfası: içerikleri biraz daha kompakt tut, tam ekran oynatıcıyı etkileme. */
+    @media (min-width: 768px) {
+      body > header .max-w-7xl, body > main .max-w-7xl, body > footer .max-w-7xl {
+        max-width: 1160px !important;
+      }
+    }
+    @media (max-width: 640px) {
+      main { padding-left: 12px !important; padding-right: 12px !important; }
+      #categoryTabs button { padding: 8px 12px !important; }
+      .video-card, #videoGrid > * { min-width: 0; }
+    }
+
+
+    /* Video ekleme/kaldırma yalnızca ebeveyn kilidi açıldığında yapılır. */
+    #addVideosHeaderBtn, #addVideosEmptyBtn, #clearAllVideosBtn { display: none !important; }
+    .video-card-delete { display: none !important; }
+
+    #parentalModal > div, #categoryEditModal > div {
+      border-radius: 28px !important;
+      box-shadow: 0 24px 70px rgba(16,28,67,.24) !important;
+    }
+
+    @media (max-width: 640px) {
+      header.sticky { padding: 9px 10px !important; }
+      header .max-w-7xl { gap: 8px !important; }
+      header .group { gap: 7px !important; }
+      header .group > div:first-child { width: 38px !important; height: 38px !important; border-radius: 13px !important; }
+      header .group > div:first-child i { font-size: 17px !important; }
+      header .group span.text-xl { font-size: 17px !important; letter-spacing: -.04em; }
+      header #searchInput { font-size: 12px !important; padding-left: 12px !important; padding-right: 30px !important; }
+      header #addVideosHeaderBtn, header #openParentalBtn { padding: 9px 10px !important; border-radius: 13px !important; }
+      header #addVideosHeaderBtn i { margin: 0 !important; }
+      main { padding: 18px 13px 24px !important; }
+      #currentCategoryTitle { font-size: 22px !important; }
+      #videoGrid { gap: 14px !important; }
+      #videoGrid > div { border-radius: 20px !important; }
+      #emptyStateView { padding: 26px 18px !important; }
+      #emptyStateView h3 { font-size: 25px !important; }
+      #videoModal { padding: 0 !important; }
+      #videoModal > div { border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+
+    /* Alt video şeridi: yatay tam ekranda 6 büyük önizleme görünür. */
+    @media (orientation: landscape) and (max-height: 600px) {
+      #playerShell:fullscreen, #playerShell:-webkit-full-screen {
+        grid-template-rows: minmax(0, 1fr) 94px !important;
+      }
+      #playerShell:fullscreen > .relative.bg-black, #playerShell:-webkit-full-screen > .relative.bg-black {
+        height: calc(100dvh - 94px) !important;
+      }
+      #playerShell:fullscreen #relatedVideosPanel, #playerShell:-webkit-full-screen #relatedVideosPanel {
+        height:94px !important; max-height:94px !important; min-height:94px !important;
+        padding:6px 8px 7px !important; overflow:hidden !important;
+      }
+      #playerShell:fullscreen #relatedVideosList, #playerShell:-webkit-full-screen #relatedVideosList {
+        height:80px !important; max-height:80px !important; gap:7px !important;
+        padding:0 1px 2px !important; align-items:stretch !important; overflow-x:auto !important;
+      }
+      #playerShell:fullscreen .related-video, #playerShell:-webkit-full-screen .related-video {
+        flex:0 0 calc((100vw - 57px) / 6) !important; width:calc((100vw - 57px) / 6) !important;
+        min-width:calc((100vw - 57px) / 6) !important; height:74px !important;
+        border-width:2px !important; border-radius:7px !important;
+      }
+      #playerShell:fullscreen .related-video img, #playerShell:-webkit-full-screen .related-video img {
+        height:70px !important; width:100% !important; object-fit:cover !important;
+      }
+      #playerShell:fullscreen .related-video span, #playerShell:-webkit-full-screen .related-video span { display:none !important; }
+      #playerShell.show-related-expanded:fullscreen, #playerShell.show-related-expanded:-webkit-full-screen {
+        grid-template-rows:minmax(0, 1fr) 118px !important;
+      }
+      #playerShell.show-related-expanded:fullscreen > .relative.bg-black, #playerShell.show-related-expanded:-webkit-full-screen > .relative.bg-black {
+        height:calc(100dvh - 118px) !important;
+      }
+      #playerShell.show-related-expanded:fullscreen #relatedVideosPanel, #playerShell.show-related-expanded:-webkit-full-screen #relatedVideosPanel {
+        height:118px !important; max-height:118px !important; min-height:118px !important; padding:8px !important;
+      }
+      #playerShell.show-related-expanded:fullscreen #relatedVideosList, #playerShell.show-related-expanded:-webkit-full-screen #relatedVideosList {
+        height:98px !important; max-height:98px !important;
+      }
+      #playerShell.show-related-expanded:fullscreen .related-video, #playerShell.show-related-expanded:-webkit-full-screen .related-video {
+        height:92px !important;
+      }
+      #playerShell.show-related-expanded:fullscreen .related-video img, #playerShell.show-related-expanded:-webkit-full-screen .related-video img {
+        height:88px !important;
+      }
+    }
+    @media (orientation: landscape) and (max-height: 600px) {
+      #playerShell.related-hidden:fullscreen, #playerShell.related-hidden:-webkit-full-screen {
+        grid-template-rows:minmax(0, 1fr) 0 !important;
+      }
+      #playerShell.related-hidden:fullscreen > .relative.bg-black,
+      #playerShell.related-hidden:-webkit-full-screen > .relative.bg-black {
+        height:100dvh !important;
+      }
+      #playerShell.related-hidden:fullscreen #relatedVideosPanel,
+      #playerShell.related-hidden:-webkit-full-screen #relatedVideosPanel { display:none !important; }
+    }
+    @media (orientation: portrait) {
+      #relatedVideosPanel .related-video { flex-basis:150px; width:150px; }
+      #relatedVideosPanel .related-video img { height:86px; }
+    }
+  </style>
+</head>
+<body class="text-gray-800 min-h-screen flex flex-col select-none overflow-x-hidden">
+
+  <!-- HIDDEN FILE INPUT -->
+  <input type="file" id="videoFileInput" accept="video/*,.mp4,.webm,.ogg,.ogv,.mov,.m4v,.avi,.mkv,.3gp,.mpeg,.mpg" multiple class="hidden">
+  <input type="file" id="videoFolderInput" accept="video/*,.mp4,.webm,.ogg,.ogv,.mov,.m4v,.avi,.mkv,.3gp,.mpeg,.mpg" webkitdirectory directory multiple class="hidden">
+
+  <!-- TOP NAVIGATION HEADER -->
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b-4 border-ytk-yellow px-3 sm:px-6 py-2.5 shadow-md">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
+      
+      <!-- LOGO -->
+      <div class="flex items-center gap-2 group cursor-pointer" onclick="resetSearchAndFilter()">
+        <div class="w-11 h-11 sm:w-13 sm:h-13 bg-ytk-red rounded-2xl flex items-center justify-center transform group-hover:rotate-6 transition-transform shadow-bouncy-sm border-2 border-white">
+          <i class="fa-solid fa-folder-closed text-white text-xl sm:text-2xl"></i>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-xl sm:text-2xl font-black tracking-wider text-ytk-red leading-none flex items-center gap-1">
+            Çocuk<span class="bg-ytk-blue text-white text-xs px-2 py-0.5 rounded-full uppercase">Tüpü</span>
+          </span>
+          <span class="text-[11px] font-mali font-bold text-ytk-purple hidden sm:block">Telefonundaki Eğlence Dünyası</span>
+        </div>
+      </div>
+
+      <!-- SEARCH BAR -->
+      <div class="flex-1 max-w-md mx-2">
+        <div class="relative flex items-center">
+          <input 
+            type="text" 
+            id="searchInput"
+            placeholder="Kendi videolarında ara..." 
+            class="w-full bg-yellow-50 border-3 border-ytk-yellow focus:border-ytk-blue rounded-full py-2 pl-4 pr-10 text-sm font-bold placeholder-yellow-600/60 focus:outline-none shadow-inner"
+          />
+          <button id="clearSearchBtn" class="hidden absolute right-3 text-gray-400 hover:text-ytk-red font-bold">
+            <i class="fa-solid fa-circle-xmark text-lg"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- PARENTAL CONTROLS & ADD VIDEO BUTTON -->
+      <div class="flex items-center gap-2">
+        
+        <!-- Add Video Button -->
+        <button id="addVideosHeaderBtn" class="flex items-center gap-2 bg-ytk-green hover:bg-emerald-500 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl shadow-bouncy-sm transition active:translate-y-1 font-black text-xs sm:text-sm border-2 border-white">
+          <i class="fa-solid fa-file-video text-base"></i>
+          <span class="hidden sm:inline">Video Ekle</span>
+        </button>
+
+        <!-- Parent Lock Button -->
+        <button id="openParentalBtn" class="flex items-center gap-1.5 bg-ytk-orange hover:bg-amber-600 text-white p-2.5 sm:px-3.5 sm:py-2.5 rounded-2xl shadow-bouncy-sm transition active:translate-y-1 font-bold text-xs sm:text-sm border-2 border-white" title="Anne Baba Alanı">
+          <i class="fa-solid fa-shield-cat text-lg"></i>
+          <span class="hidden md:inline">Ebeveyn</span>
+        </button>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- CATEGORY TABS BANNER -->
+  <section class="bg-gradient-to-r from-yellow-200 via-orange-100 to-pink-100 py-2.5 px-4 shadow-inner border-b-2 border-orange-200 overflow-x-auto no-scrollbar">
+    <div id="categoryTabs" class="max-w-7xl mx-auto flex items-center justify-start md:justify-center gap-2.5 min-w-max px-2">
+      <!-- Injected by JS -->
+    </div>
+  </section>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
+    
+    <!-- Top Status Bar -->
+    <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center gap-3">
+        <div id="categoryIconBadge" class="w-10 h-10 rounded-2xl bg-ytk-blue text-white flex items-center justify-center text-xl shadow-bouncy-sm">
+          <i class="fa-solid fa-shapes"></i>
+        </div>
+        <div>
+          <h2 id="currentCategoryTitle" class="text-2xl sm:text-3xl font-black text-gray-800 tracking-wide">
+            Tüm Videolarım
+          </h2>
+          <p id="videoCountLabel" class="text-xs font-bold text-gray-500">0 video kayıtlı</p>
+        </div>
+      </div>
+
+      <!-- Quick Storage Clean / Clear All -->
+      <button id="clearAllVideosBtn" class="hidden text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-xl border border-red-200">
+        <i class="fa-solid fa-trash-can mr-1"></i> Tümünü Kaldır
+      </button>
+    </div>
+
+    <!-- EMPTY STATE VIEW (When no videos added yet) -->
+    <div id="emptyStateView" class="flex flex-col items-center justify-center py-12 px-4 text-center max-w-xl mx-auto bg-white/80 backdrop-blur-sm rounded-3xl border-4 border-dashed border-ytk-yellow shadow-xl p-8 my-4 pop-in">
+      <div class="w-28 h-28 bg-yellow-100 text-ytk-orange rounded-full flex items-center justify-center text-6xl mb-4 shadow-inner animate-bounce-subtle border-4 border-white">
+        🎬
+      </div>
+      <h3 class="text-2xl sm:text-3xl font-black text-gray-800 mb-2">Henüz Hiç Video Yok!</h3>
+      <p class="text-gray-600 font-bold text-sm sm:text-base mb-6 leading-relaxed">
+        Video eklemek için <strong>Ebeveyn</strong> bölümünü açıp matematik kilidini yanıtlayın.
+      </p>
+      
+      <button id="addVideosEmptyBtn" class="bg-ytk-red hover:bg-red-600 text-white font-black px-8 py-4 rounded-3xl shadow-bouncy text-lg sm:text-xl transition transform hover:scale-105 active:scale-95 border-4 border-white flex items-center gap-3">
+        <i class="fa-solid fa-plus-circle text-2xl"></i>
+        <span>Telefondan Video Seç</span>
+      </button>
+      
+      <span class="text-xs text-gray-400 font-bold mt-4">
+        🔒 Videolarınız internete yüklenmez, sadece bu cihazda güvenle saklanır.
+      </span>
+    </div>
+
+    <!-- VIDEO CARDS GRID CONTAINER -->
+    <div id="videoGrid" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <!-- Cards injected by JS -->
+    </div>
+
+    <!-- NO SEARCH RESULTS VIEW -->
+    <div id="noResultsView" class="hidden flex-col items-center justify-center py-16 text-center">
+      <div class="w-20 h-20 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center text-4xl mb-3">
+        🔎
+      </div>
+      <h3 class="text-xl font-black text-gray-700 mb-1">Aradığınız video bulunamadı</h3>
+      <p class="text-xs font-bold text-gray-400 mb-4">Farklı bir arama kelimesi deneyin.</p>
+      <button onclick="resetSearchAndFilter()" class="bg-ytk-blue text-white font-bold px-5 py-2.5 rounded-2xl shadow-bouncy text-sm">
+        Tüm Videoları Göster 🚀
+      </button>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-white border-t-4 border-ytk-blue py-5 px-4 text-center mt-auto">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-gray-500 text-xs font-bold">
+      <div class="flex items-center gap-2">
+        <span class="text-xl">📱</span>
+        <span>%100 İnternetsiz & Çevrimdışı Çalışan Yerel Çocuk Video Oynatıcısı</span>
+      </div>
+      <div class="text-gray-400 font-mali">
+        Güvenli • İnternetsiz • Reklamsız
+      </div>
+    </div>
+  </footer>
+
+  <!-- 1. CUSTOM CHILD-FRIENDLY VIDEO PLAYER MODAL -->
+  <div id="videoModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden flex-col items-center justify-center p-0 sm:p-4">
+    <div id="playerShell" class="bg-gray-900 w-full sm:max-w-5xl sm:rounded-3xl border-0 sm:border-8 border-ytk-yellow overflow-hidden shadow-2xl flex flex-col h-full sm:h-auto max-h-full sm:max-h-[92vh] relative pop-in">
+      
+      <!-- Video Player Top Control Header -->
+      <div class="bg-ytk-yellow px-4 py-2.5 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2 overflow-hidden">
+          <span class="bg-ytk-red text-white font-black text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full uppercase shrink-0">Oynatılıyor</span>
+          <h3 id="playerVideoTitle" class="font-black text-gray-800 text-xs sm:text-sm truncate">Video Başlığı</h3>
+        </div>
+        <button id="closeVideoModal" class="bg-ytk-red hover:bg-red-600 text-white w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold shadow-bouncy-sm shrink-0">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- VIDEO TAG CONTAINER -->
+      <div class="relative flex-1 bg-black flex items-center justify-center overflow-hidden group">
+        <video 
+          id="mainVideoPlayer" 
+          class="w-full h-full object-contain max-h-[60vh] sm:max-h-[65vh]"
+          playsinline
+        ></video>
+
+        <!-- Floating Particles Target Area -->
+        <div id="emojiParticleContainer" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
+
+        <!-- Touch Screen Center Play/Pause Indicator Overlay -->
+        <button id="centerPlayOverlay" class="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div class="w-20 h-20 bg-ytk-red/90 text-white rounded-full flex items-center justify-center text-3xl border-4 border-white shadow-2xl transform active:scale-90 transition">
+            <i id="centerPlayIcon" class="fa-solid fa-play ml-1"></i>
+          </div>
+        </button>
+        <!-- Yatay tam ekranda görünen zaman ve ileri/geri alma kontrolleri -->
+        <div id="landscapeSeekControls" aria-label="Video zaman kontrolleri">
+          <button type="button" id="seekBack10" aria-label="10 saniye geri" title="10 saniye geri">−10</button>
+          <span id="landscapeCurrentTime">00:00</span>
+          <input type="range" id="landscapeProgressSlider" min="0" max="100" value="0" aria-label="Video zamanı">
+          <span id="landscapeDurationTime">00:00</span>
+          <button type="button" id="seekForward10" aria-label="10 saniye ileri" title="10 saniye ileri">+10</button>
+        </div>
+      </div>
+
+      <!-- PLAYER CONTROLS & EMOJI BAR -->
+      <div class="bg-gray-800 p-3 sm:p-4 shrink-0 flex flex-col gap-3">
+        
+        <!-- Video Progress Bar -->
+        <div class="flex items-center gap-3">
+          <span id="currentTimeText" class="text-xs font-bold text-gray-300 w-10 text-right">00:00</span>
+          <input 
+            type="range" 
+            id="videoProgressSlider" 
+            min="0" 
+            max="100" 
+            value="0" 
+            class="flex-1 h-3 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-ytk-red"
+          >
+          <span id="durationTimeText" class="text-xs font-bold text-gray-300 w-10">00:00</span>
+        </div>
+
+        <!-- Controls Row -->
+        <div class="flex items-center justify-between gap-2">
+          
+          <!-- Playback Controls -->
+          <div class="flex items-center gap-2">
+            <button id="playPauseBtn" class="w-11 h-11 bg-ytk-red hover:bg-red-500 text-white rounded-2xl flex items-center justify-center text-lg shadow-bouncy-sm">
+              <i class="fa-solid fa-play"></i>
+            </button>
+            <button id="replayBtn" class="w-10 h-10 bg-gray-700 hover:bg-gray-600 text-white rounded-2xl flex items-center justify-center text-sm">
+              <i class="fa-solid fa-rotate-left"></i>
+            </button>
+            <button id="fullscreenBtn" class="w-10 h-10 bg-gray-700 hover:bg-gray-600 text-white rounded-2xl flex items-center justify-center text-sm">
+              <i class="fa-solid fa-expand"></i>
+            </button>
+          </div>
+
+          <!-- EMOJI REACTION BUTTONS FOR KIDS -->
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <button onclick="spawnEmojiParticle('❤️')" class="bg-gray-700 hover:bg-gray-600 p-2 sm:px-3 sm:py-2 rounded-2xl text-xl sm:text-2xl transition transform hover:scale-125 active:scale-95">
+              ❤️
+            </button>
+            <button onclick="spawnEmojiParticle('😀')" class="bg-gray-700 hover:bg-gray-600 p-2 sm:px-3 sm:py-2 rounded-2xl text-xl sm:text-2xl transition transform hover:scale-125 active:scale-95">
+              😀
+            </button>
+            <button onclick="spawnEmojiParticle('👏')" class="bg-gray-700 hover:bg-gray-600 p-2 sm:px-3 sm:py-2 rounded-2xl text-xl sm:text-2xl transition transform hover:scale-125 active:scale-95">
+              👏
+            </button>
+            <button onclick="spawnEmojiParticle('🎉')" class="bg-gray-700 hover:bg-gray-600 p-2 sm:px-3 sm:py-2 rounded-2xl text-xl sm:text-2xl transition transform hover:scale-125 active:scale-95">
+              🎉
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+      <section id="relatedVideosPanel">
+        <div class="flex items-center justify-between gap-2 mb-2">
+          <h4 class="text-white font-black text-sm">🎬 Diğer Videolar</h4>
+          <span class="text-xs text-gray-400">İzlerken seçebilirsin</span>
+        </div>
+        <div id="relatedVideosList"></div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- 2. PARENTAL LOCK / MATH GATE MODAL -->
+  <div id="parentalModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl border-8 border-ytk-orange max-w-md w-full p-6 shadow-2xl pop-in relative text-center">
+      
+      <button id="closeParentalModal" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-xl font-bold w-8 h-8 rounded-full flex items-center justify-center">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <!-- Gate Challenge -->
+      <div id="mathGateSection" class="space-y-4">
+        <div class="w-16 h-16 bg-orange-100 text-ytk-orange rounded-full flex items-center justify-center text-3xl mx-auto shadow-inner">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+        <h3 class="text-2xl font-black text-gray-800">Ebeveyn Kilidi</h3>
+        <p class="text-sm font-bold text-gray-500">Video eklemek veya ayarları değiştirmek için matematik sorusunu yanıtlayın:</p>
+        
+        <div class="bg-orange-50 border-2 border-orange-200 p-3.5 rounded-2xl">
+          <span id="mathQuestionText" class="text-3xl font-black text-ytk-orange tracking-widest">3 x 4 = ?</span>
+        </div>
+
+        <input 
+          type="number" 
+          id="mathAnswerInput" 
+          placeholder="Cevap" 
+          class="w-full text-center text-2xl font-black bg-gray-100 border-2 border-gray-300 rounded-2xl py-2 focus:border-ytk-orange focus:outline-none"
+        />
+
+        <div id="mathErrorMsg" class="hidden text-xs font-bold text-ytk-red">Yanlış cevap! Tekrar deneyin.</div>
+
+        <button id="submitMathGateBtn" class="w-full bg-ytk-orange hover:bg-amber-600 text-white font-black py-3 rounded-2xl shadow-bouncy transition transform active:scale-95 text-base">
+          Kilidi Aç 🔓
+        </button>
+      </div>
+
+      <!-- Unlocked Parent Tools -->
+      <div id="parentalToolsSection" class="hidden space-y-4 text-left">
+        <div class="text-center pb-2 border-b">
+          <span class="text-xs font-black text-green-600 uppercase tracking-wider bg-green-100 px-3 py-1 rounded-full">Ebeveyn Modu Açık</span>
+          <h3 class="text-xl font-black text-gray-800 mt-2">Video Yönetimi</h3>
+        </div>
+
+        <button id="parentAddVideoBtn" class="w-full bg-ytk-green hover:bg-emerald-600 text-white font-black py-3 rounded-2xl shadow-bouncy flex items-center justify-center gap-2 text-base">
+          <i class="fa-solid fa-plus-circle text-xl"></i>
+          <span>Cihazdan Video Ekle</span>
+        </button>
+        <button id="parentAddFolderBtn" class="w-full bg-ytk-blue hover:bg-blue-600 text-white font-black py-3 rounded-2xl shadow-bouncy flex items-center justify-center gap-2 text-base">
+          <i class="fa-solid fa-folder-open text-xl"></i>
+          <span>Klasörden Video Ekle</span>
+        </button>
+        <p class="text-xs text-gray-500 text-center">Klasör seçildiğinde içindeki video dosyaları kitaplığa eklenir. Tarayıcı klasörün tamamını seçmenizi isteyebilir.</p>
+
+        <div class="pt-2">
+          <h4 class="font-black text-gray-700 text-sm mb-2">Kayıtlı Videolar</h4>
+          <div id="parentVideoManagementList" class="max-h-52 overflow-y-auto space-y-2">
+            <p class="text-xs text-gray-400">Videolar yükleniyor…</p>
+          </div>
+        </div>
+
+        <button id="parentClearDbBtn" class="w-full bg-ytk-red hover:bg-red-600 text-white font-bold py-2.5 rounded-2xl text-xs flex items-center justify-center gap-2">
+          <i class="fa-solid fa-trash"></i>
+          <span>Tüm Kitaplığı Temizle</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- EDIT CATEGORY MODAL FOR A VIDEO -->
+  <div id="categoryEditModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl border-4 border-ytk-blue max-w-sm w-full p-5 shadow-2xl pop-in text-center space-y-4">
+      <h3 class="text-xl font-black text-gray-800">Kategori Değiştir</h3>
+      <p id="editVideoTitle" class="text-xs font-bold text-gray-500 truncate">Video Adı</p>
+      
+      <div id="categoryRadioGroup" class="grid grid-cols-2 gap-2 text-left">
+        <!-- Radio buttons injected by JS -->
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button id="cancelCategoryEditBtn" class="flex-1 bg-gray-200 text-gray-700 font-bold py-2 rounded-xl text-xs">İptal</button>
+        <button id="saveCategoryEditBtn" class="flex-1 bg-ytk-blue text-white font-bold py-2 rounded-xl text-xs">Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT & INDEXEDDB LOGIC -->
+  <script>
+    // CATEGORIES DATA
+    const categoriesData = [
+      { id: 'all', label: 'Tüm Videolar', icon: 'fa-shapes', color: 'bg-ytk-blue' },
+      { id: 'cartoons', label: 'Çizgi Filmler', icon: 'fa-tv', color: 'bg-ytk-red' },
+      { id: 'music', label: 'Şarkılar & Müzik', icon: 'fa-music', color: 'bg-ytk-yellow' },
+      { id: 'fun', label: 'Eğlence & Oyun', icon: 'fa-gamepad', color: 'bg-ytk-purple' },
+      { id: 'learning', label: 'Öğreniyorum', icon: 'fa-lightbulb', color: 'bg-ytk-green' }
+    ];
+
+    // APP STATE
+    let db = null;
+    let localVideosList = [];
+    let currentCategory = 'all';
+    let activeVideoRecord = null;
+    let activeVideoUrl = null;
+    let editingVideoId = null;
+    const thumbnailCache = new Map();
+
+    // Math Gate Challenge state
+    let mathAns = 0;
+
+    // DOM ELEMENTS
+    const fileInput = document.getElementById('videoFileInput');
+    const emptyStateView = document.getElementById('emptyStateView');
+    const videoGrid = document.getElementById('videoGrid');
+    const noResultsView = document.getElementById('noResultsView');
+    const categoryTabs = document.getElementById('categoryTabs');
+    const searchInput = document.getElementById('searchInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    const videoCountLabel = document.getElementById('videoCountLabel');
+    const clearAllVideosBtn = document.getElementById('clearAllVideosBtn');
+
+    // Video Player DOM Elements
+    const videoModal = document.getElementById('videoModal');
+    const closeModalBtn = document.getElementById('closeVideoModal');
+    const mainVideoPlayer = document.getElementById('mainVideoPlayer');
+    const playerVideoTitle = document.getElementById('playerVideoTitle');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const replayBtn = document.getElementById('replayBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const videoProgressSlider = document.getElementById('videoProgressSlider');
+    const currentTimeText = document.getElementById('currentTimeText');
+    const durationTimeText = document.getElementById('durationTimeText');
+    const centerPlayOverlay = document.getElementById('centerPlayOverlay');
+    const centerPlayIcon = document.getElementById('centerPlayIcon');
+    const emojiParticleContainer = document.getElementById('emojiParticleContainer');
+
+    // Parental Control Elements
+    const parentalModal = document.getElementById('parentalModal');
+    const openParentalBtn = document.getElementById('openParentalBtn');
+    const closeParentalModal = document.getElementById('closeParentalModal');
+    const mathGateSection = document.getElementById('mathGateSection');
+    const parentalToolsSection = document.getElementById('parentalToolsSection');
+    const mathQuestionText = document.getElementById('mathQuestionText');
+    const mathAnswerInput = document.getElementById('mathAnswerInput');
+    const submitMathGateBtn = document.getElementById('submitMathGateBtn');
+    const mathErrorMsg = document.getElementById('mathErrorMsg');
+
+    // Ekleme işlemleri yalnızca matematik kilidi açılmış ebeveyn bölümünden başlatılır.
+    const folderInput = document.getElementById('videoFolderInput');
+    document.getElementById('parentAddVideoBtn').addEventListener('click', () => {
+      parentalModal.classList.add('hidden');
+      triggerFileSelect();
+    });
+    document.getElementById('parentAddFolderBtn').addEventListener('click', () => {
+      parentalModal.classList.add('hidden');
+      folderInput.click();
+    });
+
+    function triggerFileSelect() {
+      fileInput.click();
+    }
+
+    const VIDEO_EXTENSION_RE = /\.(mp4|webm|ogg|ogv|mov|m4v|avi|mkv|3gp|mpeg|mpg)$/i;
+
+    function isSupportedVideoFile(file) {
+      if (!file || !file.name) return false;
+      const mime = String(file.type || '').toLowerCase();
+      return mime.startsWith('video/') || VIDEO_EXTENSION_RE.test(file.name);
+    }
+
+    function makeVideoId() {
+      if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+        return 'vid_' + window.crypto.randomUUID();
+      }
+      return 'vid_' + Date.now().toString(36) + '_' +
+        Math.random().toString(36).slice(2) + '_' +
+        Math.random().toString(36).slice(2);
+    }
+
+    function getVideoFolderPath(file) {
+      const relative = String(file.webkitRelativePath || file.name || '');
+      const parts = relative.split('/').filter(Boolean);
+      return parts.length > 1 ? parts.slice(0, -1).join('/') : '';
+    }
+
+    async function importVideoFiles(fileList, inputElement) {
+      const selectedFiles = Array.from(fileList || []);
+      const files = selectedFiles.filter(isSupportedVideoFile);
+
+      if (!db) {
+        alert('Video kitaplığı henüz hazır değil. Birkaç saniye sonra tekrar deneyin.');
+        if (inputElement) inputElement.value = '';
+        return;
+      }
+
+      if (!selectedFiles.length) {
+        if (inputElement) inputElement.value = '';
+        return;
+      }
+
+      if (!files.length) {
+        alert('Seçiminizde desteklenen video dosyası bulunamadı.');
+        if (inputElement) inputElement.value = '';
+        return;
+      }
+
+      const existingKeys = new Set(
+        localVideosList.map(v => [
+          String(v.title || ''),
+          Number(v.size || 0),
+          Number(v.lastModified || 0),
+          String(v.sourceFolder || '')
+        ].join('|'))
+      );
+
+      let added = 0;
+      let skipped = 0;
+      let failed = 0;
+      let totalBytes = 0;
+
+      try {
+        for (const file of files) {
+          const sourceFolder = getVideoFolderPath(file);
+          const title = file.name.replace(/\.[^/.]+$/, '') || file.name;
+          const duplicateKey = [
+            title, Number(file.size || 0), Number(file.lastModified || 0), sourceFolder
+          ].join('|');
+
+          if (existingKeys.has(duplicateKey)) {
+            skipped++;
+            continue;
+          }
+
+          const videoRecord = {
+            id: makeVideoId(),
+            title,
+            fileBlob: file,
+            category: 'cartoons',
+            size: Number(file.size || 0),
+            lastModified: Number(file.lastModified || 0),
+            mimeType: String(file.type || ''),
+            addedDate: new Date().toISOString(),
+            sourceFolder
+          };
+
+          try {
+            await saveVideoToDB(videoRecord);
+            existingKeys.add(duplicateKey);
+            added++;
+            totalBytes += videoRecord.size;
+          } catch (error) {
+            failed++;
+            console.error('Video kaydedilemedi:', file.name, error);
+            // Quota dolduysa kalan dosyaları denemek kullanıcıya ek fayda sağlamaz.
+            if (error && (error.name === 'QuotaExceededError' ||
+                          (error.message && /quota|storage/i.test(error.message)))) {
+              break;
+            }
+          }
+        }
+      } finally {
+        if (inputElement) inputElement.value = '';
+        await loadVideosFromDB();
+      }
+
+      const sizeMB = (totalBytes / (1024 * 1024)).toFixed(1);
+      let message = `İçe aktarma tamamlandı.\\n\\nBaşarıyla eklenen: ${added}\\nZaten kayıtlı olduğu için atlanan: ${skipped}\\nKaydedilemeyen: ${failed}\\nToplam boyut: ${sizeMB} MB`;
+      if (failed) {
+        message += '\\n\\nDepolama alanı dolmuş olabilir. Cihazda boş alan açıp tekrar deneyin.';
+      }
+      alert(message);
+    }
+
+    // INDEXEDDB SETUP
+    function initIndexedDB() {
+      if (!('indexedDB' in window)) {
+        alert('Bu tarayıcı yerel video kitaplığını desteklemiyor. Güncel Chrome veya Edge kullanın.');
+        return;
+      }
+
+      let request;
+      try {
+        request = indexedDB.open('KidsLocalVideoTubeDB', 1);
+      } catch (error) {
+        console.error('IndexedDB açılamadı:', error);
+        alert('Video kitaplığı açılamadı. Tarayıcı depolama izinlerini kontrol edin.');
+        return;
+      }
+
+      request.onupgradeneeded = function(e) {
+        const database = e.target.result;
+        if (!database.objectStoreNames.contains('videos')) {
+          const store = database.createObjectStore('videos', { keyPath: 'id' });
+          store.createIndex('category', 'category', { unique: false });
+        }
+      };
+
+      request.onsuccess = function(e) {
+        db = e.target.result;
+        db.onversionchange = () => {
+          db.close();
+          db = null;
+          alert('Video kitaplığı başka bir sekmede güncellendi. Sayfayı yenileyin.');
+        };
+        loadVideosFromDB();
+      };
+
+      request.onerror = function(e) {
+        console.error('IndexedDB hatası:', request.error || e);
+        alert('Video kitaplığı açılırken hata oluştu: ' +
+          ((request.error && request.error.message) || 'Depolama erişimi reddedildi.'));
+      };
+
+      request.onblocked = function() {
+        alert('Video kitaplığı başka bir sekmede açık. Diğer sekmeyi kapatıp tekrar deneyin.');
+      };
+    }
+
+    // Dosya veya klasör seçimi aynı güvenli içe aktarma akışını kullanır.
+    fileInput.addEventListener('change', e => importVideoFiles(e.target.files, fileInput));
+    folderInput.addEventListener('change', e => importVideoFiles(e.target.files, folderInput));
+
+    function saveVideoToDB(videoRecord) {
+      return new Promise((resolve, reject) => {
+        if (!db) {
+          reject(new Error('Video kitaplığı hazır değil.'));
+          return;
+        }
+
+        let tx;
+        try {
+          tx = db.transaction(['videos'], 'readwrite');
+          tx.objectStore('videos').put(videoRecord);
+        } catch (error) {
+          reject(error);
+          return;
+        }
+
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error || new Error('Kayıt işlemi başarısız.'));
+        tx.onabort = () => reject(tx.error || new Error('Kayıt işlemi iptal edildi.'));
+      });
+    }
+
+    function loadVideosFromDB() {
+      return new Promise((resolve, reject) => {
+        if (!db) {
+          resolve([]);
+          return;
+        }
+
+        let tx;
+        let req;
+        try {
+          tx = db.transaction(['videos'], 'readonly');
+          req = tx.objectStore('videos').getAll();
+        } catch (error) {
+          console.error('Video listesi okunamadı:', error);
+          reject(error);
+          return;
+        }
+
+        req.onsuccess = () => {
+          localVideosList = (req.result || []).filter(v => v && v.id && v.fileBlob);
+          renderCategoryTabs();
+          renderVideoGrid();
+          renderParentVideoManagement();
+        };
+        req.onerror = () => {
+          console.error('Video listesi okunamadı:', req.error || tx.error);
+          reject(req.error || tx.error || new Error('Video listesi okunamadı.'));
+        };
+        tx.onabort = () => reject(tx.error || new Error('Listeleme işlemi iptal edildi.'));
+        tx.oncomplete = () => resolve(localVideosList);
+      });
+    }
+
+    // RENDER CATEGORY TABS
+    function renderCategoryTabs() {
+      categoryTabs.innerHTML = categoriesData.map(cat => `
+        <button 
+          onclick="selectCategory('${cat.id}')"
+          class="flex items-center gap-2 px-4 py-2 rounded-2xl font-black text-xs sm:text-sm transition transform hover:scale-105 active:scale-95 shadow-bouncy-sm ${
+            currentCategory === cat.id 
+              ? 'bg-gray-900 text-white ring-4 ring-yellow-400' 
+              : 'bg-white text-gray-700 hover:bg-yellow-50'
+          }"
+        >
+          <span class="w-6 h-6 rounded-xl ${cat.color} text-white flex items-center justify-center text-[10px]">
+            <i class="fa-solid ${cat.icon}"></i>
+          </span>
+          <span>${cat.label}</span>
+        </button>
+      `).join('');
+    }
+
+    function selectCategory(catId) {
+      currentCategory = catId;
+      const catObj = categoriesData.find(c => c.id === catId);
+      if (catObj) {
+        document.getElementById('currentCategoryTitle').textContent = catObj.label;
+        document.getElementById('categoryIconBadge').className = `w-10 h-10 rounded-2xl ${catObj.color} text-white flex items-center justify-center text-xl shadow-bouncy-sm`;
+        document.getElementById('categoryIconBadge').innerHTML = `<i class="fa-solid ${catObj.icon}"></i>`;
+      }
+      renderCategoryTabs();
+      renderVideoGrid();
+    }
+
+    // RENDER MAIN VIDEO GRID
+    function renderVideoGrid() {
+      if (localVideosList.length === 0) {
+        emptyStateView.classList.remove('hidden');
+        videoGrid.classList.add('hidden');
+        noResultsView.classList.add('hidden');
+        clearAllVideosBtn.classList.add('hidden');
+        videoCountLabel.textContent = '0 video var';
+        return;
+      }
+
+      emptyStateView.classList.add('hidden');
+      clearAllVideosBtn.classList.remove('hidden');
+
+      // Filter logic
+      let filtered = localVideosList;
+
+      if (currentCategory !== 'all') {
+        filtered = filtered.filter(v => v.category === currentCategory);
+      }
+
+      const q = searchInput.value.trim().toLowerCase();
+      if (q) {
+        filtered = filtered.filter(v => v.title.toLowerCase().includes(q));
+      }
+
+      videoCountLabel.textContent = `${filtered.length} video gösteriliyor`;
+
+      if (filtered.length === 0) {
+        videoGrid.classList.add('hidden');
+        noResultsView.classList.remove('hidden');
+        noResultsView.classList.add('flex');
+        return;
+      }
+
+      noResultsView.classList.add('hidden');
+      noResultsView.classList.remove('flex');
+      videoGrid.classList.remove('hidden');
+
+      const colorBorders = ['border-ytk-red', 'border-ytk-blue', 'border-ytk-yellow', 'border-ytk-green', 'border-ytk-purple', 'border-ytk-orange'];
+
+      videoGrid.innerHTML = filtered.map((vid, idx) => {
+        const borderColor = colorBorders[idx % colorBorders.length];
+        const catObj = categoriesData.find(c => c.id === vid.category) || categoriesData[1];
+
+        return `
+          <div class="bg-white rounded-3xl overflow-hidden border-4 ${borderColor} shadow-bouncy hover:shadow-card-hover transition transform hover:-translate-y-1 cursor-pointer flex flex-col group pop-in relative">
+            
+            <!-- Category Edit Button -->
+            <button 
+              onclick="event.stopPropagation(); openCategoryModal('${vid.id}')" 
+              class="absolute top-2 right-2 z-10 bg-white/90 hover:bg-white text-gray-700 w-8 h-8 rounded-full flex items-center justify-center text-xs shadow-md border border-gray-200"
+              title="Kategoriyi Değiştir"
+            >
+              <i class="fa-solid fa-pen"></i>
+            </button>
+
+            <!-- Thumbnail Container -->
+            <div onclick="playLocalVideo('${vid.id}')" class="relative aspect-video bg-gradient-to-br from-yellow-100 to-orange-100 flex items-center justify-center overflow-hidden">
+              <div class="absolute inset-0 flex items-center justify-center thumbnail-placeholder"><i class="fa-solid fa-film text-6xl text-yellow-300 group-hover:scale-110 transition"></i></div>
+              <img class="video-thumb hidden" data-video-id="${vid.id}" alt="${vid.title.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}" />
+              
+              <!-- Play Button Overlay -->
+              <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition flex items-center justify-center">
+                <div class="w-14 h-14 bg-ytk-red text-white rounded-full flex items-center justify-center text-2xl shadow-lg border-2 border-white transform group-hover:scale-125 transition">
+                  <i class="fa-solid fa-play ml-1"></i>
+                </div>
+              </div>
+
+              <span class="absolute bottom-2 left-2 bg-black/60 text-white font-bold text-[10px] px-2 py-0.5 rounded-full">
+                Yerel Video
+              </span>
+            </div>
+
+            <!-- Details -->
+            <div onclick="playLocalVideo('${vid.id}')" class="p-3.5 flex-1 flex flex-col justify-between bg-gradient-to-b from-white to-amber-50/40">
+              <h3 class="font-black text-gray-800 text-sm leading-snug line-clamp-2 group-hover:text-ytk-red transition">
+                ${vid.title}
+              </h3>
+
+              <div class="mt-3 flex items-center justify-between text-xs font-bold text-gray-400">
+                <span class="bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full text-[10px] flex items-center gap-1">
+                  <i class="fa-solid ${catObj.icon}"></i> ${catObj.label}
+                </span>
+                <button 
+                  onclick="event.stopPropagation(); deleteVideoFromDB('${vid.id}')" 
+                  class="video-card-delete text-red-400 hover:text-red-600 p-1"
+                  title="Videoyu Sil"
+                >
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+      filtered.forEach(vid => loadVideoThumbnail(vid));
+    }
+
+    // Create a real preview frame from each local video, without uploading it.
+    function loadVideoThumbnail(vid) {
+      if (!vid || thumbnailCache.has(vid.id)) {
+        const cached = vid && thumbnailCache.get(vid.id);
+        if (cached) applyThumbnail(vid.id, cached);
+        return;
+      }
+      if (!vid.fileBlob) return;
+      const url = URL.createObjectURL(vid.fileBlob);
+      const probe = document.createElement('video');
+      probe.muted = true; probe.preload = 'metadata'; probe.playsInline = true;
+      let finished = false;
+      const cleanup = () => { if (finished) return; finished = true; probe.removeAttribute('src'); probe.load(); URL.revokeObjectURL(url); };
+      probe.addEventListener('loadeddata', () => {
+        try {
+          if (probe.duration > 1) probe.currentTime = Math.min(1, probe.duration * 0.1);
+          else capture();
+        } catch (_) { capture(); }
+      }, { once:true });
+      const capture = () => {
+        if (finished) return;
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = probe.videoWidth || 320; canvas.height = probe.videoHeight || 180;
+          const ctx = canvas.getContext('2d'); ctx.drawImage(probe, 0, 0, canvas.width, canvas.height);
+          const data = canvas.toDataURL('image/jpeg', .72);
+          thumbnailCache.set(vid.id, data); applyThumbnail(vid.id, data);
+        } catch (_) { /* Keep the illustrated fallback if a format cannot make a preview. */ }
+        cleanup();
+      };
+      probe.addEventListener('seeked', capture, { once:true });
+      probe.addEventListener('error', cleanup, { once:true });
+      probe.src = url;
+    }
+    function applyThumbnail(id, data) {
+      document.querySelectorAll(`img.video-thumb[data-video-id="${CSS.escape(id)}"]`).forEach(img => {
+        img.src = data; img.classList.remove('hidden');
+        const placeholder = img.parentElement.querySelector('.thumbnail-placeholder');
+        if (placeholder) placeholder.classList.add('hidden');
+      });
+      document.querySelectorAll(`[data-related-id="${CSS.escape(id)}"]`).forEach(img => { img.src = data; });
+    }
+    function renderRelatedVideos() {
+      const list = document.getElementById('relatedVideosList');
+      if (!list) return;
+      list.innerHTML = localVideosList.map(v => {
+        const active = activeVideoRecord && v.id === activeVideoRecord.id;
+        const thumb = thumbnailCache.get(v.id);
+        const safeTitle = String(v.title).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        return `<button class="related-video ${active ? 'active' : ''}" onclick="playLocalVideo('${v.id}')" title="${safeTitle}">
+          <div class="relative"><img data-related-id="${v.id}" src="${thumb || ''}" alt="" />${!thumb ? '<div class="absolute inset-0 flex items-center justify-center text-2xl">🎞️</div>' : ''}</div>
+          <span>${safeTitle}</span></button>`;
+      }).join('');
+    }
+
+    // PLAY LOCAL VIDEO
+    function playLocalVideo(id) {
+      const vidRecord = localVideosList.find(v => v.id === id);
+      if (!vidRecord) return;
+
+      activeVideoRecord = vidRecord;
+      
+      // Clean up previous blob URL
+      if (activeVideoUrl) {
+        URL.revokeObjectURL(activeVideoUrl);
+      }
+
+      // Create Object URL from stored Blob
+      activeVideoUrl = URL.createObjectURL(vidRecord.fileBlob);
+      
+      mainVideoPlayer.src = activeVideoUrl;
+      playerVideoTitle.textContent = vidRecord.title;
+      renderRelatedVideos();
+      localVideosList.forEach(v => loadVideoThumbnail(v));
+
+      videoModal.classList.remove('hidden');
+      videoModal.classList.add('flex');
+
+      mainVideoPlayer.play();
+      updatePlayButtonUI(true);
+      playerShell.classList.remove('related-hidden');
+      playerShell.classList.add('controls-visible');
+      hideRelatedVideosSoon();
+    }
+
+    // PLAYER CONTROLS LOGIC
+    playPauseBtn.addEventListener('click', togglePlayPause);
+    centerPlayOverlay.addEventListener('click', (event) => {
+      event.preventDefault();
+      if (isLandscapeFullscreen()) { showRelatedVideosTemporarily(); return; }
+      togglePlayPause();
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        centerPlayOverlay.style.opacity = '1';
+        clearTimeout(window.__playOverlayTimer);
+        window.__playOverlayTimer = setTimeout(() => { centerPlayOverlay.style.opacity = '0'; }, 650);
+      }
+    });
+
+    function togglePlayPause() {
+      if (mainVideoPlayer.paused) {
+        mainVideoPlayer.play();
+        updatePlayButtonUI(true);
+      } else {
+        mainVideoPlayer.pause();
+        updatePlayButtonUI(false);
+      }
+    }
+
+    function updatePlayButtonUI(isPlaying) {
+      if (isPlaying) {
+        playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+        centerPlayIcon.className = 'fa-solid fa-pause';
+      } else {
+        playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+        centerPlayIcon.className = 'fa-solid fa-play ml-1';
+      }
+    }
+
+    replayBtn.addEventListener('click', () => {
+      mainVideoPlayer.currentTime = 0;
+      mainVideoPlayer.play();
+      updatePlayButtonUI(true);
+    });
+
+    const playerShell = document.getElementById('playerShell');
+    fullscreenBtn.addEventListener('click', async () => {
+      // Tam ekranı yalnızca video üzerinde değil, tüm oynatıcı panelinde aç:
+      // böylece başlık, kontroller ve Diğer Videolar alanı görünür kalır.
+      try {
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+          if (document.exitFullscreen) await document.exitFullscreen();
+          else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        } else if (playerShell.requestFullscreen) {
+          await playerShell.requestFullscreen();
+        } else if (playerShell.webkitRequestFullscreen) {
+          playerShell.webkitRequestFullscreen();
+        } else {
+          // Bazı mobil tarayıcılar yalnızca video tam ekranını destekler.
+          if (mainVideoPlayer.webkitEnterFullscreen) mainVideoPlayer.webkitEnterFullscreen();
+        }
+      } catch (err) { console.warn('Tam ekran açılamadı:', err); }
+    });
+
+
+    // Yatay tam ekranda alt video şeridi: seçimden sonra 5 sn içinde gizlenir;
+    // ekrana tek dokunuşla görünür, çift dokunuş/tıklamayla video duraklar.
+    const videoStage = mainVideoPlayer.parentElement;
+    function isLandscapeFullscreen() {
+      return !!(document.fullscreenElement || document.webkitFullscreenElement) &&
+        window.matchMedia('(orientation: landscape) and (max-height: 600px)').matches;
+    }
+    function hideRelatedVideosSoon() {
+      clearTimeout(window.__relatedVideosHideTimer);
+      if (isLandscapeFullscreen()) {
+        window.__relatedVideosHideTimer = setTimeout(() => {
+          if (isLandscapeFullscreen()) {
+            playerShell.classList.add('related-hidden');
+            playerShell.classList.remove('controls-visible');
+          }
+        }, 5000);
+      }
+    }
+    function showRelatedVideosTemporarily() {
+      if (!isLandscapeFullscreen()) return;
+      playerShell.classList.remove('related-hidden');
+      hideRelatedVideosSoon();
+    }
+    videoStage.addEventListener('click', () => {
+      if (isLandscapeFullscreen()) showRelatedVideosTemporarily();
+    });
+    videoStage.addEventListener('dblclick', (event) => {
+      if (!isLandscapeFullscreen()) return;
+      event.preventDefault(); event.stopPropagation();
+      clearTimeout(window.__relatedVideosHideTimer);
+      togglePlayPause();
+    });
+    let lastStageTap = 0;
+    videoStage.addEventListener('touchend', (event) => {
+      if (!isLandscapeFullscreen()) return;
+      const now = Date.now();
+      if (now - lastStageTap < 320) {
+        event.preventDefault(); event.stopPropagation();
+        clearTimeout(window.__relatedVideosHideTimer);
+        togglePlayPause();
+        lastStageTap = 0;
+      } else {
+        lastStageTap = now;
+        showRelatedVideosTemporarily();
+      }
+    }, { passive: false });
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement) { playerShell.classList.remove('show-related-expanded', 'related-hidden', 'controls-visible'); clearTimeout(window.__relatedVideosHideTimer); }
+      else { playerShell.classList.remove('related-hidden'); playerShell.classList.add('controls-visible'); hideRelatedVideosSoon(); }
+    });
+    document.addEventListener('webkitfullscreenchange', () => {
+      if (!document.webkitFullscreenElement) { playerShell.classList.remove('show-related-expanded', 'related-hidden', 'controls-visible'); clearTimeout(window.__relatedVideosHideTimer); }
+      else { playerShell.classList.remove('related-hidden'); playerShell.classList.add('controls-visible'); hideRelatedVideosSoon(); }
+    });
+
+    mainVideoPlayer.addEventListener('timeupdate', () => {
+      if (!isNaN(mainVideoPlayer.duration)) {
+        const pct = (mainVideoPlayer.currentTime / mainVideoPlayer.duration) * 100;
+        videoProgressSlider.value = pct;
+        currentTimeText.textContent = formatTime(mainVideoPlayer.currentTime);
+        durationTimeText.textContent = formatTime(mainVideoPlayer.duration);
+        const landscapeCurrentTime = document.getElementById('landscapeCurrentTime');
+        const landscapeDurationTime = document.getElementById('landscapeDurationTime');
+        const landscapeProgressSlider = document.getElementById('landscapeProgressSlider');
+        if (landscapeCurrentTime) landscapeCurrentTime.textContent = formatTime(mainVideoPlayer.currentTime);
+        if (landscapeDurationTime) landscapeDurationTime.textContent = formatTime(mainVideoPlayer.duration);
+        if (landscapeProgressSlider) landscapeProgressSlider.value = pct;
+      }
+    });
+
+    const landscapeProgressSlider = document.getElementById('landscapeProgressSlider');
+    landscapeProgressSlider.addEventListener('input', (e) => {
+      if (Number.isFinite(mainVideoPlayer.duration) && mainVideoPlayer.duration > 0) {
+        mainVideoPlayer.currentTime = (Number(e.target.value) / 100) * mainVideoPlayer.duration;
+      }
+      playerShell.classList.add('controls-visible');
+    });
+    document.getElementById('seekBack10').addEventListener('click', (e) => {
+      e.stopPropagation(); mainVideoPlayer.currentTime = Math.max(0, mainVideoPlayer.currentTime - 10);
+      showRelatedVideosTemporarily();
+    });
+    document.getElementById('seekForward10').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const end = Number.isFinite(mainVideoPlayer.duration) ? mainVideoPlayer.duration : mainVideoPlayer.currentTime + 10;
+      mainVideoPlayer.currentTime = Math.min(end, mainVideoPlayer.currentTime + 10);
+      showRelatedVideosTemporarily();
+    });
+    landscapeProgressSlider.addEventListener('click', (e) => e.stopPropagation());
+    landscapeProgressSlider.addEventListener('touchstart', (e) => e.stopPropagation(), {passive:true});
+
+    videoProgressSlider.addEventListener('input', (e) => {
+      if (!isNaN(mainVideoPlayer.duration)) {
+        mainVideoPlayer.currentTime = (e.target.value / 100) * mainVideoPlayer.duration;
+      }
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+      mainVideoPlayer.pause();
+      videoModal.classList.add('hidden');
+      videoModal.classList.remove('flex');
+    });
+
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // EMOJI PARTICLE ANIMATION FOR KIDS
+    function spawnEmojiParticle(emoji) {
+      const particle = document.createElement('div');
+      particle.className = 'emoji-particle';
+      particle.textContent = emoji;
+
+      // Random horizontal position
+      const randomLeft = Math.random() * 70 + 15;
+      particle.style.left = randomLeft + '%';
+      particle.style.bottom = '80px';
+
+      emojiParticleContainer.appendChild(particle);
+
+      setTimeout(() => {
+        particle.remove();
+      }, 1200);
+    }
+
+    // EDIT CATEGORY MODAL LOGIC
+    function openCategoryModal(videoId) {
+      const vid = localVideosList.find(v => v.id === videoId);
+      if (!vid) return;
+
+      editingVideoId = videoId;
+      document.getElementById('editVideoTitle').textContent = vid.title;
+
+      const group = document.getElementById('categoryRadioGroup');
+      group.innerHTML = categoriesData.filter(c => c.id !== 'all').map(c => `
+        <label class="flex items-center gap-2 p-2 rounded-xl border border-gray-200 hover:bg-yellow-50 cursor-pointer font-bold text-xs">
+          <input type="radio" name="catOption" value="${c.id}" ${vid.category === c.id ? 'checked' : ''} class="accent-ytk-blue">
+          <span>${c.label}</span>
+        </label>
+      `).join('');
+
+      document.getElementById('categoryEditModal').classList.remove('hidden');
+      document.getElementById('categoryEditModal').classList.add('flex');
+    }
+
+    document.getElementById('cancelCategoryEditBtn').addEventListener('click', () => {
+      document.getElementById('categoryEditModal').classList.add('hidden');
+      document.getElementById('categoryEditModal').classList.remove('flex');
+    });
+
+    document.getElementById('saveCategoryEditBtn').addEventListener('click', () => {
+      const selectedRadio = document.querySelector('input[name="catOption"]:checked');
+      if (selectedRadio && editingVideoId) {
+        const vid = localVideosList.find(v => v.id === editingVideoId);
+        if (vid) {
+          vid.category = selectedRadio.value;
+          saveVideoToDB(vid).then(() => {
+            loadVideosFromDB();
+          });
+        }
+      }
+      document.getElementById('categoryEditModal').classList.add('hidden');
+      document.getElementById('categoryEditModal').classList.remove('flex');
+    });
+
+    // SEARCH INPUT HANDLERS
+    searchInput.addEventListener('input', (e) => {
+      if (e.target.value.length > 0) {
+        clearSearchBtn.classList.remove('hidden');
+      } else {
+        clearSearchBtn.classList.add('hidden');
+      }
+      renderVideoGrid();
+    });
+
+    clearSearchBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      clearSearchBtn.classList.add('hidden');
+      renderVideoGrid();
+    });
+
+    function resetSearchAndFilter() {
+      searchInput.value = '';
+      clearSearchBtn.classList.add('hidden');
+      selectCategory('all');
+    }
+
+    // PARENTAL CONTROL MATH GATE
+    openParentalBtn.addEventListener('click', () => {
+      const num1 = Math.floor(Math.random() * 8) + 2;
+      const num2 = Math.floor(Math.random() * 8) + 2;
+      mathAns = num1 * num2;
+
+      mathQuestionText.textContent = `${num1} x ${num2} = ?`;
+      mathAnswerInput.value = '';
+      mathErrorMsg.classList.add('hidden');
+
+      mathGateSection.classList.remove('hidden');
+      parentalToolsSection.classList.add('hidden');
+
+      parentalModal.classList.remove('hidden');
+      parentalModal.classList.add('flex');
+    });
+
+    closeParentalModal.addEventListener('click', () => {
+      parentalModal.classList.add('hidden');
+      parentalModal.classList.remove('flex');
+    });
+
+    submitMathGateBtn.addEventListener('click', () => {
+      if (parseInt(mathAnswerInput.value, 10) === mathAns) {
+        mathGateSection.classList.add('hidden');
+        parentalToolsSection.classList.remove('hidden');
+        renderParentVideoManagement();
+      } else {
+        mathErrorMsg.classList.remove('hidden');
+      }
+    });
+
+    // INITIALIZE ON LOAD
+    window.onload = function() {
+      initIndexedDB();
+    };
+  </script>
+
+  <div id="offlineStatus" role="status" aria-live="polite"
+       style="position:fixed;right:12px;bottom:12px;z-index:9999;padding:7px 11px;border-radius:999px;background:#20264b;color:#fff;font:600 12px Fredoka,sans-serif;box-shadow:0 4px 14px #0002">
+    Bağlantı kontrol ediliyor…
+  </div>
+
+  <script>
+    // PWA çevrimdışı desteği: HTTPS/localhost üzerinde servis çalışanı kaydedilir.
+    (function () {
+      const badge = document.getElementById('offlineStatus');
+      function updateNetworkStatus() {
+        const online = navigator.onLine;
+        badge.textContent = online ? '● Çevrimiçi' : '● Çevrimdışı mod';
+        badge.style.background = online ? '#168653' : '#b45309';
+      }
+      window.addEventListener('online', updateNetworkStatus);
+      window.addEventListener('offline', updateNetworkStatus);
+      updateNetworkStatus();
+
+      if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('./sw.js')
+            .then(function (registration) {
+              console.info('Çevrimdışı destek etkin:', registration.scope);
+            })
+            .catch(function (error) {
+              console.warn('Çevrimdışı destek kaydedilemedi:', error);
+              badge.textContent = 'Çevrimdışı kurulum başarısız';
+              badge.style.background = '#b91c1c';
+            });
+        });
+      } else if (location.protocol === 'file:') {
+        badge.textContent = 'Yerel dosya modu';
+        badge.title = 'Tam PWA çevrimdışı desteği için HTTPS üzerinden açın.';
+      }
+    })();
+  </script>
+</body>
+</html>
