@@ -282,7 +282,6 @@
       #playerShell:fullscreen .related-video img, #playerShell:-webkit-full-screen .related-video img { height:46px !important; width:100% !important; object-fit:cover !important; }
       #playerShell:fullscreen .related-video span, #playerShell:-webkit-full-screen .related-video span { display:none !important; }
     }
-    #closeVideoModal { display:none !important; }
     #relatedVideosPanel { background:#11172b; border-top:1px solid rgba(255,255,255,.1); padding:10px 14px 14px; }
     #relatedVideosList { display:flex; gap:10px; overflow-x:auto; padding:2px 2px 8px; scrollbar-width:thin; }
     .related-video { flex:0 0 138px; width:138px; text-align:left; color:#fff; background:#202944; border:2px solid transparent; border-radius:13px; overflow:hidden; }
@@ -774,6 +773,13 @@
     let activeVideoUrl = null;
     let editingVideoId = null;
     const thumbnailCache = new Map();
+
+    // Kullanıcı dosya adları HTML olarak yorumlanmamalıdır.
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>\"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;'
+      }[ch]));
+    }
 
     // Math Gate Challenge state
     let mathAns = 0;
@@ -1456,13 +1462,8 @@
 
     function loadVideosFromDB() {
       return new Promise((resolve, reject) => {
-        if (!db) {
-          resolve([]);
-          return;
-        }
-
-        let tx;
-        let req;
+        if (!db) { resolve([]); return; }
+        let tx, req;
         try {
           tx = db.transaction(['videos'], 'readonly');
           req = tx.objectStore('videos').getAll();
@@ -1471,34 +1472,38 @@
           reject(error);
           return;
         }
-
-        req.onsuccess = () => {
+        req.onsuccess = async () => {
           const hiddenIds = getHiddenVideoIds();
-          const storedVideos = (req.result || []).filter(v => v && v.id && v.fileBlob && !hiddenIds.has(String(v.id)));
-          readFolderShortcuts().then(shortcuts => {
+          try {
+            const storedVideos = (req.result || []).filter(v => v && v.id && v.fileBlob && !hiddenIds.has(String(v.id)));
+            const shortcuts = await readFolderShortcuts();
             const liveById = new Map((linkedFolderVideos || []).map(v => [String(v.id), v]));
-            const storedByKey = new Set(storedVideos.map(v => [String(v.title || ''), Number(v.size || 0), Number(v.lastModified || 0)].join('|')));
+            const storedIds = new Set(storedVideos.map(v => String(v.id)));
             const shortcutVideos = (shortcuts || []).filter(v => v && v.id && !hiddenIds.has(String(v.id))).map(shortcut => {
               const live = liveById.get(String(shortcut.id));
               return live ? { ...shortcut, ...live, category: shortcut.category || live.category || 'cartoons' } : shortcut;
-            }).filter(v => !storedByKey.has([String(v.title || ''), Number(v.size || 0), Number(v.lastModified || 0)].join('|')));
-            const liveNotSaved = (linkedFolderVideos || []).filter(v => v && v.id && !shortcuts.some(x => String(x.id) === String(v.id)) && !hiddenIds.has(String(v.id)));
+            }).filter(v => !storedIds.has(String(v.id)));
+            const shortcutIds = new Set((shortcuts || []).map(x => String(x.id)));
+            const liveNotSaved = (linkedFolderVideos || []).filter(v => v && v.id && !shortcutIds.has(String(v.id)) && !hiddenIds.has(String(v.id)));
             localVideosList = storedVideos.concat(shortcutVideos, liveNotSaved);
             renderCategoryTabs();
             renderVideoGrid();
             renderParentVideoManagement();
-          }).catch(error => {
+            resolve(localVideosList);
+          } catch (error) {
             console.warn('Klasör kısayolları yüklenemedi:', error);
-            localVideosList = storedVideos.concat((linkedFolderVideos || []).filter(v => v && v.id && v.fileBlob && !hiddenIds.has(String(v.id))));
-            renderCategoryTabs(); renderVideoGrid(); renderParentVideoManagement();
-          });
+            localVideosList = (req.result || []).filter(v => v && v.id && v.fileBlob && !hiddenIds.has(String(v.id)));
+            renderCategoryTabs();
+            renderVideoGrid();
+            renderParentVideoManagement();
+            resolve(localVideosList);
+          }
         };
         req.onerror = () => {
           console.error('Video listesi okunamadı:', req.error || tx.error);
           reject(req.error || tx.error || new Error('Video listesi okunamadı.'));
         };
         tx.onabort = () => reject(tx.error || new Error('Listeleme işlemi iptal edildi.'));
-        tx.oncomplete = () => resolve(localVideosList);
       });
     }
 
@@ -1569,7 +1574,7 @@
       icon.className = 'mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-100 text-rose-600 text-2xl';
       icon.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
       cancel.classList.remove('hidden');
-      ok.textContent = 'Evet, listeyi temizle';
+      ok.textContent = 'Evet, devam et';
       ok.className = 'flex-1 rounded-2xl bg-rose-600 px-4 py-3 font-bold text-white shadow-lg';
       backdrop.classList.remove('hidden');
       backdrop.classList.add('flex');
@@ -1776,7 +1781,7 @@
 
     // RENDER MAIN VIDEO GRID
     function renderVideoGrid() {
-      if (localVideosList.length === 0) {
+      if (!Array.isArray(localVideosList) || localVideosList.length === 0) {
         emptyStateView.classList.remove('hidden');
         videoGrid.classList.add('hidden');
         noResultsView.classList.add('hidden');
@@ -1784,95 +1789,53 @@
         videoCountLabel.textContent = '0 video var';
         return;
       }
-
       emptyStateView.classList.add('hidden');
       clearAllVideosBtn.classList.remove('hidden');
-
-      // Filter logic
       let filtered = localVideosList;
-
-      if (currentCategory !== 'all') {
-        filtered = filtered.filter(v => v.category === currentCategory);
-      }
-
-      const q = searchInput.value.trim().toLowerCase();
-      if (q) {
-        filtered = filtered.filter(v => v.title.toLowerCase().includes(q));
-      }
-
+      if (currentCategory !== 'all') filtered = filtered.filter(v => v.category === currentCategory);
+      const q = String(searchInput.value || '').trim().toLocaleLowerCase('tr-TR');
+      if (q) filtered = filtered.filter(v => String(v.title || '').toLocaleLowerCase('tr-TR').includes(q));
       videoCountLabel.textContent = `${filtered.length} video gösteriliyor`;
-
       if (filtered.length === 0) {
         videoGrid.classList.add('hidden');
         noResultsView.classList.remove('hidden');
         noResultsView.classList.add('flex');
         return;
       }
-
       noResultsView.classList.add('hidden');
       noResultsView.classList.remove('flex');
       videoGrid.classList.remove('hidden');
-
       const colorBorders = ['border-ytk-red', 'border-ytk-blue', 'border-ytk-yellow', 'border-ytk-green', 'border-ytk-purple', 'border-ytk-orange'];
-
       videoGrid.innerHTML = filtered.map((vid, idx) => {
+        const id = escapeHtml(vid.id);
+        const title = escapeHtml(vid.title || 'İsimsiz video');
         const borderColor = colorBorders[idx % colorBorders.length];
         const catObj = categoriesData.find(c => c.id === vid.category) || categoriesData[1];
-
         return `
-          <div class="bg-white rounded-3xl overflow-hidden border-4 ${borderColor} shadow-bouncy hover:shadow-card-hover transition transform hover:-translate-y-1 cursor-pointer flex flex-col group pop-in relative">
-            
-            <!-- Category Edit Button -->
-            <button 
-              onclick="event.stopPropagation(); openCategoryModal('${vid.id}')" 
-              class="absolute top-2 right-2 z-10 bg-white/90 hover:bg-white text-gray-700 w-8 h-8 rounded-full flex items-center justify-center text-xs shadow-md border border-gray-200"
-              title="Kategoriyi Değiştir"
-            >
-              <i class="fa-solid fa-pen"></i>
-            </button>
-
-            <!-- Thumbnail Container -->
-            <div onclick="playLocalVideo('${vid.id}')" class="relative aspect-video bg-gradient-to-br from-yellow-100 to-orange-100 flex items-center justify-center overflow-hidden">
+          <div class="bg-white rounded-3xl overflow-hidden border-4 ${borderColor} shadow-bouncy hover:shadow-card-hover transition transform hover:-translate-y-1 flex flex-col group pop-in relative">
+            <button type="button" data-action="category" data-video-id="${id}" class="absolute top-2 right-2 z-10 bg-white/90 hover:bg-white text-gray-700 w-8 h-8 rounded-full flex items-center justify-center text-xs shadow-md border border-gray-200" title="Kategoriyi Değiştir" aria-label="${title} kategorisini değiştir"><i class="fa-solid fa-pen"></i></button>
+            <button type="button" data-action="play" data-video-id="${id}" class="relative aspect-video bg-gradient-to-br from-yellow-100 to-orange-100 flex items-center justify-center overflow-hidden w-full text-left" aria-label="${title} videosunu oynat">
               <div class="absolute inset-0 flex items-center justify-center thumbnail-placeholder"><i class="fa-solid fa-film text-6xl text-yellow-300 group-hover:scale-110 transition"></i></div>
-              <img class="video-thumb hidden" data-video-id="${vid.id}" alt="${vid.title.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}" />
-              
-              <!-- Play Button Overlay -->
-              <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition flex items-center justify-center">
-                <div class="w-14 h-14 bg-ytk-red text-white rounded-full flex items-center justify-center text-2xl shadow-lg border-2 border-white transform group-hover:scale-125 transition">
-                  <i class="fa-solid fa-play ml-1"></i>
-                </div>
-              </div>
-
-              <span class="absolute bottom-2 left-2 bg-black/60 text-white font-bold text-[10px] px-2 py-0.5 rounded-full">
-                ${vid.isFolderLinked && !vid.fileBlob ? 'Klasörü yeniden bağla' : 'Yerel Video'}
-              </span>
+              <img class="video-thumb hidden" data-video-id="${id}" alt="${title}" />
+              <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition flex items-center justify-center"><div class="w-14 h-14 bg-ytk-red text-white rounded-full flex items-center justify-center text-2xl shadow-lg border-2 border-white transform group-hover:scale-125 transition"><i class="fa-solid fa-play ml-1"></i></div></div>
+              <span class="absolute bottom-2 left-2 bg-black/60 text-white font-bold text-[10px] px-2 py-0.5 rounded-full">${vid.isFolderLinked && !vid.fileBlob ? 'Klasörü yeniden bağla' : 'Yerel Video'}</span>
+            </button>
+            <div class="p-3.5 flex-1 flex flex-col justify-between bg-gradient-to-b from-white to-amber-50/40">
+              <button type="button" data-action="play" data-video-id="${id}" class="text-left"><h3 class="font-black text-gray-800 text-sm leading-snug line-clamp-2 group-hover:text-ytk-red transition">${title}</h3></button>
+              <div class="mt-3 flex items-center justify-between text-xs font-bold text-gray-400"><span class="bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full text-[10px] flex items-center gap-1"><i class="fa-solid ${catObj.icon}"></i> ${catObj.label}</span></div>
             </div>
-
-            <!-- Details -->
-            <div onclick="playLocalVideo('${vid.id}')" class="p-3.5 flex-1 flex flex-col justify-between bg-gradient-to-b from-white to-amber-50/40">
-              <h3 class="font-black text-gray-800 text-sm leading-snug line-clamp-2 group-hover:text-ytk-red transition">
-                ${vid.title}
-              </h3>
-
-              <div class="mt-3 flex items-center justify-between text-xs font-bold text-gray-400">
-                <span class="bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full text-[10px] flex items-center gap-1">
-                  <i class="fa-solid ${catObj.icon}"></i> ${catObj.label}
-                </span>
-                <button 
-                  onclick="event.stopPropagation(); deleteVideoFromDB('${vid.id}')" 
-                  class="video-card-delete text-red-400 hover:text-red-600 p-1"
-                  title="Videoyu Sil"
-                >
-                  <i class="fa-solid fa-trash-can"></i>
-                </button>
-              </div>
-            </div>
-
-          </div>
-        `;
+          </div>`;
       }).join('');
       filtered.forEach(vid => loadVideoThumbnail(vid));
     }
+
+    videoGrid.addEventListener('click', event => {
+      const control = event.target.closest('[data-action][data-video-id]');
+      if (!control) return;
+      const id = control.getAttribute('data-video-id');
+      if (control.dataset.action === 'play') playLocalVideo(id);
+      else if (control.dataset.action === 'category') openCategoryModal(id);
+    });
 
     // Create a real preview frame from each local video, without uploading it.
     function loadVideoThumbnail(vid) {
@@ -1897,8 +1860,14 @@
         if (finished) return;
         try {
           const canvas = document.createElement('canvas');
-          canvas.width = probe.videoWidth || 320; canvas.height = probe.videoHeight || 180;
-          const ctx = canvas.getContext('2d'); ctx.drawImage(probe, 0, 0, canvas.width, canvas.height);
+          const sourceWidth = probe.videoWidth || 320;
+          const sourceHeight = probe.videoHeight || 180;
+          const scale = Math.min(1, 480 / Math.max(sourceWidth, sourceHeight));
+          canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+          canvas.height = Math.max(1, Math.round(sourceHeight * scale));
+          const ctx = canvas.getContext('2d');
+          if (!ctx) throw new Error('Önizleme tuvali oluşturulamadı.');
+          ctx.drawImage(probe, 0, 0, canvas.width, canvas.height);
           const data = canvas.toDataURL('image/jpeg', .72);
           thumbnailCache.set(vid.id, data); applyThumbnail(vid.id, data);
         } catch (_) { /* Keep the illustrated fallback if a format cannot make a preview. */ }
@@ -1921,13 +1890,16 @@
       if (!list) return;
       list.innerHTML = localVideosList.map(v => {
         const active = activeVideoRecord && v.id === activeVideoRecord.id;
+        const id = escapeHtml(v.id);
+        const title = escapeHtml(v.title || 'İsimsiz video');
         const thumb = thumbnailCache.get(v.id);
-        const safeTitle = String(v.title).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-        return `<button class="related-video ${active ? 'active' : ''}" onclick="playLocalVideo('${v.id}')" title="${safeTitle}">
-          <div class="relative"><img data-related-id="${v.id}" src="${thumb || ''}" alt="" />${!thumb ? '<div class="absolute inset-0 flex items-center justify-center text-2xl">🎞️</div>' : ''}</div>
-          <span>${safeTitle}</span></button>`;
+        return `<button type="button" class="related-video ${active ? 'active' : ''}" data-related-play="${id}" title="${title}" aria-label="${title} videosunu oynat"><div class="relative"><img data-related-id="${id}" src="${thumb || ''}" alt="" />${!thumb ? '<div class="absolute inset-0 flex items-center justify-center text-2xl">🎞️</div>' : ''}</div><span>${title}</span></button>`;
       }).join('');
     }
+    document.getElementById('relatedVideosList').addEventListener('click', event => {
+      const button = event.target.closest('[data-related-play]');
+      if (button) playLocalVideo(button.getAttribute('data-related-play'));
+    });
 
     // PLAY LOCAL VIDEO
     function playLocalVideo(id) {
@@ -1956,8 +1928,14 @@
       videoModal.classList.remove('hidden');
       videoModal.classList.add('flex');
 
-      mainVideoPlayer.play();
-      updatePlayButtonUI(true);
+      const playAttempt = mainVideoPlayer.play();
+      if (playAttempt && typeof playAttempt.catch === 'function') {
+        playAttempt.catch(error => {
+          console.warn('Video oynatılamadı:', error);
+          updatePlayButtonUI(false);
+          showAppNotice('Video başlatılamadı. Dosya biçimini veya tarayıcının video desteğini kontrol edin.', 'Oynatma hatası', 'warning');
+        });
+      }
       playerShell.classList.remove('related-hidden');
       playerShell.classList.add('controls-visible');
       hideRelatedVideosSoon();
@@ -1978,13 +1956,24 @@
 
     function togglePlayPause() {
       if (mainVideoPlayer.paused) {
-        mainVideoPlayer.play();
-        updatePlayButtonUI(true);
+        const attempt = mainVideoPlayer.play();
+        if (attempt && typeof attempt.catch === 'function') attempt.catch(error => {
+          console.warn('Oynatma başlatılamadı:', error);
+          updatePlayButtonUI(false);
+        });
       } else {
         mainVideoPlayer.pause();
-        updatePlayButtonUI(false);
       }
     }
+    mainVideoPlayer.addEventListener('play', () => updatePlayButtonUI(true));
+    mainVideoPlayer.addEventListener('pause', () => updatePlayButtonUI(false));
+    mainVideoPlayer.addEventListener('ended', () => updatePlayButtonUI(false));
+    mainVideoPlayer.addEventListener('error', () => {
+      if (mainVideoPlayer.currentSrc) {
+        updatePlayButtonUI(false);
+        console.warn('Video kaynağı okunamadı:', mainVideoPlayer.error);
+      }
+    });
 
     function updatePlayButtonUI(isPlaying) {
       if (isPlaying) {
@@ -1998,8 +1987,14 @@
 
     replayBtn.addEventListener('click', () => {
       mainVideoPlayer.currentTime = 0;
-      mainVideoPlayer.play();
-      updatePlayButtonUI(true);
+      const playAttempt = mainVideoPlayer.play();
+      if (playAttempt && typeof playAttempt.catch === 'function') {
+        playAttempt.catch(error => {
+          console.warn('Video oynatılamadı:', error);
+          updatePlayButtonUI(false);
+          showAppNotice('Video başlatılamadı. Dosya biçimini veya tarayıcının video desteğini kontrol edin.', 'Oynatma hatası', 'warning');
+        });
+      }
     });
 
     const playerShell = document.getElementById('playerShell');
@@ -2118,8 +2113,18 @@
       }
     });
 
-    closeModalBtn.addEventListener('click', () => {
+    closeModalBtn.addEventListener('click', async () => {
       mainVideoPlayer.pause();
+      if (document.fullscreenElement && document.exitFullscreen) {
+        try { await document.exitFullscreen(); } catch (error) { console.warn('Tam ekrandan çıkılamadı:', error); }
+      } else if (document.webkitFullscreenElement && document.webkitExitFullscreen) {
+        try { document.webkitExitFullscreen(); } catch (error) { console.warn('Tam ekrandan çıkılamadı:', error); }
+      }
+      mainVideoPlayer.removeAttribute('src');
+      mainVideoPlayer.load();
+      if (activeVideoUrl) URL.revokeObjectURL(activeVideoUrl);
+      activeVideoUrl = null;
+      activeVideoRecord = null;
       videoModal.classList.add('hidden');
       videoModal.classList.remove('flex');
     });
@@ -2150,7 +2155,7 @@
 
     // EDIT CATEGORY MODAL LOGIC
     function openCategoryModal(videoId) {
-      const vid = localVideosList.find(v => v.id === videoId);
+      const vid = localVideosList.find(v => String(v.id) === String(videoId));
       if (!vid) return;
 
       editingVideoId = videoId;
