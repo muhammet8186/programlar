@@ -1209,6 +1209,55 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 }
 </style>
 
+
+<style id="requested-section-scroll-final">
+/* Kaydırma yalnızca istenen uygulama bölümlerinde etkinleştirilir.
+   Stil head içinde tanımlıdır; JavaScript şablon metinlerinin parçası değildir. */
+#section-adisyon,
+#section-kitchen,
+#section-customerorders,
+#section-waiter,
+#section-products,
+#section-cash,
+#section-history,
+#section-reports,
+#section-debtors {
+  position: absolute !important;
+  inset: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+}
+#section-adisyon, #section-kitchen, #section-customerorders,
+#section-waiter, #section-products, #section-cash,
+#section-history, #section-reports, #section-debtors {
+  flex-direction: column;
+}
+#section-adisyon > *, #section-kitchen > *, #section-customerorders > *,
+#section-waiter > *, #section-products > *, #section-cash > *,
+#section-history > *, #section-reports > *, #section-debtors > * {
+  flex-shrink: 0 !important;
+}
+/* Satışlar tablosu kendi içinde kesilmesin; tüm bölüm dikey kaydırılsın. */
+#section-history > #history-toolbar { flex: 0 0 auto !important; }
+#section-history > .theme-card {
+  flex: 0 0 auto !important;
+  height: auto !important;
+  min-height: max-content !important;
+  overflow: visible !important;
+}
+#section-history > .theme-card > .overflow-x-auto {
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+}
+#section-history #sales-history-table { overflow: visible !important; }
+</style>
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans h-full flex flex-col overflow-hidden select-none transition-colors duration-300" id="app-body">
 <!-- LİSANS / GİRİŞ EKRANI -->
@@ -6748,7 +6797,9 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             const remaining = Math.max(0, total - paid);
             const w = window.open('', '_blank', 'width=500,height=700');
             if (!w) { onayModaliniGoster('Yazdırma engellendi', 'Adisyon fişi için açılır pencereye izin verin.', null, true); return; }
-            w.document.write(`<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Adisyon ${htmlGuvenli(ad.masa || '')}</title><style>@page{size:${width}mm auto;margin:0}html,body{margin:0;padding:0;background:#fff;color:#000}*{box-sizing:border-box}@media print{html,body{margin:0;padding:0}}</style></head><body><div style="width:${content}mm;max-width:${content}mm;margin:0 auto;padding:2mm;font-family:Arial,sans-serif;font-size:13px;line-height:1.4;color:#000;background:#fff"><h2 style="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuvenli(sistemAyarlari.sirketAdi || 'ADİSYON')}</h2><div style="text-align:center;font-size:16px;font-weight:900">${htmlGuvenli(ad.masa || 'Masa belirtilmedi')}</div><hr><div>Garson: <b>${htmlGuvenli(ad.garson || '-')}</b></div><div>Tarih: ${htmlGuvenli(ad.updatedLabel || ad.createdLabel || '')}</div><hr><div style="font-weight:900;margin:5px 0">SİPARİŞ DETAYI</div>${rows || '<div>Ürün bulunamadı</div>'}<hr><div style="display:flex;justify-content:space-between;font-size:16px;font-weight:900"><span>TOPLAM</span><span>${adisyonPara(total)}</span></div><div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px"><span>Ödenen</span><b>${adisyonPara(paid)}</b></div><div style="display:flex;justify-content:space-between;font-size:15px;font-weight:900;margin-top:3px"><span>KALAN</span><span>${adisyonPara(remaining)}</span></div>${ad.note ? `<hr><div style="font-size:13px"><b>NOT:</b> ${htmlGuvenli(ad.note)}</div>` : ''}<hr><div style="text-align:center;font-size:11px">Afiyet olsun</div></div><script>window.onload=()=>{window.focus();window.print()}<\/script></body></html>`);
+            w.document.write(`<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Adisyon ${htmlGuvenli(ad.masa || '')}</title><style>@page{size:${width}mm auto;margin:0}html,body{margin:0;padding:0;background:#fff;color:#000}*{box-sizing:border-box}@media print{html,body{margin:0;padding:0}}</style></head><body><div style="width:${content}mm;max-width:${content}mm;margin:0 auto;padding:2mm;font-family:Arial,sans-serif;font-size:13px;line-height:1.4;color:#000;background:#fff"><h2 sty
+
+le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuvenli(sistemAyarlari.sirketAdi || 'ADİSYON')}</h2><div style="text-align:center;font-size:16px;font-weight:900">${htmlGuvenli(ad.masa || 'Masa belirtilmedi')}</div><hr><div>Garson: <b>${htmlGuvenli(ad.garson || '-')}</b></div><div>Tarih: ${htmlGuvenli(ad.updatedLabel || ad.createdLabel || '')}</div><hr><div style="font-weight:900;margin:5px 0">SİPARİŞ DETAYI</div>${rows || '<div>Ürün bulunamadı</div>'}<hr><div style="display:flex;justify-content:space-between;font-size:16px;font-weight:900"><span>TOPLAM</span><span>${adisyonPara(total)}</span></div><div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px"><span>Ödenen</span><b>${adisyonPara(paid)}</b></div><div style="display:flex;justify-content:space-between;font-size:15px;font-weight:900;margin-top:3px"><span>KALAN</span><span>${adisyonPara(remaining)}</span></div>${ad.note ? `<hr><div style="font-size:13px"><b>NOT:</b> ${htmlGuvenli(ad.note)}</div>` : ''}<hr><div style="text-align:center;font-size:11px">Afiyet olsun</div></div><script>window.onload=()=>{window.focus();window.print()}<\/script></body></html>`);
             w.document.close();
         }
 
@@ -10046,44 +10097,3 @@ if('serviceWorker' in navigator&&location.protocol!=='file:'){window.addEventLis
 
 </body>
 </html>
-
-<style id="section-scroll-fix-v2">
-/* İstenen panellerde kaydırma: mevcut mutlak konum ve sekme görünürlüğü korunur. */
-main.flex-1.relative {
-    min-height: 0 !important;
-}
-#section-adisyon,
-#section-kitchen,
-#section-customerorders,
-#section-waiter,
-#section-products,
-#section-cash,
-#section-history,
-#section-reports,
-#section-debtors {
-    top: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-    overscroll-behavior-y: contain;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-    touch-action: pan-y;
-}
-#section-adisyon > *,
-#section-kitchen > *,
-#section-customerorders > *,
-#section-waiter > *,
-#section-products > *,
-#section-cash > *,
-#section-history > *,
-#section-reports > *,
-#section-debtors > * {
-    flex-shrink: 0 !important;
-}
-</style>
