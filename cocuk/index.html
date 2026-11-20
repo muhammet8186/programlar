@@ -2258,24 +2258,10 @@
     };
   </script>
 
-  <div id="offlineStatus" role="status" aria-live="polite"
-       style="position:fixed;right:12px;bottom:12px;z-index:9999;padding:7px 11px;border-radius:999px;background:#20264b;color:#fff;font:600 12px Fredoka,sans-serif;box-shadow:0 4px 14px #0002">
-    Bağlantı kontrol ediliyor…
-  </div>
 
   <script>
-    // PWA çevrimdışı desteği: HTTPS/localhost üzerinde servis çalışanı kaydedilir.
+    // PWA çevrimdışı desteği arka planda kaydedilir; bağlantı durumu kullanıcıya gösterilmez.
     (function () {
-      const badge = document.getElementById('offlineStatus');
-      function updateNetworkStatus() {
-        const online = navigator.onLine;
-        badge.textContent = online ? '● Çevrimiçi' : '● Çevrimdışı mod';
-        badge.style.background = online ? '#168653' : '#b45309';
-      }
-      window.addEventListener('online', updateNetworkStatus);
-      window.addEventListener('offline', updateNetworkStatus);
-      updateNetworkStatus();
-
       if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
         window.addEventListener('load', function () {
           navigator.serviceWorker.register('./sw.js')
@@ -2283,14 +2269,10 @@
               console.info('Çevrimdışı destek etkin:', registration.scope);
             })
             .catch(function (error) {
-              // Servis çalışanı kaydı başarısız olsa da kullanıcıya hata bildirimi gösterme.
+              // Hata yalnızca geliştirici konsoluna yazılır.
               console.warn('Çevrimdışı destek kaydedilemedi:', error);
-              updateNetworkStatus();
             });
         });
-      } else if (location.protocol === 'file:') {
-        badge.textContent = 'Yerel dosya modu';
-        badge.title = 'Tam PWA çevrimdışı desteği için HTTPS üzerinden açın.';
       }
     })();
   </script>
