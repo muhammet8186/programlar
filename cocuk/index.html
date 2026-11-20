@@ -480,11 +480,11 @@
           </div>
           <div class="min-w-0">
             <h3 class="font-black text-lg sm:text-xl leading-tight">Videoları Eşitle</h3>
-            <p id="homeFolderSyncStatus" class="text-xs sm:text-sm text-white/85 mt-1">Ebeveyn bölümünden bağladığın klasörleri eşitle.</p>
+            <p id="homeFolderSyncStatus" class="text-xs sm:text-sm text-white/85 mt-1">Bağlı klasörleri ve kayıtlı tekil videoları tek seferde eşitle.</p>
           </div>
         </div>
         <button id="homeRescanFolderBtn" type="button" class="shrink-0 w-full sm:w-auto bg-white text-indigo-700 hover:bg-indigo-50 font-black px-5 py-3 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition active:scale-95">
-          <i class="fa-solid fa-rotate"></i><span>Klasörleri Eşitle</span>
+          <i class="fa-solid fa-rotate"></i><span>Tüm Videoları Eşitle</span>
         </button>
       </div>
     </section>
@@ -837,8 +837,14 @@
     document.getElementById('homeRescanFolderBtn').addEventListener('click', async () => {
       const savedFolders = await readSavedFolderHandles();
       const savedFiles = await readIndividualFileHandles();
-      // Kayıtlı klasör veya tekil dosya yoksa hiçbir işlem yapılmaz.
-      if (!savedFolders.length && !savedFiles.length) return;
+      // Tekil videoların yalnızca dosya bağlantıları saklanır; eşitleme sırasında izin istemeden erişilebilenler topluca taranır.
+      // Bağlı klasör/dosya tanıtıcısı yoksa da kayıtlı video kitaplığını yenile.
+      if (!savedFolders.length && !savedFiles.length) {
+        const videos = await loadVideosFromDB();
+        const status = document.getElementById('homeFolderSyncStatus');
+        if (status) status.textContent = `${videos.length} yerel video hazır. Tekil video dosyaları kopyalanmaz; kayıtlı bağlantılar kontrol edilir.`;
+        return;
+      }
 
       const button = document.getElementById('homeRescanFolderBtn');
       const label = button.querySelector('span');
@@ -852,8 +858,8 @@
       } finally {
         button.disabled = false;
         button.classList.remove('opacity-70');
-        if (label) label.textContent = 'Klasörleri Eşitle';
-        if (status) status.textContent = 'Yalnızca Ebeveyn bölümünde bağlanan klasörler eşitlenir.';
+        if (label) label.textContent = 'Tüm Videoları Eşitle';
+        if (status) status.textContent = 'Bağlı klasörler ve kayıtlı tekil dosya bağlantıları tek seferde kontrol edilir.';
       }
     });
     document.getElementById('parentUnlinkFolderBtn').addEventListener('click', async () => {
@@ -866,8 +872,25 @@
         if (!db) return resolve([]);
         const tx = db.transaction('folderHandles', 'readonly');
         const req = tx.objectStore('folderHandles').getAll();
-        req.onsuccess = () => resolve((req.result || []).filter(x => x && String(x.id).startsWith('individual-video:')));
+        req.onsuccess = () => resolve((req.result || []).filter(x => x && x.handle && (x.kind === 'file' || String(x.id).startsWith('individual-video:'))));
         req.onerror = () => reject(req.error || new Error('Dosya bağlantıları okunamadı.'));
+      });
+    }
+
+    function saveIndividualFileHandle(handle, id = 'individual-video:' + makeVideoId()) {
+      return new Promise((resolve, reject) => {
+        if (!db) return reject(new Error('Veritabanı hazır değil.'));
+        let tx;
+        try {
+          tx = db.transaction('folderHandles', 'readwrite');
+          tx.objectStore('folderHandles').put({
+            id, handle, name: handle.name || 'Video dosyası', kind: 'file',
+            savedAt: new Date().toISOString()
+          });
+        } catch (error) { reject(error); return; }
+        tx.oncomplete = () => resolve(id);
+        tx.onerror = () => reject(tx.error || new Error('Tekil video bağlantısı kaydedilemedi.'));
+        tx.onabort = () => reject(tx.error || new Error('Tekil video bağlantısı kaydedilemedi.'));
       });
     }
 
@@ -898,9 +921,13 @@
     }
 
     async function connectIndividualVideoFiles() {
+      // Video dosyalarının kendisi IndexedDB'ye kopyalanmaz.
+      // Yalnızca FileSystemFileHandle (dosya bağlantısı) saklanır.
       if (typeof window.showOpenFilePicker !== 'function') {
-        showAppNotice('Bu Chrome sürümü kalıcı tekil dosya bağlantısını desteklemiyor. Video seçme ekranı açılacak; bu yöntemde videolar mevcut içe aktarma yöntemiyle kaydedilir.', 'Uyumluluk bilgisi', 'info');
-        triggerFileSelect();
+        await showAppNotice(
+          'Bu tarayıcı kalıcı tekil dosya bağlantısını desteklemiyor. Dosya seçimi geçici olur; kalıcı ve toplu eşitleme için Chrome üzerinden HTTPS adresini kullan.',
+          'Kalıcı bağlantı desteklenmiyor', 'warning'
+        );
         return;
       }
       try {
@@ -910,23 +937,39 @@
             'video/*': ['.mp4','.webm','.ogg','.ogv','.mov','.m4v','.avi','.mkv','.3gp','.mpeg','.mpg']
           }}]
         });
-        let added = 0;
+        const saved = await readIndividualFileHandles();
+        let added = 0, skipped = 0;
         for (const handle of handles) {
           const file = await handle.getFile();
           if (!isSupportedVideoFile(file)) continue;
-          const id = 'individual-video:' + encodeURIComponent(file.name + '|' + file.size + '|' + file.lastModified);
-          const tx = db.transaction('folderHandles', 'readwrite');
-          tx.objectStore('folderHandles').put({ id, handle, name: file.name, category: 'cartoons' });
-          await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error); });
+          let exists = false;
+          for (const item of saved) {
+            try {
+              if (item.handle && typeof item.handle.isSameEntry === 'function' && await handle.isSameEntry(item.handle)) {
+                exists = true;
+                break;
+              }
+            } catch (_) {}
+          }
+          if (exists) { skipped++; continue; }
+          await saveIndividualFileHandle(handle);
           added++;
         }
-        await refreshIndividualFileVideos(true);
+        if (!added && !skipped) {
+          await showAppNotice('Seçilen öğeler arasında desteklenen video bulunamadı.', 'Video bulunamadı', 'warning');
+          return;
+        }
+        await refreshIndividualFileVideos(false);
         await loadVideosFromDB();
-        await showAppNotice(`${added} dosya bağlantısı kaydedildi. Videolar telefonundaki konumda kalır; uygulamaya kopyalanmaz. İzin gerektiğinde yeniden onay vermen istenebilir.`, 'Dosya bağlantıları hazır', 'success');
+        await renderFolderConnectionList();
+        await showAppNotice(
+          `${added} yeni tekil video bağlantısı kaydedildi.${skipped ? `\n${skipped} bağlantı zaten kayıtlıydı.` : ''}\n\nVideo dosyaları IndexedDB'ye kopyalanmadı; yalnızca dosya bağlantıları saklandı. Tüm Videoları Eşitle düğmesiyle birlikte kontrol edilir.`,
+          'Video bağlantıları kaydedildi', 'success'
+        );
       } catch (error) {
         if (error && error.name === 'AbortError') return;
-        console.error('Tekil dosya bağlantısı kurulamadı:', error);
-        await showAppNotice('Dosya bağlantısı kurulamadı: ' + (error.message || error.name || 'Bilinmeyen hata'), 'Bağlantı hatası', 'error');
+        console.error('Tekil video bağlantıları eklenemedi:', error);
+        await showAppNotice('Video bağlantıları eklenemedi: ' + (error.message || error.name || 'Bilinmeyen hata'), 'Bağlantı ekleme hatası', 'error');
       }
     }
 
@@ -1112,12 +1155,14 @@
       const list = document.getElementById('parentFolderConnectionList');
       if (!list) return;
       try {
-        const [folders, shortcuts] = await Promise.all([readSavedFolderHandles(), readFolderShortcuts()]);
-        if (!folders.length) {
-          list.innerHTML = '<p class="rounded-xl bg-slate-50 p-3 text-center text-xs text-gray-400">Henüz klasör bağlanmadı.</p>';
+        const [folders, shortcuts, individualFiles] = await Promise.all([
+          readSavedFolderHandles(), readFolderShortcuts(), readIndividualFileHandles()
+        ]);
+        if (!folders.length && !individualFiles.length) {
+          list.innerHTML = '<p class="rounded-xl bg-slate-50 p-3 text-center text-xs text-gray-400">Henüz klasör veya tekil video bağlantısı eklenmedi.</p>';
           return;
         }
-        list.innerHTML = folders.map(folder => {
+        const folderHtml = folders.map(folder => {
           const folderId = String(folder.id);
           const count = shortcuts.filter(video => String(video.folderConnectionId || 'legacy') === folderId || (folderId === 'main-video-folder' && !video.folderConnectionId)).length;
           const safeName = String(folder.name || (folder.handle && folder.handle.name) || 'Video klasörü').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -1127,15 +1172,44 @@
             <button type="button" data-remove-folder="${encodeURIComponent(folderId)}" class="shrink-0 rounded-lg bg-rose-100 px-2.5 py-2 text-[10px] font-bold text-rose-700" aria-label="Klasör bağlantısını kaldır"><i class="fa-solid fa-trash-can mr-1"></i>Kaldır</button>
           </div>`;
         }).join('');
+        const fileHtml = individualFiles.map(item => {
+          const id = String(item.id);
+          const safeName = String(item.name || (item.handle && item.handle.name) || 'Video dosyası').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+          return `<div class="flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50/60 p-3">
+            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600"><i class="fa-solid fa-file-video"></i></div>
+            <div class="min-w-0 flex-1"><p class="truncate text-xs font-black text-gray-700">${safeName}</p><p class="text-[10px] text-gray-500">Tekil video · Yalnızca bağlantı kayıtlı</p></div>
+            <button type="button" data-remove-individual="${encodeURIComponent(id)}" class="shrink-0 rounded-lg bg-rose-100 px-2.5 py-2 text-[10px] font-bold text-rose-700" aria-label="Video bağlantısını kaldır"><i class="fa-solid fa-trash-can mr-1"></i>Kaldır</button>
+          </div>`;
+        }).join('');
+        list.innerHTML = folderHtml + fileHtml;
       } catch (error) {
-        console.warn('Bağlı klasör listesi gösterilemedi:', error);
-        list.innerHTML = '<p class="text-xs text-rose-500">Klasör bağlantıları okunamadı.</p>';
+        console.warn('Bağlı bağlantı listesi gösterilemedi:', error);
+        list.innerHTML = '<p class="text-xs text-rose-500">Bağlantılar okunamadı.</p>';
       }
     }
 
     // Bağlı klasör listesindeki Kaldır düğmesi yalnızca seçilen klasör bağlantısını
     // ve o klasörün kısayollarını siler; diğer klasörler/tekil dosyalar korunur.
     document.getElementById('parentFolderConnectionList')?.addEventListener('click', async event => {
+      const individualButton = event.target.closest('[data-remove-individual]');
+      if (individualButton) {
+        const individualId = decodeURIComponent(individualButton.getAttribute('data-remove-individual') || '');
+        const files = await readIndividualFileHandles();
+        const targetFile = files.find(item => String(item.id) === individualId);
+        if (!targetFile) return;
+        const ok = await showAppConfirm(`“${targetFile.name || targetFile.handle?.name || 'Video dosyası'}” bağlantısı kaldırılacak. Dosyanın kendisi silinmez.`, 'Tekil video bağlantısını kaldır');
+        if (!ok) return;
+        try {
+          await removeSavedFolderHandle(individualId);
+          linkedIndividualFileVideos = (linkedIndividualFileVideos || []).filter(video => String(video.id) !== individualId);
+          await loadVideosFromDB();
+          await renderFolderConnectionList();
+          await showAppNotice('Tekil video bağlantısı kaldırıldı. Dosyan telefonunda duruyor.', 'Bağlantı kaldırıldı', 'success');
+        } catch (error) {
+          await showAppNotice('Bağlantı kaldırılamadı: ' + (error.message || 'Bilinmeyen hata'), 'Hata', 'error');
+        }
+        return;
+      }
       const button = event.target.closest('[data-remove-folder]');
       if (!button) return;
       const id = decodeURIComponent(button.getAttribute('data-remove-folder') || '');
@@ -1380,10 +1454,14 @@
       linkedFolderVideos = allLive;
       let individualVideos = [];
       try {
-        individualVideos = await refreshIndividualFileVideos(!!showNotice);
+        // Kullanıcı "Tüm Videoları Eşitle" düğmesine bastığında,
+        // sayfa yenilendikten sonra izin durumu "prompt" olan kayıtlı tekil
+        // dosya tanıtıcıları için yeniden erişim izni iste.
+        // İzin zaten verilmişse tekrar pencere açılmaz.
+        individualVideos = await refreshIndividualFileVideos(showNotice);
         if (savedIndividualFiles.length > individualVideos.length) {
           const waiting = savedIndividualFiles.length - individualVideos.length;
-          summaries.push(`${waiting} tekil video bağlantısı izin bekliyor veya açılamadı`);
+          summaries.push(`${waiting} tekil video bağlantısına erişilemedi. Tarayıcı izin vermediyse tekil videoları yeniden seçerek bağlantıyı yenile.`);
           needsPermission += waiting;
         }
         totalVideos += individualVideos.length;
