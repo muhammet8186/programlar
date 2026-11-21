@@ -10097,3 +10097,37 @@ if('serviceWorker' in navigator&&location.protocol!=='file:'){window.addEventLis
 
 </body>
 </html>
+
+<style id="sales-selected-product-highlight">
+/* Satış ekranında yalnızca son tıklanan ürün kutusunu vurgular. */
+#products-grid .sales-product-card.sales-product-selected {
+    outline: 3px solid #f59e0b !important;
+    outline-offset: 1px !important;
+    border-color: #f59e0b !important;
+    background: #78350f !important;
+    color: #fff !important;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, .24), 0 0 18px rgba(245, 158, 11, .38) !important;
+}
+body#app-body[data-theme-mode="light"] #products-grid .sales-product-card.sales-product-selected {
+    background: #fef3c7 !important;
+    color: #78350f !important;
+    border-color: #d97706 !important;
+    box-shadow: 0 0 0 3px rgba(217, 119, 6, .20), 0 0 16px rgba(217, 119, 6, .25) !important;
+}
+</style>
+<script id="sales-selected-product-highlight-init">
+(function () {
+    document.addEventListener('click', function (event) {
+        const card = event.target.closest('#products-grid .sales-product-card[data-product-id]');
+        if (!card || event.target.closest('.product-drag-handle')) return;
+
+        document.querySelectorAll('#products-grid .sales-product-card.sales-product-selected')
+            .forEach(function (item) {
+                item.classList.remove('sales-product-selected');
+            });
+
+        card.classList.add('sales-product-selected');
+    });
+})();
+</script>
+
