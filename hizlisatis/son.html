@@ -9380,6 +9380,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="font-mono font-bold text-xs">₺${(Number(h.amount) || 0).toFixed(2)}</span>
+                            ${(() => { const linkedSaleId = h.saleId || h.id; const linkedSale = (satisGecmisi||[]).find(s => String(s.id) === String(linkedSaleId)); return linkedSale ? `<button onclick="veresiyeSatisDetayiniGoster('${String(linkedSale.id).replace(/'/g, '&#39;')}')" type="button" class="text-sky-700 dark:text-sky-300 hover:bg-sky-500/10 px-2 py-1 rounded transition font-semibold" title="Satış detayını gör"><i class="fa-solid fa-eye mr-1"></i> İşlemi Gör</button>` : ''; } )()}
                             ${h.manualCashRecord && h.cashMovementId && islemYetkisiVar('debt_history_delete') ? `<button onclick="musteriIslemSil('${safeCustId}', ${hIndex})" type="button" class="text-red-600 hover:bg-red-500/10 p-1 rounded transition font-semibold" title="Sil"><i class="fa-solid fa-trash"></i> Sil</button>` : (islemYetkisiVar('debt_history_delete') ? `<button onclick="musteriIslemSil('${safeCustId}', ${hIndex})" type="button" class="text-red-600 hover:bg-red-500/10 p-1 rounded transition font-semibold" title="Sil"><i class="fa-solid fa-trash"></i> Sil</button>` : '')}
                         </div>
                     </div>`;
@@ -9391,6 +9392,26 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
             // Geriye dönük eksik geçmiş satırları ve yeniden hesaplanan ödenen tutarları sakla.
             durumuKaydet();
+        }
+
+        function veresiyeSatisDetayiniGoster(saleId) {
+            const sale = (satisGecmisi || []).find(s => String(s.id) === String(saleId));
+            if (!sale) { onayModaliniGoster('Satış bulunamadı', 'Bu geçmiş kaydına bağlı satış kaydı bulunamadı.', null, true); return; }
+            const items = Array.isArray(sale.items) ? sale.items : [];
+            const rows = items.map(item => {
+                const name = item.product?.name || item.productName || 'Ürün';
+                const qty = Number(item.qty) || 0;
+                const price = Number(item.price ?? item.unitPrice ?? item.product?.price ?? 0) || 0;
+                return `<div class="flex justify-between gap-3 border-b border-slate-700 py-2 text-xs"><div class="min-w-0"><b>${htmlGuvenli(name)}</b><div class="text-slate-400 mt-0.5">${qty.toLocaleString('tr-TR')} adet × ₺${price.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div><b class="whitespace-nowrap">₺${(qty*price).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</b></div>`;
+            }).join('');
+            const total = Number(sale.total) || 0;
+            const discount = Number(sale.discount) || 0;
+            const overlay = document.createElement('div');
+            overlay.className = 'fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-3';
+            overlay.innerHTML = `<div class="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 text-white shadow-2xl p-4 space-y-3"><div class="flex items-center justify-between border-b border-slate-700 pb-2"><div><h3 class="font-bold text-base">Veresiye Satış Detayı</h3><p class="text-[10px] text-slate-400">${htmlGuvenli(sale.id)} · ${htmlGuvenli(sale.date||'')}</p></div><button type="button" class="rounded bg-slate-800 px-3 py-2" data-close>✕</button></div><div class="text-xs text-slate-300">Müşteri: <b>${htmlGuvenli(sale.customerName||'—')}</b></div><div class="space-y-1">${rows || '<p class="text-xs text-slate-400">Ürün detayı bulunmuyor.</p>'}</div><div class="border-t border-slate-700 pt-2 space-y-1 text-xs"><div class="flex justify-between"><span class="text-slate-400">Ara toplam</span><b>₺${(Number(sale.subtotal)||items.reduce((a,i)=>a+(Number(i.qty)||0)*(Number(i.price??i.unitPrice??i.product?.price)||0),0)).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</b></div><div class="flex justify-between"><span class="text-slate-400">İndirim</span><b>₺${discount.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</b></div><div class="flex justify-between text-sm"><span class="font-bold">Toplam</span><b class="text-emerald-400">₺${total.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</b></div><div class="flex justify-between"><span class="text-slate-400">Ödeme şekli</span><b>${htmlGuvenli(sale.type||'Veresiye')}</b></div><div class="flex justify-between"><span class="text-slate-400">Kalan borç</span><b class="text-amber-300">₺${(Number(sale.remainingAmount ?? total)||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}</b></div></div><div class="flex justify-end"><button type="button" data-close class="rounded bg-slate-700 px-4 py-2 text-xs font-bold">Kapat</button></div></div>`;
+            document.body.appendChild(overlay);
+            overlay.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', () => overlay.remove()));
+            overlay.addEventListener('click', event => { if (event.target === overlay) overlay.remove(); });
         }
 
         function musteriIslemSil(custId, hIndex) {
@@ -9851,7 +9872,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                     </div>
                 </div>
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-3"><label class="text-xs text-slate-300">Ödeme Şekli<select id="sale-edit-payment-type" class="w-full mt-1 rounded bg-slate-950 border border-slate-600 p-2.5 text-white"><option value="Nakit" ${sale.type === 'Nakit' ? 'selected' : ''}>Nakit</option><option value="Kredi Kartı" ${sale.type === 'Kredi Kartı' ? 'selected' : ''}>Kredi Kartı</option><option value="Veresiye" ${String(sale.type||'').startsWith('Veresiye') ? 'selected' : ''}>Veresiye</option></select></label><label class="text-xs text-slate-300">İndirim (TL)<input id="sale-edit-discount" type="number" min="0" step="0.01" value="${Number(sale.discount)||0}" class="w-full mt-1 rounded bg-slate-950 border border-slate-600 p-2.5 text-white"></label><div class="rounded-lg bg-slate-800 p-3"><div class="text-xs text-slate-400">Yeni toplam</div><div id="sale-edit-total" class="text-xl font-black text-emerald-400">₺0,00</div></div></div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3"><label class="text-xs text-slate-300">Ödeme Şekli<select id="sale-edit-payment-type" class="w-full mt-1 rounded bg-slate-950 border border-slate-600 p-2.5 text-white"><option value="Nakit" ${sale.type === 'Nakit' ? 'selected' : ''}>Nakit</option><option value="Kredi Kartı" ${sale.type === 'Kredi Kartı' ? 'selected' : ''}>Kredi Kartı</option><option value="Veresiye" ${String(sale.type||'').startsWith('Veresiye') ? 'selected' : ''}>Veresiye</option></select></label><label id="sale-edit-customer-wrap" class="text-xs text-slate-300 ${String(sale.type||'').startsWith('Veresiye') ? '' : 'hidden'}">Veresiye Müşterisi<select id="sale-edit-customer" class="w-full mt-1 rounded bg-slate-950 border border-slate-600 p-2.5 text-white"><option value="">Müşteri seçin...</option>${(musteriler||[]).map(c=>`<option value="${htmlGuvenli(c.id)}" ${String(c.id)===String(sale.customerId||sale.associatedCustId||'')?'selected':''}>${htmlGuvenli(c.name)}${c.phone?` · ${htmlGuvenli(c.phone)}`:''}</option>`).join('')}</select></label><label class="text-xs text-slate-300">İndirim (TL)<input id="sale-edit-discount" type="number" min="0" step="0.01" value="${Number(sale.discount)||0}" class="w-full mt-1 rounded bg-slate-950 border border-slate-600 p-2.5 text-white"></label><div class="rounded-lg bg-slate-800 p-3"><div class="text-xs text-slate-400">Yeni toplam</div><div id="sale-edit-total" class="text-xl font-black text-emerald-400">₺0,00</div></div></div>
                 <p class="text-[11px] text-amber-300">Kaydettiğinizde stok farkı, satışa bağlı kasa hareketleri ve varsa veresiye bakiyesi yeniden hesaplanır. Ödeme şekli değişikliği satış ve kasa kayıtlarına uygulanır.</p>
                 <div class="flex justify-end gap-2"><button id="sale-edit-cancel" type="button" class="rounded-lg bg-slate-700 px-4 py-2 text-sm">Vazgeç</button><button id="sale-edit-save" type="button" class="rounded-lg bg-emerald-600 hover:bg-emerald-500 px-5 py-2 text-sm font-bold">Değişiklikleri Kaydet</button></div></div></div>`;
             document.body.appendChild(overlay);
@@ -9874,6 +9895,15 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                 row.innerHTML=`<div class="col-span-5 text-xs font-semibold pb-2">${htmlGuvenli(product.name)}</div><label class="col-span-2 text-[10px] text-slate-400">Adet<input type="number" min="0" step="0.001" data-item-qty value="1" class="w-full mt-1 rounded bg-slate-950 border border-slate-600 p-2 text-white text-sm"></label><label class="col-span-3 text-[10px] text-slate-400">Birim fiyat<input type="number" min="0" step="0.01" data-item-price value="${Number(product.price)||0}" class="w-full mt-1 rounded bg-slate-950 border border-slate-600 p-2 text-white text-sm"></label><button type="button" data-remove-item class="col-span-2 rounded-lg bg-red-900/70 hover:bg-red-700 px-2 py-2 text-xs font-bold text-red-100">✕ Ürünü Sil</button>`;
                 itemsEl.appendChild(row); select.value=''; calculate();
             };
+            const paymentSelect = overlay.querySelector('#sale-edit-payment-type');
+            const customerWrap = overlay.querySelector('#sale-edit-customer-wrap');
+            const syncCustomerVisibility = () => {
+                const isCredit = paymentSelect.value === 'Veresiye';
+                customerWrap.classList.toggle('hidden', !isCredit);
+                if (!isCredit) overlay.querySelector('#sale-edit-customer').value = '';
+            };
+            paymentSelect.addEventListener('change', syncCustomerVisibility);
+            syncCustomerVisibility();
             overlay.querySelector('#sale-edit-discount').addEventListener('input',calculate); calculate();
             overlay.querySelector('#sale-edit-save').onclick = () => satisDuzenleKaydet(sale.id, overlay, close);
         }
@@ -9898,6 +9928,10 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const subtotal = nextItems.reduce((sum,x)=>sum + x.qty * (Number(x.price)||0),0);
             const discount = Math.min(subtotal,Math.max(0,Number(modal.querySelector('#sale-edit-discount').value)||0));
             const newTotal = Math.max(0,Math.round((subtotal-discount)*100)/100);
+            const requestedPaymentType = modal.querySelector('#sale-edit-payment-type')?.value || sale.type || 'Nakit';
+            const requestedCustomerId = requestedPaymentType === 'Veresiye' ? (modal.querySelector('#sale-edit-customer')?.value || '') : '';
+            const requestedCustomer = requestedPaymentType === 'Veresiye' ? (musteriler||[]).find(c=>String(c.id)===String(requestedCustomerId)) : null;
+            if (requestedPaymentType === 'Veresiye' && !requestedCustomer) { onayModaliniGoster('Müşteri gerekli','Veresiye ödeme için listeden bir müşteri seçmelisiniz.',null,true); return; }
             const ratio = oldTotal > 0 ? newTotal/oldTotal : 1;
             // Stok yalnızca eski ve yeni miktar arasındaki fark kadar güncellenir.
             const oldQtyByProduct = new Map();
@@ -9916,19 +9950,47 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             // Satışa bağlı kasa hareketlerini mevcut ödeme dağılımını koruyarak güncelle.
             const linkedCash = (kasaHareketleri||[]).filter(m=>String(m.saleId||'')===String(id));
 
-            // Satışın müşteri borcu varsa yalnızca bakiye farkı kadar cari hesap düzeltilir.
-            const paymentType = modal.querySelector('#sale-edit-payment-type')?.value || sale.type || 'Nakit';
-            const customer = (musteriler||[]).find(c=>String(c.id)===String(sale.customerId||sale.associatedCustId||''));
-            if (paymentType === 'Veresiye' && !customer) { onayModaliniGoster('Müşteri gerekli','Satışı veresiye olarak kaydetmek için satışa bağlı bir müşteri bulunmalı.',null,true); return; }
+            // Veresiye seçildiyse müşteri seçim alanındaki cari hesap esas alınır.
+            const paymentType = requestedPaymentType;
+            const oldCustomer = (musteriler||[]).find(c=>String(c.id)===String(sale.customerId||sale.associatedCustId||''));
+            const newCustomer = requestedCustomer;
             const newRemaining = paymentType === 'Veresiye' ? newTotal : 0;
+            const sameCustomer = oldCustomer && newCustomer && String(oldCustomer.id) === String(newCustomer.id);
             const debtDelta = newRemaining-oldRemaining;
-            if (customer && Math.abs(debtDelta)>0.001) {
-                customer.totalDebt = Math.max(0,(Number(customer.totalDebt)||0)+debtDelta);
-                if (!Array.isArray(customer.history)) customer.history=[];
-                customer.history.unshift({id:`${id}-edit-${Date.now()}`,saleId:String(id),date:new Date().toLocaleString('tr-TR'),type:'Satış düzenleme borç farkı',amount:debtDelta});
+            if (sameCustomer) {
+                if (Math.abs(debtDelta)>0.001) oldCustomer.totalDebt = Math.max(0,(Number(oldCustomer.totalDebt)||0)+debtDelta);
+                if (!Array.isArray(oldCustomer.history)) oldCustomer.history=[];
+                const linkedDebtRows = oldCustomer.history.filter(h =>
+                    (String(h.saleId||'')===String(id) || String(h.id||'')===String(id)) && /borç ekleme|satış düzenleme borç/i.test(String(h.type||''))
+                );
+                if (newRemaining > 0) {
+                    const mainRow = linkedDebtRows[0] || {id:String(id), saleId:String(id)};
+                    mainRow.id = String(id); mainRow.saleId = String(id); mainRow.date = sale.date || new Date().toLocaleString('tr-TR');
+                    mainRow.type = 'Borç Ekleme (Satış)'; mainRow.amount = newRemaining;
+                    oldCustomer.history = oldCustomer.history.filter(h => !linkedDebtRows.includes(h));
+                    oldCustomer.history.unshift(mainRow);
+                } else {
+                    oldCustomer.history = oldCustomer.history.filter(h => !linkedDebtRows.includes(h));
+                }
+            } else {
+                if (oldCustomer && oldRemaining > 0) {
+                    oldCustomer.totalDebt = Math.max(0,(Number(oldCustomer.totalDebt)||0)-oldRemaining);
+                    if (!Array.isArray(oldCustomer.history)) oldCustomer.history=[];
+                    oldCustomer.history = oldCustomer.history.filter(h =>
+                        !((String(h.saleId||'')===String(id) || String(h.id||'')===String(id)) && /borç ekleme|satış düzenleme borç/i.test(String(h.type||'')))
+                    );
+                }
+                if (newCustomer && newRemaining > 0) {
+                    newCustomer.totalDebt = Math.max(0,(Number(newCustomer.totalDebt)||0)+newRemaining);
+                    if (!Array.isArray(newCustomer.history)) newCustomer.history=[];
+                    newCustomer.history.unshift({id:String(id),saleId:String(id),date:sale.date||new Date().toLocaleString('tr-TR'),type:'Borç Ekleme (Satış)',amount:newRemaining});
+                }
             }
             sale.items = nextItems; sale.subtotal = Math.round(subtotal*100)/100; sale.discount = discount; sale.total = newTotal;
             sale.type = paymentType;
+            sale.customerId = newCustomer ? newCustomer.id : null;
+            sale.associatedCustId = newCustomer ? newCustomer.id : null;
+            sale.customerName = newCustomer ? newCustomer.name : null;
             sale.paidAmount = Math.max(0, Math.round((newTotal - newRemaining)*100)/100);
             sale.remainingAmount = newRemaining;
             sale.paymentStatus = newRemaining > 0 ? 'partial' : 'paid';
