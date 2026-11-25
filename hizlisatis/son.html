@@ -5079,7 +5079,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     const path = field.global ? `${root}/${field.path}` : `${root}/${period}/${field.path}`;
                     const snap = await window.dbGet(window.dbRef(window.database, path));
                     const cloud = toArray(snap.exists() ? snap.val() : []);
-                    const local = toArray(field.local());
+                    const local = firebaseIcinVeriyiTemizle(toArray(field.local()));
                     const map = new Map(cloud.map(item=>[firebaseKayitAnahtari(item),item]).filter(([k])=>k!==null));
                     let add=0, pull=0, conflict=0;
                     const localMap = new Map(local.map(row=>[firebaseKayitAnahtari(row),row]).filter(([k])=>k!==null));
@@ -5106,7 +5106,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     const ref = window.dbRef(window.database,item.path);
                     const tx = await window.dbTransaction(ref,current=>{
                         transactionConflict = false;
-                        const latest = toArray(current);
+                        const latest = firebaseIcinVeriyiTemizle(toArray(current));
                         const mergedMap = new Map(latest.map(row=>[firebaseKayitAnahtari(row),row]).filter(([k])=>k!==null));
                         for (const localItem of item.local) {
                             const key = firebaseKayitAnahtari(localItem);
@@ -5118,7 +5118,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                             if (!(lt && rt && lt !== rt)) { transactionConflict = true; return; }
                             if (lt > rt) mergedMap.set(key,localItem);
                         }
-                        return [...mergedMap.values()];
+                        return firebaseIcinVeriyiTemizle([...mergedMap.values()]);
                     });
                     if (!tx.committed) {
                         if (transactionConflict || item.conflict) conflictTotal += Math.max(item.conflict, transactionConflict ? 1 : 0);
@@ -5419,18 +5419,89 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             return firebaseKasaYazmaKuyrugu;
         }
 
+        // Aynı Firebase yoluna giden yazmalar sıraya alınır. Her yazma çalışmaya
+        // başladığında en güncel yerel veri tekrar okunur; eski satış snapshot'ı
+        // yeni satışı/kasa hareketini ezemez.
+        const firebaseAlanYazmaKuyruklari = new Map();
+        const firebaseAlanYazmaSurumleri = new Map();
+
+        // Firebase Realtime Database undefined değerini kabul etmez.
+        // Yerel kayıtları değiştirmeden, yalnızca buluta gidecek kopyadan
+        // undefined/function/symbol alanlarını çıkarır; dizilerde boş öğeyi null yapar.
+        function firebaseIcinVeriyiTemizle(deger, diziElemani = false) {
+            if (deger === undefined || typeof deger === 'function' || typeof deger === 'symbol') return diziElemani ? null : undefined;
+            if (deger === null || typeof deger !== 'object') {
+                if (typeof deger === 'number' && !Number.isFinite(deger)) return null;
+                if (typeof deger === 'bigint') return String(deger);
+                return deger;
+            }
+            if (deger instanceof Date) return deger.toISOString();
+            if (Array.isArray(deger)) return deger.map(item => firebaseIcinVeriyiTemizle(item, true));
+            const sonuc = {};
+            Object.keys(deger).forEach(anahtar => {
+                const temiz = firebaseIcinVeriyiTemizle(deger[anahtar], false);
+                if (temiz !== undefined) sonuc[anahtar] = temiz;
+            });
+            return sonuc;
+        }
+
+        function firebaseDogrulamaImzasi(deger) {
+            if (Array.isArray(deger)) return '[' + deger.map(firebaseDogrulamaImzasi).join(',') + ']';
+            if (deger && typeof deger === 'object') return '{' + Object.keys(deger).sort().map(anahtar => JSON.stringify(anahtar) + ':' + firebaseDogrulamaImzasi(deger[anahtar])).join(',') + '}';
+            return JSON.stringify(deger);
+        }
+        async function firebaseYazmaSonucunuDogrula(yol, beklenenDizi) {
+            if (!(window.dbGet && window.database && window.dbRef)) return false;
+            const snapshot = await window.dbGet(window.dbRef(window.database, yol));
+            const raw = snapshot && snapshot.exists() ? snapshot.val() : null;
+            const bulutDizisi = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? Object.values(raw) : []);
+            const beklenen = Array.isArray(beklenenDizi) ? beklenenDizi : [];
+            if (bulutDizisi.length < beklenen.length) return false;
+            const bulutMap = new Map(bulutDizisi.filter(Boolean).map(kayit => [firebaseKayitAnahtari(kayit), kayit]));
+            return beklenen.every(kayit => {
+                const key = firebaseKayitAnahtari(kayit);
+                return key !== null && bulutMap.has(key) && firebaseDogrulamaImzasi(bulutMap.get(key)) === firebaseDogrulamaImzasi(kayit);
+            });
+        }
+
+        let firebaseAuditRefreshTimer = null;
+        function firebaseKontrolPaneliniOtomatikYenile() {
+            if (firebaseAuditRefreshTimer !== null) return;
+            firebaseAuditRefreshTimer = setTimeout(async () => {
+                firebaseAuditRefreshTimer = null;
+                try { await firebaseKontrolPaneliniYenile(); }
+                catch (hata) { console.warn('Firebase kontrol ekranı otomatik yenilenemedi:', hata); }
+            }, 1800);
+        }
+
         function firebaseDizisiniGuvenliKaydet(yol, yerelDizi, etiket, alanAnahtari, degiskenAdi, yerelAnahtar) {
             const pending = { path: yol, label: etiket, field: alanAnahtari, variable: degiskenAdi, localKey: yerelAnahtar, root: kokDugumGetir(), period: String(aktifDonemId || ''), global: degiskenAdi === 'sistemKullanicilari' };
             firebaseBekleyenKaydiEkle(pending);
-            return firebaseDizisiniGuvenliKaydetIc(yol, yerelDizi, etiket, alanAnahtari, degiskenAdi, yerelAnahtar).then(ok => {
-                if (ok === true) firebaseBekleyenKaydiSil(yol);
-                else firebaseBekleyenKaydiEkle(pending);
-                return ok === true;
+            const surum = (firebaseAlanYazmaSurumleri.get(yol) || 0) + 1;
+            firebaseAlanYazmaSurumleri.set(yol, surum);
+            const onceki = firebaseAlanYazmaKuyruklari.get(yol) || Promise.resolve(true);
+            const yazma = onceki.catch(hata => {
+                console.warn(`${etiket}: önceki yazma hatası sıradaki aktarımı engellemedi:`, hata);
+            }).then(async () => {
+                // Parametre olarak gelen eski dizi yerine daima en güncel yerel kayıt kullanılır.
+                const hamVeri = firebaseBekleyenVeriyiBul(pending);
+                const guncelVeri = firebaseIcinVeriyiTemizle(Array.isArray(hamVeri) ? hamVeri : []);
+                const ok = await firebaseDizisiniGuvenliKaydetIc(yol, guncelVeri, etiket, alanAnahtari, degiskenAdi, yerelAnahtar);
+                if (ok !== true) throw new Error(`${etiket} Firebase yazması tamamlanmadı.`);
+                const dogrulandi = await firebaseYazmaSonucunuDogrula(yol, guncelVeri);
+                if (!dogrulandi) throw new Error(`${etiket} verisi Firebase'den geri okunarak doğrulanamadı.`);
+                if (firebaseAlanYazmaSurumleri.get(yol) === surum) {
+                    firebaseBekleyenKaydiSil(yol);
+                    firebaseKontrolPaneliniOtomatikYenile();
+                }
+                return true;
             }).catch(hata => {
-                console.error(`${etiket} Firebase aktarımı başarısız; yerel kayıt korundu ve tekrar denenecek:`, hata);
+                console.error(`${etiket} Firebase aktarımı doğrulanamadı; yerel kayıt korundu ve tekrar denenecek:`, hata);
                 firebaseBekleyenKaydiEkle(pending);
                 return false;
             });
+            firebaseAlanYazmaKuyruklari.set(yol, yazma);
+            return yazma;
         }
 
         function firebaseDizisiniGuvenliKaydetIc(yol, yerelDizi, etiket, alanAnahtari, degiskenAdi, yerelAnahtar) {
@@ -5478,7 +5549,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 const map = new Map(bulutDizisi.map(k => [firebaseKayitAnahtari(k), k]));
                 silinecek.forEach(k => map.delete(k));
                 degisen.forEach(k => map.set(firebaseKayitAnahtari(k), k));
-                return [...map.values()];
+                return firebaseIcinVeriyiTemizle([...map.values()]);
             }).then(sonuc => {
                 if (!sonuc.committed) { console.warn(`${etiket}: Firebase işlemi tamamlanmadı.`); return false; }
                 const kaydedilen = sonuc.snapshot && Array.isArray(sonuc.snapshot.val()) ? sonuc.snapshot.val() : yerelDizi;
@@ -6040,8 +6111,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             if (!(window.firebaseReady && window.database && window.dbTransaction && window.dbRef)) throw new Error('Firebase işlem desteği kullanılamıyor.');
             const result = await window.dbTransaction(window.dbRef(window.database, yol), current => {
                 const rows = Array.isArray(current) ? current.slice() : (current && typeof current === 'object' ? Object.values(current) : []);
-                if (!rows.some(row => row && String(row.id) === String(kayit.id))) rows.unshift(kayit);
-                return rows;
+                if (!rows.some(row => row && String(row.id) === String(kayit.id))) rows.unshift(firebaseIcinVeriyiTemizle(kayit));
+                return firebaseIcinVeriyiTemizle(rows);
             });
             if (!result.committed) throw new Error('Kasa hareketi Firebase tarafından kaydedilmedi.');
             const saved = Array.isArray(result.snapshot?.val()) ? result.snapshot.val() : [];
