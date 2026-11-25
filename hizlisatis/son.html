@@ -5318,6 +5318,58 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             return firebaseKasaYazmaKuyrugu;
         }
 
+        // Satışın kasa hareketlerini baseline silme mantığına bağlamadan, Firebase'deki
+        // mevcut hareketleri koruyarak ID bazında ekler. Bu yol satış için append-only'dir.
+        async function firebaseSatisKasasiniKaydet(sale) {
+            if (!sistemAyarlari.firebaseAktif) return true;
+            if (!(window.firebaseReady && window.database && window.dbTransaction && window.dbRef)) {
+                throw new Error('Firebase bağlantısı veya transaction desteği hazır değil.');
+            }
+            if (firebaseWriteBlocked || window.firebaseLastLoadOk !== true) {
+                throw new Error('Firebase ilk veri okuması tamamlanmadı; kasa hareketi güvenli biçimde gönderilemedi.');
+            }
+            const saleId = String(sale && sale.id || '');
+            if (!saleId) throw new Error('Satış numarası bulunamadı.');
+            const movements = (Array.isArray(kasaHareketleri) ? kasaHareketleri : [])
+                .filter(m => String(m && m.saleId || '') === saleId && m.movementKind === 'sale-payment');
+            if (!movements.length) return true;
+            const path = `${kokDugumGetir()}/${aktifDonemId}/kasa_hareketleri`;
+            const yaz = async () => {
+                const result = await window.dbTransaction(window.dbRef(window.database, path), current => {
+                    const rows = Array.isArray(current) ? current.slice() : (current && typeof current === 'object' ? Object.values(current) : []);
+                    const byId = new Map(rows.filter(Boolean).map(row => [firebaseKayitAnahtari(row), row]));
+                    movements.forEach(movement => {
+                        const key = firebaseKayitAnahtari(movement);
+                        if (key && !byId.has(key)) byId.set(key, movement);
+                    });
+                    return [...byId.values()];
+                });
+                if (!result || !result.committed) throw new Error('Firebase kasa hareketi işlemi onaylamadı.');
+                const raw = result.snapshot && result.snapshot.val();
+                const saved = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? Object.values(raw) : []);
+                firebaseSyncBaseline.kasa_hareketleri = JSON.parse(JSON.stringify(saved));
+                firebaseBaselinesiniKaydet(kokDugumGetir(), aktifDonemId);
+                // Yereldeki kayıtları ve Firebase'den gelen diğer hareketleri birlikte koru.
+                const merged = new Map(saved.filter(Boolean).map(row => [firebaseKayitAnahtari(row), row]));
+                (Array.isArray(kasaHareketleri) ? kasaHareketleri : []).forEach(row => {
+                    const key = firebaseKayitAnahtari(row);
+                    if (key && !merged.has(key)) merged.set(key, row);
+                });
+                kasaHareketleri = [...merged.values()];
+                try {
+                    localStorage.setItem('pos_cash_movements_v4', JSON.stringify(kasaHareketleri));
+                    const periods = yerelKayitOku('pos_period_data_v1', {});
+                    if (periods && aktifDonemId) {
+                        periods[aktifDonemId] = { ...(periods[aktifDonemId] || {}), kasaHareketleri };
+                        localStorage.setItem('pos_period_data_v1', JSON.stringify(periods));
+                    }
+                } catch (e) { console.warn('Kasa hareketi yerel önbelleği güncellenemedi:', e); }
+                return true;
+            };
+            firebaseKasaYazmaKuyrugu = firebaseKasaYazmaKuyrugu.catch(() => true).then(yaz);
+            return firebaseKasaYazmaKuyrugu;
+        }
+
         function firebaseDizisiniGuvenliKaydet(yol, yerelDizi, etiket, alanAnahtari, degiskenAdi, yerelAnahtar) {
             if (firebaseWriteBlocked) return Promise.resolve(false);
             if (!(window.dbTransaction && window.database && window.dbRef)) {
@@ -5417,7 +5469,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/kategoriler`, kategorilerListesi, 'Kategoriler', 'kategoriler', 'kategorilerListesi', 'pos_categories_v4');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/musteriler`, musteriler, 'Müşteriler', 'musteriler', 'musteriler', 'pos_customers_v4');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/satis_gecmisi`, satisGecmisi, 'Satış geçmişi', 'satis_gecmisi', 'satisGecmisi', 'pos_sales_v4');
-                firebaseKasayiSiraliKaydet(`${kokDugumGetir()}/${aktifDonemId}/kasa_hareketleri`, kasaHareketleri, 'Kasa hareketleri', 'kasa_hareketleri', 'kasaHareketleri', 'pos_cash_movements_v4');
+                if (!window.__posSkipKasaAutoWrite) firebaseKasayiSiraliKaydet(`${kokDugumGetir()}/${aktifDonemId}/kasa_hareketleri`, kasaHareketleri, 'Kasa hareketleri', 'kasa_hareketleri', 'kasaHareketleri', 'pos_cash_movements_v4');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/kasa_hesaplari`, kasaHesaplari, 'Kasa tanımları', 'kasa_hesaplari', 'kasaHesaplari', 'pos_cash_accounts_v1');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/bekleyen_sepetler`, bekleyenSepetler, 'Bekleyen sepetler', 'bekleyen_sepetler', 'bekleyenSepetler', 'pos_suspended_carts_v4');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/acik_adisyonlar`, acikAdisyonlar, 'Açık adisyonlar', 'acik_adisyonlar', 'acikAdisyonlar', 'pos_open_adisyon_v1');
@@ -7403,22 +7455,21 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const tableInput = document.getElementById('cart-table-number'); if (tableInput) tableInput.value = '';
             const orderTypeReset2 = document.getElementById('cart-order-type'); if (orderTypeReset2) orderTypeReset2.value = 'Masa';
 
-            // Yerel kayıt/Firebase gönderimi hata verse bile satış akışını durdurma.
-            // Firebase fonksiyonları kendi hata kayıtlarını konsola yazar.
+            // Satış kaydını ve diğer alanları yerel kaydet; kasa hareketlerini aşağıda
+            // ayrı, append-only Firebase transaction ile yaz. Böylece genel kaydetmenin
+            // eski baseline üzerinden aynı anda kasa dizisini yazması engellenir.
+            window.__posSkipKasaAutoWrite = true;
             try { durumuKaydet(); }
-            catch (hata) { console.error('Satış oluşturuldu; kayıt/eşitleme sırasında hata:', hata); }
+            catch (hata) { console.error('Satış oluşturuldu; yerel kayıt sırasında hata:', hata); }
+            finally { window.__posSkipKasaAutoWrite = false; }
             let kasaFirebaseKaydiBasarili = true;
             if (sistemAyarlari.firebaseAktif) {
-                if (!(window.firebaseReady && window.database) || firebaseWriteBlocked) {
+                try {
+                    kasaFirebaseKaydiBasarili = await firebaseSatisKasasiniKaydet(sale);
+                    if (!kasaFirebaseKaydiBasarili) throw new Error('Firebase kasa hareketi yazma işlemi tamamlanmadı.');
+                } catch (hata) {
                     kasaFirebaseKaydiBasarili = false;
-                } else {
-                    try {
-                        kasaFirebaseKaydiBasarili = await firebaseKasaYazmaKuyrugu;
-                        if (kasaFirebaseKaydiBasarili === false) throw new Error('Firebase kasa hareketi yazma işlemi tamamlanmadı.');
-                    } catch (hata) {
-                        kasaFirebaseKaydiBasarili = false;
-                        console.error('Satış yerel kaydedildi; kasa hareketi Firebase’e henüz aktarılamadı:', hata);
-                    }
+                    console.error('Satış yerel kaydedildi; kasa hareketi Firebase’e aktarılamadı:', hata);
                 }
             }
             if (sistemAyarlari.garsonAktif) musteriIzlemeKaydiniYaz(sale);
