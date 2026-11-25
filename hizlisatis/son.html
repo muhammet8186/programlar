@@ -7848,6 +7848,31 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
 
             const sortedUrunler = urunSiraliListe();
 
+            // Ürün toplam kârı stok çıkışından değil, satış anındaki gerçek satır fiyatı,
+            // satış anında saklanan alış maliyeti ve satış indirimi üzerinden hesaplanır.
+            const satisBazliUrunKarlari = new Map();
+            (Array.isArray(satisGecmisi) ? satisGecmisi : []).forEach(sale => {
+                const items = Array.isArray(sale?.items) ? sale.items : [];
+                const lines = items.map(item => {
+                    const product = item?.product || item?.urun || item || {};
+                    const qty = Math.max(0, Number(item?.qty ?? item?.quantity ?? item?.adet ?? 0) || 0);
+                    const price = Math.max(0, Number(product.price ?? item?.price ?? item?.unitPrice ?? 0) || 0);
+                    const productId = product.id ?? item?.productId ?? item?.urunId ?? '';
+                    const masterProduct = sortedUrunler.find(p => productId !== '' && String(p.id) === String(productId));
+                    const cost = Math.max(0, Number(product.costPrice ?? product.alisFiyati ?? item?.costPrice ?? item?.alisFiyati ?? masterProduct?.costPrice ?? masterProduct?.alisFiyati ?? 0) || 0);
+                    return { productId, qty, price, cost, gross: qty * price };
+                }).filter(line => line.qty > 0);
+                const grossSubtotal = lines.reduce((sum, line) => sum + line.gross, 0);
+                const discount = Math.max(0, Number(sale?.discount) || 0);
+                lines.forEach(line => {
+                    if (line.productId === '') return;
+                    const allocatedDiscount = grossSubtotal > 0 ? Math.min(line.gross, discount * line.gross / grossSubtotal) : 0;
+                    const netLineTotal = Math.max(0, line.gross - allocatedDiscount);
+                    const key = String(line.productId);
+                    satisBazliUrunKarlari.set(key, (satisBazliUrunKarlari.get(key) || 0) + netLineTotal - line.cost * line.qty);
+                });
+            });
+
             const filtered = sortedUrunler.filter(p => {
                 const inQty = p.inStock || 0;
                 const outQty = p.outStock || 0;
@@ -7873,7 +7898,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                 const inQty = p.inStock || 0;
                 const outQty = p.outStock || 0;
                 const remaining = inQty - outQty;
-                const totalProfit = (Number(p.price || 0) - Number(p.costPrice ?? p.alisFiyati ?? 0)) * Number(outQty || 0);
+                const totalProfit = Number(satisBazliUrunKarlari.get(String(p.id)) || 0);
 
                 let statusBadge = `<span class="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">Stokta Var</span>`;
                 if (remaining <= Math.max(0, Number(p.minStock ?? 5)) && remaining > 0) {
