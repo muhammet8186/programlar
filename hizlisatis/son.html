@@ -2203,6 +2203,16 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 </form>
 </div>
 </div>
+<div class="fixed inset-0 bg-black/85 backdrop-blur-md hidden items-center justify-center p-4 z-[230]" id="modal-sales-delete-auth">
+<div class="theme-card bg-slate-900 border border-red-500/40 w-full max-w-sm rounded-lg p-5 space-y-3 shadow-2xl">
+<h3 class="text-sm font-bold text-red-400"><i class="fa-solid fa-shield-halved mr-1"></i> Satışları Silme — Yönetici Onayı</h3>
+<p class="text-xs text-slate-300">Bu işlem için kayıtlı Yönetici hesabının mevcut şifresini girin. Şifre doğrulandıktan sonra ayrıca son onay istenir.</p>
+<form class="space-y-3" onsubmit="satisSilmeSifresiniDogrula(event)">
+<input autocomplete="current-password" class="theme-input w-full bg-slate-950 border border-slate-700 rounded p-2.5 text-xs" id="sales-delete-password" placeholder="Yönetici hesabı şifresi" required="" type="password"/>
+<div class="flex gap-2"><button class="flex-1 py-2 bg-slate-800 rounded text-xs" onclick="modalKapat('modal-sales-delete-auth')" type="button">İptal</button><button class="flex-1 py-2 bg-red-700 hover:bg-red-600 text-white rounded text-xs font-bold" type="submit">Şifreyi Doğrula</button></div>
+</form>
+</div>
+</div>
 <div class="fixed inset-0 bg-black/85 backdrop-blur-md hidden items-center justify-center p-4 z-[220]" id="modal-period-delete-auth">
 <div class="theme-card bg-slate-900 border border-red-500/40 w-full max-w-sm rounded-lg p-5 space-y-3 shadow-2xl">
 <h3 class="text-sm font-bold text-red-400"><i class="fa-solid fa-shield-halved mr-1"></i> Dönem Silme — Yönetici Onayı</h3>
@@ -2536,6 +2546,18 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 </form>
 </div>
 </div>
+<!-- VERESİYE TAHSİLAT DÜZENLEME MODALI -->
+<div class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-[70]" id="modal-veresiye-tahsilat-edit">
+<div class="theme-card bg-slate-900 border border-slate-700 w-full max-w-sm rounded-xl p-5 space-y-4 shadow-2xl">
+<div class="flex items-center justify-between border-b border-slate-800 pb-3"><h3 class="text-sm font-bold text-cyan-400"><i class="fa-solid fa-pen-to-square mr-2"></i>Veresiye Tahsilatını Düzenle</h3><button type="button" class="text-slate-400 hover:text-red-400" onclick="modalKapat('modal-veresiye-tahsilat-edit')"><i class="fa-solid fa-xmark"></i></button></div>
+<input id="veresiye-edit-customer-id" type="hidden"/><input id="veresiye-edit-history-id" type="hidden"/><input id="veresiye-edit-cash-id" type="hidden"/>
+<div class="rounded-lg border border-slate-700 bg-slate-950 p-3 text-xs"><div class="text-slate-400">Müşteri</div><div id="veresiye-edit-customer-name" class="font-bold text-white mt-1">-</div></div>
+<form class="space-y-3" onsubmit="veresiyeTahsilatDuzenleKaydet(event)">
+<div><label class="block text-xs text-slate-400 mb-1" for="veresiye-edit-amount">Tahsilat tutarı (₺)</label><input id="veresiye-edit-amount" class="theme-input w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-sm font-mono" type="number" min="0.01" step="0.01" required/></div>
+<div><label class="block text-xs text-slate-400 mb-1" for="veresiye-edit-method">Ödeme yöntemi</label><select id="veresiye-edit-method" class="theme-input w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-sm"><option value="Nakit">Nakit</option><option value="Kredi Kartı">Kredi Kartı</option><option value="Diğer">Diğer</option></select></div>
+<div class="flex gap-2 pt-1"><button type="button" onclick="modalKapat('modal-veresiye-tahsilat-edit')" class="flex-1 rounded-lg bg-slate-700 p-3 text-xs font-bold text-white">Vazgeç</button><button type="submit" class="flex-1 rounded-lg bg-cyan-700 hover:bg-cyan-600 p-3 text-xs font-bold text-white"><i class="fa-solid fa-check mr-1"></i>Değişiklikleri Kaydet</button></div>
+</form>
+</div></div>
 <!-- Sistem Kullanıcısı Ekle/Düzenle Modal -->
 <div class="fixed inset-0 bg-black/75 backdrop-blur-md hidden items-center justify-center p-4 z-50" id="modal-system-user">
 <div class="theme-card bg-slate-900 border border-slate-700 w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto overscroll-contain rounded-lg p-5 space-y-3 shadow-2xl">
@@ -5039,11 +5061,14 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             const button = document.getElementById('firebase-sync-start');
             const resultEl = document.getElementById('firebase-sync-result');
             const show = (message, tone = 'info') => {
-                if (!resultEl) return;
-                const styles = { info:'border-cyan-800 bg-cyan-950/30 text-cyan-200', success:'border-emerald-800 bg-emerald-950/30 text-emerald-200', warning:'border-amber-800 bg-amber-950/30 text-amber-200', error:'border-rose-800 bg-rose-950/30 text-rose-200' };
-                resultEl.className = `rounded-lg border p-3 text-xs ${styles[tone] || styles.info}`;
-                resultEl.textContent = message;
-                resultEl.classList.remove('hidden');
+                // Senkronizasyon sonuçlarını programın modern üst bildirim alanında göster.
+                if (resultEl) resultEl.classList.add('hidden');
+                if (typeof islemBildirimiGoster === 'function') {
+                    islemBildirimiGoster(message, tone === 'error' || tone === 'warning' ? 'error' : 'success');
+                } else if (resultEl) {
+                    resultEl.textContent = message;
+                    resultEl.classList.remove('hidden');
+                }
             };
             if (button) { button.disabled = true; button.textContent = 'Eşitleme hazırlanıyor…'; }
             const liveWasStarted = typeof firebaseLiveSyncStarted !== 'undefined' && firebaseLiveSyncStarted;
@@ -5096,7 +5121,43 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     preview.push({field,path,local,cloud,add,pull,conflict});
                 }
                 const summary = preview.filter(x=>x.add||x.pull||x.conflict).map(x=>`${x.field.label}: ${x.add} Firebase'e gönderilecek, ${x.pull} cihaza alınacak, ${x.conflict} çözümlenemeyen çakışma`).join('\n');
-                if (!confirm(`Güvenli eşitleme önizlemesi\n\n${summary || 'Yeni kayıt veya çakışma bulunmadı.'}\n\nKurallar: hiçbir kayıt silinmeyecek. Aynı kimlikli ve zaman damgası belirsiz farklı kayıtlar değiştirilmeyecek. Devam edilsin mi?`)) {
+                const devam = await new Promise(resolve => {
+                    const titleEl = document.getElementById('confirm-title');
+                    const messageEl = document.getElementById('confirm-message');
+                    const yesBtn = document.getElementById('confirm-yes-btn');
+                    const noBtn = document.getElementById('confirm-no-btn');
+                    const cancelBtn = document.getElementById('confirm-cancel-btn');
+                    if (!titleEl || !messageEl || !yesBtn || !noBtn) {
+                        resolve(window.confirm(`Güvenli eşitleme önizlemesi\\n\\n${summary || 'Yeni kayıt veya çakışma bulunmadı.'}\\n\\nKurallar: hiçbir kayıt silinmeyecek. Aynı kimlikli ve zaman damgası belirsiz farklı kayıtlar değiştirilmeyecek. Devam edilsin mi?`));
+                        return;
+                    }
+
+                    titleEl.innerText = 'Güvenli eşitleme önizlemesi';
+                    messageEl.innerText = `${summary || 'Yeni kayıt veya çakışma bulunmadı.'}\\n\\nKurallar: hiçbir kayıt silinmeyecek. Aynı kimlikli ve zaman damgası belirsiz farklı kayıtlar değiştirilmeyecek. Devam edilsin mi?`;
+
+                    const yeniYesBtn = yesBtn.cloneNode(true);
+                    yesBtn.parentNode.replaceChild(yeniYesBtn, yesBtn);
+                    yeniYesBtn.innerText = 'Evet, eşitle';
+                    yeniYesBtn.className = 'flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-xs shadow transition';
+                    noBtn.style.display = 'block';
+                    noBtn.innerText = 'İptal';
+                    noBtn.className = 'theme-btn-alt flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded text-xs transition border border-slate-700';
+                    if (cancelBtn) { cancelBtn.style.display = 'none'; cancelBtn.classList.add('hidden'); }
+
+                    let answered = false;
+                    const finish = value => {
+                        if (answered) return;
+                        answered = true;
+                        onayModaliniKapat();
+                        resolve(value);
+                    };
+                    noBtn.onclick = () => finish(false);
+                    yeniYesBtn.addEventListener('click', () => finish(true), { once: true });
+                    const modal = document.getElementById('modal-confirm');
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                });
+                if (!devam) {
                     show('Eşitleme kullanıcı tarafından iptal edildi. Hiçbir kayıt değiştirilmedi.','info');
                     return;
                 }
@@ -9569,6 +9630,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                         <div class="flex items-center gap-2">
                             <span class="font-mono font-bold text-xs">₺${(Number(h.amount) || 0).toFixed(2)}</span>
                             ${(() => { const linkedSaleId = h.saleId || h.id; const linkedSale = (satisGecmisi||[]).find(s => String(s.id) === String(linkedSaleId)); return linkedSale ? `<button onclick="veresiyeSatisDetayiniGoster('${String(linkedSale.id).replace(/'/g, '&#39;')}')" type="button" class="text-sky-700 dark:text-sky-300 hover:bg-sky-500/10 px-2 py-1 rounded transition font-semibold" title="Satış detayını gör"><i class="fa-solid fa-eye mr-1"></i> İşlemi Gör</button>` : ''; } )()}
+                            ${String(h.type || '').toLocaleLowerCase('tr-TR').includes('veresiye tahsilat') && islemYetkisiVar('debt_collect') ? `<button onclick="veresiyeTahsilatDuzenleAc('${safeCustId}', '${String(h.id || '').replace(/'/g, '&#39;')}')" type="button" class="text-blue-600 dark:text-blue-300 hover:bg-blue-500/10 px-2 py-1 rounded transition font-semibold" title="Tahsilatı düzenle"><i class="fa-solid fa-pen mr-1"></i> Düzenle</button>` : ''}
                             ${h.manualCashRecord && h.cashMovementId && islemYetkisiVar('debt_history_delete') ? `<button onclick="musteriIslemSil('${safeCustId}', ${hIndex})" type="button" class="text-red-600 hover:bg-red-500/10 p-1 rounded transition font-semibold" title="Sil"><i class="fa-solid fa-trash"></i> Sil</button>` : (islemYetkisiVar('debt_history_delete') ? `<button onclick="musteriIslemSil('${safeCustId}', ${hIndex})" type="button" class="text-red-600 hover:bg-red-500/10 p-1 rounded transition font-semibold" title="Sil"><i class="fa-solid fa-trash"></i> Sil</button>` : '')}
                         </div>
                     </div>`;
@@ -9711,26 +9773,114 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const kalanBorc = Math.max(0, (Number(customer.totalDebt)||0) - (Number(customer.paidDebt)||0));
             if (paidAmount > kalanBorc + 0.001) { onayModaliniGoster('Tutar fazla', `Tahsilat tutarı kalan borcu (₺${kalanBorc.toFixed(2)}) aşamaz.`, null, true); return; }
 
-            customer.paidDebt = (customer.paidDebt || 0) + paidAmount;
+            customer.paidDebt = (Number(customer.paidDebt) || 0) + paidAmount;
             if(!Array.isArray(customer.history)) customer.history = [];
-            customer.history.unshift({
-                id: 'TH-' + Date.now(),
-                date: new Date().toLocaleString('tr-TR'),
-                type: 'Veresiye Tahsilat',
-                amount: paidAmount
-            });
-
             if (!Array.isArray(kasaHareketleri)) kasaHareketleri = [];
-            kasaHareketleri.unshift({
-                date: new Date().toLocaleString('tr-TR'),
+            const tahsilatId = 'TH-' + Date.now() + '-' + Math.random().toString(36).slice(2,7);
+            const tahsilatTarihi = new Date().toLocaleString('tr-TR');
+            const kasaKaydi = {
+                id: `KH-${tahsilatId}`,
+                date: tahsilatTarihi,
+                timestamp: Date.now(),
                 type: `Veresiye Tahsilat (${customer.name})`,
-                amount: paidAmount
+                amount: Math.round(paidAmount * 100) / 100,
+                movementKind: 'debt-settlement',
+                customerId: customer.id,
+                customerName: customer.name,
+                historyId: tahsilatId,
+                paymentMethod: 'Nakit',
+                periodId: aktifDonemId
+            };
+            customer.history.unshift({
+                id: tahsilatId,
+                date: tahsilatTarihi,
+                type: 'Veresiye Tahsilat',
+                amount: Math.round(paidAmount * 100) / 100,
+                cashMovementId: kasaKaydi.id,
+                paymentMethod: 'Nakit'
             });
+            kasaHareketleri.unshift(kasaKaydi);
 
             durumuKaydet();
             modalKapat('modal-tahsilat');
             borclularTablosunuGuncelle();
             kasaEkraniniGuncelle();
+        }
+
+        function veresiyeTahsilatDuzenleAc(customerId, historyId) {
+            if (!islemYetkisiGerekli('debt_collect', 'Veresiye tahsilatını düzenleme yetkiniz yok.')) return;
+            const customer = (musteriler || []).find(c => String(c.id) === String(customerId));
+            const history = customer && Array.isArray(customer.history) ? customer.history.find(h => String(h.id) === String(historyId)) : null;
+            if (!customer || !history || !String(history.type || '').toLocaleLowerCase('tr-TR').includes('veresiye tahsilat')) {
+                onayModaliniGoster('Kayıt bulunamadı', 'Düzenlenecek veresiye tahsilatı bulunamadı.', null, true); return;
+            }
+            let cash = (kasaHareketleri || []).find(m => String(m.id || '') === String(history.cashMovementId || ''));
+            // Eski sürümlerde hareket kimliği ilişkilendirilmemişti. Yalnızca müşteri,
+            // tutar ve tarih birebir eşleşirse güvenli biçimde ilişki kur.
+            if (!cash) {
+                const candidates = (kasaHareketleri || []).filter(m =>
+                    String(m.type || '').includes(`Veresiye Tahsilat (${customer.name})`) &&
+                    Math.abs((Number(m.amount) || 0) - (Number(history.amount) || 0)) < 0.001 &&
+                    String(m.date || '') === String(history.date || '')
+                );
+                if (candidates.length === 1) {
+                    cash = candidates[0];
+                    if (!cash.id) cash.id = `KH-${history.id}`;
+                    cash.movementKind = 'debt-settlement';
+                    cash.customerId = customer.id;
+                    cash.customerName = customer.name;
+                    cash.historyId = history.id;
+                    history.cashMovementId = cash.id;
+                }
+            }
+            if (!cash) {
+                onayModaliniGoster('Kasa kaydı eşleştirilemedi', 'Bu eski tahsilatın kasa hareketi güvenli biçimde belirlenemediği için düzenleme açılmadı. Kasa toplamının yanlış değişmemesi için kayıt korunuyor.', null, true);
+                return;
+            }
+            document.getElementById('veresiye-edit-customer-id').value = customer.id;
+            document.getElementById('veresiye-edit-history-id').value = history.id;
+            document.getElementById('veresiye-edit-cash-id').value = cash.id;
+            document.getElementById('veresiye-edit-customer-name').textContent = customer.name || '-';
+            document.getElementById('veresiye-edit-amount').value = (Number(history.amount) || 0).toFixed(2);
+            document.getElementById('veresiye-edit-method').value = history.paymentMethod || cash.paymentMethod || 'Nakit';
+            const modal = document.getElementById('modal-veresiye-tahsilat-edit');
+            if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+        }
+
+        function veresiyeTahsilatDuzenleKaydet(event) {
+            event.preventDefault();
+            if (!islemYetkisiGerekli('debt_collect', 'Veresiye tahsilatını düzenleme yetkiniz yok.')) return;
+            const customerId = document.getElementById('veresiye-edit-customer-id')?.value || '';
+            const historyId = document.getElementById('veresiye-edit-history-id')?.value || '';
+            const cashId = document.getElementById('veresiye-edit-cash-id')?.value || '';
+            const customer = (musteriler || []).find(c => String(c.id) === String(customerId));
+            const history = customer && Array.isArray(customer.history) ? customer.history.find(h => String(h.id) === String(historyId)) : null;
+            const cash = (kasaHareketleri || []).find(m => String(m.id) === String(cashId));
+            const amount = Number(document.getElementById('veresiye-edit-amount')?.value);
+            if (!customer || !history || !cash || !Number.isFinite(amount) || amount <= 0) {
+                onayModaliniGoster('Geçersiz kayıt', 'Müşteri, tahsilat veya tutar bilgisi geçersiz.', null, true); return;
+            }
+            const oldAmount = Number(history.amount) || 0;
+            const paidWithoutThis = Math.max(0, (Number(customer.paidDebt) || 0) - oldAmount);
+            const maxAmount = Math.max(0, (Number(customer.totalDebt) || 0) - paidWithoutThis);
+            if (amount > maxAmount + 0.001) {
+                onayModaliniGoster('Tutar fazla', `Bu müşterinin tahsilatı en fazla ₺${maxAmount.toFixed(2)} olabilir.`, null, true); return;
+            }
+            const rounded = Math.round(amount * 100) / 100;
+            const method = document.getElementById('veresiye-edit-method')?.value || 'Nakit';
+            customer.paidDebt = Math.round((paidWithoutThis + rounded) * 100) / 100;
+            history.amount = rounded;
+            history.paymentMethod = method;
+            cash.amount = rounded;
+            cash.paymentMethod = method;
+            cash.editedAt = new Date().toLocaleString('tr-TR');
+            cash.note = `Veresiye tahsilatı · ${method}`;
+            durumuKaydet();
+            modalKapat('modal-veresiye-tahsilat-edit');
+            borclularTablosunuGuncelle();
+            kasaEkraniniGuncelle();
+            musteriGecmisiGoster(customer.id);
+            islemBildirimiGoster('Veresiye tahsilatı güncellendi.', 'success');
         }
 
         function borclularTablosunuGuncelle() {
@@ -10287,23 +10437,46 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
 
         function gecmisiSifirlaOnayModaliniAc() {
             if (!islemYetkisiGerekli('sales_cancel', 'Satış geçmişini ve kasayı sıfırlama yetkiniz yok.')) return;
+            const input = document.getElementById('sales-delete-password');
+            if (input) input.value = '';
+            const modal = document.getElementById('modal-sales-delete-auth');
+            if (!modal) { onayModaliniGoster('İşlem açılamadı', 'Yönetici doğrulama penceresi bulunamadı.', null, true); return; }
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => input?.focus(), 50);
+        }
+
+        function satisSilmeSifresiniDogrula(e) {
+            e.preventDefault();
+            const girilenSifre = document.getElementById('sales-delete-password')?.value || '';
+            const yonetici = (sistemKullanicilari || []).find(u => {
+                const rol = String(u.role || '').trim().toLocaleLowerCase('tr-TR');
+                const yoneticiRol = rol === 'yönetici' || rol === 'yonetici' || rol === 'admin' || rol.includes('yönetici') || rol.includes('yonetici');
+                return yoneticiRol && String(u.pass ?? u.password ?? u.sifre ?? u.şifre ?? u.parola ?? '') === girilenSifre;
+            });
+            if (!yonetici) {
+                onayModaliniGoster('Yetki Hatası', 'Yönetici hesabının şifresi hatalı. Hiçbir kayıt silinmedi.', null, true);
+                const input = document.getElementById('sales-delete-password');
+                if (input) input.value = '';
+                return;
+            }
+            modalKapat('modal-sales-delete-auth');
+            const input = document.getElementById('sales-delete-password');
+            if (input) input.value = '';
             onayModaliniGoster(
                 'Satışları ve Kasayı Sıfırla',
-                'Tüm satış geçmişi ve kasa hareketleri sıfırlanacak. Onaylıyor musunuz?',
+                'Yönetici şifresi doğrulandı. Bu işlem yalnızca seçili dönemin satış geçmişini kalıcı olarak silecek. Kasa hareketleri, cari hesaplar ve ürün kayıtları korunacak. Devam etmek istiyor musunuz?',
                 () => {
                     satisGecmisi = [];
-                    kasaHareketleri = [];
-                    
+
                     if (sistemAyarlari.firebaseAktif && window.firebaseReady && window.database) {
                         window.dbSet(window.dbRef(window.database, `${kokDugumGetir()}/${aktifDonemId}/pos_sales`), null);
-                        window.dbSet(window.dbRef(window.database, `${kokDugumGetir()}/${aktifDonemId}/pos_cash_movements`), null);
                     }
 
                     durumuKaydet();
                     gecmisTablosunuGuncelle();
                     kasaEkraniniGuncelle();
-                    
-                    onayModaliniGoster('Başarılı', 'Tüm satışlar ve kasa hareketleri sıfırlandı.', null, true);
+                    onayModaliniGoster('Başarılı', 'Seçili dönemin satış geçmişi silindi. Kasa hareketleri ve diğer kayıtlar korundu.', null, true);
                 }
             );
         }
