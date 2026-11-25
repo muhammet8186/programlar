@@ -2067,6 +2067,14 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
   </div>
   <p class="text-[10px] text-slate-400">Eşitleme yalnızca eksik kayıtları ekler. Silme yapmaz. Aynı kimlikli kayıtların içeriği güvenle karşılaştırılamıyorsa ilgili kayıt grubu aktarılmaz ve çakışma bildirilir.</p>
   <div id="firebase-sync-result" class="hidden rounded-lg border border-slate-700 bg-slate-950/70 p-3 text-xs" aria-live="polite"></div>
+  <div class="rounded-lg border border-slate-700 bg-slate-950/70 p-3 space-y-2" id="firebase-pending-panel">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div><div class="text-xs font-bold text-slate-200">Otomatik aktarım takibi</div><div id="firebase-pending-status" class="text-[10px] text-slate-400 mt-1">Bekleyen aktarım kontrol ediliyor…</div></div>
+      <button type="button" id="firebase-pending-retry" onclick="firebaseBekleyenYazmalariTekrarla(true)" class="rounded-lg bg-amber-700 hover:bg-amber-600 px-3 py-2 text-xs font-bold text-white"><i class="fa-solid fa-rotate mr-1"></i> Bekleyenleri tekrar gönder</button>
+    </div>
+    <div id="firebase-pending-list" class="text-[10px] text-slate-400">Bekleyen kayıt yok.</div>
+    <div id="firebase-pending-last-success" class="text-[10px] text-slate-500">Son başarılı aktarım: Henüz doğrulanmadı</div>
+  </div>
   <div class="grid grid-cols-2 gap-2">
     <div class="rounded-lg border border-slate-700 bg-slate-950/70 p-3">
       <div class="text-[10px] text-slate-400">Toplam yerel kayıt</div>
@@ -3112,6 +3120,10 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
         window.addEventListener('DOMContentLoaded', async () => {
             // Bulut verisi varsa ilk yerel kayıt işleminden önce yükle; boş bulut yerel veriyi ezmesin.
             await firebaseVerileriniYukle();
+            firebaseBekleyenDurumunuGuncelle();
+            if (sistemAyarlari.firebaseAktif === true && window.firebaseLastLoadOk === true) {
+                try { await firebaseBekleyenYazmalariTekrarla(false); } catch (e) { console.warn('Bekleyen Firebase aktarımları başlatılamadı:', e); }
+            }
             // Eski cihaz/bulut kayıtlarındaki önceki açık değerleri yalnızca bir kez kapat.
             const ilkOzellikKurulumu = ozellikIlkKurulumunuUygula();
             if (ilkOzellikKurulumu) await sistemAyarlariKaydet(true);
@@ -3861,6 +3873,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     if (!window.firebaseLastLoadOk) throw new Error('Bulut verileri doğrulanamadı; yerel kayıtlar buluta gönderilmedi.');
                     firebaseCanliEsitlemeyiBaslat(true);
                     durumuKaydet();
+                    await firebaseBekleyenYazmalariTekrarla(false);
                     onayModaliniGoster('İnternet bağlantısı geldi', 'Bulut verileri kontrol edildi; yerel değişiklikler güvenli eşitlemeye alındı.', null, true);
                 } catch (e) { console.warn('Firebase eşitleme başlatılamadı', e); onayModaliniGoster('Eşitleme beklemede', e.message || 'Firebase verileri okunamadı.', null, true); }
             } else {
@@ -3870,6 +3883,14 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
         window.addEventListener('offline', () => {
             if (sistemAyarlari.firebaseAktif) onayModaliniGoster('İnternet bağlantısı kesildi', 'Firebase yedekleme açık. İnternet geri geldiğinde veriler yeniden yedeklenecektir.', null, true);
         });
+        window.addEventListener('online', firebaseBekleyenDurumunuGuncelle);
+        window.addEventListener('offline', firebaseBekleyenDurumunuGuncelle);
+        setInterval(() => {
+            firebaseBekleyenDurumunuGuncelle();
+            if (sistemAyarlari.firebaseAktif === true && navigator.onLine && window.firebaseLastLoadOk === true && !firebasePendingRetryRunning && firebaseBekleyenYazmalariOku().length) {
+                firebaseBekleyenYazmalariTekrarla(false).catch(e => console.warn('Otomatik Firebase tekrar aktarımı başarısız:', e));
+            }
+        }, 30000);
 
         async function firebaseToggleDegisti(el) {
             // Şalter değiştiğinde uyarı gösterilmez. Kapalı modda da bütün işlemler yerel kaydedilmeye devam eder.
@@ -5112,6 +5133,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     item.field.set(saved);
                     try { localStorage.setItem(item.field.storage,JSON.stringify(saved)); } catch (_) {}
                     firebaseSyncBaseline[item.field.key] = JSON.parse(JSON.stringify(saved));
+                    try { firebaseBekleyenKaydiSil(item.path); } catch (_) {}
                     completed++;
                 }
                 firebaseBaselinesiniKaydet(root,period);
@@ -5143,6 +5165,85 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 
         const firebaseSyncBaseline = {};
         let firebaseWriteBlocked = false;
+
+        // Başarısız Firebase dizi yazmaları cihazda kuyruk bilgisi olarak tutulur.
+        // Veri zaten yerel depoda olduğundan burada ikinci bir büyük veri kopyası saklanmaz.
+        const FIREBASE_PENDING_KEY = 'pos_firebase_pending_writes_v1';
+        let firebasePendingRetryRunning = false;
+        function firebaseBekleyenYazmalariOku() {
+            try { const value = JSON.parse(localStorage.getItem(FIREBASE_PENDING_KEY) || '[]'); return Array.isArray(value) ? value : []; }
+            catch (_) { return []; }
+        }
+        function firebaseBekleyenYazmalariKaydet(items) {
+            try { localStorage.setItem(FIREBASE_PENDING_KEY, JSON.stringify(items)); }
+            catch (e) { console.warn('Firebase bekleyenler listesi saklanamadı:', e); }
+            firebaseBekleyenDurumunuGuncelle();
+        }
+        function firebaseBekleyenKaydiEkle(item) {
+            const items = firebaseBekleyenYazmalariOku();
+            const index = items.findIndex(x => x && x.path === item.path);
+            const record = { ...item, queuedAt: index >= 0 ? (items[index].queuedAt || Date.now()) : Date.now(), lastErrorAt: Date.now() };
+            if (index >= 0) items[index] = record; else items.push(record);
+            firebaseBekleyenYazmalariKaydet(items);
+        }
+        function firebaseBekleyenKaydiSil(path) {
+            firebaseBekleyenYazmalariKaydet(firebaseBekleyenYazmalariOku().filter(x => x && x.path !== path));
+            try { localStorage.setItem('pos_firebase_last_success_v1', new Date().toISOString()); } catch (_) {}
+        }
+        function firebaseBekleyenDurumunuGuncelle() {
+            const status = document.getElementById('firebase-pending-status');
+            const list = document.getElementById('firebase-pending-list');
+            const last = document.getElementById('firebase-pending-last-success');
+            const button = document.getElementById('firebase-pending-retry');
+            const items = firebaseBekleyenYazmalariOku();
+            if (status) {
+                if (sistemAyarlari.firebaseAktif !== true) { status.textContent = 'Firebase yedekleme kapalı. Veriler bu cihazda saklanıyor.'; status.className = 'text-[10px] text-slate-400 mt-1'; }
+                else if (!navigator.onLine || !window.firebaseReady || !window.database) { status.textContent = `${items.length} bekleyen aktarım var. Bağlantı bekleniyor.`; status.className = 'text-[10px] text-amber-300 mt-1'; }
+                else if (items.length) { status.textContent = `${items.length} veri grubu Firebase’e aktarılmayı bekliyor.`; status.className = 'text-[10px] text-amber-300 mt-1'; }
+                else if (window.firebaseLastLoadOk === true) { status.textContent = 'Bekleyen aktarım yok. Son bulut okuması başarılı.'; status.className = 'text-[10px] text-emerald-300 mt-1'; }
+                else { status.textContent = 'Firebase bağlantısı var; ilk güvenli bulut okuması bekleniyor.'; status.className = 'text-[10px] text-slate-400 mt-1'; }
+            }
+            if (list) list.textContent = items.length ? items.map(x => `${x.label || x.field || 'Veri'} · ${new Date(x.queuedAt || Date.now()).toLocaleString('tr-TR')}`).join(' | ') : 'Bekleyen kayıt yok.';
+            if (last) { let value = ''; try { value = localStorage.getItem('pos_firebase_last_success_v1') || ''; } catch (_) {} last.textContent = 'Son başarılı aktarım: ' + (value ? new Date(value).toLocaleString('tr-TR') : 'Henüz doğrulanmadı'); }
+            if (button) button.disabled = firebasePendingRetryRunning || !items.length || sistemAyarlari.firebaseAktif !== true || !navigator.onLine;
+        }
+        function firebaseBekleyenVeriyiBul(item) {
+            const variableToPeriodKey = { urunler:'urunler', kategorilerListesi:'kategorilerListesi', musteriler:'musteriler', satisGecmisi:'satisGecmisi', kasaHareketleri:'kasaHareketleri', kasaHesaplari:'kasaHesaplari', bekleyenSepetler:'bekleyenSepetler', acikAdisyonlar:'acikAdisyonlar' };
+            if (item.variable === 'sistemKullanicilari') { try { return JSON.parse(localStorage.getItem(item.localKey) || '[]'); } catch (_) { return []; } }
+            if (String(item.period) === String(aktifDonemId)) {
+                const current = { urunler, kategorilerListesi, musteriler, satisGecmisi, kasaHareketleri, kasaHesaplari, bekleyenSepetler, acikAdisyonlar };
+                if (Array.isArray(current[item.variable])) return current[item.variable];
+            }
+            try { const periods = JSON.parse(localStorage.getItem('pos_period_data_v1') || '{}'); const data = periods && periods[item.period]; const value = data && data[variableToPeriodKey[item.variable]]; if (Array.isArray(value)) return value; } catch (_) {}
+            try { const value = JSON.parse(localStorage.getItem(item.localKey) || '[]'); return Array.isArray(value) ? value : []; } catch (_) { return []; }
+        }
+        async function firebaseBekleyenYazmalariTekrarla(manual = false) {
+            if (firebasePendingRetryRunning) return false;
+            if (sistemAyarlari.firebaseAktif !== true || !navigator.onLine || !(window.firebaseReady && window.database && window.dbTransaction && window.dbRef)) {
+                firebaseBekleyenDurumunuGuncelle();
+                if (manual) onayModaliniGoster('Aktarım beklemede', 'Firebase bağlantısı hazır değil. İnternet ve Firebase ayarlarını kontrol edin.', null, true);
+                return false;
+            }
+            if (firebaseWriteBlocked || window.firebaseLastLoadOk !== true) {
+                if (manual) onayModaliniGoster('Güvenli okuma bekleniyor', 'Bekleyen kayıtlar gönderilmeden önce Firebase verilerinin başarıyla okunması gerekiyor.', null, true);
+                return false;
+            }
+            const items = firebaseBekleyenYazmalariOku();
+            if (!items.length) { firebaseBekleyenDurumunuGuncelle(); if (manual) onayModaliniGoster('Aktarım kuyruğu boş', 'Firebase’e gönderilmeyi bekleyen kayıt bulunmuyor.', null, true); return true; }
+            firebasePendingRetryRunning = true; firebaseBekleyenDurumunuGuncelle();
+            let success = 0, failed = 0, skipped = 0;
+            try {
+                for (const item of items) {
+                    if (!item || item.root !== kokDugumGetir()) { skipped++; continue; }
+                    if (!item.global && String(item.period) !== String(aktifDonemId)) { skipped++; continue; }
+                    const data = firebaseBekleyenVeriyiBul(item);
+                    const result = await firebaseDizisiniGuvenliKaydet(item.path, data, item.label, item.field, item.variable, item.localKey);
+                    if (result === true) success++; else failed++;
+                }
+            } finally { firebasePendingRetryRunning = false; firebaseBekleyenDurumunuGuncelle(); }
+            if (manual) onayModaliniGoster(success && !failed && !skipped ? 'Senkronizasyon tamamlandı' : 'Senkronizasyon sonucu', `${success} veri grubu aktarıldı, ${failed} başarısız, ${skipped} farklı dönem/kök nedeniyle beklemede. Yerel kayıtlar korunuyor.`, null, true);
+            return failed === 0 && skipped === 0;
+        }
 
         function firebaseDizileriBirlestir(bulutDizisi, yerelDizisi, yerelOncelikli = true) {
             const sonuc = [];
@@ -5319,10 +5420,25 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
         }
 
         function firebaseDizisiniGuvenliKaydet(yol, yerelDizi, etiket, alanAnahtari, degiskenAdi, yerelAnahtar) {
+            const pending = { path: yol, label: etiket, field: alanAnahtari, variable: degiskenAdi, localKey: yerelAnahtar, root: kokDugumGetir(), period: String(aktifDonemId || ''), global: degiskenAdi === 'sistemKullanicilari' };
+            firebaseBekleyenKaydiEkle(pending);
+            return firebaseDizisiniGuvenliKaydetIc(yol, yerelDizi, etiket, alanAnahtari, degiskenAdi, yerelAnahtar).then(ok => {
+                if (ok === true) firebaseBekleyenKaydiSil(yol);
+                else firebaseBekleyenKaydiEkle(pending);
+                return ok === true;
+            }).catch(hata => {
+                console.error(`${etiket} Firebase aktarımı başarısız; yerel kayıt korundu ve tekrar denenecek:`, hata);
+                firebaseBekleyenKaydiEkle(pending);
+                return false;
+            });
+        }
+
+        function firebaseDizisiniGuvenliKaydetIc(yol, yerelDizi, etiket, alanAnahtari, degiskenAdi, yerelAnahtar) {
             if (firebaseWriteBlocked) return Promise.resolve(false);
             if (!(window.dbTransaction && window.database && window.dbRef)) {
                 return window.dbSet(window.dbRef(window.database, yol), yerelDizi)
-                    .catch(hata => console.error(`${etiket} Firebase’e kaydedilemedi:`, hata));
+                    .then(() => true)
+                    .catch(hata => { console.error(`${etiket} Firebase’e kaydedilemedi:`, hata); return false; });
             }
 
             // Kategori dizisinde sıra bilgisi dizinin kendi sırasıdır. Eleman bazlı
@@ -5364,7 +5480,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 degisen.forEach(k => map.set(firebaseKayitAnahtari(k), k));
                 return [...map.values()];
             }).then(sonuc => {
-                if (!sonuc.committed) { console.warn(`${etiket}: Firebase işlemi tamamlanmadı.`); return; }
+                if (!sonuc.committed) { console.warn(`${etiket}: Firebase işlemi tamamlanmadı.`); return false; }
                 const kaydedilen = sonuc.snapshot && Array.isArray(sonuc.snapshot.val()) ? sonuc.snapshot.val() : yerelDizi;
                 firebaseSyncBaseline[alanAnahtari] = JSON.parse(JSON.stringify(kaydedilen || []));
                 firebaseBaselinesiniKaydet(kokDugumGetir(), aktifDonemId);
@@ -5378,7 +5494,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 else if (degiskenAdi === 'bekleyenSepetler') bekleyenSepetler = kaydedilen;
                 else if (degiskenAdi === 'acikAdisyonlar') acikAdisyonlar = kaydedilen;
                 try { localStorage.setItem(yerelAnahtar, JSON.stringify(kaydedilen)); } catch (_) {}
-            }).catch(hata => console.error(`${etiket} Firebase’e güvenli kaydedilemedi:`, hata));
+                return true;
+            }).catch(hata => { console.error(`${etiket} Firebase’e güvenli kaydedilemedi:`, hata); return false; });
         }
 
         function durumuKaydet() {
