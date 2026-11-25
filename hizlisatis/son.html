@@ -5275,7 +5275,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     // Yerel tarafta bulutta olmayan bir değişiklik varsa, yalnızca bu alanı işlemli biçimde gönder.
                     if (JSON.stringify(merged) !== JSON.stringify(bulutDizisi)) {
                         const labels = { urunler:'Ürünler', kategoriler:'Kategoriler', musteriler:'Müşteriler', satis_gecmisi:'Satış geçmişi', kasa_hareketleri:'Kasa hareketleri', kasa_hesaplari:'Kasa tanımları', bekleyen_sepetler:'Bekleyen sepetler', acik_adisyonlar:'Açık adisyonlar' };
-                        firebaseDizisiniGuvenliKaydet(`${root}/${period}/${cloudKey}`, merged, labels[cloudKey] || cloudKey, cloudKey, variable, localKey);
+                        if (cloudKey === 'kasa_hareketleri') firebaseKasayiSiraliKaydet(`${root}/${period}/${cloudKey}`, merged, labels[cloudKey] || cloudKey, cloudKey, variable, localKey);
+                        else firebaseDizisiniGuvenliKaydet(`${root}/${period}/${cloudKey}`, merged, labels[cloudKey] || cloudKey, cloudKey, variable, localKey);
                     }
                     if (variable === 'urunler' || variable === 'kategorilerListesi') { kategoriListesiniGuncelle(); kategorileriOlustur(); urunleriGoster(); }
                     if (variable === 'musteriler') { try { borclularTablosunuGuncelle(); } catch (_) {} }
@@ -5301,6 +5302,20 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 try { localStorage.setItem('pos_system_users_v4', JSON.stringify(users)); } catch (_) {}
                 try { sistemKullanicilariTablosunuGuncelle(); girisDropdownKullanicilariniGoster(); } catch (_) {}
             }, error => console.error('Kullanıcılar canlı eşitleme hatası:', error)));
+        }
+
+        // Kasa hareketleri için Firebase yazmalarını sıraya al. Satış, canlı dinleyici ve
+        // genel kayıt aynı anda yazmaya çalışırsa eski bir snapshot yeni hareketi ezmesin.
+        let firebaseKasaYazmaKuyrugu = Promise.resolve(true);
+        function firebaseKasayiSiraliKaydet(yol, yerelDizi, etiket = 'Kasa hareketleri', alanAnahtari = 'kasa_hareketleri', degiskenAdi = 'kasaHareketleri', yerelAnahtar = 'pos_cash_movements_v4') {
+            const yaz = () => firebaseDizisiniGuvenliKaydet(yol, yerelDizi, etiket, alanAnahtari, degiskenAdi, yerelAnahtar);
+            firebaseKasaYazmaKuyrugu = firebaseKasaYazmaKuyrugu.catch(hata => {
+                console.warn('Önceki kasa Firebase yazması başarısız oldu; yeni yazma yeniden denenecek:', hata);
+            }).then(yaz).catch(hata => {
+                console.error('Kasa hareketleri Firebase kuyruğunda kaydedilemedi:', hata);
+                return false;
+            });
+            return firebaseKasaYazmaKuyrugu;
         }
 
         function firebaseDizisiniGuvenliKaydet(yol, yerelDizi, etiket, alanAnahtari, degiskenAdi, yerelAnahtar) {
@@ -5402,7 +5417,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/kategoriler`, kategorilerListesi, 'Kategoriler', 'kategoriler', 'kategorilerListesi', 'pos_categories_v4');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/musteriler`, musteriler, 'Müşteriler', 'musteriler', 'musteriler', 'pos_customers_v4');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/satis_gecmisi`, satisGecmisi, 'Satış geçmişi', 'satis_gecmisi', 'satisGecmisi', 'pos_sales_v4');
-                firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/kasa_hareketleri`, kasaHareketleri, 'Kasa hareketleri', 'kasa_hareketleri', 'kasaHareketleri', 'pos_cash_movements_v4');
+                firebaseKasayiSiraliKaydet(`${kokDugumGetir()}/${aktifDonemId}/kasa_hareketleri`, kasaHareketleri, 'Kasa hareketleri', 'kasa_hareketleri', 'kasaHareketleri', 'pos_cash_movements_v4');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/kasa_hesaplari`, kasaHesaplari, 'Kasa tanımları', 'kasa_hesaplari', 'kasaHesaplari', 'pos_cash_accounts_v1');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/bekleyen_sepetler`, bekleyenSepetler, 'Bekleyen sepetler', 'bekleyen_sepetler', 'bekleyenSepetler', 'pos_suspended_carts_v4');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/acik_adisyonlar`, acikAdisyonlar, 'Açık adisyonlar', 'acik_adisyonlar', 'acikAdisyonlar', 'pos_open_adisyon_v1');
@@ -7271,7 +7286,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             odemeYap('Parçalı Ödeme',customer?customer.name:null);
         }
 
-        function odemeYap(type, musteriAdiRef = null, alisverisKartiMusteriId = null) {
+        async function odemeYap(type, musteriAdiRef = null, alisverisKartiMusteriId = null) {
             if (type === 'Nakit' && !islemYetkisiGerekli('sales_cash', 'Nakit ödeme alma yetkiniz yok.')) return;
             if (type === 'Kredi Kartı' && !islemYetkisiGerekli('sales_credit_card', 'Kredi kartı ödemesi alma yetkiniz yok.')) return;
             if (type === 'Veresiye' && !islemYetkisiGerekli('sales_debt', 'Veresiye satışı yapma yetkiniz yok.')) return;
@@ -7346,9 +7361,22 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
 
             if (type === 'Nakit' || type === 'Kredi Kartı' || type.startsWith('Veresiye') || type === 'Parçalı Ödeme') {
                 if (!Array.isArray(kasaHareketleri)) kasaHareketleri = [];
-                (sale.payments || []).forEach(payment => {
+                (sale.payments || []).forEach((payment, paymentIndex) => {
                     if (payment.type === 'Veresiye') return;
-                    kasaHareketleri.unshift({ saleId: sale.id, date: sale.date, type: `Satış (${payment.type})`, amount: Number(payment.amount) || 0 });
+                    const movementType = `Satış (${payment.type})`;
+                    // Her ödeme satırının kendi kimliği olur; parçalı ödemelerde saleId ortak olsa da
+                    // nakit/kart hareketleri birbirinin üzerine yazılmaz.
+                    kasaHareketleri.unshift({
+                        id: `KH-${sale.id}-${paymentIndex + 1}`,
+                        saleId: sale.id,
+                        date: sale.date,
+                        timestamp: Date.now(),
+                        type: movementType,
+                        amount: Number(payment.amount) || 0,
+                        user: aktifKullaniciAdi || 'Bilinmiyor',
+                        periodId: aktifDonemId,
+                        movementKind: 'sale-payment'
+                    });
                 });
             }
             if (window.__posPartialPayment && window.__posPartialPayment.customer && sale.remainingAmount > 0) {
@@ -7379,6 +7407,20 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             // Firebase fonksiyonları kendi hata kayıtlarını konsola yazar.
             try { durumuKaydet(); }
             catch (hata) { console.error('Satış oluşturuldu; kayıt/eşitleme sırasında hata:', hata); }
+            let kasaFirebaseKaydiBasarili = true;
+            if (sistemAyarlari.firebaseAktif) {
+                if (!(window.firebaseReady && window.database) || firebaseWriteBlocked) {
+                    kasaFirebaseKaydiBasarili = false;
+                } else {
+                    try {
+                        kasaFirebaseKaydiBasarili = await firebaseKasaYazmaKuyrugu;
+                        if (kasaFirebaseKaydiBasarili === false) throw new Error('Firebase kasa hareketi yazma işlemi tamamlanmadı.');
+                    } catch (hata) {
+                        kasaFirebaseKaydiBasarili = false;
+                        console.error('Satış yerel kaydedildi; kasa hareketi Firebase’e henüz aktarılamadı:', hata);
+                    }
+                }
+            }
             if (sistemAyarlari.garsonAktif) musteriIzlemeKaydiniYaz(sale);
 
             // Ekran yenilemelerini birbirinden bağımsız tut: tek bir arayüz hatası
@@ -7393,6 +7435,9 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const basariMesaji = type + ' işlemi tamamlandı: ₺' + total.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + (type === 'Nakit' && nakitAlinan > total ? ' · Para üstü: ₺' + (nakitAlinan-total).toFixed(2) : '');
             try { islemBildirimiGoster(basariMesaji); }
             catch (hata) { console.error('Satış bildirimi gösterilemedi:', hata); }
+            if (!kasaFirebaseKaydiBasarili) {
+                try { islemBildirimiGoster('Satış cihaza kaydedildi; kasa hareketi Firebase’e aktarılamadı. İnternet bağlantısını kontrol edip eşitlemeyi yenileyin.', 'error'); } catch (_) {}
+            }
 
             if (sistemAyarlari.otomatikYazdir === true) {
                 // Otomatik yazdırmada da Ayarlar > Fiş yazdırma biçimi tercihini uygula.
