@@ -8043,32 +8043,58 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
 
         function kasaEkraniniGuncelle() {
             kasaHesaplariniCiz();
+            // Kasa tutarlarını hem sayı hem de Türkçe biçimli metin kayıtlarından güvenli oku.
+            const kasaTutariniOku = value => {
+                if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+                let raw = String(value ?? '').trim().replace(/[^0-9,.-]/g, '');
+                if (!raw) return 0;
+                if (raw.includes(',') && raw.includes('.')) raw = raw.replace(/\./g, '').replace(',', '.');
+                else if (raw.includes(',')) raw = raw.replace(',', '.');
+                const parsed = Number(raw);
+                return Number.isFinite(parsed) ? parsed : 0;
+            };
+
             let toplamNakit = 0;
             let toplamKart = 0;
-            let toplamTahsilat = 0;
-
             let toplamDiger = 0;
+            let toplamTahsilat = 0;
+            const satisKayitIdleri = new Set();
+
+            // Satış geçmişi ana kaynaktır; payments varsa gerçek ödeme dağılımını kullan.
             if (Array.isArray(satisGecmisi)) {
                 satisGecmisi.forEach(s => {
-                    const saleTotal = Math.max(0, Number(s.total) || 0);
-                    // Yeni kayıtlar gerçek ödeme dağılımını payments alanında taşır.
-                    // Eski kayıtlar için type/total üzerinden geriye dönük uyumluluk korunur.
+                    if (!s || typeof s !== 'object') return;
+                    if (s.id != null) satisKayitIdleri.add(String(s.id));
+                    const saleTotal = Math.max(0, kasaTutariniOku(s.total));
                     if (Array.isArray(s.payments) && s.payments.length) {
                         s.payments.forEach(payment => {
-                            const amount = Math.max(0, Number(payment && payment.amount) || 0);
-                            const method = String(payment && payment.type || '').trim();
-                            if (/^nakit$/i.test(method)) toplamNakit += amount;
-                            else if (/^kredi kartı$/i.test(method)) toplamKart += amount;
-                            else if (/^diğer$/i.test(method)) toplamDiger += amount;
+                            const amount = Math.max(0, kasaTutariniOku(payment && payment.amount));
+                            const method = String(payment && payment.type || '').trim().toLocaleLowerCase('tr-TR');
+                            if (method === 'nakit') toplamNakit += amount;
+                            else if (method === 'kredi kartı') toplamKart += amount;
+                            else if (method === 'diğer') toplamDiger += amount;
+                            // Veresiye satış tahsilat değildir; tahsil edildiğinde aşağıda eklenir.
                         });
-                    } else if (s.type === 'Nakit') toplamNakit += saleTotal;
-                    else if (s.type === 'Kredi Kartı') toplamKart += saleTotal;
-                    else if (s.type === 'Parçalı Ödeme') {
-                        // Eksik/bozuk eski parçalı ödeme kaydını sessizce nakit sayma.
-                        toplamDiger += Math.max(0, Number(s.paidAmount) || 0);
+                    } else {
+                        const method = String(s.type || '').trim().toLocaleLowerCase('tr-TR');
+                        if (method === 'nakit') toplamNakit += saleTotal;
+                        else if (method === 'kredi kartı') toplamKart += saleTotal;
+                        else if (method === 'parçalı ödeme') toplamDiger += Math.max(0, kasaTutariniOku(s.paidAmount));
                     }
                 });
             }
+
+            // Satış geçmişinde bulunmayan eski kayıtlar için kasa satış hareketlerini yedek kaynak kullan.
+            (Array.isArray(kasaHareketleri) ? kasaHareketleri : []).forEach(m => {
+                if (!m || typeof m !== 'object') return;
+                const saleId = m.saleId == null ? '' : String(m.saleId);
+                if (!saleId || satisKayitIdleri.has(saleId)) return;
+                const amount = Math.max(0, kasaTutariniOku(m.amount));
+                const type = String(m.type || '').trim().toLocaleLowerCase('tr-TR');
+                if (type === 'satış (nakit)') toplamNakit += amount;
+                else if (type === 'satış (kredi kartı)') toplamKart += amount;
+                else if (type === 'satış (diğer)') toplamDiger += amount;
+            });
 
             let manuelGelir = 0;
             let manuelGider = 0;
@@ -8076,22 +8102,27 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             let toplamAlacak = 0;
             if (Array.isArray(kasaHareketleri)) {
                 kasaHareketleri.forEach(m => {
+                    if (!m || typeof m !== 'object') return;
+                    const amount = kasaTutariniOku(m.amount);
                     const isSelectedManualCash = String(m.cashAccountId || ANA_NAKIT_KASA_ID) === String(seciliManuelKasaId);
-                    if (aktifKasaAltBolumu !== 'manual' && /Veresiye Tahsilat|Adisyon Tahsilatı|Sipariş Tahsilatı/i.test(String(m.type || ''))) toplamTahsilat += Number(m.amount) || 0;
+                    // Yalnızca gerçek veresiye/adisyon/sipariş tahsilatları satış kasasına eklenir.
+                    if (/^(veresiye tahsilat|adisyon tahsilatı|sipariş tahsilatı)(?:\s|$)/i.test(String(m.type || '').trim())) {
+                        toplamTahsilat += Math.max(0, amount);
+                    }
                     if (aktifKasaAltBolumu === 'manual' && !isSelectedManualCash) return;
-                    if (m.movementKind === 'manual' && m.type === 'Gelir') manuelGelir += Number(m.amount) || 0;
-                    if (m.movementKind === 'manual' && m.type === 'Gider') manuelGider += Number(m.amount) || 0;
-                    if (m.movementKind === 'manual' && m.type === 'Borç') toplamBorc += Math.max(0, (Number(m.amount) || 0) - (Number(m.paidAmount) || 0));
-                    if (m.movementKind === 'manual' && m.type === 'Alacak') toplamAlacak += Math.max(0, (Number(m.amount) || 0) - (Number(m.paidAmount) || 0));
-                    if (m.movementKind === 'manual-settlement' && m.settlementType === 'Alacak') toplamTahsilat += Number(m.amount) || 0;
+                    if (m.movementKind === 'manual' && m.type === 'Gelir') manuelGelir += amount;
+                    if (m.movementKind === 'manual' && m.type === 'Gider') manuelGider += amount;
+                    if (m.movementKind === 'manual' && m.type === 'Borç') toplamBorc += Math.max(0, amount - kasaTutariniOku(m.paidAmount));
+                    if (m.movementKind === 'manual' && m.type === 'Alacak') toplamAlacak += Math.max(0, amount - kasaTutariniOku(m.paidAmount));
                 });
             }
 
-            const toplamKartYukleme = (kasaHareketleri || []).filter(m => m.movementKind === 'card-topup').reduce((sum,m) => sum + (Number(m.amount)||0), 0);
-            const manuelBorcOdemeleri = (kasaHareketleri || []).filter(m => m.movementKind === 'manual-settlement' && m.settlementType === 'Borç').reduce((sum,m) => sum + (Number(m.amount)||0), 0);
             const seciliKasa = kasaHesaplari.find(k=>String(k.id)===String(seciliManuelKasaId));
-            const satisKasasiTransferleri = (kasaHareketleri || []).filter(m => m.movementKind === 'sales-transfer-out').reduce((sum,m) => sum + (Number(m.amount)||0), 0);
-            const genelToplam = aktifKasaAltBolumu === 'manual' && seciliKasa ? kasaHesapBakiyesi(seciliKasa) : Math.max(0, toplamNakit + toplamKart + toplamDiger + toplamTahsilat + toplamKartYukleme + manuelGelir - manuelGider - manuelBorcOdemeleri - satisKasasiTransferleri);
+            const satisKasasiTransferleri = (kasaHareketleri || []).filter(m => m.movementKind === 'sales-transfer-out').reduce((sum,m) => sum + kasaTutariniOku(m.amount), 0);
+            // Satış kasası yalnızca satış tahsilatlarını ve satıştan yapılan transferleri içerir.
+            // Manuel kasa gelir/gideri ve alışveriş kartı yüklemeleri burada ikinci kez sayılmaz.
+            const satisKasasiGenelToplam = Math.max(0, toplamNakit + toplamKart + toplamDiger + toplamTahsilat - satisKasasiTransferleri);
+            const genelToplam = aktifKasaAltBolumu === 'manual' && seciliKasa ? kasaHesapBakiyesi(seciliKasa) : satisKasasiGenelToplam;
 
             const nakitEl = document.getElementById('cash-total-nakit');
             const kartEl = document.getElementById('cash-total-kart');
