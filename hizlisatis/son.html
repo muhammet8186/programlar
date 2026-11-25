@@ -2060,8 +2060,13 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
       <h4 class="text-sm font-bold text-cyan-300">Yerel / Firebase Kayıt Kontrolü</h4>
       <p class="text-[10px] text-slate-400 mt-1">Kayıt kimliklerini karşılaştırır. Bu kontrol verileri değiştirmez veya silmez.</p>
     </div>
-    <button type="button" id="firebase-audit-refresh" onclick="firebaseKontrolPaneliniYenile()" class="rounded-lg bg-cyan-700 hover:bg-cyan-600 px-3 py-2 text-xs font-bold text-white"> <i class="fa-solid fa-rotate mr-1"></i> Kontrolü yenile</button>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" id="firebase-audit-refresh" onclick="firebaseKontrolPaneliniYenile()" class="rounded-lg bg-cyan-700 hover:bg-cyan-600 px-3 py-2 text-xs font-bold text-white"><i class="fa-solid fa-rotate mr-1"></i> Kontrolü yenile</button>
+      <button type="button" id="firebase-sync-start" onclick="firebaseGuvenliEsitlemeyiBaslat()" class="rounded-lg bg-emerald-700 hover:bg-emerald-600 px-3 py-2 text-xs font-bold text-white"><i class="fa-solid fa-arrows-rotate mr-1"></i> Eşitlemeyi başlat</button>
+    </div>
   </div>
+  <p class="text-[10px] text-slate-400">Eşitleme yalnızca eksik kayıtları ekler. Silme yapmaz. Aynı kimlikli kayıtların içeriği güvenle karşılaştırılamıyorsa ilgili kayıt grubu aktarılmaz ve çakışma bildirilir.</p>
+  <div id="firebase-sync-result" class="hidden rounded-lg border border-slate-700 bg-slate-950/70 p-3 text-xs" aria-live="polite"></div>
   <div class="grid grid-cols-2 gap-2">
     <div class="rounded-lg border border-slate-700 bg-slate-950/70 p-3">
       <div class="text-[10px] text-slate-400">Toplam yerel kayıt</div>
@@ -2217,6 +2222,27 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <button class="flex-1 min-w-[80px] py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-xs shadow transition" id="confirm-yes-btn" type="button">Evet</button>
 </div>
 </div>
+</div>
+<!-- SEPET SATIRI ADET / FİYAT DÜZENLEME MODALI -->
+<div class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-[190]" id="modal-cart-item-edit">
+  <div class="theme-card bg-slate-900 border border-slate-700 w-full max-w-sm rounded-xl p-5 space-y-4 shadow-2xl">
+    <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+      <h3 class="text-sm font-bold text-blue-400"><i class="fa-solid fa-pen-to-square mr-2"></i>Sepet Ürününü Düzenle</h3>
+      <button type="button" class="text-slate-400 hover:text-red-400" onclick="modalKapat('modal-cart-item-edit')" aria-label="Kapat"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form class="space-y-3" onsubmit="sepetUrunDuzenleKaydet(event)">
+      <input type="hidden" id="cart-item-edit-id"/>
+      <div class="text-sm font-semibold" id="cart-item-edit-name">Ürün</div>
+      <div><label class="block text-xs text-slate-400 mb-1" for="cart-item-edit-qty">Adet</label><input class="theme-input w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-base" id="cart-item-edit-qty" type="number" min="0.001" step="0.001" required/></div>
+      <div><label class="block text-xs text-slate-400 mb-1" for="cart-item-edit-price">Sepete özel birim fiyat (₺)</label><input class="theme-input w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-base" id="cart-item-edit-price" type="number" min="0" step="0.01" required/></div>
+      <p class="text-[11px] text-slate-400" id="cart-item-edit-original-price">Ürün kartındaki fiyat: ₺0,00</p>
+      <p class="text-[11px] text-emerald-400"><i class="fa-solid fa-shield-halved mr-1"></i>Değişiklik yalnızca bu sepet satırına uygulanır. Ürün listesindeki kayıtlı fiyat değişmez.</p>
+      <div class="flex gap-2 pt-1">
+        <button type="button" onclick="modalKapat('modal-cart-item-edit')" class="theme-btn-alt flex-1 py-2.5 bg-slate-800 rounded-lg text-xs font-semibold">Vazgeç</button>
+        <button type="submit" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold">Değişiklikleri Kaydet</button>
+      </div>
+    </form>
+  </div>
 </div>
 <!-- BEKLEYEN SEPETLER MODALI -->
 <div class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-50" id="modal-suspended-carts">
@@ -4986,6 +5012,135 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             }
         }
 
+        // Kullanıcının açık onayıyla çalışan, silme yapmayan manuel eşitleme.
+        // Her veri grubu Firebase transaction içinde güncel bulut verisiyle birleştirilir.
+        async function firebaseGuvenliEsitlemeyiBaslat() {
+            const button = document.getElementById('firebase-sync-start');
+            const resultEl = document.getElementById('firebase-sync-result');
+            const show = (message, tone = 'info') => {
+                if (!resultEl) return;
+                const styles = { info:'border-cyan-800 bg-cyan-950/30 text-cyan-200', success:'border-emerald-800 bg-emerald-950/30 text-emerald-200', warning:'border-amber-800 bg-amber-950/30 text-amber-200', error:'border-rose-800 bg-rose-950/30 text-rose-200' };
+                resultEl.className = `rounded-lg border p-3 text-xs ${styles[tone] || styles.info}`;
+                resultEl.textContent = message;
+                resultEl.classList.remove('hidden');
+            };
+            if (button) { button.disabled = true; button.textContent = 'Eşitleme hazırlanıyor…'; }
+            const liveWasStarted = typeof firebaseLiveSyncStarted !== 'undefined' && firebaseLiveSyncStarted;
+            try {
+                if (sistemAyarlari.firebaseAktif !== true || !(window.firebaseReady && window.database && window.dbGet && window.dbRef && window.dbTransaction)) {
+                    throw new Error('Firebase bağlantısı ve transaction desteği hazır değil. Güvenli eşitleme için transaction zorunludur.');
+                }
+                if (liveWasStarted) firebaseCanliEsitlemeyiDurdur();
+                const root = kokDugumGetir();
+                const period = String(aktifDonemId || '');
+                if (!period) throw new Error('Aktif dönem bulunamadı.');
+                const fields = [
+                    {key:'urunler', path:'urunler', label:'Ürünler', local:()=>urunler, set:v=>urunler=v, storage:'pos_products_v4'},
+                    {key:'kategoriler', path:'kategoriler', label:'Kategoriler', local:()=>kategorilerListesi, set:v=>kategorilerListesi=v, storage:'pos_categories_v4'},
+                    {key:'musteriler', path:'musteriler', label:'Müşteriler', local:()=>musteriler, set:v=>musteriler=v, storage:'pos_customers_v4'},
+                    {key:'satis_gecmisi', path:'satis_gecmisi', label:'Satışlar', local:()=>satisGecmisi, set:v=>satisGecmisi=v, storage:'pos_sales_v4'},
+                    {key:'kasa_hareketleri', path:'kasa_hareketleri', label:'Kasa hareketleri', local:()=>kasaHareketleri, set:v=>kasaHareketleri=v, storage:'pos_cash_movements_v4'},
+                    {key:'kasa_hesaplari', path:'kasa_hesaplari', label:'Kasa hesapları', local:()=>kasaHesaplari, set:v=>kasaHesaplari=v, storage:'pos_cash_accounts_v1'},
+                    {key:'bekleyen_sepetler', path:'bekleyen_sepetler', label:'Bekleyen sepetler', local:()=>bekleyenSepetler, set:v=>bekleyenSepetler=v, storage:'pos_suspended_carts_v4'},
+                    {key:'acik_adisyonlar', path:'acik_adisyonlar', label:'Açık adisyonlar', local:()=>acikAdisyonlar, set:v=>acikAdisyonlar=v, storage:'pos_open_adisyon_v1'},
+                    {key:'sistem_kullanicilari', path:'sistem_kullanicilari', label:'Kullanıcılar', global:true, local:()=>sistemKullanicilari, set:v=>sistemKullanicilari=v, storage:'pos_system_users_v4'}
+                ];
+                const toArray = raw => Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? Object.values(raw) : []);
+                const stable = value => {
+                    if (Array.isArray(value)) return value.map(stable);
+                    if (value && typeof value === 'object') return Object.keys(value).sort().reduce((o,k)=>(o[k]=stable(value[k]),o),{});
+                    return value;
+                };
+                const same = (a,b) => JSON.stringify(stable(a)) === JSON.stringify(stable(b));
+                const timestamp = item => Math.max(0, ...['updatedAt','modifiedAt','updated_at','lastUpdated','timestamp'].map(k=>Number(item?.[k])||0));
+                const preview = [];
+                for (const field of fields) {
+                    const path = field.global ? `${root}/${field.path}` : `${root}/${period}/${field.path}`;
+                    const snap = await window.dbGet(window.dbRef(window.database, path));
+                    const cloud = toArray(snap.exists() ? snap.val() : []);
+                    const local = toArray(field.local());
+                    const map = new Map(cloud.map(item=>[firebaseKayitAnahtari(item),item]).filter(([k])=>k!==null));
+                    let add=0, pull=0, conflict=0;
+                    const localMap = new Map(local.map(row=>[firebaseKayitAnahtari(row),row]).filter(([k])=>k!==null));
+                    for (const item of local) {
+                        const key = firebaseKayitAnahtari(item);
+                        if (key === null || !map.has(key)) { add++; continue; }
+                        const remote = map.get(key);
+                        if (!same(remote,item)) {
+                            const lt=timestamp(item), rt=timestamp(remote);
+                            if (!(lt && rt && lt !== rt)) conflict++;
+                        }
+                    }
+                    for (const key of map.keys()) if (!localMap.has(key)) pull++;
+                    preview.push({field,path,local,cloud,add,pull,conflict});
+                }
+                const summary = preview.filter(x=>x.add||x.pull||x.conflict).map(x=>`${x.field.label}: ${x.add} Firebase'e gönderilecek, ${x.pull} cihaza alınacak, ${x.conflict} çözümlenemeyen çakışma`).join('\n');
+                if (!confirm(`Güvenli eşitleme önizlemesi\n\n${summary || 'Yeni kayıt veya çakışma bulunmadı.'}\n\nKurallar: hiçbir kayıt silinmeyecek. Aynı kimlikli ve zaman damgası belirsiz farklı kayıtlar değiştirilmeyecek. Devam edilsin mi?`)) {
+                    show('Eşitleme kullanıcı tarafından iptal edildi. Hiçbir kayıt değiştirilmedi.','info');
+                    return;
+                }
+                let addedTotal=0, importedTotal=0, conflictTotal=0, failedTotal=0, completed=0;
+                for (const item of preview) {
+                    let transactionConflict = false;
+                    const ref = window.dbRef(window.database,item.path);
+                    const tx = await window.dbTransaction(ref,current=>{
+                        transactionConflict = false;
+                        const latest = toArray(current);
+                        const mergedMap = new Map(latest.map(row=>[firebaseKayitAnahtari(row),row]).filter(([k])=>k!==null));
+                        for (const localItem of item.local) {
+                            const key = firebaseKayitAnahtari(localItem);
+                            if (key === null) { transactionConflict = true; return; }
+                            if (!mergedMap.has(key)) { mergedMap.set(key,localItem); continue; }
+                            const remoteItem = mergedMap.get(key);
+                            if (same(remoteItem,localItem)) continue;
+                            const lt=timestamp(localItem), rt=timestamp(remoteItem);
+                            if (!(lt && rt && lt !== rt)) { transactionConflict = true; return; }
+                            if (lt > rt) mergedMap.set(key,localItem);
+                        }
+                        return [...mergedMap.values()];
+                    });
+                    if (!tx.committed) {
+                        if (transactionConflict || item.conflict) conflictTotal += Math.max(item.conflict, transactionConflict ? 1 : 0);
+                        else failedTotal++;
+                        continue;
+                    }
+                    const saved = toArray(tx.snapshot?.val());
+                    const beforeKeys = new Set(item.cloud.map(row=>firebaseKayitAnahtari(row)));
+                    const localKeys = new Set(item.local.map(row=>firebaseKayitAnahtari(row)));
+                    addedTotal += saved.filter(row=>!beforeKeys.has(firebaseKayitAnahtari(row))).length;
+                    importedTotal += saved.filter(row=>!localKeys.has(firebaseKayitAnahtari(row))).length;
+                    item.field.set(saved);
+                    try { localStorage.setItem(item.field.storage,JSON.stringify(saved)); } catch (_) {}
+                    firebaseSyncBaseline[item.field.key] = JSON.parse(JSON.stringify(saved));
+                    completed++;
+                }
+                firebaseBaselinesiniKaydet(root,period);
+                try {
+                    const periods = yerelKayitOku('pos_period_data_v1',{});
+                    if (periods && periods[period]) {
+                        periods[period] = {...periods[period],urunler,kategorilerListesi,musteriler,satisGecmisi,kasaHareketleri,kasaHesaplari,bekleyenSepetler,acikAdisyonlar};
+                        localStorage.setItem('pos_period_data_v1',JSON.stringify(periods));
+                    }
+                } catch (_) {}
+                try {
+                    kategoriListesiniGuncelle(); kategorileriOlustur(); urunleriGoster();
+                    borclularTablosunuGuncelle(); gecmisTablosunuGuncelle(); kasaEkraniniGuncelle();
+                    kasaHesaplariniCiz(); adisyonlariGoster(); mutfakEkraniniGuncelle(); bekleyenSepetSayisiniGuncelle();
+                    sistemKullanicilariTablosunuGuncelle(); girisDropdownKullanicilariniGoster();
+                } catch (refreshError) { console.warn('Eşitleme sonrası ekran yenileme uyarısı:',refreshError); }
+                if (conflictTotal || failedTotal) show(`Eşitleme kısmen tamamlandı. ${completed} veri grubu işlendi; ${addedTotal} kayıt Firebase'e eklendi, ${importedTotal} kayıt cihaza alındı. ${conflictTotal} çakışma ve ${failedTotal} aktarım hatası nedeniyle bazı gruplar değiştirilmedi. Hiçbir kayıt silinmedi.`,'warning');
+                else show(`Eşitleme tamamlandı. ${completed} veri grubu kontrol edildi; ${addedTotal} kayıt Firebase'e eklendi, ${importedTotal} kayıt cihaza alındı. Hiçbir kayıt silinmedi.`,'success');
+                try { await firebaseKontrolPaneliniYenile(); } catch (_) {}
+            } catch (error) {
+                show('Eşitleme tamamlanamadı: '+(error?.message||'Bilinmeyen hata')+'. Yerel kayıtlar korunmaya çalışıldı.','error');
+            } finally {
+                if (liveWasStarted && sistemAyarlari.firebaseAktif === true) {
+                    try { firebaseCanliEsitlemeyiBaslat(true); } catch (restartError) { console.warn('Firebase canlı eşitlemesi yeniden başlatılamadı:',restartError); }
+                }
+                if (button) { button.disabled=false; button.innerHTML='<i class="fa-solid fa-arrows-rotate mr-1"></i> Eşitlemeyi başlat'; }
+            }
+        }
+
         const firebaseSyncBaseline = {};
         let firebaseWriteBlocked = false;
 
@@ -6694,9 +6849,57 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 if (existing.qty < kalanStok) existing.qty++;
                 else onayModaliniGoster('Uyarı', 'Stok limitine ulaşıldı!', null, true);
             } else {
-                sepet.push({ product, qty: 1, fisYazdir: true });
+                // Sepet satırı ürün kartından bağımsız bir kopya kullanır.
+                // Sepetteki özel fiyat değişikliği ana ürün fiyatını etkilemez.
+                sepet.push({ product: { ...product }, qty: 1, fisYazdir: true });
             }
             sepetiGuncelle();
+        }
+
+        function sepetUrununuDuzenle(urunId) {
+            const item = sepet.find(i => String(i.product.id) === String(urunId));
+            if (!item) return;
+            const modal = document.getElementById('modal-cart-item-edit');
+            if (!modal) return;
+            document.getElementById('cart-item-edit-id').value = String(urunId);
+            document.getElementById('cart-item-edit-name').textContent = item.product.name || 'Ürün';
+            document.getElementById('cart-item-edit-qty').value = Number(item.qty) || 1;
+            document.getElementById('cart-item-edit-price').value = Math.max(0, Number(item.product.price) || 0).toFixed(2);
+            document.getElementById('cart-item-edit-original-price').textContent = 'Ürün kartındaki fiyat: ₺' + (Number((urunler.find(p => String(p.id) === String(urunId)) || item.product).price) || 0).toFixed(2);
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => document.getElementById('cart-item-edit-qty')?.focus(), 50);
+        }
+
+        function sepetUrunDuzenleKaydet(event) {
+            if (event) event.preventDefault();
+            const urunId = document.getElementById('cart-item-edit-id')?.value;
+            const item = sepet.find(i => String(i.product.id) === String(urunId));
+            if (!item) { modalKapat('modal-cart-item-edit'); return; }
+            const qtyInput = document.getElementById('cart-item-edit-qty');
+            const priceInput = document.getElementById('cart-item-edit-price');
+            const qty = Number(qtyInput?.value);
+            const price = Number(priceInput?.value);
+            if (!Number.isFinite(qty) || qty <= 0) {
+                onayModaliniGoster('Geçersiz adet', 'Adet sıfırdan büyük olmalıdır.', null, true);
+                return;
+            }
+            if (!Number.isFinite(price) || price < 0) {
+                onayModaliniGoster('Geçersiz fiyat', 'Birim fiyat sıfır veya daha büyük olmalıdır.', null, true);
+                return;
+            }
+            const masterProduct = urunler.find(p => String(p.id) === String(urunId));
+            const kalanStok = masterProduct ? Math.max(0, (Number(masterProduct.inStock) || 0) - (Number(masterProduct.outStock) || 0)) : Infinity;
+            if (qty > kalanStok) {
+                onayModaliniGoster('Stok miktarı aşıldı', `Bu ürün için en fazla ${kalanStok} adet girebilirsiniz.`, null, true);
+                return;
+            }
+            // Ürün nesnesini kopyalayarak yalnızca bu sepet satırının fiyatını değiştir.
+            item.product = { ...item.product, price: Math.round(price * 100) / 100 };
+            item.qty = qty;
+            modalKapat('modal-cart-item-edit');
+            sepetiGuncelle();
+            islemBildirimiGoster('Sepet satırı güncellendi. Ürün kartındaki fiyat değişmedi.');
         }
 
         function sepetAdetGuncelle(urunId, delta) {
@@ -6744,6 +6947,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                             <button onclick="sepetAdetGuncelle('${safeItemId}', 1)" type="button" class="w-4 h-4 hover:text-emerald-500 flex items-center justify-center font-bold text-[10px]">+</button>
                         </div>
                         <span class="font-mono text-[11px] font-bold text-emerald-600 dark:text-emerald-400 w-14 text-right">₺${itemTotal.toFixed(2)}</span>
+                        <button type="button" onclick="sepetUrununuDuzenle('${safeItemId}')" title="Adet ve fiyatı düzenle" aria-label="${htmlGuvenli(item.product.name)} adet ve fiyatını düzenle" class="w-7 h-7 shrink-0 rounded bg-blue-700/90 hover:bg-blue-600 text-white flex items-center justify-center"><i class="fa-solid fa-pen-to-square text-[11px]"></i></button>
                     </div>
                 </div>
                 `;
