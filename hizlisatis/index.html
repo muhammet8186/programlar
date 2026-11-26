@@ -2054,43 +2054,6 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <div class="text-xs text-slate-500 p-3 rounded border border-slate-800">Henüz kayıt yok.</div>
 </div>
 </div>
-<div class="pt-3 border-t border-slate-800 space-y-3" id="firebase-audit-panel">
-  <div class="flex flex-wrap items-center justify-between gap-2">
-    <div>
-      <h4 class="text-sm font-bold text-cyan-300">Yerel / Firebase Kayıt Kontrolü</h4>
-      <p class="text-[10px] text-slate-400 mt-1">Kayıt kimliklerini karşılaştırır. Bu kontrol verileri değiştirmez veya silmez.</p>
-    </div>
-    <div class="flex flex-wrap gap-2">
-      <button type="button" id="firebase-audit-refresh" onclick="firebaseKontrolPaneliniYenile()" class="rounded-lg bg-cyan-700 hover:bg-cyan-600 px-3 py-2 text-xs font-bold text-white"><i class="fa-solid fa-rotate mr-1"></i> Kontrolü yenile</button>
-      <button type="button" id="firebase-sync-start" onclick="firebaseGuvenliEsitlemeyiBaslat()" class="rounded-lg bg-emerald-700 hover:bg-emerald-600 px-3 py-2 text-xs font-bold text-white"><i class="fa-solid fa-arrows-rotate mr-1"></i> Eşitlemeyi başlat</button>
-    </div>
-  </div>
-  <p class="text-[10px] text-slate-400">Eşitleme yalnızca eksik kayıtları ekler. Silme yapmaz. Aynı kimlikli kayıtların içeriği güvenle karşılaştırılamıyorsa ilgili kayıt grubu aktarılmaz ve çakışma bildirilir.</p>
-  <div id="firebase-sync-result" class="hidden rounded-lg border border-slate-700 bg-slate-950/70 p-3 text-xs" aria-live="polite"></div>
-  <div class="grid grid-cols-2 gap-2">
-    <div class="rounded-lg border border-slate-700 bg-slate-950/70 p-3">
-      <div class="text-[10px] text-slate-400">Toplam yerel kayıt</div>
-      <div id="firebase-audit-local-total" class="text-2xl font-black text-emerald-400">—</div>
-      <div class="text-[10px] text-slate-500">Bu cihaz / dönem</div>
-    </div>
-    <div class="rounded-lg border border-slate-700 bg-slate-950/70 p-3">
-      <div class="text-[10px] text-slate-400">Toplam Firebase kaydı</div>
-      <div id="firebase-audit-cloud-total" class="text-2xl font-black text-cyan-300">—</div>
-      <div class="text-[10px] text-slate-500">Bulut / aynı dönem</div>
-    </div>
-  </div>
-  <div id="firebase-audit-summary" class="rounded-lg border border-slate-700 bg-slate-950/70 p-3 text-xs text-slate-300" aria-live="polite">Kontrol henüz yapılmadı. “Kontrolü yenile” düğmesine basın.</div>
-  <div class="overflow-x-auto rounded-lg border border-slate-800">
-    <table class="w-full min-w-[420px] text-xs text-left">
-      <thead class="bg-slate-950 text-slate-400"><tr><th class="p-2">Kayıt türü</th><th class="p-2 text-right">Yerel</th><th class="p-2 text-right">Firebase</th><th class="p-2 text-right">Yalnızca yerel</th><th class="p-2 text-right">Yalnızca Firebase</th></tr></thead>
-      <tbody id="firebase-audit-rows" class="divide-y divide-slate-800"><tr><td colspan="5" class="p-3 text-center text-slate-500">Henüz kontrol edilmedi.</td></tr></tbody>
-    </table>
-  </div>
-  <div class="flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-500">
-    <span id="firebase-audit-baseline">Eşitleme tabanı: kontrol edilmedi</span>
-    <span id="firebase-audit-last-check">Son kontrol: —</span>
-  </div>
-</div>
 </div>
 </div><div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3 shadow-lg md:col-span-2">
 <h3 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-2.5 flex items-center gap-2 tracking-tight text-amber-500">Yerel Yedekleme &amp; Geri Yükleme</h3>
@@ -2222,27 +2185,6 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <button class="flex-1 min-w-[80px] py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-xs shadow transition" id="confirm-yes-btn" type="button">Evet</button>
 </div>
 </div>
-</div>
-<!-- SEPET SATIRI ADET / FİYAT DÜZENLEME MODALI -->
-<div class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-[190]" id="modal-cart-item-edit">
-  <div class="theme-card bg-slate-900 border border-slate-700 w-full max-w-sm rounded-xl p-5 space-y-4 shadow-2xl">
-    <div class="flex items-center justify-between border-b border-slate-700 pb-3">
-      <h3 class="text-sm font-bold text-blue-400"><i class="fa-solid fa-pen-to-square mr-2"></i>Sepet Ürününü Düzenle</h3>
-      <button type="button" class="text-slate-400 hover:text-red-400" onclick="modalKapat('modal-cart-item-edit')" aria-label="Kapat"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <form class="space-y-3" onsubmit="sepetUrunDuzenleKaydet(event)">
-      <input type="hidden" id="cart-item-edit-id"/>
-      <div class="text-sm font-semibold" id="cart-item-edit-name">Ürün</div>
-      <div><label class="block text-xs text-slate-400 mb-1" for="cart-item-edit-qty">Adet</label><input class="theme-input w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-base" id="cart-item-edit-qty" type="number" min="0.001" step="0.001" required/></div>
-      <div><label class="block text-xs text-slate-400 mb-1" for="cart-item-edit-price">Sepete özel birim fiyat (₺)</label><input class="theme-input w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-base" id="cart-item-edit-price" type="number" min="0" step="0.01" required/></div>
-      <p class="text-[11px] text-slate-400" id="cart-item-edit-original-price">Ürün kartındaki fiyat: ₺0,00</p>
-      <p class="text-[11px] text-emerald-400"><i class="fa-solid fa-shield-halved mr-1"></i>Değişiklik yalnızca bu sepet satırına uygulanır. Ürün listesindeki kayıtlı fiyat değişmez.</p>
-      <div class="flex gap-2 pt-1">
-        <button type="button" onclick="modalKapat('modal-cart-item-edit')" class="theme-btn-alt flex-1 py-2.5 bg-slate-800 rounded-lg text-xs font-semibold">Vazgeç</button>
-        <button type="submit" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold">Değişiklikleri Kaydet</button>
-      </div>
-    </form>
-  </div>
 </div>
 <!-- BEKLEYEN SEPETLER MODALI -->
 <div class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-50" id="modal-suspended-carts">
@@ -2916,20 +2858,6 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             const donem = String(aktifDonemId || '');
             // Son başarılı ortak kopya, sayfa kapalıyken çevrimdışı yapılan değişiklikleri tanımak için saklanır.
             const oncekiBaseline = firebaseBaselinesiniOku(kok, donem);
-            // Bulut verilerini okumadan ÖNCE cihazdaki mevcut kayıtların anlık kopyasını al.
-            // Aksi halde aşağıdaki Firebase okuması global dizileri ezdiği için çevrimdışı
-            // oluşturulan satış ve kasa hareketleri birleştirme aşamasına ulaşamıyordu.
-            const yerelYuklemeAnlikGoruntusu = {
-                urunler: Array.isArray(urunler) ? JSON.parse(JSON.stringify(urunler)) : [],
-                kategorilerListesi: Array.isArray(kategorilerListesi) ? JSON.parse(JSON.stringify(kategorilerListesi)) : [],
-                musteriler: Array.isArray(musteriler) ? JSON.parse(JSON.stringify(musteriler)) : [],
-                satisGecmisi: Array.isArray(satisGecmisi) ? JSON.parse(JSON.stringify(satisGecmisi)) : [],
-                kasaHareketleri: Array.isArray(kasaHareketleri) ? JSON.parse(JSON.stringify(kasaHareketleri)) : [],
-                kasaHesaplari: Array.isArray(kasaHesaplari) ? JSON.parse(JSON.stringify(kasaHesaplari)) : [],
-                bekleyenSepetler: Array.isArray(bekleyenSepetler) ? JSON.parse(JSON.stringify(bekleyenSepetler)) : [],
-                acikAdisyonlar: Array.isArray(acikAdisyonlar) ? JSON.parse(JSON.stringify(acikAdisyonlar)) : [],
-                sistemKullanicilari: Array.isArray(sistemKullanicilari) ? JSON.parse(JSON.stringify(sistemKullanicilari)) : []
-            };
             const bulutDizileri = {};
             let temelOkumaBasarili = true;
             // Ortak ayarlar ve dönem listesi önce yüklenir; böylece başka bilgisayarda aynı görünüm açılır.
@@ -3057,10 +2985,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     buluttanVeriAlindi = true;
                 }
             } catch (extraLoadError) { temelOkumaBasarili = false; console.warn('Adisyon/müşteri siparişleri buluttan okunamadı; güvenli eşitleme durduruldu:', extraLoadError); }
-            // Tam ve başarılı bulut okumasından sonra, bulut okumadan önce alınan yerel
-            // kopyayı bulutla birleştir. İlk eşitlemede baseline bulunmasa da [] tabanı
-            // kullanılır; böylece yerel yeni kayıtlar bulut kayıtlarıyla birlikte korunur.
-            if (temelOkumaBasarili) {
+            // Yalnızca tam ve başarılı bulut okumasından sonra önceki ortak kopya ile yerel değişiklikleri üç yönlü birleştir.
+            if (temelOkumaBasarili && oncekiBaseline) {
                 const alanEslemeleri = [
                     ['urunler', 'urunler'], ['kategoriler', 'kategorilerListesi'], ['musteriler', 'musteriler'],
                     ['satis_gecmisi', 'satisGecmisi'], ['kasa_hareketleri', 'kasaHareketleri'], ['kasa_hesaplari', 'kasaHesaplari'],
@@ -3068,16 +2994,14 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     ['sistem_kullanicilari', 'sistemKullanicilari']
                 ];
                 alanEslemeleri.forEach(([cloudKey, variable]) => {
-                    const yerel = variable === 'urunler' ? yerelYuklemeAnlikGoruntusu.urunler : variable === 'kategorilerListesi' ? yerelYuklemeAnlikGoruntusu.kategorilerListesi :
-                        variable === 'musteriler' ? yerelYuklemeAnlikGoruntusu.musteriler : variable === 'satisGecmisi' ? yerelYuklemeAnlikGoruntusu.satisGecmisi :
-                        variable === 'kasaHareketleri' ? yerelYuklemeAnlikGoruntusu.kasaHareketleri : variable === 'kasaHesaplari' ? yerelYuklemeAnlikGoruntusu.kasaHesaplari : variable === 'bekleyenSepetler' ? yerelYuklemeAnlikGoruntusu.bekleyenSepetler :
-                        variable === 'acikAdisyonlar' ? yerelYuklemeAnlikGoruntusu.acikAdisyonlar : yerelYuklemeAnlikGoruntusu.sistemKullanicilari;
+                    const yerel = variable === 'urunler' ? urunler : variable === 'kategorilerListesi' ? kategorilerListesi :
+                        variable === 'musteriler' ? musteriler : variable === 'satisGecmisi' ? satisGecmisi :
+                        variable === 'kasaHareketleri' ? kasaHareketleri : variable === 'kasaHesaplari' ? kasaHesaplari : variable === 'bekleyenSepetler' ? bekleyenSepetler :
+                        variable === 'acikAdisyonlar' ? acikAdisyonlar : sistemKullanicilari;
                     const bulut = bulutDizileri[cloudKey] || [];
-                    const taban = Array.isArray(oncekiBaseline?.[cloudKey]) ? oncekiBaseline[cloudKey] : [];
-                    // Kategoriler sıralı bir listedir. İlk eşitlemede her iki taraftaki
-                    // kategorileri koru; kayıt kimlikleri çakışırsa yerel kayıt önceliklidir.
+                    const taban = Array.isArray(oncekiBaseline[cloudKey]) ? oncekiBaseline[cloudKey] : [];
                     const birlesik = cloudKey === 'kategoriler'
-                        ? (oncekiBaseline ? kategoriDizisiniUcYonluBirlestir(taban, yerel, bulut) : firebaseDizileriBirlestir(bulut, yerel, true))
+                        ? kategoriDizisiniUcYonluBirlestir(taban, yerel, bulut)
                         : firebaseDizileriniUcYonluBirlestir(taban, yerel, bulut);
                     if (variable === 'urunler') urunler = birlesik;
                     else if (variable === 'kategorilerListesi') kategorilerListesi = birlesik;
@@ -3905,7 +3829,6 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     }
                 }
             }
-            if (aktif) await firebaseKontrolPaneliniYenile();
             // Şalter değişikliği anında uygulanır; yeniden başlatma yalnızca Firebase ayarları kaydedilince yapılır.
         }
 
@@ -4911,236 +4834,6 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             try { return `json:${JSON.stringify(kayit)}`; } catch (_) { return null; }
         }
 
-        async function firebaseKontrolPaneliniYenile() {
-            const button = document.getElementById('firebase-audit-refresh');
-            const summary = document.getElementById('firebase-audit-summary');
-            const rowsEl = document.getElementById('firebase-audit-rows');
-            const localTotalEl = document.getElementById('firebase-audit-local-total');
-            const cloudTotalEl = document.getElementById('firebase-audit-cloud-total');
-            const baselineEl = document.getElementById('firebase-audit-baseline');
-            const checkedEl = document.getElementById('firebase-audit-last-check');
-            if (!summary || !rowsEl) return;
-            if (button) { button.disabled = true; button.textContent = 'Kontrol ediliyor…'; }
-
-            const tanimlar = [
-                { key:'urunler', label:'Ürünler', path:'urunler', old:'pos_products', local:()=>urunler },
-                { key:'musteriler', label:'Müşteriler', path:'musteriler', old:'pos_customers', local:()=>musteriler },
-                { key:'satis_gecmisi', label:'Satışlar', path:'satis_gecmisi', old:'pos_sales', local:()=>satisGecmisi },
-                { key:'kasa_hareketleri', label:'Kasa hareketleri', path:'kasa_hareketleri', old:'pos_cash_movements', local:()=>kasaHareketleri },
-                { key:'kasa_hesaplari', label:'Kasa hesapları', path:'kasa_hesaplari', old:'pos_cash_accounts', local:()=>kasaHesaplari },
-                { key:'bekleyen_sepetler', label:'Bekleyen sepetler', path:'bekleyen_sepetler', old:'pos_suspended_carts', local:()=>bekleyenSepetler },
-                { key:'acik_adisyonlar', label:'Açık adisyonlar', path:'acik_adisyonlar', old:'pos_open_adisyon', local:()=>acikAdisyonlar },
-                { key:'musteri_siparisleri', label:'Müşteri siparişleri', path:'musteri_siparisleri', old:null, local:()=>yerelKayitOku('pos_customer_orders_cache_v1', []) },
-                { key:'sistem_kullanicilari', label:'Kullanıcılar', path:'sistem_kullanicilari', old:'pos_system_users', global:true, local:()=>sistemKullanicilari }
-            ];
-            const diziyeCevir = raw => (Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? Object.values(raw) : [])).filter(v => v !== null && v !== undefined);
-            const duzenliJson = value => {
-                if (Array.isArray(value)) return value.map(duzenliJson);
-                if (value && typeof value === 'object') return Object.keys(value).sort().reduce((out, key) => { out[key] = duzenliJson(value[key]); return out; }, {});
-                return value;
-            };
-            const kimlikHaritasi = arr => {
-                const map = new Map();
-                (Array.isArray(arr) ? arr : []).forEach(item => {
-                    const hasStableId = item && typeof item === 'object' && ['id','uid','orderId','siparisId','adisyonId','saleId','fisNo','barcode'].some(k => item[k] !== undefined && item[k] !== null && String(item[k]) !== '');
-                    const canonical = JSON.stringify(duzenliJson(item));
-                    const key = hasStableId ? firebaseKayitAnahtari(item) : `json:${canonical}`;
-                    if (key !== null) map.set(key, canonical);
-                });
-                return map;
-            };
-            const kok = kokDugumGetir();
-            const donem = String(aktifDonemId || '');
-            const yerelDiziler = tanimlar.map(t => diziyeCevir(t.local()));
-            const localTotal = yerelDiziler.reduce((n, arr) => n + arr.length, 0);
-            if (localTotalEl) localTotalEl.textContent = String(localTotal);
-            if (cloudTotalEl) cloudTotalEl.textContent = '—';
-            rowsEl.innerHTML = tanimlar.map((t, i) => `<tr><td class="p-2 text-slate-300">${t.label}</td><td class="p-2 text-right tabular-nums">${yerelDiziler[i].length}</td><td class="p-2 text-right text-slate-500">…</td><td class="p-2 text-right text-slate-500">—</td><td class="p-2 text-right text-slate-500">—</td></tr>`).join('');
-
-            if (sistemAyarlari.firebaseAktif !== true || !(window.firebaseReady && window.database && window.dbGet && window.dbRef)) {
-                summary.className = 'rounded-lg border border-amber-800 bg-amber-950/30 p-3 text-xs text-amber-200';
-                summary.textContent = 'Firebase bağlantısı etkin ve hazır değil. Yerel kayıt sayıları gösteriliyor; bulut karşılaştırması yapılamadı.';
-                if (baselineEl) baselineEl.textContent = 'Eşitleme tabanı: kontrol edilemedi';
-                if (checkedEl) checkedEl.textContent = 'Son kontrol: ' + new Date().toLocaleString('tr-TR');
-                if (button) { button.disabled = false; button.innerHTML = '<i class="fa-solid fa-rotate mr-1"></i> Kontrolü yenile'; }
-                return;
-            }
-
-            try {
-                const cloudArrays = await Promise.all(tanimlar.map(async t => {
-                    const path = t.global ? `${kok}/${t.path}` : `${kok}/${donem}/${t.path}`;
-                    let snap = await window.dbGet(window.dbRef(window.database, path));
-                    if (!snap.exists() && t.old) {
-                        const oldPath = t.global ? `${kok}/${t.old}` : `${kok}/${donem}/${t.old}`;
-                        snap = await window.dbGet(window.dbRef(window.database, oldPath));
-                        if (!snap.exists() && !t.global && donemler[0]?.id === aktifDonemId) snap = await window.dbGet(window.dbRef(window.database, `${kok}/${t.old}`));
-                    }
-                    return diziyeCevir(snap.exists() ? snap.val() : []);
-                }));
-                let totalCloud = 0, onlyLocalTotal = 0, onlyCloudTotal = 0, changedTotal = 0;
-                const report = tanimlar.map((t, i) => {
-                    const localMap = kimlikHaritasi(yerelDiziler[i]);
-                    const cloudMap = kimlikHaritasi(cloudArrays[i]);
-                    let onlyLocal = 0, onlyCloud = 0, changed = 0;
-                    localMap.forEach((value, key) => {
-                        if (!cloudMap.has(key)) onlyLocal++;
-                        else if (cloudMap.get(key) !== value) changed++;
-                    });
-                    cloudMap.forEach((_, key) => { if (!localMap.has(key)) onlyCloud++; });
-                    totalCloud += cloudArrays[i].length;
-                    onlyLocalTotal += onlyLocal; onlyCloudTotal += onlyCloud; changedTotal += changed;
-                    return { label:t.label, local:yerelDiziler[i].length, cloud:cloudArrays[i].length, onlyLocal, onlyCloud, changed };
-                });
-                if (cloudTotalEl) cloudTotalEl.textContent = String(totalCloud);
-                rowsEl.innerHTML = report.map(r => `<tr><td class="p-2 text-slate-300">${r.label}${r.changed ? ` <span class="text-amber-400">(${r.changed} farklı içerik)</span>` : ''}</td><td class="p-2 text-right tabular-nums">${r.local}</td><td class="p-2 text-right tabular-nums">${r.cloud}</td><td class="p-2 text-right tabular-nums ${r.onlyLocal ? 'text-amber-300 font-bold' : 'text-slate-400'}">${r.onlyLocal}</td><td class="p-2 text-right tabular-nums ${r.onlyCloud ? 'text-cyan-300 font-bold' : 'text-slate-400'}">${r.onlyCloud}</td></tr>`).join('');
-                if (onlyLocalTotal === 0 && onlyCloudTotal === 0 && changedTotal === 0) {
-                    summary.className = 'rounded-lg border border-emerald-800 bg-emerald-950/30 p-3 text-xs text-emerald-200';
-                    summary.textContent = 'Kayıt kimlikleri ve içerikleri aynı görünüyor. Bu kontrol, mevcut kayıtların eşleştiğini doğruladı.';
-                } else {
-                    summary.className = 'rounded-lg border border-amber-800 bg-amber-950/30 p-3 text-xs text-amber-200';
-                    summary.textContent = `Fark bulundu: ${onlyLocalTotal} kayıt yalnızca bu cihazda, ${onlyCloudTotal} kayıt yalnızca Firebase’de, ${changedTotal} kaydın içeriği farklı. Kontrol hiçbir veriyi değiştirmedi.`;
-                }
-                const baseline = firebaseBaselinesiniOku(kok, donem);
-                if (baselineEl) baselineEl.textContent = 'Eşitleme tabanı: ' + (baseline ? 'mevcut' : 'bulunamadı');
-                if (checkedEl) checkedEl.textContent = 'Son kontrol: ' + new Date().toLocaleString('tr-TR');
-            } catch (error) {
-                summary.className = 'rounded-lg border border-rose-800 bg-rose-950/30 p-3 text-xs text-rose-200';
-                summary.textContent = 'Firebase kayıtları okunamadı: ' + (error?.message || 'Bağlantı veya erişim hatası') + '. Yerel kayıtlar değiştirilmedi.';
-                if (checkedEl) checkedEl.textContent = 'Son kontrol: ' + new Date().toLocaleString('tr-TR');
-            } finally {
-                if (button) { button.disabled = false; button.innerHTML = '<i class="fa-solid fa-rotate mr-1"></i> Kontrolü yenile'; }
-            }
-        }
-
-        // Kullanıcının açık onayıyla çalışan, silme yapmayan manuel eşitleme.
-        // Her veri grubu Firebase transaction içinde güncel bulut verisiyle birleştirilir.
-        async function firebaseGuvenliEsitlemeyiBaslat() {
-            const button = document.getElementById('firebase-sync-start');
-            const resultEl = document.getElementById('firebase-sync-result');
-            const show = (message, tone = 'info') => {
-                if (!resultEl) return;
-                const styles = { info:'border-cyan-800 bg-cyan-950/30 text-cyan-200', success:'border-emerald-800 bg-emerald-950/30 text-emerald-200', warning:'border-amber-800 bg-amber-950/30 text-amber-200', error:'border-rose-800 bg-rose-950/30 text-rose-200' };
-                resultEl.className = `rounded-lg border p-3 text-xs ${styles[tone] || styles.info}`;
-                resultEl.textContent = message;
-                resultEl.classList.remove('hidden');
-            };
-            if (button) { button.disabled = true; button.textContent = 'Eşitleme hazırlanıyor…'; }
-            const liveWasStarted = typeof firebaseLiveSyncStarted !== 'undefined' && firebaseLiveSyncStarted;
-            try {
-                if (sistemAyarlari.firebaseAktif !== true || !(window.firebaseReady && window.database && window.dbGet && window.dbRef && window.dbTransaction)) {
-                    throw new Error('Firebase bağlantısı ve transaction desteği hazır değil. Güvenli eşitleme için transaction zorunludur.');
-                }
-                if (liveWasStarted) firebaseCanliEsitlemeyiDurdur();
-                const root = kokDugumGetir();
-                const period = String(aktifDonemId || '');
-                if (!period) throw new Error('Aktif dönem bulunamadı.');
-                const fields = [
-                    {key:'urunler', path:'urunler', label:'Ürünler', local:()=>urunler, set:v=>urunler=v, storage:'pos_products_v4'},
-                    {key:'kategoriler', path:'kategoriler', label:'Kategoriler', local:()=>kategorilerListesi, set:v=>kategorilerListesi=v, storage:'pos_categories_v4'},
-                    {key:'musteriler', path:'musteriler', label:'Müşteriler', local:()=>musteriler, set:v=>musteriler=v, storage:'pos_customers_v4'},
-                    {key:'satis_gecmisi', path:'satis_gecmisi', label:'Satışlar', local:()=>satisGecmisi, set:v=>satisGecmisi=v, storage:'pos_sales_v4'},
-                    {key:'kasa_hareketleri', path:'kasa_hareketleri', label:'Kasa hareketleri', local:()=>kasaHareketleri, set:v=>kasaHareketleri=v, storage:'pos_cash_movements_v4'},
-                    {key:'kasa_hesaplari', path:'kasa_hesaplari', label:'Kasa hesapları', local:()=>kasaHesaplari, set:v=>kasaHesaplari=v, storage:'pos_cash_accounts_v1'},
-                    {key:'bekleyen_sepetler', path:'bekleyen_sepetler', label:'Bekleyen sepetler', local:()=>bekleyenSepetler, set:v=>bekleyenSepetler=v, storage:'pos_suspended_carts_v4'},
-                    {key:'acik_adisyonlar', path:'acik_adisyonlar', label:'Açık adisyonlar', local:()=>acikAdisyonlar, set:v=>acikAdisyonlar=v, storage:'pos_open_adisyon_v1'},
-                    {key:'sistem_kullanicilari', path:'sistem_kullanicilari', label:'Kullanıcılar', global:true, local:()=>sistemKullanicilari, set:v=>sistemKullanicilari=v, storage:'pos_system_users_v4'}
-                ];
-                const toArray = raw => Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? Object.values(raw) : []);
-                const stable = value => {
-                    if (Array.isArray(value)) return value.map(stable);
-                    if (value && typeof value === 'object') return Object.keys(value).sort().reduce((o,k)=>(o[k]=stable(value[k]),o),{});
-                    return value;
-                };
-                const same = (a,b) => JSON.stringify(stable(a)) === JSON.stringify(stable(b));
-                const timestamp = item => Math.max(0, ...['updatedAt','modifiedAt','updated_at','lastUpdated','timestamp'].map(k=>Number(item?.[k])||0));
-                const preview = [];
-                for (const field of fields) {
-                    const path = field.global ? `${root}/${field.path}` : `${root}/${period}/${field.path}`;
-                    const snap = await window.dbGet(window.dbRef(window.database, path));
-                    const cloud = toArray(snap.exists() ? snap.val() : []);
-                    const local = toArray(field.local());
-                    const map = new Map(cloud.map(item=>[firebaseKayitAnahtari(item),item]).filter(([k])=>k!==null));
-                    let add=0, pull=0, conflict=0;
-                    const localMap = new Map(local.map(row=>[firebaseKayitAnahtari(row),row]).filter(([k])=>k!==null));
-                    for (const item of local) {
-                        const key = firebaseKayitAnahtari(item);
-                        if (key === null || !map.has(key)) { add++; continue; }
-                        const remote = map.get(key);
-                        if (!same(remote,item)) {
-                            const lt=timestamp(item), rt=timestamp(remote);
-                            if (!(lt && rt && lt !== rt)) conflict++;
-                        }
-                    }
-                    for (const key of map.keys()) if (!localMap.has(key)) pull++;
-                    preview.push({field,path,local,cloud,add,pull,conflict});
-                }
-                const summary = preview.filter(x=>x.add||x.pull||x.conflict).map(x=>`${x.field.label}: ${x.add} Firebase'e gönderilecek, ${x.pull} cihaza alınacak, ${x.conflict} çözümlenemeyen çakışma`).join('\n');
-                if (!confirm(`Güvenli eşitleme önizlemesi\n\n${summary || 'Yeni kayıt veya çakışma bulunmadı.'}\n\nKurallar: hiçbir kayıt silinmeyecek. Aynı kimlikli ve zaman damgası belirsiz farklı kayıtlar değiştirilmeyecek. Devam edilsin mi?`)) {
-                    show('Eşitleme kullanıcı tarafından iptal edildi. Hiçbir kayıt değiştirilmedi.','info');
-                    return;
-                }
-                let addedTotal=0, importedTotal=0, conflictTotal=0, failedTotal=0, completed=0;
-                for (const item of preview) {
-                    let transactionConflict = false;
-                    const ref = window.dbRef(window.database,item.path);
-                    const tx = await window.dbTransaction(ref,current=>{
-                        transactionConflict = false;
-                        const latest = toArray(current);
-                        const mergedMap = new Map(latest.map(row=>[firebaseKayitAnahtari(row),row]).filter(([k])=>k!==null));
-                        for (const localItem of item.local) {
-                            const key = firebaseKayitAnahtari(localItem);
-                            if (key === null) { transactionConflict = true; return; }
-                            if (!mergedMap.has(key)) { mergedMap.set(key,localItem); continue; }
-                            const remoteItem = mergedMap.get(key);
-                            if (same(remoteItem,localItem)) continue;
-                            const lt=timestamp(localItem), rt=timestamp(remoteItem);
-                            if (!(lt && rt && lt !== rt)) { transactionConflict = true; return; }
-                            if (lt > rt) mergedMap.set(key,localItem);
-                        }
-                        return [...mergedMap.values()];
-                    });
-                    if (!tx.committed) {
-                        if (transactionConflict || item.conflict) conflictTotal += Math.max(item.conflict, transactionConflict ? 1 : 0);
-                        else failedTotal++;
-                        continue;
-                    }
-                    const saved = toArray(tx.snapshot?.val());
-                    const beforeKeys = new Set(item.cloud.map(row=>firebaseKayitAnahtari(row)));
-                    const localKeys = new Set(item.local.map(row=>firebaseKayitAnahtari(row)));
-                    addedTotal += saved.filter(row=>!beforeKeys.has(firebaseKayitAnahtari(row))).length;
-                    importedTotal += saved.filter(row=>!localKeys.has(firebaseKayitAnahtari(row))).length;
-                    item.field.set(saved);
-                    try { localStorage.setItem(item.field.storage,JSON.stringify(saved)); } catch (_) {}
-                    firebaseSyncBaseline[item.field.key] = JSON.parse(JSON.stringify(saved));
-                    completed++;
-                }
-                firebaseBaselinesiniKaydet(root,period);
-                try {
-                    const periods = yerelKayitOku('pos_period_data_v1',{});
-                    if (periods && periods[period]) {
-                        periods[period] = {...periods[period],urunler,kategorilerListesi,musteriler,satisGecmisi,kasaHareketleri,kasaHesaplari,bekleyenSepetler,acikAdisyonlar};
-                        localStorage.setItem('pos_period_data_v1',JSON.stringify(periods));
-                    }
-                } catch (_) {}
-                try {
-                    kategoriListesiniGuncelle(); kategorileriOlustur(); urunleriGoster();
-                    borclularTablosunuGuncelle(); gecmisTablosunuGuncelle(); kasaEkraniniGuncelle();
-                    kasaHesaplariniCiz(); adisyonlariGoster(); mutfakEkraniniGuncelle(); bekleyenSepetSayisiniGuncelle();
-                    sistemKullanicilariTablosunuGuncelle(); girisDropdownKullanicilariniGoster();
-                } catch (refreshError) { console.warn('Eşitleme sonrası ekran yenileme uyarısı:',refreshError); }
-                if (conflictTotal || failedTotal) show(`Eşitleme kısmen tamamlandı. ${completed} veri grubu işlendi; ${addedTotal} kayıt Firebase'e eklendi, ${importedTotal} kayıt cihaza alındı. ${conflictTotal} çakışma ve ${failedTotal} aktarım hatası nedeniyle bazı gruplar değiştirilmedi. Hiçbir kayıt silinmedi.`,'warning');
-                else show(`Eşitleme tamamlandı. ${completed} veri grubu kontrol edildi; ${addedTotal} kayıt Firebase'e eklendi, ${importedTotal} kayıt cihaza alındı. Hiçbir kayıt silinmedi.`,'success');
-                try { await firebaseKontrolPaneliniYenile(); } catch (_) {}
-            } catch (error) {
-                show('Eşitleme tamamlanamadı: '+(error?.message||'Bilinmeyen hata')+'. Yerel kayıtlar korunmaya çalışıldı.','error');
-            } finally {
-                if (liveWasStarted && sistemAyarlari.firebaseAktif === true) {
-                    try { firebaseCanliEsitlemeyiBaslat(true); } catch (restartError) { console.warn('Firebase canlı eşitlemesi yeniden başlatılamadı:',restartError); }
-                }
-                if (button) { button.disabled=false; button.innerHTML='<i class="fa-solid fa-arrows-rotate mr-1"></i> Eşitlemeyi başlat'; }
-            }
-        }
-
         const firebaseSyncBaseline = {};
         let firebaseWriteBlocked = false;
 
@@ -5275,8 +4968,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     // Yerel tarafta bulutta olmayan bir değişiklik varsa, yalnızca bu alanı işlemli biçimde gönder.
                     if (JSON.stringify(merged) !== JSON.stringify(bulutDizisi)) {
                         const labels = { urunler:'Ürünler', kategoriler:'Kategoriler', musteriler:'Müşteriler', satis_gecmisi:'Satış geçmişi', kasa_hareketleri:'Kasa hareketleri', kasa_hesaplari:'Kasa tanımları', bekleyen_sepetler:'Bekleyen sepetler', acik_adisyonlar:'Açık adisyonlar' };
-                        if (cloudKey === 'kasa_hareketleri') firebaseKasayiSiraliKaydet(`${root}/${period}/${cloudKey}`, merged, labels[cloudKey] || cloudKey, cloudKey, variable, localKey);
-                        else firebaseDizisiniGuvenliKaydet(`${root}/${period}/${cloudKey}`, merged, labels[cloudKey] || cloudKey, cloudKey, variable, localKey);
+                        firebaseDizisiniGuvenliKaydet(`${root}/${period}/${cloudKey}`, merged, labels[cloudKey] || cloudKey, cloudKey, variable, localKey);
                     }
                     if (variable === 'urunler' || variable === 'kategorilerListesi') { kategoriListesiniGuncelle(); kategorileriOlustur(); urunleriGoster(); }
                     if (variable === 'musteriler') { try { borclularTablosunuGuncelle(); } catch (_) {} }
@@ -5302,72 +4994,6 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 try { localStorage.setItem('pos_system_users_v4', JSON.stringify(users)); } catch (_) {}
                 try { sistemKullanicilariTablosunuGuncelle(); girisDropdownKullanicilariniGoster(); } catch (_) {}
             }, error => console.error('Kullanıcılar canlı eşitleme hatası:', error)));
-        }
-
-        // Kasa hareketleri için Firebase yazmalarını sıraya al. Satış, canlı dinleyici ve
-        // genel kayıt aynı anda yazmaya çalışırsa eski bir snapshot yeni hareketi ezmesin.
-        let firebaseKasaYazmaKuyrugu = Promise.resolve(true);
-        function firebaseKasayiSiraliKaydet(yol, yerelDizi, etiket = 'Kasa hareketleri', alanAnahtari = 'kasa_hareketleri', degiskenAdi = 'kasaHareketleri', yerelAnahtar = 'pos_cash_movements_v4') {
-            const yaz = () => firebaseDizisiniGuvenliKaydet(yol, yerelDizi, etiket, alanAnahtari, degiskenAdi, yerelAnahtar);
-            firebaseKasaYazmaKuyrugu = firebaseKasaYazmaKuyrugu.catch(hata => {
-                console.warn('Önceki kasa Firebase yazması başarısız oldu; yeni yazma yeniden denenecek:', hata);
-            }).then(yaz).catch(hata => {
-                console.error('Kasa hareketleri Firebase kuyruğunda kaydedilemedi:', hata);
-                return false;
-            });
-            return firebaseKasaYazmaKuyrugu;
-        }
-
-        // Satışın kasa hareketlerini baseline silme mantığına bağlamadan, Firebase'deki
-        // mevcut hareketleri koruyarak ID bazında ekler. Bu yol satış için append-only'dir.
-        async function firebaseSatisKasasiniKaydet(sale) {
-            if (!sistemAyarlari.firebaseAktif) return true;
-            if (!(window.firebaseReady && window.database && window.dbTransaction && window.dbRef)) {
-                throw new Error('Firebase bağlantısı veya transaction desteği hazır değil.');
-            }
-            if (firebaseWriteBlocked || window.firebaseLastLoadOk !== true) {
-                throw new Error('Firebase ilk veri okuması tamamlanmadı; kasa hareketi güvenli biçimde gönderilemedi.');
-            }
-            const saleId = String(sale && sale.id || '');
-            if (!saleId) throw new Error('Satış numarası bulunamadı.');
-            const movements = (Array.isArray(kasaHareketleri) ? kasaHareketleri : [])
-                .filter(m => String(m && m.saleId || '') === saleId && m.movementKind === 'sale-payment');
-            if (!movements.length) return true;
-            const path = `${kokDugumGetir()}/${aktifDonemId}/kasa_hareketleri`;
-            const yaz = async () => {
-                const result = await window.dbTransaction(window.dbRef(window.database, path), current => {
-                    const rows = Array.isArray(current) ? current.slice() : (current && typeof current === 'object' ? Object.values(current) : []);
-                    const byId = new Map(rows.filter(Boolean).map(row => [firebaseKayitAnahtari(row), row]));
-                    movements.forEach(movement => {
-                        const key = firebaseKayitAnahtari(movement);
-                        if (key && !byId.has(key)) byId.set(key, movement);
-                    });
-                    return [...byId.values()];
-                });
-                if (!result || !result.committed) throw new Error('Firebase kasa hareketi işlemi onaylamadı.');
-                const raw = result.snapshot && result.snapshot.val();
-                const saved = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? Object.values(raw) : []);
-                firebaseSyncBaseline.kasa_hareketleri = JSON.parse(JSON.stringify(saved));
-                firebaseBaselinesiniKaydet(kokDugumGetir(), aktifDonemId);
-                // Yereldeki kayıtları ve Firebase'den gelen diğer hareketleri birlikte koru.
-                const merged = new Map(saved.filter(Boolean).map(row => [firebaseKayitAnahtari(row), row]));
-                (Array.isArray(kasaHareketleri) ? kasaHareketleri : []).forEach(row => {
-                    const key = firebaseKayitAnahtari(row);
-                    if (key && !merged.has(key)) merged.set(key, row);
-                });
-                kasaHareketleri = [...merged.values()];
-                try {
-                    localStorage.setItem('pos_cash_movements_v4', JSON.stringify(kasaHareketleri));
-                    const periods = yerelKayitOku('pos_period_data_v1', {});
-                    if (periods && aktifDonemId) {
-                        periods[aktifDonemId] = { ...(periods[aktifDonemId] || {}), kasaHareketleri };
-                        localStorage.setItem('pos_period_data_v1', JSON.stringify(periods));
-                    }
-                } catch (e) { console.warn('Kasa hareketi yerel önbelleği güncellenemedi:', e); }
-                return true;
-            };
-            firebaseKasaYazmaKuyrugu = firebaseKasaYazmaKuyrugu.catch(() => true).then(yaz);
-            return firebaseKasaYazmaKuyrugu;
         }
 
         function firebaseDizisiniGuvenliKaydet(yol, yerelDizi, etiket, alanAnahtari, degiskenAdi, yerelAnahtar) {
@@ -5469,7 +5095,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/kategoriler`, kategorilerListesi, 'Kategoriler', 'kategoriler', 'kategorilerListesi', 'pos_categories_v4');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/musteriler`, musteriler, 'Müşteriler', 'musteriler', 'musteriler', 'pos_customers_v4');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/satis_gecmisi`, satisGecmisi, 'Satış geçmişi', 'satis_gecmisi', 'satisGecmisi', 'pos_sales_v4');
-                if (!window.__posSkipKasaAutoWrite) firebaseKasayiSiraliKaydet(`${kokDugumGetir()}/${aktifDonemId}/kasa_hareketleri`, kasaHareketleri, 'Kasa hareketleri', 'kasa_hareketleri', 'kasaHareketleri', 'pos_cash_movements_v4');
+                firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/kasa_hareketleri`, kasaHareketleri, 'Kasa hareketleri', 'kasa_hareketleri', 'kasaHareketleri', 'pos_cash_movements_v4');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/kasa_hesaplari`, kasaHesaplari, 'Kasa tanımları', 'kasa_hesaplari', 'kasaHesaplari', 'pos_cash_accounts_v1');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/bekleyen_sepetler`, bekleyenSepetler, 'Bekleyen sepetler', 'bekleyen_sepetler', 'bekleyenSepetler', 'pos_suspended_carts_v4');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/acik_adisyonlar`, acikAdisyonlar, 'Açık adisyonlar', 'acik_adisyonlar', 'acikAdisyonlar', 'pos_open_adisyon_v1');
@@ -6137,7 +5763,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             if (secilenSekme === 'reports') raporuGuncelle();
             if (secilenSekme === 'adisyon') adisyonlariGoster();
             if (secilenSekme === 'customerorders') { musteriSiparisleriniDinle(); musteriSiparisleriniGoster(); }
-            if (secilenSekme === 'settings') { sistemKullanicilariTablosunuGuncelle(); musteriQrGarsonSecenekleriniGuncelle(); musteriQrListesiniGoster(); musteriQrTurunuAyarla(); firmaAyarlariniUygula(); donemSecenekleriniGuncelle(); const k=document.getElementById('setting-kitchen-enabled'); if(k) k.checked=sistemAyarlari.mutfakAktif === true; const a=document.getElementById('setting-adisyon-enabled'); if(a) a.checked=sistemAyarlari.ozellikler?.adisyon === true; const w=document.getElementById('setting-waiter-enabled'); if(w) w.checked=sistemAyarlari.garsonAktif === true; musteriIzlemeQrGuncelle(); const co=document.getElementById('setting-customerorders-enabled'); if(co) co.checked=sistemAyarlari.ozellikler?.customerorders === true; if(sistemAyarlari.firebaseAktif === true) firebaseKontrolPaneliniYenile(); }
+            if (secilenSekme === 'settings') { sistemKullanicilariTablosunuGuncelle(); musteriQrGarsonSecenekleriniGuncelle(); musteriQrListesiniGoster(); musteriQrTurunuAyarla(); firmaAyarlariniUygula(); donemSecenekleriniGuncelle(); const k=document.getElementById('setting-kitchen-enabled'); if(k) k.checked=sistemAyarlari.mutfakAktif === true; const a=document.getElementById('setting-adisyon-enabled'); if(a) a.checked=sistemAyarlari.ozellikler?.adisyon === true; const w=document.getElementById('setting-waiter-enabled'); if(w) w.checked=sistemAyarlari.garsonAktif === true; musteriIzlemeQrGuncelle(); const co=document.getElementById('setting-customerorders-enabled'); if(co) co.checked=sistemAyarlari.ozellikler?.customerorders === true; }
             if (secilenSekme === 'sales') { adisyonArayuzunuUygula(); garsonSecenekleriniGuncelle(); garsonArayuzunuUygula(); kategorileriOlustur(); urunleriGoster(); satisYaziBoyutunuUygula(sistemAyarlari.satisYaziBoyutu || 14); setTimeout(() => { const barcodeInput = document.getElementById('barcode-search'); if (barcodeInput) barcodeInput.focus(); }, 100); }
         }
 
@@ -6916,57 +6542,9 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 if (existing.qty < kalanStok) existing.qty++;
                 else onayModaliniGoster('Uyarı', 'Stok limitine ulaşıldı!', null, true);
             } else {
-                // Sepet satırı ürün kartından bağımsız bir kopya kullanır.
-                // Sepetteki özel fiyat değişikliği ana ürün fiyatını etkilemez.
-                sepet.push({ product: { ...product }, qty: 1, fisYazdir: true });
+                sepet.push({ product, qty: 1, fisYazdir: true });
             }
             sepetiGuncelle();
-        }
-
-        function sepetUrununuDuzenle(urunId) {
-            const item = sepet.find(i => String(i.product.id) === String(urunId));
-            if (!item) return;
-            const modal = document.getElementById('modal-cart-item-edit');
-            if (!modal) return;
-            document.getElementById('cart-item-edit-id').value = String(urunId);
-            document.getElementById('cart-item-edit-name').textContent = item.product.name || 'Ürün';
-            document.getElementById('cart-item-edit-qty').value = Number(item.qty) || 1;
-            document.getElementById('cart-item-edit-price').value = Math.max(0, Number(item.product.price) || 0).toFixed(2);
-            document.getElementById('cart-item-edit-original-price').textContent = 'Ürün kartındaki fiyat: ₺' + (Number((urunler.find(p => String(p.id) === String(urunId)) || item.product).price) || 0).toFixed(2);
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            setTimeout(() => document.getElementById('cart-item-edit-qty')?.focus(), 50);
-        }
-
-        function sepetUrunDuzenleKaydet(event) {
-            if (event) event.preventDefault();
-            const urunId = document.getElementById('cart-item-edit-id')?.value;
-            const item = sepet.find(i => String(i.product.id) === String(urunId));
-            if (!item) { modalKapat('modal-cart-item-edit'); return; }
-            const qtyInput = document.getElementById('cart-item-edit-qty');
-            const priceInput = document.getElementById('cart-item-edit-price');
-            const qty = Number(qtyInput?.value);
-            const price = Number(priceInput?.value);
-            if (!Number.isFinite(qty) || qty <= 0) {
-                onayModaliniGoster('Geçersiz adet', 'Adet sıfırdan büyük olmalıdır.', null, true);
-                return;
-            }
-            if (!Number.isFinite(price) || price < 0) {
-                onayModaliniGoster('Geçersiz fiyat', 'Birim fiyat sıfır veya daha büyük olmalıdır.', null, true);
-                return;
-            }
-            const masterProduct = urunler.find(p => String(p.id) === String(urunId));
-            const kalanStok = masterProduct ? Math.max(0, (Number(masterProduct.inStock) || 0) - (Number(masterProduct.outStock) || 0)) : Infinity;
-            if (qty > kalanStok) {
-                onayModaliniGoster('Stok miktarı aşıldı', `Bu ürün için en fazla ${kalanStok} adet girebilirsiniz.`, null, true);
-                return;
-            }
-            // Ürün nesnesini kopyalayarak yalnızca bu sepet satırının fiyatını değiştir.
-            item.product = { ...item.product, price: Math.round(price * 100) / 100 };
-            item.qty = qty;
-            modalKapat('modal-cart-item-edit');
-            sepetiGuncelle();
-            islemBildirimiGoster('Sepet satırı güncellendi. Ürün kartındaki fiyat değişmedi.');
         }
 
         function sepetAdetGuncelle(urunId, delta) {
@@ -7014,7 +6592,6 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                             <button onclick="sepetAdetGuncelle('${safeItemId}', 1)" type="button" class="w-4 h-4 hover:text-emerald-500 flex items-center justify-center font-bold text-[10px]">+</button>
                         </div>
                         <span class="font-mono text-[11px] font-bold text-emerald-600 dark:text-emerald-400 w-14 text-right">₺${itemTotal.toFixed(2)}</span>
-                        <button type="button" onclick="sepetUrununuDuzenle('${safeItemId}')" title="Adet ve fiyatı düzenle" aria-label="${htmlGuvenli(item.product.name)} adet ve fiyatını düzenle" class="w-7 h-7 shrink-0 rounded bg-blue-700/90 hover:bg-blue-600 text-white flex items-center justify-center"><i class="fa-solid fa-pen-to-square text-[11px]"></i></button>
                     </div>
                 </div>
                 `;
@@ -7338,7 +6915,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             odemeYap('Parçalı Ödeme',customer?customer.name:null);
         }
 
-        async function odemeYap(type, musteriAdiRef = null, alisverisKartiMusteriId = null) {
+        function odemeYap(type, musteriAdiRef = null, alisverisKartiMusteriId = null) {
             if (type === 'Nakit' && !islemYetkisiGerekli('sales_cash', 'Nakit ödeme alma yetkiniz yok.')) return;
             if (type === 'Kredi Kartı' && !islemYetkisiGerekli('sales_credit_card', 'Kredi kartı ödemesi alma yetkiniz yok.')) return;
             if (type === 'Veresiye' && !islemYetkisiGerekli('sales_debt', 'Veresiye satışı yapma yetkiniz yok.')) return;
@@ -7413,22 +6990,9 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
 
             if (type === 'Nakit' || type === 'Kredi Kartı' || type.startsWith('Veresiye') || type === 'Parçalı Ödeme') {
                 if (!Array.isArray(kasaHareketleri)) kasaHareketleri = [];
-                (sale.payments || []).forEach((payment, paymentIndex) => {
+                (sale.payments || []).forEach(payment => {
                     if (payment.type === 'Veresiye') return;
-                    const movementType = `Satış (${payment.type})`;
-                    // Her ödeme satırının kendi kimliği olur; parçalı ödemelerde saleId ortak olsa da
-                    // nakit/kart hareketleri birbirinin üzerine yazılmaz.
-                    kasaHareketleri.unshift({
-                        id: `KH-${sale.id}-${paymentIndex + 1}`,
-                        saleId: sale.id,
-                        date: sale.date,
-                        timestamp: Date.now(),
-                        type: movementType,
-                        amount: Number(payment.amount) || 0,
-                        user: aktifKullaniciAdi || 'Bilinmiyor',
-                        periodId: aktifDonemId,
-                        movementKind: 'sale-payment'
-                    });
+                    kasaHareketleri.unshift({ saleId: sale.id, date: sale.date, type: `Satış (${payment.type})`, amount: Number(payment.amount) || 0 });
                 });
             }
             if (window.__posPartialPayment && window.__posPartialPayment.customer && sale.remainingAmount > 0) {
@@ -7455,23 +7019,10 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const tableInput = document.getElementById('cart-table-number'); if (tableInput) tableInput.value = '';
             const orderTypeReset2 = document.getElementById('cart-order-type'); if (orderTypeReset2) orderTypeReset2.value = 'Masa';
 
-            // Satış kaydını ve diğer alanları yerel kaydet; kasa hareketlerini aşağıda
-            // ayrı, append-only Firebase transaction ile yaz. Böylece genel kaydetmenin
-            // eski baseline üzerinden aynı anda kasa dizisini yazması engellenir.
-            window.__posSkipKasaAutoWrite = true;
+            // Yerel kayıt/Firebase gönderimi hata verse bile satış akışını durdurma.
+            // Firebase fonksiyonları kendi hata kayıtlarını konsola yazar.
             try { durumuKaydet(); }
-            catch (hata) { console.error('Satış oluşturuldu; yerel kayıt sırasında hata:', hata); }
-            finally { window.__posSkipKasaAutoWrite = false; }
-            let kasaFirebaseKaydiBasarili = true;
-            if (sistemAyarlari.firebaseAktif) {
-                try {
-                    kasaFirebaseKaydiBasarili = await firebaseSatisKasasiniKaydet(sale);
-                    if (!kasaFirebaseKaydiBasarili) throw new Error('Firebase kasa hareketi yazma işlemi tamamlanmadı.');
-                } catch (hata) {
-                    kasaFirebaseKaydiBasarili = false;
-                    console.error('Satış yerel kaydedildi; kasa hareketi Firebase’e aktarılamadı:', hata);
-                }
-            }
+            catch (hata) { console.error('Satış oluşturuldu; kayıt/eşitleme sırasında hata:', hata); }
             if (sistemAyarlari.garsonAktif) musteriIzlemeKaydiniYaz(sale);
 
             // Ekran yenilemelerini birbirinden bağımsız tut: tek bir arayüz hatası
@@ -7486,9 +7037,6 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const basariMesaji = type + ' işlemi tamamlandı: ₺' + total.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + (type === 'Nakit' && nakitAlinan > total ? ' · Para üstü: ₺' + (nakitAlinan-total).toFixed(2) : '');
             try { islemBildirimiGoster(basariMesaji); }
             catch (hata) { console.error('Satış bildirimi gösterilemedi:', hata); }
-            if (!kasaFirebaseKaydiBasarili) {
-                try { islemBildirimiGoster('Satış cihaza kaydedildi; kasa hareketi Firebase’e aktarılamadı. İnternet bağlantısını kontrol edip eşitlemeyi yenileyin.', 'error'); } catch (_) {}
-            }
 
             if (sistemAyarlari.otomatikYazdir === true) {
                 // Otomatik yazdırmada da Ayarlar > Fiş yazdırma biçimi tercihini uygula.
@@ -8495,58 +8043,32 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
 
         function kasaEkraniniGuncelle() {
             kasaHesaplariniCiz();
-            // Kasa tutarlarını hem sayı hem de Türkçe biçimli metin kayıtlarından güvenli oku.
-            const kasaTutariniOku = value => {
-                if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
-                let raw = String(value ?? '').trim().replace(/[^0-9,.-]/g, '');
-                if (!raw) return 0;
-                if (raw.includes(',') && raw.includes('.')) raw = raw.replace(/\./g, '').replace(',', '.');
-                else if (raw.includes(',')) raw = raw.replace(',', '.');
-                const parsed = Number(raw);
-                return Number.isFinite(parsed) ? parsed : 0;
-            };
-
             let toplamNakit = 0;
             let toplamKart = 0;
-            let toplamDiger = 0;
             let toplamTahsilat = 0;
-            const satisKayitIdleri = new Set();
 
-            // Satış geçmişi ana kaynaktır; payments varsa gerçek ödeme dağılımını kullan.
+            let toplamDiger = 0;
             if (Array.isArray(satisGecmisi)) {
                 satisGecmisi.forEach(s => {
-                    if (!s || typeof s !== 'object') return;
-                    if (s.id != null) satisKayitIdleri.add(String(s.id));
-                    const saleTotal = Math.max(0, kasaTutariniOku(s.total));
+                    const saleTotal = Math.max(0, Number(s.total) || 0);
+                    // Yeni kayıtlar gerçek ödeme dağılımını payments alanında taşır.
+                    // Eski kayıtlar için type/total üzerinden geriye dönük uyumluluk korunur.
                     if (Array.isArray(s.payments) && s.payments.length) {
                         s.payments.forEach(payment => {
-                            const amount = Math.max(0, kasaTutariniOku(payment && payment.amount));
-                            const method = String(payment && payment.type || '').trim().toLocaleLowerCase('tr-TR');
-                            if (method === 'nakit') toplamNakit += amount;
-                            else if (method === 'kredi kartı') toplamKart += amount;
-                            else if (method === 'diğer') toplamDiger += amount;
-                            // Veresiye satış tahsilat değildir; tahsil edildiğinde aşağıda eklenir.
+                            const amount = Math.max(0, Number(payment && payment.amount) || 0);
+                            const method = String(payment && payment.type || '').trim();
+                            if (/^nakit$/i.test(method)) toplamNakit += amount;
+                            else if (/^kredi kartı$/i.test(method)) toplamKart += amount;
+                            else if (/^diğer$/i.test(method)) toplamDiger += amount;
                         });
-                    } else {
-                        const method = String(s.type || '').trim().toLocaleLowerCase('tr-TR');
-                        if (method === 'nakit') toplamNakit += saleTotal;
-                        else if (method === 'kredi kartı') toplamKart += saleTotal;
-                        else if (method === 'parçalı ödeme') toplamDiger += Math.max(0, kasaTutariniOku(s.paidAmount));
+                    } else if (s.type === 'Nakit') toplamNakit += saleTotal;
+                    else if (s.type === 'Kredi Kartı') toplamKart += saleTotal;
+                    else if (s.type === 'Parçalı Ödeme') {
+                        // Eksik/bozuk eski parçalı ödeme kaydını sessizce nakit sayma.
+                        toplamDiger += Math.max(0, Number(s.paidAmount) || 0);
                     }
                 });
             }
-
-            // Satış geçmişinde bulunmayan eski kayıtlar için kasa satış hareketlerini yedek kaynak kullan.
-            (Array.isArray(kasaHareketleri) ? kasaHareketleri : []).forEach(m => {
-                if (!m || typeof m !== 'object') return;
-                const saleId = m.saleId == null ? '' : String(m.saleId);
-                if (!saleId || satisKayitIdleri.has(saleId)) return;
-                const amount = Math.max(0, kasaTutariniOku(m.amount));
-                const type = String(m.type || '').trim().toLocaleLowerCase('tr-TR');
-                if (type === 'satış (nakit)') toplamNakit += amount;
-                else if (type === 'satış (kredi kartı)') toplamKart += amount;
-                else if (type === 'satış (diğer)') toplamDiger += amount;
-            });
 
             let manuelGelir = 0;
             let manuelGider = 0;
@@ -8554,27 +8076,22 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             let toplamAlacak = 0;
             if (Array.isArray(kasaHareketleri)) {
                 kasaHareketleri.forEach(m => {
-                    if (!m || typeof m !== 'object') return;
-                    const amount = kasaTutariniOku(m.amount);
                     const isSelectedManualCash = String(m.cashAccountId || ANA_NAKIT_KASA_ID) === String(seciliManuelKasaId);
-                    // Yalnızca gerçek veresiye/adisyon/sipariş tahsilatları satış kasasına eklenir.
-                    if (/^(veresiye tahsilat|adisyon tahsilatı|sipariş tahsilatı)(?:\s|$)/i.test(String(m.type || '').trim())) {
-                        toplamTahsilat += Math.max(0, amount);
-                    }
+                    if (aktifKasaAltBolumu !== 'manual' && /Veresiye Tahsilat|Adisyon Tahsilatı|Sipariş Tahsilatı/i.test(String(m.type || ''))) toplamTahsilat += Number(m.amount) || 0;
                     if (aktifKasaAltBolumu === 'manual' && !isSelectedManualCash) return;
-                    if (m.movementKind === 'manual' && m.type === 'Gelir') manuelGelir += amount;
-                    if (m.movementKind === 'manual' && m.type === 'Gider') manuelGider += amount;
-                    if (m.movementKind === 'manual' && m.type === 'Borç') toplamBorc += Math.max(0, amount - kasaTutariniOku(m.paidAmount));
-                    if (m.movementKind === 'manual' && m.type === 'Alacak') toplamAlacak += Math.max(0, amount - kasaTutariniOku(m.paidAmount));
+                    if (m.movementKind === 'manual' && m.type === 'Gelir') manuelGelir += Number(m.amount) || 0;
+                    if (m.movementKind === 'manual' && m.type === 'Gider') manuelGider += Number(m.amount) || 0;
+                    if (m.movementKind === 'manual' && m.type === 'Borç') toplamBorc += Math.max(0, (Number(m.amount) || 0) - (Number(m.paidAmount) || 0));
+                    if (m.movementKind === 'manual' && m.type === 'Alacak') toplamAlacak += Math.max(0, (Number(m.amount) || 0) - (Number(m.paidAmount) || 0));
+                    if (m.movementKind === 'manual-settlement' && m.settlementType === 'Alacak') toplamTahsilat += Number(m.amount) || 0;
                 });
             }
 
+            const toplamKartYukleme = (kasaHareketleri || []).filter(m => m.movementKind === 'card-topup').reduce((sum,m) => sum + (Number(m.amount)||0), 0);
+            const manuelBorcOdemeleri = (kasaHareketleri || []).filter(m => m.movementKind === 'manual-settlement' && m.settlementType === 'Borç').reduce((sum,m) => sum + (Number(m.amount)||0), 0);
             const seciliKasa = kasaHesaplari.find(k=>String(k.id)===String(seciliManuelKasaId));
-            const satisKasasiTransferleri = (kasaHareketleri || []).filter(m => m.movementKind === 'sales-transfer-out').reduce((sum,m) => sum + kasaTutariniOku(m.amount), 0);
-            // Satış kasası yalnızca satış tahsilatlarını ve satıştan yapılan transferleri içerir.
-            // Manuel kasa gelir/gideri ve alışveriş kartı yüklemeleri burada ikinci kez sayılmaz.
-            const satisKasasiGenelToplam = Math.max(0, toplamNakit + toplamKart + toplamDiger + toplamTahsilat - satisKasasiTransferleri);
-            const genelToplam = aktifKasaAltBolumu === 'manual' && seciliKasa ? kasaHesapBakiyesi(seciliKasa) : satisKasasiGenelToplam;
+            const satisKasasiTransferleri = (kasaHareketleri || []).filter(m => m.movementKind === 'sales-transfer-out').reduce((sum,m) => sum + (Number(m.amount)||0), 0);
+            const genelToplam = aktifKasaAltBolumu === 'manual' && seciliKasa ? kasaHesapBakiyesi(seciliKasa) : Math.max(0, toplamNakit + toplamKart + toplamDiger + toplamTahsilat + toplamKartYukleme + manuelGelir - manuelGider - manuelBorcOdemeleri - satisKasasiTransferleri);
 
             const nakitEl = document.getElementById('cash-total-nakit');
             const kartEl = document.getElementById('cash-total-kart');
@@ -10613,4 +10130,3 @@ body#app-body[data-theme-mode="light"] #products-grid .sales-product-card.sales-
     });
 })();
 </script>
-
