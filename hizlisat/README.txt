@@ -1,16 +1,16 @@
-HIZLI SATIŞ - ÇEVRİMDIŞI PAKET
+HIZLI SATIŞ - INDEXEDDB DESTEKLİ SÜRÜM
 
 Kurulum:
-1. ZIP dosyasını açın ve içindeki dosyaları aynı klasörde tutun.
-2. Dosyaları HTTPS destekli bir web sunucusuna (ör. Render) yükleyin.
-3. Uygulamayı ilk kez internet bağlantısıyla açın; tarayıcı uygulama kabuğunu önbelleğe alır.
-4. Android Chrome'da menüden Ana ekrana ekle / Uygulamayı yükle seçeneğini kullanabilirsiniz.
+- ZIP içeriğini HTTPS destekleyen bir web sunucusuna yükleyin veya localhost üzerinden çalıştırın.
+- file:// üzerinden açıldığında Service Worker ve çevrimdışı uygulama kabuğu çalışmayabilir.
+- Programı ilk kez açarken mevcut tarayıcı verilerinin aktarılması için birkaç saniye bekleyin.
 
-Ürün yedekleme:
-Ürünler bölümündeki Excel Yedekle düğmesi ürünler ve kategoriler için .xlsx dosyası indirir. Excel'den Geri Yükle ile aynı dosya seçilebilir. Geri yükleme mevcut ürün listesinin yerine geçer; satış, müşteri ve kasa kayıtlarını değiştirmez.
+Veri koruma:
+- İlk açılışta eski localStorage kayıtları IndexedDB'ye kopyalanır; eski kayıtlar silinmez.
+- IndexedDB'de bulunan kayıtlar sonraki açılışlarda öncelikli kabul edilir.
+- Ürün, kategori, müşteri, satış geçmişi, kasa, kullanıcı, ayar ve dönem verileri yerel IndexedDB deposuna yazılır.
+- Firebase eşitlemesi mevcut ayarlara göre çalışmaya devam eder.
+- Tarayıcı/site verileri kullanıcı tarafından temizlenirse IndexedDB de silinebilir. Düzenli Excel/JSON yedeği alın.
 
-Notlar:
-- Service Worker file:// adresinde çalışmaz; HTTPS veya localhost gerekir.
-- Çevrimdışı giriş için aynı tarayıcı/cihazda daha önce çevrimiçi giriş ve kullanıcı önbelleğinin oluşmuş olması gerekir.
-- Çevrimdışı yazdırma tarayıcı ve yazıcı desteğine bağlıdır.
-- Firebase verileri çevrimdışıyken eşitlenemez; bağlantı geldiğinde uygulamanın senkronizasyon davranışı devreye girer.
+Not:
+- Bu sürümün JavaScript sözdizimi kontrol edilmiştir. Gerçek cihaz, tarayıcı kotası, Firebase projesi ve yazıcı ile uçtan uca test yapılmamıştır.

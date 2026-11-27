@@ -1527,11 +1527,11 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <i class="fa-solid fa-file-excel"></i> Excel
                     </button>
 <button class="bg-sky-700 hover:bg-sky-600 text-white text-xs px-3 py-2 rounded shadow transition font-medium flex items-center gap-1" onclick="urunListesiniYedekle()" type="button">
-<i class="fa-solid fa-file-excel"></i> Excel Yedekle
+<i class="fa-solid fa-download"></i> Ürünleri Yedekle
                     </button>
 <label class="bg-amber-600 hover:bg-amber-500 text-white text-xs px-3 py-2 rounded shadow transition font-medium flex items-center gap-1 cursor-pointer">
-<i class="fa-solid fa-file-import"></i> Excel’den Geri Yükle
-<input accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="hidden" id="product-backup-file-input" onchange="urunListesiYedeginiGeriYukle(event)" type="file"/>
+<i class="fa-solid fa-upload"></i> Yedekten Geri Yükle
+<input accept=".json,application/json" class="hidden" id="product-backup-file-input" onchange="urunListesiYedeginiGeriYukle(event)" type="file"/>
 </label>
 <button class="bg-purple-700 hover:bg-purple-600 text-white text-xs px-3 py-2 rounded shadow transition font-medium flex items-center gap-1" onclick="seciliUrunEtiketleriniYazdir()" type="button">
 <i class="fa-solid fa-barcode"></i> Seçilen Etiketleri Bas
@@ -2656,8 +2656,126 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <!-- JAVASCRIPT KODLARI -->
 <script>
         // Bozuk/yarım kalmış yerel kayıtların uygulamanın açılmasını engellemesini önler.
+        // Kalıcı yerel veri katmanı: IndexedDB. localStorage eski sürümlerle uyumluluk
+        // için okunmaya devam eder; ana kayıt kopyası IndexedDB'de tutulur.
+        const HIZLI_POS_IDB_DB = 'hizli-satis-local-v1';
+        const HIZLI_POS_IDB_STORE = 'kayitlar';
+        const HIZLI_POS_IDB_KEYS = [
+            'pos_products_v4','pos_categories_v4','pos_customers_v4','pos_sales_v4',
+            'pos_cash_movements_v4','pos_cash_accounts_v1','pos_suspended_carts_v4',
+            'pos_open_adisyon_v1','pos_system_users_v4','pos_system_settings_v4',
+            'pos_periods_v1','pos_active_period_v1','pos_period_data_v1',
+            'pos_stock_movements_v1','pos_system_settings_revision_v1'
+        ];
+        window.__posIDBCache = window.__posIDBCache || {};
+        let hizliPosIdb = null;
+        let hizliPosIdbYazmaKuyrugu = Promise.resolve();
+        function hizliPosIdbAc() {
+            if (hizliPosIdb) return Promise.resolve(hizliPosIdb);
+            if (!('indexedDB' in window)) return Promise.reject(new Error('Bu tarayıcı IndexedDB desteklemiyor.'));
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(HIZLI_POS_IDB_DB, 1);
+                req.onupgradeneeded = () => {
+                    const db = req.result;
+                    if (!db.objectStoreNames.contains(HIZLI_POS_IDB_STORE)) db.createObjectStore(HIZLI_POS_IDB_STORE, { keyPath: 'key' });
+                };
+                req.onsuccess = () => { hizliPosIdb = req.result; hizliPosIdb.onversionchange = () => { hizliPosIdb.close(); hizliPosIdb = null; }; resolve(hizliPosIdb); };
+                req.onerror = () => reject(req.error || new Error('IndexedDB açılamadı.'));
+                req.onblocked = () => reject(new Error('IndexedDB başka bir sekmede güncelleniyor. Diğer program sekmelerini kapatıp tekrar deneyin.'));
+            });
+        }
+        function hizliPosIdbOku(key) {
+            return hizliPosIdbAc().then(db => new Promise((resolve, reject) => {
+                const tx = db.transaction(HIZLI_POS_IDB_STORE, 'readonly');
+                const req = tx.objectStore(HIZLI_POS_IDB_STORE).get(key);
+                req.onsuccess = () => resolve(req.result ? req.result.value : undefined);
+                req.onerror = () => reject(req.error || new Error('IndexedDB kaydı okunamadı: ' + key));
+            }));
+        }
+        function hizliPosIdbTopluYaz(kayitlar) {
+            hizliPosIdbYazmaKuyrugu = hizliPosIdbYazmaKuyrugu.catch(() => {}).then(() => hizliPosIdbAc()).then(db => new Promise((resolve, reject) => {
+                const tx = db.transaction(HIZLI_POS_IDB_STORE, 'readwrite');
+                const store = tx.objectStore(HIZLI_POS_IDB_STORE);
+                kayitlar.forEach(item => store.put({ key: item.key, value: item.value, updatedAt: Date.now() }));
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = () => reject(tx.error || new Error('IndexedDB kayıt işlemi başarısız.'));
+                tx.onabort = () => reject(tx.error || new Error('IndexedDB kayıt işlemi iptal edildi.'));
+            }));
+            return hizliPosIdbYazmaKuyrugu;
+        }
+        async function hizliSatisIDBIlklendirVeYukle() {
+            const db = await hizliPosIdbAc();
+            const kayitlar = await new Promise((resolve, reject) => {
+                const tx = db.transaction(HIZLI_POS_IDB_STORE, 'readonly');
+                const req = tx.objectStore(HIZLI_POS_IDB_STORE).getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = () => reject(req.error || new Error('Yerel veritabanı okunamadı.'));
+            });
+            const mevcut = new Map(kayitlar.map(x => [x.key, x.value]));
+            const ilkAktarim = [];
+            for (const key of HIZLI_POS_IDB_KEYS) {
+                if (mevcut.has(key)) window.__posIDBCache[key] = mevcut.get(key);
+                else {
+                    try {
+                        const raw = localStorage.getItem(key);
+                        if (raw !== null) {
+                            let value;
+                            try { value = JSON.parse(raw); } catch (_) { value = raw; }
+                            window.__posIDBCache[key] = value;
+                            ilkAktarim.push({ key, value });
+                        }
+                    } catch (e) { console.warn('Eski yerel kayıt okunamadı:', key, e); }
+                }
+            }
+            if (ilkAktarim.length) await hizliPosIdbTopluYaz(ilkAktarim);
+            // IndexedDB'deki kayıtlar varsa, eski localStorage kopyalarından önceliklidir.
+            const al = key => Object.prototype.hasOwnProperty.call(window.__posIDBCache, key) ? window.__posIDBCache[key] : undefined;
+            if (Array.isArray(al('pos_products_v4'))) urunler = al('pos_products_v4');
+            if (Array.isArray(al('pos_categories_v4'))) kategorilerListesi = al('pos_categories_v4');
+            if (Array.isArray(al('pos_customers_v4'))) musteriler = al('pos_customers_v4');
+            if (Array.isArray(al('pos_sales_v4'))) satisGecmisi = al('pos_sales_v4');
+            if (Array.isArray(al('pos_cash_movements_v4'))) kasaHareketleri = al('pos_cash_movements_v4');
+            if (Array.isArray(al('pos_cash_accounts_v1'))) kasaHesaplari = al('pos_cash_accounts_v1');
+            if (Array.isArray(al('pos_suspended_carts_v4'))) bekleyenSepetler = al('pos_suspended_carts_v4');
+            if (Array.isArray(al('pos_open_adisyon_v1'))) acikAdisyonlar = al('pos_open_adisyon_v1');
+            if (Array.isArray(al('pos_system_users_v4'))) sistemKullanicilari = al('pos_system_users_v4');
+            if (al('pos_system_settings_v4') && typeof al('pos_system_settings_v4') === 'object') sistemAyarlari = al('pos_system_settings_v4');
+            if (Array.isArray(al('pos_periods_v1')) && al('pos_periods_v1').length) donemler = al('pos_periods_v1');
+            if (al('pos_active_period_v1')) aktifDonemId = String(al('pos_active_period_v1'));
+            try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch (_) {}
+            window.__posIDBReady = true;
+            console.info('Hızlı Satış IndexedDB hazır. Eski veriler korundu; ilk aktarım:', ilkAktarim.length);
+            return true;
+        }
+        function hizliSatisIDBKaydet() {
+            try {
+                const values = {
+                    pos_products_v4: urunler, pos_categories_v4: kategorilerListesi,
+                    pos_customers_v4: musteriler, pos_sales_v4: satisGecmisi,
+                    pos_cash_movements_v4: kasaHareketleri, pos_cash_accounts_v1: kasaHesaplari,
+                    pos_suspended_carts_v4: bekleyenSepetler, pos_open_adisyon_v1: acikAdisyonlar,
+                    pos_system_users_v4: sistemKullanicilari, pos_system_settings_v4: sistemAyarlari,
+                    pos_periods_v1: donemler, pos_active_period_v1: aktifDonemId,
+                    pos_period_data_v1: yerelKayitOku('pos_period_data_v1', {}),
+                    pos_stock_movements_v1: yerelKayitOku('pos_stock_movements_v1', [])
+                };
+                // Aktif dönemin en güncel bellekteki verisini ayrıca kaydet; localStorage kotası dolu olsa da dönem kaydı güncel kalır.
+                if (aktifDonemId && donemVerisiIlklendi) {
+                    if (!values.pos_period_data_v1 || typeof values.pos_period_data_v1 !== 'object') values.pos_period_data_v1 = {};
+                    values.pos_period_data_v1[aktifDonemId] = { urunler, musteriler, satisGecmisi, kasaHareketleri, kasaHesaplari, bekleyenSepetler, kategorilerListesi, acikAdisyonlar };
+                }
+                const rows = Object.entries(values).map(([key, value]) => ({ key, value: JSON.parse(JSON.stringify(value)) }));
+                rows.forEach(x => { window.__posIDBCache[x.key] = x.value; });
+                return hizliPosIdbTopluYaz(rows);
+            } catch (e) { return Promise.reject(e); }
+        }
+
         function yerelKayitOku(anahtar, varsayilan) {
             try {
+                if (window.__posIDBCache && Object.prototype.hasOwnProperty.call(window.__posIDBCache, anahtar)) {
+                    const idbVeri = window.__posIDBCache[anahtar];
+                    return idbVeri === null || idbVeri === undefined ? varsayilan : idbVeri;
+                }
                 const ham = localStorage.getItem(anahtar);
                 if (ham === null || ham === '') return varsayilan;
                 const veri = JSON.parse(ham);
@@ -3148,6 +3266,12 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
+            // Önce IndexedDB'deki son yerel kayıtları yükle; sonra Firebase ile eşitle.
+            try { await hizliSatisIDBIlklendirVeYukle(); }
+            catch (idbHata) {
+                console.error('IndexedDB başlatılamadı; eski localStorage kayıtlarıyla devam ediliyor:', idbHata);
+                onayModaliniGoster('Yerel veritabanı uyarısı', 'IndexedDB açılamadı. Eski yerel kayıtlarla devam ediliyor; veri kaybını önlemek için yedek alın.', null, true);
+            }
             // Bulut verisi varsa ilk yerel kayıt işleminden önce yükle; boş bulut yerel veriyi ezmesin.
             await firebaseVerileriniYukle();
             firebaseBekleyenDurumunuGuncelle();
@@ -5663,8 +5787,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             firebaseDurumunuYerelKaydaYaz();
             localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari));
             } catch (hata) {
-                console.error('Yerel kayıt yapılamadı. Tarayıcı depolama alanını kontrol edin:', hata);
-                onayModaliniGoster('Kayıt Uyarısı', 'Veriler tarayıcıya kaydedilemedi. Depolama alanı dolu veya engellenmiş olabilir; yedek alın.', null, true);
+                console.warn('Eski localStorage kopyası güncellenemedi; IndexedDB ana kayıt deposu kullanılacak:', hata);
             }
 
             try {
@@ -5690,6 +5813,10 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/acik_adisyonlar`, acikAdisyonlar, 'Açık adisyonlar', 'acik_adisyonlar', 'acikAdisyonlar', 'pos_open_adisyon_v1');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/sistem_kullanicilari`, sistemKullanicilari, 'Kullanıcılar', 'sistem_kullanicilari', 'sistemKullanicilari', 'pos_system_users_v4');
             }
+            hizliSatisIDBKaydet().catch(hata => {
+                console.error('IndexedDB kayıt hatası:', hata);
+                onayModaliniGoster('Kalıcı kayıt hatası', 'Veriler IndexedDB veritabanına kaydedilemedi. Tarayıcı depolama izinlerini kontrol edin ve hemen Excel/JSON yedeği alın.', null, true);
+            });
         }
 
         function bagliOzelligiDegistir(ad, aktif) {
@@ -6701,71 +6828,94 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             modal.classList.remove('flex');
         }
 
-        // Ürün kartları ve kategoriler Excel çalışma kitabında yedeklenir.
+        // Yalnızca ürün kartlarını ve kategorilerini yedekler; satış/cari/kasa kayıtlarına dokunmaz.
         function urunListesiniYedekle() {
-            if (typeof XLSX === 'undefined') { onayModaliniGoster('Excel kullanılamıyor', 'Excel kütüphanesi yüklenemedi. İnternet bağlantısını kontrol edip tekrar deneyin.', null, true); return; }
             try {
-                const wb = XLSX.utils.book_new();
-                const rows = (Array.isArray(urunler) ? urunler : []).map(p => ({
-                    'Ürün ID': String(p.id ?? ''), 'Ürün Adı': String(p.name ?? ''), 'Barkod': String(p.barcode ?? ''),
-                    'Kategori': String(p.category ?? 'Genel'), 'Satış Fiyatı': Number(p.price) || 0,
-                    'Alış Fiyatı': Number(p.costPrice) || 0, 'Giriş Stok': Number(p.inStock) || 0,
-                    'Çıkış Stok': Number(p.outStock) || 0, 'Minimum Stok': Number(p.minStock) || 0,
-                    'Sıra No': Number(p.siraNo) || 0, 'Simge': String(p.icon ?? 'fa-box'),
-                    'Diğer Alanlar (JSON)': JSON.stringify(Object.fromEntries(Object.entries(p).filter(([k]) => !['id','name','barcode','category','price','costPrice','inStock','outStock','minStock','siraNo','icon'].includes(k))))
-                }));
-                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Urunler');
-                const cats = (Array.isArray(kategorilerListesi) ? kategorilerListesi : []).map((x,i) => ({'Sıra':i+1,'Kategori':String(x)}));
-                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cats), 'Kategoriler');
-                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{'Yedek Türü':'hizli-satis-urun-listesi','Versiyon':1,'Oluşturma Tarihi':new Date().toISOString(),'Ürün Sayısı':rows.length}]), 'Yedek Bilgisi');
-                XLSX.writeFile(wb, `Hizli_Satis_Urun_Yedegi_${new Date().toISOString().slice(0,10)}.xlsx`);
-                onayModaliniGoster('Excel yedeği hazır', `${rows.length} ürün ve ${cats.length} kategori Excel dosyasına aktarıldı.`, null, true);
-            } catch (e) { console.error(e); onayModaliniGoster('Yedekleme hatası','Ürün listesi Excel dosyasına aktarılamadı.',null,true); }
+                const yedek = {
+                    tur: 'hizli-satis-urun-listesi',
+                    versiyon: 1,
+                    olusturmaTarihi: new Date().toISOString(),
+                    urunler: Array.isArray(urunler) ? urunler : [],
+                    kategorilerListesi: Array.isArray(kategorilerListesi) ? kategorilerListesi : []
+                };
+                const blob = new Blob([JSON.stringify(yedek, null, 2)], { type: 'application/json;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `hizli_satis_urun_yedegi_${new Date().toISOString().slice(0,10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                onayModaliniGoster('Ürün yedeği hazır', `${yedek.urunler.length} ürün ve ${yedek.kategorilerListesi.length} kategori JSON dosyası olarak indirildi.`, null, true);
+            } catch (hata) {
+                console.error('Ürün yedeği oluşturulamadı:', hata);
+                onayModaliniGoster('Yedekleme hatası', 'Ürün listesi yedeklenemedi. Tarayıcı depolama ve indirme izinlerini kontrol edin.', null, true);
+            }
         }
 
         function urunListesiYedeginiGeriYukle(event) {
-            if (!islemYetkisiGerekli('product_edit', 'Ürün listesini geri yükleme yetkiniz yok.')) { if(event?.target) event.target.value=''; return; }
-            const input=event?.target, file=input?.files?.[0]; if(!file) return;
-            const clear=()=>{if(input)input.value='';};
-            if(typeof XLSX==='undefined'){clear();onayModaliniGoster('Excel kullanılamıyor','Excel kütüphanesi yüklenemedi. İnternet bağlantısını kontrol edin.',null,true);return;}
-            if(file.size>20*1024*1024){clear();onayModaliniGoster('Dosya çok büyük','Excel yedeği 20 MB sınırını aşıyor.',null,true);return;}
-            const reader=new FileReader();
-            reader.onload=function(e){
-                try{
-                    const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
-                    const sn=wb.SheetNames.find(n=>['urunler','ürünler'].includes(n.toLocaleLowerCase('tr-TR'))) || wb.SheetNames[0];
-                    if(!sn)throw new Error('Excel dosyasında ürün sayfası bulunamadı.');
-                    const data=XLSX.utils.sheet_to_json(wb.Sheets[sn],{defval:''});
-                    if(!data.length)throw new Error('Excel dosyasında ürün kaydı bulunamadı.');
-                    const products=data.map((r,i)=>{
-                        const g=(...keys)=>{for(const k of keys)if(Object.prototype.hasOwnProperty.call(r,k))return r[k];};
-                        let extra={}; const raw=g('Diğer Alanlar (JSON)','Diger Alanlar (JSON)');
-                        if(raw){try{extra=JSON.parse(String(raw));}catch(_){throw new Error(`${i+2}. satırdaki ek alanlar okunamadı.`);}}
-                        if(!extra||typeof extra!=='object'||Array.isArray(extra))extra={};
-                        const name=String(g('Ürün Adı','Urun Adi','name','ad')??'').trim();
-                        if(!name)throw new Error(`${i+2}. satırda ürün adı boş.`);
-                        return {...extra,id:String(g('Ürün ID','Urun ID','id')||`imp-${Date.now()}-${i}`),name,
-                            barcode:String(g('Barkod','barcode')??''),category:String(g('Kategori','category')||'Genel'),
-                            price:Number(g('Satış Fiyatı','Satis Fiyati','Fiyat (₺)','price','fiyat'))||0,
-                            costPrice:Number(g('Alış Fiyatı','Alis Fiyati','costPrice'))||0,
-                            inStock:Number(g('Giriş Stok','Giris Stok','inStock','stok'))||0,
-                            outStock:Number(g('Çıkış Stok','Cikis Stok','outStock'))||0,
-                            minStock:Number(g('Minimum Stok','minStock'))||0,
-                            siraNo:Number(g('Sıra No','Sira No','Sıra','siraNo'))||(i+1),icon:String(g('Simge','icon')||'fa-box')};
-                    });
-                    if(new Set(products.map(x=>String(x.id))).size!==products.length)throw new Error('Excel yedeğinde yinelenen ürün kimliği var.');
-                    const cs=wb.SheetNames.find(n=>n.toLocaleLowerCase('tr-TR')==='kategoriler');
-                    const catRows=cs?XLSX.utils.sheet_to_json(wb.Sheets[cs],{defval:''}):[];
-                    const cats=[...new Set((catRows.map(r=>String(r['Kategori']??r['kategori']??'').trim()).filter(Boolean).length
-                        ?catRows.map(r=>String(r['Kategori']??r['kategori']??'').trim()).filter(Boolean):products.map(x=>x.category).filter(Boolean)))];
-                    onayModaliniGoster('Ürün listesini Excel’den geri yükle',`Mevcut ${urunler.length} ürünün yerine Excel dosyasındaki ${products.length} ürün yüklenecek. Kategoriler de alınacak. Satış geçmişi, müşteriler ve kasa kayıtları değiştirilmeyecek. Devam edilsin mi?`,()=>{
-                        urunler=products;kategorilerListesi=cats;durumuKaydet();urunYonetimTablosunuGuncelle();urunleriGoster();kategoriListesiniGuncelle();
-                        onayModaliniGoster('Geri yükleme tamamlandı',`${products.length} ürün Excel dosyasından yüklendi. Firebase etkinse mevcut eşitleme mekanizması çalışır.`,null,true);
-                    });
-                }catch(err){console.error(err);onayModaliniGoster('Geçersiz Excel yedeği',err.message||'Excel dosyası okunamadı.',null,true);}finally{clear();}
+            if (!islemYetkisiGerekli('product_edit', 'Ürün listesini geri yükleme yetkiniz yok.')) { if (event?.target) event.target.value = ''; return; }
+            const input = event?.target;
+            const file = input?.files?.[0];
+            if (!file) return;
+            const inputuTemizle = () => { if (input) input.value = ''; };
+            if (file.size > 20 * 1024 * 1024) {
+                inputuTemizle();
+                onayModaliniGoster('Dosya çok büyük', 'Ürün yedek dosyası 20 MB sınırını aşıyor.', null, true);
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(String(e.target?.result || ''));
+                    // Hem bu özelliğin oluşturduğu paket hem de doğrudan ürün dizisi kabul edilir.
+                    const importedProducts = Array.isArray(parsed) ? parsed : parsed?.urunler;
+                    const importedCategories = Array.isArray(parsed) ? [] : parsed?.kategorilerListesi;
+                    if (!Array.isArray(importedProducts) || !importedProducts.every(p => p && typeof p === 'object' && !Array.isArray(p) && String(p.name || p.ad || '').trim())) {
+                        throw new Error('Dosyada geçerli bir ürün listesi bulunamadı.');
+                    }
+                    const normalized = importedProducts.map((p, i) => ({
+                        ...p,
+                        id: p.id != null && String(p.id).trim() ? String(p.id) : `imp-${Date.now()}-${i}`,
+                        name: String(p.name || p.ad).trim(),
+                        barcode: String(p.barcode ?? p.barkod ?? ''),
+                        category: String(p.category ?? p.kategori ?? 'Genel'),
+                        price: Number(p.price ?? p.fiyat) || 0,
+                        inStock: Number(p.inStock ?? p.stok ?? 0) || 0,
+                        outStock: Number(p.outStock ?? 0) || 0
+                    }));
+                    const ids = normalized.map(p => String(p.id));
+                    if (new Set(ids).size !== ids.length) throw new Error('Yedekte aynı ürün kimliğine sahip birden fazla kayıt var.');
+                    const cats = Array.isArray(importedCategories)
+                        ? [...new Set(importedCategories.map(x => String(x || '').trim()).filter(Boolean))]
+                        : [...new Set(normalized.map(p => p.category).filter(Boolean))];
+                    const oldCount = Array.isArray(urunler) ? urunler.length : 0;
+                    onayModaliniGoster(
+                        'Ürün listesini geri yükle',
+                        `Mevcut ${oldCount} ürünün yerine yedekteki ${normalized.length} ürün yüklenecek. Ürün kategorileri de yedekten alınacak. Satış geçmişi, müşteriler ve kasa kayıtları değiştirilmez. Devam edilsin mi?`,
+                        () => {
+                            urunler = normalized;
+                            kategorilerListesi = cats;
+                            durumuKaydet();
+                            urunYonetimTablosunuGuncelle();
+                            urunleriGoster();
+                            kategoriListesiniGuncelle();
+                            onayModaliniGoster('Geri yükleme tamamlandı', `${normalized.length} ürün başarıyla yüklendi. Firebase etkin ve bağlantı hazırsa değişiklikler mevcut eşitleme mekanizmasıyla buluta da gönderilir.`, null, true);
+                        }
+                    );
+                } catch (hata) {
+                    console.error('Ürün yedeği okunamadı:', hata);
+                    onayModaliniGoster('Geçersiz yedek dosyası', hata.message || 'Seçilen dosya okunamadı veya ürün yedeği biçiminde değil.', null, true);
+                } finally {
+                    inputuTemizle();
+                }
             };
-            reader.onerror=()=>{clear();onayModaliniGoster('Dosya okunamadı','Excel yedek dosyasına erişilemedi.',null,true);};
-            reader.readAsArrayBuffer(file);
+            reader.onerror = function() {
+                inputuTemizle();
+                onayModaliniGoster('Dosya okunamadı', 'Yedek dosyasına erişilemedi. Lütfen dosyayı tekrar seçin.', null, true);
+            };
+            reader.readAsText(file, 'UTF-8');
         }
 
         function urunlerExcelAktar() {
