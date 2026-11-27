@@ -13,6 +13,13 @@
 <title>Profesyonel Hızlı Satış &amp; Stok Yönetim Sistemi - Yerel &amp; Firebase</title>
 <!-- KOD İÇİ FIREBASE AYARLARI: Formda kayıtlı bağlantı yoksa buradaki bilgiler kullanılır. -->
 <script>
+// Merkezi Türkçe para gösterimi: hesaplamalar sayısal kalır, yalnızca ekranda biçimlenir.
+function paraFormatla(deger) {
+    const sayi = Number(deger);
+    return (Number.isFinite(sayi) ? sayi : 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+</script>
+<script>
 window.KOD_ICI_FIREBASE_AYARLARI = {
     kokBasligi: 'hizli_pos',
     baglantiBilgileri: {
@@ -3836,7 +3843,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 <div class="${cardBg} border p-3 rounded flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                     <div>
                         <div class="font-bold text-xs text-amber-500">Bekleyen Sepet #${cart.id} (${cart.date})</div>
-                        <div class="text-[11px] opacity-80 mt-0.5">${cart.items.length} kalem ürün - Toplam: ₺${toplamTutar.toFixed(2)}</div>
+                        <div class="text-[11px] opacity-80 mt-0.5">${cart.items.length} kalem ürün - Toplam: ₺${toplamTutar.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                     </div>
                     <div class="flex space-x-1.5 w-full sm:w-auto">
                         <button onclick="bekleyenSepetiGeriAl(${idx})" type="button" class="flex-1 sm:flex-none px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold transition cursor-pointer">
@@ -7201,7 +7208,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                             <span class="${tukendiMi ? 'text-red-500 font-black' : ''}">${tukendiMi ? 'TÜKENDİ' : kalanStok <= kritikEsik ? `KRİTİK: ${kalanStok}` : `Stok: ${kalanStok}`}</span>
                         </div>
                         <div class="sales-product-price text-center font-mono ${priceBg} rounded border">
-                            ₺${p.price.toFixed(2)}
+                            ₺${p.price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                     </div>
                 </div>
@@ -7262,7 +7269,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             document.getElementById('cart-item-edit-name').textContent = item.product.name || 'Ürün';
             document.getElementById('cart-item-edit-qty').value = Number(item.qty) || 1;
             document.getElementById('cart-item-edit-price').value = Math.max(0, Number(item.product.price) || 0).toFixed(2);
-            document.getElementById('cart-item-edit-original-price').textContent = 'Ürün kartındaki fiyat: ₺' + (Number((urunler.find(p => String(p.id) === String(urunId)) || item.product).price) || 0).toFixed(2);
+            document.getElementById('cart-item-edit-original-price').textContent = 'Ürün kartındaki fiyat: ₺' + (Number((urunler.find(p => String(p.id) === String(urunId)) || item.product).price) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             modal.classList.remove('hidden');
             modal.classList.add('flex');
             setTimeout(() => document.getElementById('cart-item-edit-qty')?.focus(), 50);
@@ -7335,7 +7342,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     <div class="flex-1 min-w-0">
                         ${sistemAyarlari.fisYazdirmaModu === 'coklu' ? `<label class="flex items-center gap-1 text-[9px] opacity-90 mb-0.5"><input type="checkbox" ${item.fisYazdir !== false ? 'checked' : ''} onchange="sepetUrunFisSeciminiDegistir('${safeItemId}', this.checked)" class="accent-emerald-500"> Fişe dahil</label>` : ''}
                         <h4 class="text-[11px] font-semibold truncate tracking-tight">${htmlGuvenli(item.product.name)}</h4>
-                        <div class="text-[9px] opacity-75 font-mono">₺${Number(item.product.price).toFixed(2)} x ${item.qty}</div>
+                        <div class="text-[9px] opacity-75 font-mono">₺${Number(item.product.price).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} x ${item.qty}</div>
                     </div>
                     <div class="flex items-center space-x-1.5">
                         <div class="flex items-center ${counterBg} rounded-md border shadow-sm">
@@ -7343,7 +7350,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                             <span class="w-8 text-center text-sm font-mono font-bold tabular-nums">${item.qty}</span>
                             <button onclick="sepetAdetGuncelle('${safeItemId}', 1)" type="button" aria-label="Adedi artır" class="w-8 h-8 min-w-8 hover:text-emerald-500 hover:bg-emerald-500/10 flex items-center justify-center font-bold text-lg rounded-r-md">+</button>
                         </div>
-                        <span class="font-mono text-[11px] font-bold text-emerald-600 dark:text-emerald-400 w-14 text-right">₺${itemTotal.toFixed(2)}</span>
+                        <span class="font-mono text-[11px] font-bold text-emerald-600 dark:text-emerald-400 w-14 text-right">₺${itemTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         <button type="button" onclick="sepetUrununuDuzenle('${safeItemId}')" title="Adet ve fiyatı düzenle" aria-label="${htmlGuvenli(item.product.name)} adet ve fiyatını düzenle" class="w-7 h-7 shrink-0 rounded bg-blue-700/90 hover:bg-blue-600 text-white flex items-center justify-center"><i class="fa-solid fa-pen-to-square text-[11px]"></i></button>
                     </div>
                 </div>
@@ -7357,8 +7364,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             if (discountInput) discountInput.value = discount.toFixed(2);
             const total = subtotal - discount;
 
-            document.getElementById('cart-subtotal').innerText = `₺${subtotal.toFixed(2)}`;
-            document.getElementById('cart-total').innerText = `₺${total.toFixed(2)}`;
+            document.getElementById('cart-subtotal').innerText = `₺${subtotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            document.getElementById('cart-total').innerText = `₺${total.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         }
 
         let islemBildirimiZamanlayici = null;
@@ -7605,7 +7612,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             if (otherWrap) otherWrap.classList.toggle('hidden', isCashMode);
             if (cashSummary) cashSummary.classList.remove('hidden');
             const totalEl = document.getElementById('payment-modal-total');
-            if (totalEl) totalEl.textContent = '₺' + total.toFixed(2);
+            if (totalEl) totalEl.textContent = '₺' + total.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             const customerSelect = document.getElementById('payment-modal-customer');
             if (customerSelect) customerSelect.innerHTML = '<option value="">Müşteri seçin...</option>' + [...musteriler].sort((a,b)=>a.name.localeCompare(b.name,'tr')).map(c => `<option value="${String(c.id).replace(/\"/g,'&quot;')}">${htmlGuvenli(c.name)}</option>`).join('');
             ['payment-cash','payment-card','payment-other'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
@@ -7624,7 +7631,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const cashApplied = Math.min(cashReceived,cashDue);
             const change = Math.max(0,cashReceived-cashApplied);
             const remaining = Math.max(0,total-cashApplied-card-other);
-            const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent='₺'+val.toFixed(2);};
+            const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent='₺'+val.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });};
             set('payment-modal-cash-applied',cashApplied); set('payment-modal-change',change); set('payment-modal-remaining',remaining);
             const warn=document.getElementById('payment-modal-warning');
             if(warn){warn.textContent=(card+other>total+0.001)?'Kart + diğer tutarı ödenecek toplamı aşamaz.':'';warn.classList.toggle('hidden',!(card+other>total+0.001));}
@@ -7638,7 +7645,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
         function modernOdemeOnayla() {
             const v=odemeModaliniHesapla();
             if (window.__posPaymentMode === 'cash') {
-                if (v.cashReceived + 0.001 < v.total) { onayModaliniGoster('Eksik nakit', 'Alınan nakit ödenecek tutardan az olamaz. Eksik tutar: ₺' + Math.max(0, v.total-v.cashReceived).toFixed(2), null, true); return; }
+                if (v.cashReceived + 0.001 < v.total) { onayModaliniGoster('Eksik nakit', 'Alınan nakit ödenecek tutardan az olamaz. Eksik tutar: ₺' + Math.max(0, v.total-v.cashReceived).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), null, true); return; }
                 if (!islemYetkisiGerekli('sales_cash','Nakit ödeme alma yetkiniz yok.')) return;
                 window.__posPartialPayment = { payments:[{type:'Nakit',amount:v.total}], paidAmount:v.total, remainingAmount:0, customer:null, cashReceived:v.cashReceived, change:Math.max(0,v.cashReceived-v.total) };
                 modalKapat('modal-modern-payment');
@@ -7692,7 +7699,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                 kartMusterisi = musteriler.find(c => String(c.id) === String(alisverisKartiMusteriId));
                 if (!kartMusterisi) { onayModaliniGoster('Müşteri bulunamadı', 'Alışveriş kartı sahibi seçilemedi.', null, true); return; }
                 const bakiye = Number(kartMusterisi.cardBalance) || 0;
-                if (bakiye < total) { onayModaliniGoster('Yetersiz kart bakiyesi', `${kartMusterisi.name} adlı müşterinin kart bakiyesi ₺${bakiye.toFixed(2)}. Satış tutarı ₺${total.toFixed(2)}. Önce karta para yükleyin.`, null, true); return; }
+                if (bakiye < total) { onayModaliniGoster('Yetersiz kart bakiyesi', `${kartMusterisi.name} adlı müşterinin kart bakiyesi ₺${bakiye.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. Satış tutarı ₺${total.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. Önce karta para yükleyin.`, null, true); return; }
                 kartMusterisi.cardBalance = Math.round((bakiye - total) * 100) / 100;
                 if (!Array.isArray(kartMusterisi.history)) kartMusterisi.history = [];
                 kartHarcamaKaydi = { date: new Date().toLocaleString('tr-TR'), type: 'Alışveriş Kartı Harcaması', amount: total };
@@ -7823,7 +7830,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             if (kartMusterisi) { try { borclularTablosunuGuncelle(); } catch (hata) { console.error('Cari ekran yenileme hatası:', hata); } }
             const adisyonLabel = document.getElementById('adisyon-save-label'); if (adisyonLabel) adisyonLabel.textContent = 'ADİSYON AÇ / KAYDET';
 
-            const basariMesaji = type + ' işlemi tamamlandı: ₺' + total.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + (type === 'Nakit' && nakitAlinan > total ? ' · Para üstü: ₺' + (nakitAlinan-total).toFixed(2) : '');
+            const basariMesaji = type + ' işlemi tamamlandı: ₺' + total.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + (type === 'Nakit' && nakitAlinan > total ? ' · Para üstü: ₺' + (nakitAlinan-total).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '');
             if (firebaseBilgileriKayitli && sistemAyarlari.firebaseAktif === true && !kasaFirebaseKaydiBasarili) {
                 try { islemBildirimiGoster('Satış cihaza kaydedildi; kasa hareketi Firebase’e aktarılamadı. İnternet bağlantısını kontrol edip eşitlemeyi yenileyin.', 'error'); }
                 catch (hata) { console.error('Firebase aktarım uyarısı gösterilemedi:', hata); }
@@ -7949,7 +7956,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const alan = sistemAyarlari.fisAlanlari || {};
             const subtotalAll = Number(sale.subtotal || 0);
             const discountAll = Number(sale.discount || 0);
-            const para = n => `₺${Number(n || 0).toFixed(2)}`;
+            const para = n => `₺${Number(n || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const html = selectedItems.map((item, index) => {
                 const itemSubtotal = Number(item.product?.price || 0) * Number(item.qty || 0);
                 const itemDiscount = subtotalAll > 0 ? Math.round((discountAll * itemSubtotal / subtotalAll) * 100) / 100 : 0;
@@ -8038,7 +8045,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const sales = (satisGecmisi || []).filter(s => ids.includes(String(s.id)));
             if (!sales.length) { onayModaliniGoster('Fiş Seçilmedi', 'Toplu yazdırmak için satış listesinden en az bir fiş seçin.', null, true); return; }
             const alan = sistemAyarlari.fisAlanlari || {};
-            const para = n => `₺${Number(n || 0).toFixed(2)}`;
+            const para = n => `₺${Number(n || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const html = (await Promise.all(sales.map(async (s, index) => {
                 // Toplu fişte her satış fişinin altına büyük takip QR kodunu ekle.
                 const takipQrHtml = await satisTakipQrHtmlHazirla(s, '32mm');
@@ -8071,9 +8078,9 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             document.getElementById('rec-id').innerText = '#' + sale.id;
             document.getElementById('rec-date').innerText = sale.date;
             document.getElementById('rec-type').innerText = sale.type;
-            document.getElementById('rec-subtotal').innerText = `₺${sale.subtotal.toFixed(2)}`;
-            document.getElementById('rec-discount').innerText = `₺${sale.discount.toFixed(2)}`;
-            document.getElementById('rec-total').innerText = `₺${sale.total.toFixed(2)}`;
+            document.getElementById('rec-subtotal').innerText = `₺${sale.subtotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            document.getElementById('rec-discount').innerText = `₺${sale.discount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            document.getElementById('rec-total').innerText = `₺${sale.total.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const alan = sistemAyarlari.fisAlanlari || {};
             const normalTasarim = fisTasarimProfiliGetir('normal');
             const receiptArea = document.getElementById('receipt-print-area');
@@ -8118,7 +8125,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                     <span style="flex:1;min-width:0;white-space:normal;overflow-wrap:anywhere;word-break:normal">${htmlGuvenli(i.product.name)}</span>
                     <div class="space-x-2">
                         <span>x${i.qty}</span>
-                        <span>₺${(i.product.price * i.qty).toFixed(2)}</span>
+                        <span>₺${(i.product.price * i.qty).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                 </div>
             `).join('');
@@ -8301,9 +8308,9 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                     <td class="p-3 font-semibold tracking-tight">${htmlGuvenli(p.name)}</td>
                     <td class="p-3 font-mono text-xs opacity-70">${htmlGuvenli(p.barcode)}</td>
                     <td class="p-3 text-xs"><span class="${catBg} px-2 py-0.5 rounded border font-medium">${htmlGuvenli(p.category)}</span></td>
-                    <td class="p-3 text-right font-mono">₺${Number(p.costPrice ?? p.alisFiyati ?? 0).toFixed(2)}</td>
-                    <td class="p-3 text-right font-mono text-emerald-700 dark:text-emerald-400 font-bold">₺${Number(p.price || 0).toFixed(2)}</td>
-                    <td class="p-3 text-right font-mono text-amber-600 dark:text-amber-400 font-semibold">₺${(Number(p.price || 0)-Number(p.costPrice ?? p.alisFiyati ?? 0)).toFixed(2)}</td>\n                    <td class="p-3 text-right font-mono text-emerald-700 dark:text-emerald-400 font-bold">₺${totalProfit.toFixed(2)}</td>
+                    <td class="p-3 text-right font-mono">₺${Number(p.costPrice ?? p.alisFiyati ?? 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td class="p-3 text-right font-mono text-emerald-700 dark:text-emerald-400 font-bold">₺${Number(p.price || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td class="p-3 text-right font-mono text-amber-600 dark:text-amber-400 font-semibold">₺${(Number(p.price || 0)-Number(p.costPrice ?? p.alisFiyati ?? 0)).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>\n                    <td class="p-3 text-right font-mono text-emerald-700 dark:text-emerald-400 font-bold">₺${totalProfit.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td class="p-3 text-center font-mono font-semibold ${sideBg}">${inQty}</td>
                     <td class="p-3 text-center font-mono text-red-600 dark:text-red-400 font-semibold ${sideBg}">${outQty}</td>
                     <td class="p-3 text-center font-mono text-amber-600 dark:text-amber-400 font-bold text-xs md:text-sm ${isLight ? 'bg-slate-200/50' : 'bg-slate-950/80'}">${remaining}</td>
@@ -8509,7 +8516,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             if (['Borç','Alacak'].includes(yeniTur) && !yeniCari) { onayModaliniGoster('Cari gerekli', 'Borç veya alacak kaydı için bir cari seçin.', null, true); return; }
             const odenenToplam = (kasaHareketleri || []).filter(x => x.movementKind === 'manual-settlement' && String(x.parentMovementId) === String(m.id)).reduce((sum,x) => sum + (Number(x.amount)||0), 0);
             if (odenenToplam > 0.009 && (yeniCariId !== String(m.customerId || '') || yeniTur !== m.type)) { onayModaliniGoster('Kayıt değiştirilemez', 'Ödeme/tahsilat geçmişi bulunan kaydın cari hesabı veya türü değiştirilemez.', null, true); return; }
-            if (amount + 0.001 < odenenToplam) { onayModaliniGoster('Tutar yetersiz', `Ana kayıt tutarı, mevcut ₺${odenenToplam.toFixed(2)} tahsilat/ödeme toplamından düşük olamaz.`, null, true); return; }
+            if (amount + 0.001 < odenenToplam) { onayModaliniGoster('Tutar yetersiz', `Ana kayıt tutarı, mevcut ₺${odenenToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} tahsilat/ödeme toplamından düşük olamaz.`, null, true); return; }
             if ((odenenToplam > 0.009 || m.customerId) && yeniTur !== m.type) { onayModaliniGoster('Tür değiştirilemez', 'Cari hesaba bağlı veya tahsilat/ödeme geçmişi bulunan kaydın türü değiştirilemez.', null, true); return; }
             const eskiCariId = m.customerId ? String(m.customerId) : '';
             m.type = yeniTur;
@@ -8544,7 +8551,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                 onayModaliniGoster('Kayıt silinemez', `Bu ${m.type.toLocaleLowerCase('tr-TR')} kaydına bağlı ${bagliOdemeler.length} ödeme/tahsilat hareketi bulunuyor. Önce bağlı ödeme/tahsilat kayıtlarını geçmiş bölümünden silin.`, null, true);
                 return;
             }
-            onayModaliniGoster('Kasa hareketini sil', `${m.type} · ₺${(Number(m.amount)||0).toFixed(2)} hareketini silmek istiyor musunuz? Bu işlem geri alınamaz.`, () => {
+            onayModaliniGoster('Kasa hareketini sil', `${m.type} · ₺${(Number(m.amount)||0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} hareketini silmek istiyor musunuz? Bu işlem geri alınamaz.`, () => {
                 // Onay penceresi açıkken yeni bir ödeme eklenmiş olabilir; silmeden hemen önce tekrar kontrol et.
                 const sonBagliOdemeler = (kasaHareketleri || []).filter(x =>
                     x.movementKind === 'manual-settlement' && String(x.parentMovementId) === String(m.id)
@@ -8582,7 +8589,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             if (title) title.textContent = m.type === 'Alacak' ? 'Alacak Tahsilatı' : 'Borç Ödemesi';
             if (label) label.textContent = m.type === 'Alacak' ? 'Tahsil edilen tutar (₺)' : 'Ödenen tutar (₺)';
             if (amount) { amount.value = kalan.toFixed(2); amount.max = kalan.toFixed(2); }
-            if (max) max.textContent = `Kalan: ₺${kalan.toFixed(2)}`;
+            if (max) max.textContent = `Kalan: ₺${kalan.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             if (method) method.value = 'Nakit';
             if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
         }
@@ -8595,7 +8602,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             if (!m || m.movementKind !== 'manual' || !['Alacak','Borç'].includes(m.type)) return;
             const kalan = Math.max(0, (Number(m.amount)||0) - (Number(m.paidAmount)||0));
             if (!Number.isFinite(amount) || amount <= 0 || amount > kalan + 0.001) {
-                onayModaliniGoster('Geçersiz tutar', `Girilen tutar kalan ₺${kalan.toFixed(2)} tutarını aşamaz.`, null, true);
+                onayModaliniGoster('Geçersiz tutar', `Girilen tutar kalan ₺${kalan.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} tutarını aşamaz.`, null, true);
                 return;
             }
             const tutar = Math.round(amount * 100) / 100;
@@ -8620,7 +8627,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             kasaEkraniniGuncelle();
             if (customer) borclularTablosunuGuncelle();
             onayModaliniGoster(alacakTahsilati ? 'Tahsilat kaydedildi' : 'Borç ödemesi kaydedildi',
-                `₺${tutar.toFixed(2)} işlem kaydedildi. Kalan tutar ₺${Math.max(0, kalan-tutar).toFixed(2)}.`, null, true);
+                `₺${tutar.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} işlem kaydedildi. Kalan tutar ₺${Math.max(0, kalan-tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`, null, true);
         }
 
         function manuelKasaGecmisiniAc(parentId) {
@@ -8638,10 +8645,10 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const footerClose = document.getElementById('manual-history-footer-close');
             if (card) card.className = `theme-card w-full max-w-xl max-h-[85vh] overflow-hidden rounded-xl border p-4 shadow-2xl flex flex-col gap-3 ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-slate-700 text-white'}`;
             if (title) title.className = `text-base font-bold ${isLight ? 'text-slate-900' : 'text-white'}`;
-            if (subtitle) { subtitle.className = `text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'}`; subtitle.textContent = `${customer ? customer.name + ' · ' : ''}${parent.type} · Başlangıç ₺${(Number(parent.amount)||0).toFixed(2)} · Kalan ₺${Math.max(0,(Number(parent.amount)||0)-(Number(parent.paidAmount)||0)).toFixed(2)}`; }
+            if (subtitle) { subtitle.className = `text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'}`; subtitle.textContent = `${customer ? customer.name + ' · ' : ''}${parent.type} · Başlangıç ₺${(Number(parent.amount)||0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · Kalan ₺${Math.max(0,(Number(parent.amount)||0)-(Number(parent.paidAmount)||0)).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
             if (close) close.className = `text-lg ${isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-300 hover:text-white'}`;
             if (footerClose) footerClose.className = `rounded-lg px-4 py-2 text-xs font-bold ${isLight ? 'bg-slate-200 text-slate-800 hover:bg-slate-300' : 'bg-slate-700 text-white hover:bg-slate-600'}`;
-            if (list) list.innerHTML = children.length ? children.map(child => `<div class="rounded-lg border p-3 flex flex-wrap items-center justify-between gap-2 ${isLight ? 'border-slate-300 bg-slate-50 text-slate-900' : 'border-slate-700 bg-slate-800/70 text-slate-100'}"><div><div class="text-xs font-bold">${htmlGuvenli(child.date || '')}</div><div class="mt-1 text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'}">${htmlGuvenli(child.paymentMethod || 'Nakit')} · ${htmlGuvenli(child.user || '')}</div><div class="text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'}">${htmlGuvenli(child.note || '')}</div></div><div class="flex items-center gap-2"><strong class="font-mono text-sm ${isLight ? 'text-emerald-700' : 'text-emerald-400'}">₺${(Number(child.amount)||0).toFixed(2)}</strong><button class="rounded bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 text-[10px] font-bold" onclick="manuelTahsilatDuzenleAc('${String(child.id).replace(/'/g,'')}')" type="button">Düzenle</button><button class="rounded bg-red-700 hover:bg-red-600 text-white px-2 py-1 text-[10px] font-bold" onclick="manuelTahsilatSil('${String(child.id).replace(/'/g,'')}')" type="button">Sil</button></div></div>`).join('') : `<div class="rounded-lg border border-dashed p-6 text-center text-xs ${isLight ? 'border-slate-300 text-slate-600' : 'border-slate-700 text-slate-400'}">Henüz tahsilat veya ödeme kaydı yok.</div>`;
+            if (list) list.innerHTML = children.length ? children.map(child => `<div class="rounded-lg border p-3 flex flex-wrap items-center justify-between gap-2 ${isLight ? 'border-slate-300 bg-slate-50 text-slate-900' : 'border-slate-700 bg-slate-800/70 text-slate-100'}"><div><div class="text-xs font-bold">${htmlGuvenli(child.date || '')}</div><div class="mt-1 text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'}">${htmlGuvenli(child.paymentMethod || 'Nakit')} · ${htmlGuvenli(child.user || '')}</div><div class="text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'}">${htmlGuvenli(child.note || '')}</div></div><div class="flex items-center gap-2"><strong class="font-mono text-sm ${isLight ? 'text-emerald-700' : 'text-emerald-400'}">₺${(Number(child.amount)||0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong><button class="rounded bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 text-[10px] font-bold" onclick="manuelTahsilatDuzenleAc('${String(child.id).replace(/'/g,'')}')" type="button">Düzenle</button><button class="rounded bg-red-700 hover:bg-red-600 text-white px-2 py-1 text-[10px] font-bold" onclick="manuelTahsilatSil('${String(child.id).replace(/'/g,'')}')" type="button">Sil</button></div></div>`).join('') : `<div class="rounded-lg border border-dashed p-6 text-center text-xs ${isLight ? 'border-slate-300 text-slate-600' : 'border-slate-700 text-slate-400'}">Henüz tahsilat veya ödeme kaydı yok.</div>`;
             const modal = document.getElementById('modal-manual-history');
             if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
         }
@@ -8664,7 +8671,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const amount = Number(document.getElementById('manual-settlement-edit-amount')?.value);
             if (!child || !parent || !Number.isFinite(amount) || amount <= 0) { onayModaliniGoster('Geçersiz kayıt', 'Tahsilat kaydı bulunamadı veya tutar geçersiz.', null, true); return; }
             const otherPaid = (kasaHareketleri || []).filter(m => m.movementKind === 'manual-settlement' && String(m.parentMovementId) === String(parent.id) && String(m.id) !== String(child.id)).reduce((sum,m) => sum + (Number(m.amount)||0), 0);
-            if (amount + otherPaid > (Number(parent.amount)||0) + 0.001) { onayModaliniGoster('Tutar fazla', `Bu işlem diğer tahsilatlarla birlikte ana kaydın ₺${(Number(parent.amount)||0).toFixed(2)} tutarını aşamaz.`, null, true); return; }
+            if (amount + otherPaid > (Number(parent.amount)||0) + 0.001) { onayModaliniGoster('Tutar fazla', `Bu işlem diğer tahsilatlarla birlikte ana kaydın ₺${(Number(parent.amount)||0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} tutarını aşamaz.`, null, true); return; }
             child.amount = Math.round(amount * 100) / 100;
             child.paymentMethod = document.getElementById('manual-settlement-edit-method')?.value || 'Nakit';
             child.note = `${parent.type === 'Alacak' ? 'Alacak tahsilatı' : 'Borç ödemesi'}: ${parent.note || 'Manuel kasa hareketi'} · ${child.paymentMethod}`;
@@ -8680,7 +8687,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const child = (kasaHareketleri || []).find(m => m.movementKind === 'manual-settlement' && String(m.id) === String(childId));
             const parent = child ? (kasaHareketleri || []).find(m => m.movementKind === 'manual' && String(m.id) === String(child.parentMovementId)) : null;
             if (!child || !parent) return;
-            onayModaliniGoster('Tahsilatı sil', `₺${(Number(child.amount)||0).toFixed(2)} tutarındaki tahsilat/ödeme kaydı silinsin mi? Cari bakiye ve kasa yeniden hesaplanacak.`, () => {
+            onayModaliniGoster('Tahsilatı sil', `₺${(Number(child.amount)||0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} tutarındaki tahsilat/ödeme kaydı silinsin mi? Cari bakiye ve kasa yeniden hesaplanacak.`, () => {
                 kasaHareketleri = (kasaHareketleri || []).filter(m => String(m.id) !== String(child.id));
                 parent.paidAmount = (kasaHareketleri || []).filter(m => m.movementKind === 'manual-settlement' && String(m.parentMovementId) === String(parent.id)).reduce((sum,m) => sum + (Number(m.amount)||0), 0);
                 const customer = parent.customerId ? musteriler.find(c => String(c.id) === String(parent.customerId)) : null;
@@ -8732,7 +8739,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const aktif=kasaHesaplari.filter(k=>k.active!==false);
             if(!aktif.some(k=>String(k.id)===String(seciliManuelKasaId))) seciliManuelKasaId=String(aktif.find(k=>String(k.id)===ANA_NAKIT_KASA_ID)?.id || aktif[0]?.id || ANA_NAKIT_KASA_ID);
             root.innerHTML=aktif.map(k=>{const b=kasaHesapBakiyesi(k);return `<div onclick="manuelKasaSec('${String(k.id)}')" class="theme-card rounded-lg border ${String(seciliManuelKasaId)===String(k.id)?'cash-account-selected border-2 ring-2':'border-slate-700'} bg-slate-900 p-3 cursor-pointer">
-              <div class="flex justify-between gap-2"><div><div class="font-bold text-sm">${htmlGuvenli(k.name)}</div><div class="text-[10px] text-slate-400">${htmlGuvenli(k.type||'Özel Kasa')}${String(k.id)===ANA_NAKIT_KASA_ID?' · Ana kasa (silinemez)':''}${String(seciliManuelKasaId)===String(k.id)?' · <span class="cash-selected-label">SEÇİLİ</span>':''}</div></div><span class="text-xs ${b<0?'text-red-400':'text-emerald-400'} font-mono font-bold">₺${b.toFixed(2)}</span></div>
+              <div class="flex justify-between gap-2"><div><div class="font-bold text-sm">${htmlGuvenli(k.name)}</div><div class="text-[10px] text-slate-400">${htmlGuvenli(k.type||'Özel Kasa')}${String(k.id)===ANA_NAKIT_KASA_ID?' · Ana kasa (silinemez)':''}${String(seciliManuelKasaId)===String(k.id)?' · <span class="cash-selected-label">SEÇİLİ</span>':''}</div></div><span class="text-xs ${b<0?'text-red-400':'text-emerald-400'} font-mono font-bold">₺${b.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
               <div class="flex flex-wrap items-center gap-2 mt-3">${String(seciliManuelKasaId)===String(k.id)?`<button class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded px-3 py-2 shadow" onclick="event.stopPropagation();manuelKasaKayitModaliniAc()"><i class="fa-solid fa-plus mr-1"></i> Hareket Ekle</button>`:''}${String(k.id)===ANA_NAKIT_KASA_ID?'':`<button class="text-xs bg-slate-700 hover:bg-slate-600 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiDuzenle('${String(k.id).replace(/'/g,"\\'")}')">Düzenle</button>`} ${String(k.id)===ANA_NAKIT_KASA_ID?'<span class="text-[10px] text-amber-400 px-2 py-1">Ana kasa · Silinemez</span>':`<button class="text-xs bg-rose-900/70 hover:bg-rose-800 text-white rounded px-2 py-1" onclick="event.stopPropagation();kasaHesabiKapat('${String(k.id).replace(/'/g,"\\'")}')">Sil</button>`}</div></div>`}).join('') || '<p class="text-xs text-slate-400">Henüz aktif kasa yok.</p>';
         }
         function manuelKasaSec(id) { seciliManuelKasaId=String(id); kasaHesaplariniCiz(); kasaEkraniniGuncelle(); }
@@ -8818,8 +8825,8 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             });
             const oncekiTransfer=(kasaHareketleri||[]).filter(m=>m.movementKind==='sales-transfer-out').reduce((n,m)=>n+(Number(m.amount)||0),0);
             const kullanilabilir=Math.max(0,satisToplami-oncekiTransfer);
-            const options=aktif.map(k=>`<option value="${htmlGuvenli(String(k.id))}">${htmlGuvenli(k.name)} · ₺${kasaHesapBakiyesi(k).toFixed(2)}</option>`).join('');
-            const body=`<div class="rounded-xl bg-slate-800 border border-slate-700 p-3"><div class="text-xs text-slate-400">Satış kasasında transfer edilebilir tutar</div><div class="text-2xl font-extrabold text-emerald-400">₺${kullanilabilir.toFixed(2)}</div></div>
+            const options=aktif.map(k=>`<option value="${htmlGuvenli(String(k.id))}">${htmlGuvenli(k.name)} · ₺${kasaHesapBakiyesi(k).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</option>`).join('');
+            const body=`<div class="rounded-xl bg-slate-800 border border-slate-700 p-3"><div class="text-xs text-slate-400">Satış kasasında transfer edilebilir tutar</div><div class="text-2xl font-extrabold text-emerald-400">₺${kullanilabilir.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div></div>
               <label class="block text-xs text-slate-300">Hedef manuel kasa<select id="sales-transfer-target" class="mt-1 w-full rounded-lg border border-slate-600 bg-slate-950 text-white px-3 py-2.5 text-sm">${options}</select></label>
               ${kasaModernAlan('Transfer tutarı (TL)','sales-transfer-amount','','number')}
               ${kasaModernAlan('Açıklama','sales-transfer-note','Satış kasasından manuel kasaya aktarım')}`;
@@ -8829,19 +8836,19 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                 const note=modal.querySelector('#sales-transfer-note').value.trim()||'Satış kasasından manuel kasaya aktarım';
                 if(!target||!Number.isFinite(amount)||amount<=0){onayModaliniGoster('Bilgileri kontrol edin','Hedef kasa seçin ve sıfırdan büyük geçerli bir tutar girin.',null,true);return false;}
                 const kalan=Math.max(0,kullanilabilir-amount);
-                if(amount>kullanilabilir+0.001){onayModaliniGoster('Yetersiz satış kasası bakiyesi',`En fazla ₺${kullanilabilir.toFixed(2)} transfer edebilirsiniz.`,null,true);return false;}
+                if(amount>kullanilabilir+0.001){onayModaliniGoster('Yetersiz satış kasası bakiyesi',`En fazla ₺${kullanilabilir.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} transfer edebilirsiniz.`,null,true);return false;}
                 const transferId='SAT-TR-'+Date.now(),now=Date.now(),tarih=new Date(now).toLocaleString('tr-TR');
                 kasaHareketleri.unshift({id:transferId+'-OUT',transferId,movementKind:'sales-transfer-out',cashAccountId:'SALES-CASH',cashDirection:'out',type:'Manuel Kasaya Transfer',amount:Math.round(amount*100)/100,note:`${note} → ${target.name}`,date:tarih,timestamp:now,user:aktifKullaniciAdi||'Bilinmiyor',periodId:aktifDonemId});
                 kasaHareketleri.unshift({id:transferId+'-IN',transferId,movementKind:'sales-transfer-in',cashAccountId:target.id,cashDirection:'in',type:'Satış Kasasından Transfer',amount:Math.round(amount*100)/100,note:`${note} ← Satış Kasası`,date:tarih,timestamp:now,user:aktifKullaniciAdi||'Bilinmiyor',periodId:aktifDonemId});
                 durumuKaydet();kasaEkraniniGuncelle();kasaHesaplariniCiz();
-                onayModaliniGoster('Transfer tamamlandı',`₺${amount.toFixed(2)} Satış Kasasından ${target.name} hesabına aktarıldı. Kalan satış kasası tutarı: ₺${kalan.toFixed(2)}.`,null,true);
+                onayModaliniGoster('Transfer tamamlandı',`₺${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Satış Kasasından ${target.name} hesabına aktarıldı. Kalan satış kasası tutarı: ₺${kalan.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`,null,true);
             });
         }
 
         function kasaTransferiYap() {
             const aktif=kasaHesaplari.filter(k=>k.active!==false);
             if(aktif.length<2){onayModaliniGoster('Yetersiz kasa','Transfer için en az iki aktif kasa gerekir.',null,true);return;}
-            const options=aktif.map(k=>`<option value="${htmlGuvenli(String(k.id))}">${htmlGuvenli(k.name)} · ₺${kasaHesapBakiyesi(k).toFixed(2)}</option>`).join('');
+            const options=aktif.map(k=>`<option value="${htmlGuvenli(String(k.id))}">${htmlGuvenli(k.name)} · ₺${kasaHesapBakiyesi(k).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</option>`).join('');
             const body=`<label class="block text-xs text-slate-300">Kaynak kasa<select id="kasa-transfer-from" class="mt-1 w-full rounded-lg border border-slate-600 bg-slate-950 text-white px-3 py-2.5 text-sm">${options}</select></label>
               <label class="block text-xs text-slate-300">Hedef kasa<select id="kasa-transfer-to" class="mt-1 w-full rounded-lg border border-slate-600 bg-slate-950 text-white px-3 py-2.5 text-sm">${options}</select></label>
               ${kasaModernAlan('Transfer tutarı (TL)','kasa-transfer-amount','','number')}
@@ -8856,7 +8863,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                 const id='TR-'+Date.now(),now=Date.now();
                 kasaHareketleri.unshift({id:id+'-OUT',movementKind:'account-transfer',transferId:id,cashAccountId:from.id,cashDirection:'out',amount,note:`${note} (${from.name} → ${to.name})`,date:new Date(now).toLocaleString('tr-TR'),timestamp:now,periodId:aktifDonemId});
                 kasaHareketleri.unshift({id:id+'-IN',movementKind:'account-transfer',transferId:id,cashAccountId:to.id,cashDirection:'in',amount,note:`${note} (${from.name} → ${to.name})`,date:new Date(now).toLocaleString('tr-TR'),timestamp:now,periodId:aktifDonemId});
-                durumuKaydet();kasaHesaplariniCiz();kasaEkraniniGuncelle();onayModaliniGoster('Transfer tamamlandı',`₺${amount.toFixed(2)} ${from.name} kasasından ${to.name} kasasına aktarıldı.`,null,true);
+                durumuKaydet();kasaHesaplariniCiz();kasaEkraniniGuncelle();onayModaliniGoster('Transfer tamamlandı',`₺${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${from.name} kasasından ${to.name} kasasına aktarıldı.`,null,true);
             });
         }
 
@@ -8948,18 +8955,18 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const tahsilatEl = document.getElementById('cash-total-tahsilat');
             const grandEl = document.getElementById('cash-grand-total');
 
-            if(nakitEl) nakitEl.innerText = `₺${toplamNakit.toFixed(2)}`;
-            if(kartEl) kartEl.innerText = `₺${toplamKart.toFixed(2)}`;
-            if(tahsilatEl) tahsilatEl.innerText = `₺${toplamTahsilat.toFixed(2)}`;
-            if(grandEl) grandEl.innerText = `₺${genelToplam.toFixed(2)}`;
+            if(nakitEl) nakitEl.innerText = `₺${toplamNakit.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            if(kartEl) kartEl.innerText = `₺${toplamKart.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            if(tahsilatEl) tahsilatEl.innerText = `₺${toplamTahsilat.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            if(grandEl) grandEl.innerText = `₺${genelToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const incomeEl = document.getElementById('cash-total-income');
             const expenseEl = document.getElementById('cash-total-expense');
             const debtEl = document.getElementById('cash-total-debt');
             const receivableEl = document.getElementById('cash-total-receivable');
-            if (incomeEl) incomeEl.innerText = `₺${manuelGelir.toFixed(2)}`;
-            if (expenseEl) expenseEl.innerText = `₺${manuelGider.toFixed(2)}`;
-            if (debtEl) debtEl.innerText = `₺${toplamBorc.toFixed(2)}`;
-            if (receivableEl) receivableEl.innerText = `₺${toplamAlacak.toFixed(2)}`;
+            if (incomeEl) incomeEl.innerText = `₺${manuelGelir.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            if (expenseEl) expenseEl.innerText = `₺${manuelGider.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            if (debtEl) debtEl.innerText = `₺${toplamBorc.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            if (receivableEl) receivableEl.innerText = `₺${toplamAlacak.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
             const tbody = document.getElementById('cash-movement-table');
             const movementTitle = document.getElementById('cash-movement-title');
@@ -9005,7 +9012,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                     const amount = Number(m.amount) || 0;
                     return sum + (m.movementKind === 'sales-transfer-out' ? -amount : amount);
                 }, 0);
-                if (rangeTotalEl) rangeTotalEl.textContent = `₺${rangeTotal.toFixed(2)}`;
+                if (rangeTotalEl) rangeTotalEl.textContent = `₺${rangeTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                 if (rangeCaptionEl) rangeCaptionEl.textContent = dateFrom || dateTo
                     ? `${dateFrom || 'Başlangıç yok'} – ${dateTo || 'Bitiş yok'} arasındaki, mevcut metin ve işlem türü filtrelerine uyan hareketler`
                     : 'Tüm satış kasası hareketlerinin toplamı';
@@ -9030,7 +9037,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                 <tr class="${hoverClass} transition focus:outline-none" ${m.movementKind === 'manual' ? '' : 'role="button" tabindex="0"'} ${rowClick} title="${m.movementKind === 'manual' ? 'Manuel kasa hareketi' : 'İlgili satışı satış geçmişinde bul'}">
                     <td class="p-2.5 text-xs opacity-70">${safeDate}</td>
                     <td class="p-2.5 text-xs"><span class="${badgeBg} px-2 py-0.5 rounded border font-medium">${safeType} ${detailLabel}</span>${m.user ? `<div class="text-[10px] opacity-60 mt-1">${htmlGuvenli(m.user)}</div>` : ''}</td>
-                    <td class="p-2.5 text-right font-mono font-bold ${amountColor}">₺${displayedAmount.toFixed(2)}</td>
+                    <td class="p-2.5 text-right font-mono font-bold ${amountColor}">₺${displayedAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td class="p-2.5 text-right whitespace-nowrap">${m.movementKind === 'manual' ? `${(['Alacak','Borç'].includes(m.type) ? `<button type="button" onclick="event.stopPropagation();manuelKasaGecmisiniAc('${String(m.id).replace(/'/g,'')}')" class="text-[10px] font-bold rounded bg-sky-700 text-white px-2 py-1 mr-1">Geçmiş</button>` : '')}${(['Alacak','Borç'].includes(m.type) && (Number(m.amount)||0) - (Number(m.paidAmount)||0) > 0.009 ? `<button type="button" onclick="event.stopPropagation();manuelKasaTahsilatAc(${movementIndex})" class="text-[10px] font-bold rounded bg-emerald-600 text-white px-2 py-1 mr-1">${m.type === 'Alacak' ? 'Tahsilat' : 'Ödeme'}</button>` : '')}<button type="button" onclick="event.stopPropagation();kasaHareketiDuzenlemeAc(${movementIndex})" class="text-blue-400 hover:text-blue-300 px-2 py-1" title="Düzenle" aria-label="Düzenle"><i class="fa-solid fa-pen"></i></button><button type="button" onclick="event.stopPropagation();kasaHareketiniSil(${movementIndex})" class="text-red-400 hover:text-red-300 px-2 py-1" title="Sil" aria-label="Sil"><i class="fa-solid fa-trash"></i></button>` : m.movementKind === 'manual-settlement' ? `<span class="text-[10px] opacity-60">${m.settlementType === 'Alacak' ? 'Tahsilat kaydı' : 'Borç ödeme kaydı'}</span>` : `<span class="text-[10px] opacity-50">İşlem kaydı</span>`}</td>
                 </tr>
                 `;
@@ -9362,11 +9369,11 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const alisverisKartiBakiyesi = Math.max(0, Number(cust.cardBalance) || 0);
             if (veresiyeBorcu > 0.009 || alisverisKartiBakiyesi > 0.009 || total !== 0 || paid !== 0 || manuelKayitVar) {
                 const engelNedeni = veresiyeBorcu > 0.009 && alisverisKartiBakiyesi > 0.009
-                    ? `Veresiye borcu ₺${veresiyeBorcu.toFixed(2)} ve alışveriş kartı bakiyesi ₺${alisverisKartiBakiyesi.toFixed(2)} bulunduğu`
+                    ? `Veresiye borcu ₺${veresiyeBorcu.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ve alışveriş kartı bakiyesi ₺${alisverisKartiBakiyesi.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} bulunduğu`
                     : veresiyeBorcu > 0.009
-                        ? `₺${veresiyeBorcu.toFixed(2)} veresiye borcu bulunduğu`
+                        ? `₺${veresiyeBorcu.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} veresiye borcu bulunduğu`
                         : alisverisKartiBakiyesi > 0.009
-                            ? `₺${alisverisKartiBakiyesi.toFixed(2)} alışveriş kartı bakiyesi bulunduğu`
+                            ? `₺${alisverisKartiBakiyesi.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} alışveriş kartı bakiyesi bulunduğu`
                             : 'hesap hareketi veya tahsilat geçmişi bulunduğu';
                 onayModaliniGoster(
                     'Silme İşlemi Engellendi',
@@ -9583,7 +9590,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                     </div>
                     <div class="text-right">
                         <div class="text-[10px] opacity-70">Kalan Bakiye</div>
-                        <div class="font-mono text-xs font-bold text-amber-500">₺${remaining.toFixed(2)}</div>
+                        <div class="font-mono text-xs font-bold text-amber-500">₺${remaining.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                     </div>
                 </div>
             `;}).join('');
@@ -9606,7 +9613,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
 
             onayModaliniGoster(
                 'Veresiye Satış Onayı',
-                `"${customer.name}" adlı müşteriye ₺${total.toFixed(2)} tutarında veresiye satış yapılacak. Onaylıyor musunuz?`,
+                `"${customer.name}" adlı müşteriye ₺${total.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} tutarında veresiye satış yapılacak. Onaylıyor musunuz?`,
                 () => {
                     customer.totalDebt = (customer.totalDebt || 0) + total;
                     if(!Array.isArray(customer.history)) customer.history = [];
@@ -9642,7 +9649,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             if (!islemYetkisiGerekli('sales_card', 'Alışveriş kartı işlemi yapma yetkiniz yok.')) return;
             const customer = musteriler.find(c => String(c.id) === String(customerId)); if (!customer) return;
             document.getElementById('card-topup-customer-id').value = String(customer.id);
-            document.getElementById('card-topup-customer-name').textContent = `${customer.name} · Mevcut bakiye: ₺${(Number(customer.cardBalance)||0).toFixed(2)}`;
+            document.getElementById('card-topup-customer-name').textContent = `${customer.name} · Mevcut bakiye: ₺${(Number(customer.cardBalance)||0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             document.getElementById('card-topup-amount').value = '';
             const modal = document.getElementById('modal-card-topup'); modal.classList.remove('hidden'); modal.classList.add('flex');
         }
@@ -9654,7 +9661,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const customer = musteriler.find(c => String(c.id) === String(document.getElementById('card-topup-customer-id').value));
             const amount = Number(document.getElementById('card-topup-amount').value);
             if (!customer || !Number.isFinite(amount) || amount <= 0) { onayModaliniGoster('Eksik bilgi', 'Müşteri ve geçerli yükleme tutarı seçin.', null, true); return; }
-            onayModaliniGoster('Alışveriş Kartına Para Yükle', `${customer.name} adlı müşterinin alışveriş kartına ₺${amount.toFixed(2)} yüklenecek. Onaylıyor musunuz?`, () => {
+            onayModaliniGoster('Alışveriş Kartına Para Yükle', `${customer.name} adlı müşterinin alışveriş kartına ₺${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} yüklenecek. Onaylıyor musunuz?`, () => {
                 customer.cardBalance = Math.round(((Number(customer.cardBalance)||0) + amount) * 100) / 100;
                 if (!Array.isArray(customer.history)) customer.history = [];
                 const topupId = 'CKY-' + Date.now();
@@ -9663,7 +9670,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                 if (!Array.isArray(kasaHareketleri)) kasaHareketleri = [];
                 kasaHareketleri.unshift({ id: 'KCK-' + Date.now(), historyId: topupId, customerId: customer.id, date: new Date().toLocaleString('tr-TR'), type: `Alışveriş Kartı Yükleme (${customer.name})`, amount: topupAmount, note: 'Ön ödemeli müşteri kartı yüklemesi', user: aktifKullaniciAdi || 'Bilinmiyor', periodId: aktifDonemId, movementKind: 'card-topup' });
                 durumuKaydet(); modalKapat('modal-card-topup'); borclularTablosunuGuncelle(); kasaEkraniniGuncelle();
-                onayModaliniGoster('Yükleme tamamlandı', `${customer.name} kartına ₺${amount.toFixed(2)} yüklendi. Yeni bakiye: ₺${customer.cardBalance.toFixed(2)}.`, null, true);
+                onayModaliniGoster('Yükleme tamamlandı', `${customer.name} kartına ₺${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} yüklendi. Yeni bakiye: ₺${customer.cardBalance.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`, null, true);
             });
         }
 
@@ -9672,7 +9679,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             if (!sepet.length) { onayModaliniGoster('Sepet boş', 'Alışveriş kartı ile satış yapmak için önce ürün ekleyin.', null, true); return; }
             const list = document.getElementById('card-sale-customer-list');
             const customers = [...musteriler].sort((a,b) => a.name.localeCompare(b.name, 'tr'));
-            list.innerHTML = customers.length ? customers.map(c => `<button type="button" onclick="alisverisKartiIleSatis('${String(c.id).replace(/'/g, '&#39;')}')" class="w-full text-left theme-card border border-slate-700 rounded p-3 hover:border-cyan-500 flex justify-between items-center gap-3"><span><strong class="block text-xs">${htmlGuvenli(c.name)}</strong><span class="text-[10px] opacity-70">${htmlGuvenli(c.phone || 'Telefon yok')}</span></span><span class="text-right"><small class="block text-[10px] opacity-70">Kart bakiyesi</small><strong class="text-cyan-400">₺${(Number(c.cardBalance)||0).toFixed(2)}</strong></span></button>`).join('') : '<div class="p-4 text-center text-xs opacity-70">Önce veresiye bölümünden müşteri ekleyin.</div>';
+            list.innerHTML = customers.length ? customers.map(c => `<button type="button" onclick="alisverisKartiIleSatis('${String(c.id).replace(/'/g, '&#39;')}')" class="w-full text-left theme-card border border-slate-700 rounded p-3 hover:border-cyan-500 flex justify-between items-center gap-3"><span><strong class="block text-xs">${htmlGuvenli(c.name)}</strong><span class="text-[10px] opacity-70">${htmlGuvenli(c.phone || 'Telefon yok')}</span></span><span class="text-right"><small class="block text-[10px] opacity-70">Kart bakiyesi</small><strong class="text-cyan-400">₺${(Number(c.cardBalance)||0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></span></button>`).join('') : '<div class="p-4 text-center text-xs opacity-70">Önce veresiye bölümünden müşteri ekleyin.</div>';
             const search = document.getElementById('card-sale-customer-search'); if (search) search.value = '';
             musteriListesiAra('card-sale-customer-search', 'card-sale-customer-list');
             const modal = document.getElementById('modal-card-sale'); modal.classList.remove('hidden'); modal.classList.add('flex');
@@ -9685,8 +9692,8 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const discount = Math.min(subtotal, Math.max(0, Number(document.getElementById('cart-discount')?.value) || 0));
             const total = Math.max(0, subtotal - discount);
             const balance = Number(customer.cardBalance) || 0;
-            if (balance < total) { onayModaliniGoster('Yetersiz kart bakiyesi', `${customer.name} kartında ₺${balance.toFixed(2)} var. Satış tutarı ₺${total.toFixed(2)}.`, null, true); return; }
-            onayModaliniGoster('Alışveriş Kartı ile Satış', `${customer.name} adına ₺${total.toFixed(2)} tutarında satış yapılacak ve tutar kart bakiyesinden düşülecek. Onaylıyor musunuz?`, () => {
+            if (balance < total) { onayModaliniGoster('Yetersiz kart bakiyesi', `${customer.name} kartında ₺${balance.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} var. Satış tutarı ₺${total.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`, null, true); return; }
+            onayModaliniGoster('Alışveriş Kartı ile Satış', `${customer.name} adına ₺${total.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} tutarında satış yapılacak ve tutar kart bakiyesinden düşülecek. Onaylıyor musunuz?`, () => {
                 modalKapat('modal-card-sale'); odemeYap('Alışveriş Kartı', customer.name, customer.id);
             });
         }
@@ -9724,9 +9731,9 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const remainColor = cariOzet.remaining > 0.009 ? (isLight ? 'text-amber-700' : 'text-amber-300') : (isLight ? 'text-emerald-700' : 'text-emerald-400');
             const summary = `<div class="mb-3 rounded-lg border p-3 ${summaryClass}">
                 <div class="grid grid-cols-3 gap-2 text-center">
-                    <div><div class="text-[10px] opacity-70">Toplam Borç / Alacak</div><strong class="font-mono text-sm">₺${manuelToplam.toFixed(2)}</strong></div>
-                    <div><div class="text-[10px] opacity-70">Ödenen / Tahsil Edilen</div><strong class="font-mono text-sm ${isLight ? 'text-emerald-700' : 'text-emerald-400'}">₺${manuelOdenen.toFixed(2)}</strong></div>
-                    <div><div class="text-[10px] opacity-70">Kalan</div><strong class="font-mono text-sm ${manuelKalan > 0.009 ? (isLight ? 'text-amber-700' : 'text-amber-300') : (isLight ? 'text-emerald-700' : 'text-emerald-400')}">₺${manuelKalan.toFixed(2)}</strong></div>
+                    <div><div class="text-[10px] opacity-70">Toplam Borç / Alacak</div><strong class="font-mono text-sm">₺${manuelToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>
+                    <div><div class="text-[10px] opacity-70">Ödenen / Tahsil Edilen</div><strong class="font-mono text-sm ${isLight ? 'text-emerald-700' : 'text-emerald-400'}">₺${manuelOdenen.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>
+                    <div><div class="text-[10px] opacity-70">Kalan</div><strong class="font-mono text-sm ${manuelKalan > 0.009 ? (isLight ? 'text-amber-700' : 'text-amber-300') : (isLight ? 'text-emerald-700' : 'text-emerald-400')}">₺${manuelKalan.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>
                 </div>
             </div>`;
 
@@ -9745,12 +9752,12 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                     let remainingText = '';
                     if (linkedMovement && linkedMovement.movementKind === 'manual') {
                         const remaining = Math.max(0, (Number(linkedMovement.amount) || 0) - (Number(linkedMovement.paidAmount) || 0));
-                        remainingText = `Kalan: ₺${remaining.toFixed(2)}`;
+                        remainingText = `Kalan: ₺${remaining.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                     } else if (linkedMovement && linkedMovement.movementKind === 'manual-settlement') {
                         const parent = (kasaHareketleri || []).find(m => m.movementKind === 'manual' && String(m.id) === String(linkedMovement.parentMovementId));
                         if (parent) {
                             const remaining = Math.max(0, (Number(parent.amount) || 0) - (Number(parent.paidAmount) || 0));
-                            remainingText = `Bu kaydın kalan tutarı: ₺${remaining.toFixed(2)}`;
+                            remainingText = `Bu kaydın kalan tutarı: ₺${remaining.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                         }
                     }
                     return `<div class="${itemBg} border p-2.5 rounded flex flex-wrap justify-between items-center gap-2 text-xs">
@@ -9761,7 +9768,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                             ${remainingText ? `<div class="mt-1 font-semibold ${isLight ? 'text-amber-700' : 'text-amber-300'}">${remainingText}</div>` : ''}
                         </div>
                         <div class="flex items-center gap-2">
-                            <span class="font-mono font-bold text-xs">₺${(Number(h.amount) || 0).toFixed(2)}</span>
+                            <span class="font-mono font-bold text-xs">₺${(Number(h.amount) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             ${(() => { const linkedSaleId = h.saleId || h.id; const linkedSale = (satisGecmisi||[]).find(s => String(s.id) === String(linkedSaleId)); return linkedSale ? `<button onclick="veresiyeSatisDetayiniGoster('${String(linkedSale.id).replace(/'/g, '&#39;')}')" type="button" class="text-sky-700 dark:text-sky-300 hover:bg-sky-500/10 px-2 py-1 rounded transition font-semibold" title="Satış detayını gör"><i class="fa-solid fa-eye mr-1"></i> İşlemi Gör</button>` : ''; } )()}
                             ${String(h.type || '').toLocaleLowerCase('tr-TR').includes('veresiye tahsilat') && islemYetkisiVar('debt_collect') ? `<button onclick="veresiyeTahsilatDuzenleAc('${safeCustId}', '${String(h.id || '').replace(/'/g, '&#39;')}')" type="button" class="text-blue-600 dark:text-blue-300 hover:bg-blue-500/10 px-2 py-1 rounded transition font-semibold" title="Tahsilatı düzenle"><i class="fa-solid fa-pen mr-1"></i> Düzenle</button>` : ''}
                             ${h.manualCashRecord && h.cashMovementId && islemYetkisiVar('debt_history_delete') ? `<button onclick="musteriIslemSil('${safeCustId}', ${hIndex})" type="button" class="text-red-600 hover:bg-red-500/10 p-1 rounded transition font-semibold" title="Sil"><i class="fa-solid fa-trash"></i> Sil</button>` : (islemYetkisiVar('debt_history_delete') ? `<button onclick="musteriIslemSil('${safeCustId}', ${hIndex})" type="button" class="text-red-600 hover:bg-red-500/10 p-1 rounded transition font-semibold" title="Sil"><i class="fa-solid fa-trash"></i> Sil</button>` : '')}
@@ -9887,7 +9894,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
 
             document.getElementById('tahsilat-cust-id').value = customer.id;
             document.getElementById('tahsilat-modal-title').innerHTML = `<i class="fa-solid fa-coins"></i> ${htmlGuvenli(customer.name)} - Borç Tahsilatı`;
-            document.getElementById('tahsilat-kalan-bakiye').innerText = `₺${remaining.toFixed(2)}`;
+            document.getElementById('tahsilat-kalan-bakiye').innerText = `₺${remaining.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             document.getElementById('tahsilat-input-amount').value = remaining.toFixed(2);
 
             const modal = document.getElementById('modal-tahsilat');
@@ -9904,7 +9911,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const customer = musteriler.find(c => String(c.id) === String(custId));
             if (!customer || isNaN(paidAmount) || paidAmount <= 0) return;
             const kalanBorc = Math.max(0, (Number(customer.totalDebt)||0) - (Number(customer.paidDebt)||0));
-            if (paidAmount > kalanBorc + 0.001) { onayModaliniGoster('Tutar fazla', `Tahsilat tutarı kalan borcu (₺${kalanBorc.toFixed(2)}) aşamaz.`, null, true); return; }
+            if (paidAmount > kalanBorc + 0.001) { onayModaliniGoster('Tutar fazla', `Tahsilat tutarı kalan borcu (₺${kalanBorc.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) aşamaz.`, null, true); return; }
 
             customer.paidDebt = (Number(customer.paidDebt) || 0) + paidAmount;
             if(!Array.isArray(customer.history)) customer.history = [];
@@ -9997,7 +10004,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const paidWithoutThis = Math.max(0, (Number(customer.paidDebt) || 0) - oldAmount);
             const maxAmount = Math.max(0, (Number(customer.totalDebt) || 0) - paidWithoutThis);
             if (amount > maxAmount + 0.001) {
-                onayModaliniGoster('Tutar fazla', `Bu müşterinin tahsilatı en fazla ₺${maxAmount.toFixed(2)} olabilir.`, null, true); return;
+                onayModaliniGoster('Tutar fazla', `Bu müşterinin tahsilatı en fazla ₺${maxAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} olabilir.`, null, true); return;
             }
             const rounded = Math.round(amount * 100) / 100;
             const method = document.getElementById('veresiye-edit-method')?.value || 'Nakit';
@@ -10066,10 +10073,10 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                     <td class="p-3 font-bold tracking-tight">${htmlGuvenli(c.name)}</td>
                     <td class="p-3 text-xs opacity-75">${htmlGuvenli(c.phone || '-')}</td>
                     <td class="p-3 text-xs opacity-75 max-w-xs truncate">${c.desc || '-'}</td>
-                    <td class="p-3 text-right font-mono">₺${total.toFixed(2)}</td>
-                    <td class="p-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-semibold">₺${paid.toFixed(2)}</td>
-                    <td class="p-3 text-right font-mono text-amber-500 font-bold text-xs ${bgRemain}">₺${remaining.toFixed(2)}</td>
-                    <td class="p-3 text-right font-mono text-cyan-600 dark:text-cyan-400 font-bold">₺${(Number(c.cardBalance)||0).toFixed(2)}<div><button onclick="alisverisKartiYuklemeModaliniAc('${safeId}')" type="button" class="mt-1 bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/20 px-2 py-1 rounded text-[10px] font-semibold">Para Yükle</button></div></td>
+                    <td class="p-3 text-right font-mono">₺${total.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td class="p-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-semibold">₺${paid.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td class="p-3 text-right font-mono text-amber-500 font-bold text-xs ${bgRemain}">₺${remaining.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td class="p-3 text-right font-mono text-cyan-600 dark:text-cyan-400 font-bold">₺${(Number(c.cardBalance)||0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<div><button onclick="alisverisKartiYuklemeModaliniAc('${safeId}')" type="button" class="mt-1 bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/20 px-2 py-1 rounded text-[10px] font-semibold">Para Yükle</button></div></td>
                     <td class="p-3 text-center space-x-1">
                         <button onclick="musteriGecmisiGoster('${safeId}')" type="button" class="bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 px-2 py-1 rounded text-xs hover:bg-amber-500/20 font-semibold transition" title="Geçmiş Hesap Hareketleri">
                             <i class="fa-solid fa-clock-rotate-left mr-1"></i> Geçmiş
@@ -10092,10 +10099,10 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                 tfoot.innerHTML = `
                 <tr>
                     <td colspan="4" class="p-3 text-right uppercase tracking-wider opacity-70">GENEL TOPLAM:</td>
-                    <td class="p-3 text-right font-mono">₺${toplamBorcGenel.toFixed(2)}</td>
-                    <td class="p-3 text-right font-mono text-emerald-600 dark:text-emerald-400">₺${toplamOdenenGenel.toFixed(2)}</td>
-                    <td class="p-3 text-right font-mono text-amber-500">₺${toplamKalanGenel.toFixed(2)}</td>
-                    <td class="p-3 text-right font-mono text-cyan-600 dark:text-cyan-400">₺${filtered.reduce((sum,c)=>sum+(Number(c.cardBalance)||0),0).toFixed(2)}</td>
+                    <td class="p-3 text-right font-mono">₺${toplamBorcGenel.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td class="p-3 text-right font-mono text-emerald-600 dark:text-emerald-400">₺${toplamOdenenGenel.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td class="p-3 text-right font-mono text-amber-500">₺${toplamKalanGenel.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td class="p-3 text-right font-mono text-cyan-600 dark:text-cyan-400">₺${filtered.reduce((sum,c)=>sum+(Number(c.cardBalance)||0),0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td></td>
                 </tr>
                 `;
@@ -10299,7 +10306,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                     <td class="p-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400"><i class="fa-solid fa-user-shield mr-1"></i> ${htmlGuvenli(kasiyerAdi)}</td>
                     <td class="p-3 text-xs"><span class="${badgeBg} px-2 py-0.5 rounded border font-medium">${htmlGuvenli(s.type)}</span></td>
                     <td class="p-3 text-xs opacity-75 max-w-xs truncate">${htmlGuvenli(itemsDesc)}</td>
-                    <td class="p-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">₺${(s.total || 0).toFixed(2)}</td>
+                    <td class="p-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">₺${(s.total || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td class="p-3 text-center space-x-1">
                         <button onclick="event.stopPropagation();tekFisYazdir('${safeId}')" type="button" class="text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 bg-emerald-500/10 p-1.5 rounded border border-emerald-500/20 transition" title="Fişi tekrar yazdır"><i class="fa-solid fa-print"></i> Tekrar</button>
                         ${islemYetkisiVar('sales_cancel') ? `<button onclick="event.stopPropagation();satisIptalEtOnay('${safeId}')" type="button" class="text-red-700 dark:text-red-400 hover:bg-red-500/20 bg-red-500/10 p-1.5 rounded border border-red-500/20 transition" title="İptal Et & Stoğa İade Et"><i class="fa-solid fa-rotate-left"></i> İptal & İade</button>` : ''}
