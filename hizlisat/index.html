@@ -1496,6 +1496,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <div class="theme-card rounded-lg border border-slate-700 p-3"><div class="text-xs text-slate-400">Hazır</div><div class="text-2xl font-black text-emerald-400" id="kitchen-count-ready">0</div></div>
 </div>
 <div class="flex flex-wrap items-center gap-2"><button class="px-3 py-1.5 rounded text-xs font-bold bg-emerald-600 text-white" id="kitchen-filter-active" onclick="mutfakFiltresiAyarla('active')">Aktif siparişler</button><button class="px-3 py-1.5 rounded text-xs font-bold bg-slate-800 text-slate-300" id="kitchen-filter-all" onclick="mutfakFiltresiAyarla('all')">Tüm siparişler</button><input id="kitchen-search" type="search" class="theme-input min-w-[220px] flex-1 rounded border border-slate-700 bg-slate-950 px-3 py-2 text-xs" placeholder="Sipariş no, masa veya ürün ara…" oninput="mutfakEkraniniGuncelle()" aria-label="Sipariş no, masa veya ürün ara"></div>
+<div class="flex flex-wrap gap-2" id="kitchen-category-tabs" aria-label="Mutfak kategori bölümleri"><button type="button" class="px-3 py-2 rounded text-xs font-bold bg-emerald-600 text-white" data-kitchen-category="__all__" onclick="mutfakKategoriSec('__all__')">Tüm Bölümler</button></div>
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" id="kitchen-orders"><div class="text-sm text-slate-400">Siparişler yükleniyor…</div></div>
 </section>
 <!-- MÜŞTERİ SİPARİŞ İZLEME EKRANI -->
@@ -1635,7 +1636,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <div class="flex justify-end" data-cash-view="sales">
 <button type="button" onclick="satisKasasindanManuelKasayaTransfer()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg px-3 py-2 text-xs shadow"><i class="fa-solid fa-right-left mr-1"></i> Satış Kasasından Manuel Kasaya Transfer</button>
 </div>
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
 <div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 shadow-lg space-y-1" data-cash-view="sales">
 <span class="text-xs text-slate-400 font-medium">Toplam Nakit Satışlar</span>
 <div class="text-lg md:text-xl font-bold font-mono text-emerald-500" id="cash-total-nakit">₺0.00</div>
@@ -1647,6 +1648,10 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 shadow-lg space-y-1" data-cash-view="sales">
 <span class="text-xs text-slate-400 font-medium">Yapılan Veresiye Tahsilatlar</span>
 <div class="text-lg md:text-xl font-bold font-mono text-purple-500" id="cash-total-tahsilat">₺0.00</div>
+</div>
+<div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 shadow-lg space-y-1" data-cash-view="sales">
+<span class="text-xs text-slate-400 font-medium">Ana Kasaya Aktarılan</span>
+<div class="text-lg md:text-xl font-bold font-mono text-indigo-500" id="cash-total-transfer">₺0,00</div>
 </div>
 <div class="theme-card bg-slate-900 p-4 rounded-lg border border-slate-800 shadow-lg space-y-1" data-cash-view="sales">
 <span class="text-xs text-slate-400 font-medium">Genel Kasa Toplamı</span>
@@ -1752,8 +1757,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <p class="text-xs text-slate-400 mt-1">Tarih aralığına göre satışları, veresiye işlemlerini ve tahsilatları inceleyin.</p>
 </div>
 <div class="flex flex-wrap items-end gap-2">
-<label class="text-xs text-slate-400">Başlangıç <input class="theme-input block mt-1 bg-slate-950 text-xs p-2 rounded border border-slate-700" id="report-date-from" onchange="raporuGuncelle()" type="date"/></label>
-<label class="text-xs text-slate-400">Bitiş <input class="theme-input block mt-1 bg-slate-950 text-xs p-2 rounded border border-slate-700" id="report-date-to" onchange="raporuGuncelle()" type="date"/></label>
+<label class="text-xs text-slate-400">Başlangıç <input class="theme-input block mt-1 bg-slate-950 text-xs p-2 rounded border border-slate-700" id="report-date-from" onchange="raporGenelSayfa=1;raporKullaniciSayfa=1;raporuGuncelle()" type="date"/></label>
+<label class="text-xs text-slate-400">Bitiş <input class="theme-input block mt-1 bg-slate-950 text-xs p-2 rounded border border-slate-700" id="report-date-to" onchange="raporGenelSayfa=1;raporKullaniciSayfa=1;raporuGuncelle()" type="date"/></label>
 <button class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-2 rounded font-semibold" onclick="raporuGuncelle()"><i class="fa-solid fa-filter mr-1"></i> Raporla</button>
 <button class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded font-semibold" onclick="raporuExcelAktar()"><i class="fa-solid fa-file-excel mr-1"></i> Excel</button>
 </div>
@@ -1779,12 +1784,12 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 </div>
 <div class="theme-card bg-slate-900 rounded-lg border border-slate-800 overflow-hidden shadow-lg"><div class="p-3 border-b border-slate-800 font-bold text-sm"><i class="fa-solid fa-sack-dollar text-emerald-500 mr-1"></i> En Çok Kâr Edilen Ürünler</div><div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="theme-table-header bg-slate-800"><tr><th class="p-2.5">Ürün</th><th class="p-2.5 text-right">Adet</th><th class="p-2.5 text-right">Toplam Kâr</th></tr></thead><tbody id="report-profit-products-table"></tbody></table></div></div>
 <div class="theme-card bg-slate-900 rounded-lg border border-slate-800 overflow-hidden shadow-lg">
-<div class="p-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2"><div class="font-bold text-sm"><i class="fa-solid fa-users text-blue-400 mr-1"></i> Kullanıcı Bazlı Tam Satış Dökümü</div><label class="text-xs text-slate-400">Kullanıcı <select class="theme-input bg-slate-950 border border-slate-700 rounded p-2 ml-1" id="report-user-filter" onchange="raporuGuncelle()"><option value="">Tüm kullanıcılar</option></select></label></div>
-<div class="overflow-x-auto"><table class="w-full text-left text-xs min-w-[700px]"><thead class="theme-table-header bg-slate-800"><tr><th class="p-2.5">Tarih</th><th class="p-2.5">İşlem ID</th><th class="p-2.5">Kullanıcı</th><th class="p-2.5">Ürünler / Adet</th><th class="p-2.5">Ödeme</th><th class="p-2.5 text-right">Tutar</th></tr></thead><tbody id="report-user-sales-table"></tbody></table></div>
+<div class="p-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2"><div class="font-bold text-sm"><i class="fa-solid fa-users text-blue-400 mr-1"></i> Kullanıcı Bazlı Tam Satış Dökümü</div><label class="text-xs text-slate-400">Kullanıcı <select class="theme-input bg-slate-950 border border-slate-700 rounded p-2 ml-1" id="report-user-filter" onchange="raporKullaniciSayfa=1;raporuGuncelle()"><option value="">Tüm kullanıcılar</option></select></label></div>
+<div class="overflow-x-auto"><table class="w-full text-left text-xs min-w-[700px]"><thead class="theme-table-header bg-slate-800"><tr><th class="p-2.5">Tarih</th><th class="p-2.5">İşlem ID</th><th class="p-2.5">Kullanıcı</th><th class="p-2.5">Ürünler / Adet</th><th class="p-2.5">Ödeme</th><th class="p-2.5 text-right">Tutar</th></tr></thead><tbody id="report-user-sales-table"></tbody></table></div><div id="report-user-sales-pagination" class="p-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2"></div>
 </div>
 <div class="theme-card bg-slate-900 rounded-lg border border-slate-800 overflow-hidden shadow-lg">
 <div class="p-3 border-b border-slate-800 font-bold text-sm">Seçilen Tarihteki İşlemler</div>
-<div class="overflow-x-auto"><table class="w-full text-left text-xs md:text-sm min-w-[650px]"><thead class="theme-table-header bg-slate-800 uppercase text-[11px] font-semibold"><tr><th class="p-3">İşlem ID</th><th class="p-3">Tarih</th><th class="p-3">Kasiyer</th><th class="p-3">Tür</th><th class="p-3 text-right">Tutar</th></tr></thead><tbody class="divide-y divide-slate-800" id="report-table"></tbody></table></div>
+<div class="overflow-x-auto"><table class="w-full text-left text-xs md:text-sm min-w-[650px]"><thead class="theme-table-header bg-slate-800 uppercase text-[11px] font-semibold"><tr><th class="p-3">İşlem ID</th><th class="p-3">Tarih</th><th class="p-3">Kasiyer</th><th class="p-3">Tür</th><th class="p-3 text-right">Tutar</th></tr></thead><tbody class="divide-y divide-slate-800" id="report-table"></tbody></table></div><div id="report-pagination" class="p-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2"></div>
 </div>
 </section>
 <!-- 5. VERESİYE DEFTİRİ -->
@@ -5987,7 +5992,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             set('waiter-count-total',list.length); set('waiter-count-today',list.filter(o=>o.kitchenStatus==='preparing').length); set('waiter-count-tables',list.filter(o=>o.kitchenStatus==='ready').length); set('waiter-total',new Set(list.map(o=>o.masa).filter(Boolean)).size); set('waiter-average',list.filter(o=>o.kitchenStatus==='new').length);
             if (!list.length) { host.innerHTML='<div class="theme-card rounded-lg border border-slate-700 p-8 text-center text-slate-400 md:col-span-2 xl:col-span-3">İzlenecek sipariş bulunamadı.</div>'; return; }
             const labels={new:'Sipariş alındı',preparing:'Hazırlanıyor',ready:'Hazır',completed:'Tamamlandı'};
-            host.innerHTML=list.map(o=>{const status=o.kitchenStatus||'new';const color=status==='new'?'border-red-500/40 text-red-300 bg-red-500/10':status==='preparing'?'border-amber-500/40 text-amber-300 bg-amber-500/10':status==='ready'?'border-emerald-500/40 text-emerald-300 bg-emerald-500/10':'border-slate-600 text-slate-300 bg-slate-700';const items=(o.items||[]).map(i=>'<li class="flex justify-between gap-2 border-b border-slate-700/50 py-1"><span>'+htmlGuvenli(i.product?.name||i.name||'Ürün')+'</span><b>×'+(Number(i.qty||i.quantity)||1)+'</b></li>').join('');return '<article class="theme-card rounded-xl border border-slate-700 p-4 shadow-lg"><div class="flex flex-wrap items-start justify-between gap-2"><div><div class="text-xs text-slate-400">'+htmlGuvenli(o.date||'')+' · '+htmlGuvenli(o.id||'')+'</div><h3 class="mt-1 text-lg font-black">'+htmlGuvenli(o.masa || ('Sipariş #'+o.id))+'</h3><p class="mt-1 text-xs text-cyan-300"><i class="fa-solid fa-user mr-1"></i>'+htmlGuvenli(o.customerName||'Müşteri belirtilmedi')+'</p></div><span class="rounded border px-2 py-1 text-xs font-bold '+color+'">'+(labels[status]||'Sipariş alındı')+'</span></div><ul class="mt-3 rounded-lg p-3 text-sm '+siparisDurumListeSinifi(status)+'">'+(items||'<li>Ürün bilgisi bulunamadı</li>')+'</ul>'+(o.kitchenNote?'<p class="mt-2 text-xs text-slate-400">Not: '+htmlGuvenli(o.kitchenNote)+'</p>':'')+'</article>';}).join('');
+            host.innerHTML=list.map(o=>{const status=o.kitchenStatus||'new';const color=status==='new'?'border-red-500/40 text-red-300 bg-red-500/10':status==='preparing'?'border-amber-500/40 text-amber-300 bg-amber-500/10':status==='ready'?'border-emerald-500/40 text-emerald-300 bg-emerald-500/10':'border-slate-600 text-slate-300 bg-slate-700';const items=(o.items||[]).map(i=>'<li class="flex justify-between gap-2 border-b border-slate-700/50 py-1"><span>'+htmlGuvenli(i.product?.name||i.name||'Ürün')+' <small class="text-slate-400">· '+htmlGuvenli(mutfakDurumMetni(i.kitchenItemStatus||'new'))+'</small></span><b>×'+(Number(i.qty||i.quantity)||1)+'</b></li>').join('');return '<article class="theme-card rounded-xl border border-slate-700 p-4 shadow-lg"><div class="flex flex-wrap items-start justify-between gap-2"><div><div class="text-xs text-slate-400">'+htmlGuvenli(o.date||'')+' · '+htmlGuvenli(o.id||'')+'</div><h3 class="mt-1 text-lg font-black">'+htmlGuvenli(o.masa || ('Sipariş #'+o.id))+'</h3><p class="mt-1 text-xs text-cyan-300"><i class="fa-solid fa-user mr-1"></i>'+htmlGuvenli(o.customerName||'Müşteri belirtilmedi')+'</p></div><span class="rounded border px-2 py-1 text-xs font-bold '+color+'">'+(labels[status]||'Sipariş alındı')+'</span></div><ul class="mt-3 rounded-lg p-3 text-sm '+siparisDurumListeSinifi(status)+'">'+(items||'<li>Ürün bilgisi bulunamadı</li>')+'</ul>'+(o.kitchenNote?'<p class="mt-2 text-xs text-slate-400">Not: '+htmlGuvenli(o.kitchenNote)+'</p>':'')+'</article>';}).join('');
         }
 
         function aktifKullaniciKaydi() {
@@ -6390,6 +6395,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 
         // Mutfak modülü: sipariş durumu satış kaydıyla birlikte yerel/Firebase kaydına yazılır.
         let mutfakFiltre = 'active';
+        let mutfakAktifKategori = '__all__';
         let musteriIzlemeFiltresi = 'active';
         let mutfakSesAktif = false;
         let mutfakBilinenSiparisler = new Set();
@@ -6423,6 +6429,21 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
         function mutfakDurumRengi(status) {
             return ({new:'border-red-500', preparing:'border-amber-500', ready:'border-emerald-500', completed:'border-slate-600'})[status] || 'border-red-500';
         }
+        function mutfakUrunKategoriAdi(item) {
+            const product = item?.product || {};
+            return String(product.category || product.kategori || item?.category || item?.kategori || 'Kategorisiz').trim() || 'Kategorisiz';
+        }
+        function mutfakKategoriSec(category) {
+            mutfakAktifKategori = String(category || '__all__');
+            mutfakEkraniniGuncelle();
+        }
+        function mutfakKategoriSekmeleriniCiz(orders) {
+            const host = document.getElementById('kitchen-category-tabs'); if (!host) return;
+            const names = [...new Set((orders || []).flatMap(order => (order.items || []).map(mutfakUrunKategoriAdi)))].sort((a,b)=>a.localeCompare(b,'tr'));
+            if (mutfakAktifKategori !== '__all__' && !names.includes(mutfakAktifKategori)) mutfakAktifKategori = '__all__';
+            const tabs = [{name:'__all__',label:'Tüm Bölümler'}, ...names.map(name=>({name,label:name}))];
+            host.innerHTML = tabs.map(tab => `<button type="button" data-kitchen-category="${htmlGuvenli(tab.name)}" onclick="mutfakKategoriSec('${htmlGuvenli(tab.name).replace(/'/g, '&#39;')}')" class="px-3 py-2 rounded text-xs font-bold ${mutfakAktifKategori===tab.name?'bg-emerald-600 text-white':'bg-slate-800 text-slate-300 hover:bg-slate-700'}">${htmlGuvenli(tab.label)}</button>`).join('');
+        }
         function mutfakEkraniniGuncelle() {
             if (sistemAyarlari.mutfakAktif === false) return;
             const salesOrders = (Array.isArray(satisGecmisi) ? satisGecmisi : []).filter(s => s && s.kitchenEnabledAtCreation !== false && Array.isArray(s.items) && s.items.length);
@@ -6440,6 +6461,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 kitchenCreatedAt: o.createdAt || 0, isCustomerOrder: true
             }));
             const all = salesOrders.concat(adisyonOrders, customerKitchenOrders);
+            mutfakKategoriSekmeleriniCiz(all);
             // Eski satış kayıtları da mutfakta görünür; durumları ilk açılışta yeni kabul edilir.
             all.forEach(s => { if (!s.kitchenStatus) s.kitchenStatus = 'new'; });
             const active = all.filter(s => s.kitchenStatus !== 'completed');
@@ -6450,16 +6472,27 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             setText('kitchen-count-new', yeni); setText('kitchen-count-preparing', hazirlaniyor); setText('kitchen-count-ready', hazir); setText('kitchen-nav-count', active.length);
             const host = document.getElementById('kitchen-orders'); if (!host) return;
             const query = String(document.getElementById('kitchen-search')?.value || '').trim().toLocaleLowerCase('tr-TR');
-            const list = (mutfakFiltre === 'all' ? all : active).filter(s => { const text=[s.id,s.masa,s.customerName,s.kitchenNote,...(s.items||[]).map(i=>i.product?.name||i.name||'')].join(' ').toLocaleLowerCase('tr-TR'); return !query || text.includes(query); }).sort((a,b) => Number(b.kitchenCreatedAt || 0)-Number(a.kitchenCreatedAt || 0));
+            const list = (mutfakFiltre === 'all' ? all : active).filter(s => { const items = mutfakAktifKategori === '__all__' ? (s.items||[]) : (s.items||[]).filter(i=>mutfakUrunKategoriAdi(i)===mutfakAktifKategori); if (!items.length) return false; const text=[s.id,s.masa,s.customerName,s.kitchenNote,...items.map(i=>i.product?.name||i.name||'')].join(' ').toLocaleLowerCase('tr-TR'); return !query || text.includes(query); }).sort((a,b) => Number(b.kitchenCreatedAt || 0)-Number(a.kitchenCreatedAt || 0));
             if (!list.length) { host.innerHTML = '<div class="theme-card rounded-lg border border-slate-700 p-8 text-center text-slate-400 md:col-span-2 xl:col-span-3"><i class="fa-solid fa-check-circle text-3xl text-emerald-500 mb-2"></i><p>Gösterilecek sipariş yok.</p></div>'; return; }
             host.innerHTML = list.map(s => {
                 const status = s.kitchenStatus || 'new';
-                const items = (s.items || []).map(i => `<li class="flex justify-between gap-3 py-2 border-b border-current/10 last:border-b-0"><span>${htmlGuvenli(i.product?.name || i.name || 'Ürün')}</span><strong class="whitespace-nowrap">× ${Number(i.qty || 1)}</strong></li>`).join('');
+                const visibleItems = mutfakAktifKategori === '__all__' ? (s.items||[]) : (s.items||[]).filter(i=>mutfakUrunKategoriAdi(i)===mutfakAktifKategori);
+                const items = visibleItems.map(i => {
+                    const originalIndex = (s.items || []).indexOf(i);
+                    const itemStatus = i.kitchenItemStatus === 'completed' ? 'ready' : (i.kitchenItemStatus || 'new');
+                    const statusColor = itemStatus === 'ready' ? 'text-emerald-300 bg-emerald-500/15' : itemStatus === 'preparing' ? 'text-amber-300 bg-amber-500/15' : itemStatus === 'completed' ? 'text-slate-300 bg-slate-600/30' : 'text-red-300 bg-red-500/15';
+                    const nextStatus = itemStatus === 'new' ? 'preparing' : itemStatus === 'preparing' ? 'ready' : 'new';
+                    const actionLabel = itemStatus === 'new' ? 'Hazırlamaya başla' : itemStatus === 'preparing' ? 'Hazırlandı' : 'Yeniden aç';
+                    return `<li class="py-2 border-b border-current/10 last:border-b-0"><div class="flex justify-between items-center gap-2"><span class="min-w-0">${htmlGuvenli(i.product?.name || i.name || 'Ürün')} <small class="text-slate-400">· ${htmlGuvenli(mutfakUrunKategoriAdi(i))}</small></span><strong class="whitespace-nowrap">× ${Number(i.qty || i.quantity || 1)}</strong></div><div class="flex items-center justify-between gap-2 mt-2"><span class="text-[10px] rounded px-2 py-1 font-bold ${statusColor}">${mutfakDurumMetni(itemStatus)}</span><button type="button" onclick="mutfakUrunDurumunuDegistir('${htmlGuvenli(s.id)}',${originalIndex},'${nextStatus}')" class="rounded px-2 py-1 text-[10px] font-bold bg-slate-700 hover:bg-slate-600 text-white">${actionLabel}</button></div></li>`;
+                }).join('');
                 const note = s.kitchenNote ? `<div class="mt-3 p-2 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs"><i class="fa-solid fa-note-sticky mr-1"></i>${htmlGuvenli(s.kitchenNote)}</div>` : '';
                 const time = htmlGuvenli(s.date || '');
                 const customer = s.customerName ? `<span class="text-slate-400"> · ${htmlGuvenli(s.customerName)}</span>` : '';
-                const buttons = `<div class="grid grid-cols-2 gap-2 mt-4">${status==='new'?`<button onclick="mutfakDurumunuDegistir('${htmlGuvenli(s.id)}','preparing')" class="rounded bg-amber-600 hover:bg-amber-500 text-white p-2 text-xs font-bold">Hazırlamaya başla</button>`:''}${status==='preparing'?`<button onclick="mutfakDurumunuDegistir('${htmlGuvenli(s.id)}','ready')" class="rounded bg-emerald-600 hover:bg-emerald-500 text-white p-2 text-xs font-bold">Hazır</button>`:''}${status==='ready'?`<button onclick="mutfakDurumunuDegistir('${htmlGuvenli(s.id)}','completed')" class="rounded bg-slate-600 hover:bg-slate-500 text-white p-2 text-xs font-bold">Teslim edildi / tamamla</button>`:''}${status==='completed'?`<button onclick="mutfakDurumunuDegistir('${htmlGuvenli(s.id)}','new')" class="rounded bg-amber-600 hover:bg-amber-500 text-white p-2 text-xs font-bold">Aktife al</button>`:''}<button onclick="mutfakTekFisYazdir('${htmlGuvenli(s.id)}')" class="rounded bg-sky-700 hover:bg-sky-600 text-white p-2 text-xs font-bold"><i class="fa-solid fa-print mr-1"></i>Fiş yazdır</button></div>`;
-                return `<article class="theme-card rounded-xl border-l-4 ${mutfakDurumRengi(status)} border-y border-r p-4 shadow-lg"><div class="flex items-start justify-between gap-2"><div><div class="text-xs text-slate-400">${time}${customer}</div><h3 class="text-lg font-black mt-1">Sipariş #${htmlGuvenli(s.id)}</h3></div><span class="px-2 py-1 rounded text-[10px] font-black ${status==='new'?'bg-red-500/20 text-red-300':status==='preparing'?'bg-amber-500/20 text-amber-300':status==='ready'?'bg-emerald-500/20 text-emerald-300':'bg-slate-700 text-slate-300'}">${mutfakDurumMetni(status)}</span></div><ul class="mt-3 text-sm rounded-lg p-3 ${siparisDurumListeSinifi(status)}">${items || '<li class="text-xs opacity-70">Ürün yok</li>'}</ul>${note}${buttons}</article>`;
+                const allItemStatuses = (s.items || []).map(i => i.kitchenItemStatus === 'completed' ? 'ready' : (i.kitchenItemStatus || 'new'));
+                const orderStatus = allItemStatuses.length && allItemStatuses.every(x => x === 'ready') ? 'ready' : allItemStatuses.some(x => x === 'preparing' || x === 'ready') ? 'preparing' : 'new';
+                const allReady = allItemStatuses.length > 0 && allItemStatuses.every(x => x === 'ready');
+                const buttons = `<div class="mt-4 grid ${allReady ? 'grid-cols-2' : 'grid-cols-1'} gap-2"><button onclick="mutfakTekFisYazdir('${htmlGuvenli(s.id)}')" class="rounded bg-sky-700 hover:bg-sky-600 text-white p-2 text-xs font-bold"><i class="fa-solid fa-print mr-1"></i>Fiş yazdır</button>${allReady && orderStatus !== 'completed' ? `<button onclick="mutfakSiparisTeslimEt('${htmlGuvenli(s.id)}')" class="rounded bg-emerald-700 hover:bg-emerald-600 text-white p-2 text-xs font-black"><i class="fa-solid fa-check-double mr-1"></i>Teslim Edildi</button>` : ''}</div>`;
+                return `<article class="theme-card rounded-xl border-l-4 ${mutfakDurumRengi(status)} border-y border-r p-4 shadow-lg"><div class="flex items-start justify-between gap-2"><div><div class="text-xs text-slate-400">${time}${customer}</div><h3 class="text-lg font-black mt-1">Sipariş #${htmlGuvenli(s.id)}</h3></div><span class="px-2 py-1 rounded text-[10px] font-black ${status==='new'?'bg-red-500/20 text-red-300':status==='preparing'?'bg-amber-500/20 text-amber-300':status==='ready'?'bg-emerald-500/20 text-emerald-300':'bg-slate-700 text-slate-300'}">${mutfakDurumMetni(orderStatus)}</span></div><ul class="mt-3 text-sm rounded-lg p-3 ${siparisDurumListeSinifi(status)}">${items || '<li class="text-xs opacity-70">Ürün yok</li>'}</ul>${note}${buttons}</article>`;
             }).join('');
         }
         function mutfakFiltresiAyarla(filtre) {
@@ -6467,6 +6500,84 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             ['active','all'].forEach(k => { const b=document.getElementById('kitchen-filter-'+k); if(b) b.className='px-3 py-1.5 rounded text-xs font-bold '+(mutfakFiltre===k?'bg-emerald-600 text-white':'bg-slate-800 text-slate-300'); });
             mutfakEkraniniGuncelle();
         }
+        async function mutfakSiparisTeslimEt(orderId) {
+            const id = String(orderId);
+            const stamp = Date.now();
+            const tamamla = items => {
+                if (!Array.isArray(items) || !items.length) return false;
+                if (!items.every(item => ['ready','completed'].includes(item.kitchenItemStatus || 'new'))) return false;
+                // Ürünlerin durumu 'Hazır' olarak kalır; teslim durumu yalnızca sipariş seviyesindedir.
+                items.forEach(item => { if (item.kitchenItemStatus === 'completed') item.kitchenItemStatus = 'ready'; });
+                return true;
+            };
+            if (id.startsWith('AD-')) {
+                const ad = (acikAdisyonlar || []).find(a => String(a.id) === id.slice(3));
+                if (!ad || !tamamla(ad.items)) { islemBildirimiGoster('Önce tüm ürünler hazır olmalı.', 'error'); return; }
+                ad.kitchenStatus = 'completed';
+                ad.kitchenCompletedAt = stamp;
+            } else if (id.startsWith('MUS-')) {
+                const order = (customerOrderRecords || []).find(o => String(o.id) === id);
+                if (!order || !tamamla(order.items)) { islemBildirimiGoster('Önce tüm ürünler hazır olmalı.', 'error'); return; }
+                try {
+                    const saved = await musteriSiparisKaydiniYaz(id, { items: order.items, status: 'served', servedAt: stamp });
+                    if (!saved) throw new Error('Müşteri siparişi Firebase’e kaydedilemedi.');
+                    order.status = 'served'; order.servedAt = stamp;
+                } catch (error) {
+                    onayModaliniGoster('Teslim işlemi kaydedilemedi', error.message || 'Bağlantıyı kontrol edin.', null, true);
+                    mutfakEkraniniGuncelle(); return;
+                }
+            } else {
+                const sale = (satisGecmisi || []).find(x => String(x.id) === id);
+                if (!sale || !tamamla(sale.items)) { islemBildirimiGoster('Önce tüm ürünler hazır olmalı.', 'error'); return; }
+                sale.kitchenStatus = 'completed';
+                sale.kitchenCompletedAt = stamp;
+            }
+            durumuKaydet();
+            mutfakEkraniniGuncelle();
+            garsonEkraniniGuncelle();
+            if (typeof adisyonlariGoster === 'function') adisyonlariGoster();
+            if (typeof musteriSiparisleriniGoster === 'function') musteriSiparisleriniGoster();
+            islemBildirimiGoster('Sipariş teslim edildi. Aktif mutfak listesinden kaldırıldı.');
+        }
+
+        async function mutfakUrunDurumunuDegistir(orderId, itemIndex, status) {
+            if (!['new','preparing','ready'].includes(status)) return;
+            const id = String(orderId);
+            const stamp = Date.now();
+            let items = null;
+            if (id.startsWith('AD-')) {
+                const ad = (acikAdisyonlar || []).find(a => String(a.id) === id.slice(3));
+                if (!ad || !Array.isArray(ad.items) || !ad.items[itemIndex]) return;
+                ad.items[itemIndex].kitchenItemStatus = status;
+                ad.items[itemIndex].kitchenItemUpdatedAt = stamp;
+                items = ad.items;
+            } else if (id.startsWith('MUS-')) {
+                const order = (customerOrderRecords || []).find(o => String(o.id) === id);
+                if (!order || !Array.isArray(order.items) || !order.items[itemIndex]) return;
+                order.items[itemIndex].kitchenItemStatus = status;
+                order.items[itemIndex].kitchenItemUpdatedAt = stamp;
+                items = order.items;
+                try {
+                    const saved = await musteriSiparisKaydiniYaz(id, { items });
+                    if (!saved) throw new Error('Müşteri siparişi Firebase’e kaydedilemedi.');
+                } catch (error) {
+                    onayModaliniGoster('Ürün durumu kaydedilemedi', error.message || 'Firebase bağlantısını kontrol edin.', null, true);
+                    mutfakEkraniniGuncelle(); return;
+                }
+            } else {
+                const sale = (satisGecmisi || []).find(x => String(x.id) === id);
+                if (!sale || !Array.isArray(sale.items) || !sale.items[itemIndex]) return;
+                sale.items[itemIndex].kitchenItemStatus = status;
+                sale.items[itemIndex].kitchenItemUpdatedAt = stamp;
+                items = sale.items;
+            }
+            durumuKaydet();
+            mutfakEkraniniGuncelle();
+            garsonEkraniniGuncelle();
+            if (typeof adisyonlariGoster === 'function') adisyonlariGoster();
+            islemBildirimiGoster('Ürün durumu güncellendi: ' + mutfakDurumMetni(status));
+        }
+
         function mutfakDurumunuDegistir(id, status) {
             if (!['new','preparing','ready','completed'].includes(status)) return;
             const idText = String(id);
@@ -8880,6 +8991,24 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                 return Number.isFinite(parsed) ? parsed : 0;
             };
 
+            // Satış kasası özetleri seçilen tarih aralığına göre hesaplanır.
+            const dateFromSummary = document.getElementById('sales-cash-date-from')?.value || '';
+            const dateToSummary = document.getElementById('sales-cash-date-to')?.value || '';
+            const kasaTarihAnahtari = value => {
+                const raw = String(value || '').trim();
+                let match = raw.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})/);
+                if (match) return `${match[3]}-${String(match[2]).padStart(2,'0')}-${String(match[1]).padStart(2,'0')}`;
+                match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+                const parsedDate = Date.parse(raw);
+                if (Number.isFinite(parsedDate)) { const d = new Date(parsedDate); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+                return '';
+            };
+            const kasaTarihAraliginda = value => {
+                const key = kasaTarihAnahtari(value);
+                return (!dateFromSummary && !dateToSummary) || (!!key && (!dateFromSummary || key >= dateFromSummary) && (!dateToSummary || key <= dateToSummary));
+            };
+
             let toplamNakit = 0;
             let toplamKart = 0;
             let toplamDiger = 0;
@@ -8891,6 +9020,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                 satisGecmisi.forEach(s => {
                     if (!s || typeof s !== 'object') return;
                     if (s.id != null) satisKayitIdleri.add(String(s.id));
+                    if (!kasaTarihAraliginda(s.date || s.createdAt || s.timestamp || s.tarih)) return;
                     const saleTotal = Math.max(0, kasaTutariniOku(s.total));
                     if (Array.isArray(s.payments) && s.payments.length) {
                         s.payments.forEach(payment => {
@@ -8913,6 +9043,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             // Satış geçmişinde bulunmayan eski kayıtlar için kasa satış hareketlerini yedek kaynak kullan.
             (Array.isArray(kasaHareketleri) ? kasaHareketleri : []).forEach(m => {
                 if (!m || typeof m !== 'object') return;
+                if (!kasaTarihAraliginda(m.date || m.createdAt || m.timestamp || m.tarih)) return;
                 const saleId = m.saleId == null ? '' : String(m.saleId);
                 if (!saleId || satisKayitIdleri.has(saleId)) return;
                 const amount = Math.max(0, kasaTutariniOku(m.amount));
@@ -8929,6 +9060,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             if (Array.isArray(kasaHareketleri)) {
                 kasaHareketleri.forEach(m => {
                     if (!m || typeof m !== 'object') return;
+                    if (!kasaTarihAraliginda(m.date || m.createdAt || m.timestamp || m.tarih)) return;
                     const amount = kasaTutariniOku(m.amount);
                     const isSelectedManualCash = String(m.cashAccountId || ANA_NAKIT_KASA_ID) === String(seciliManuelKasaId);
                     // Yalnızca gerçek veresiye/adisyon/sipariş tahsilatları satış kasasına eklenir.
@@ -8944,7 +9076,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             }
 
             const seciliKasa = kasaHesaplari.find(k=>String(k.id)===String(seciliManuelKasaId));
-            const satisKasasiTransferleri = (kasaHareketleri || []).filter(m => m.movementKind === 'sales-transfer-out').reduce((sum,m) => sum + kasaTutariniOku(m.amount), 0);
+            const satisKasasiTransferleri = (kasaHareketleri || []).filter(m => m.movementKind === 'sales-transfer-out' && kasaTarihAraliginda(m.date || m.createdAt || m.timestamp || m.tarih)).reduce((sum,m) => sum + kasaTutariniOku(m.amount), 0);
             // Satış kasası yalnızca satış tahsilatlarını ve satıştan yapılan transferleri içerir.
             // Manuel kasa gelir/gideri ve alışveriş kartı yüklemeleri burada ikinci kez sayılmaz.
             const satisKasasiGenelToplam = Math.max(0, toplamNakit + toplamKart + toplamDiger + toplamTahsilat - satisKasasiTransferleri);
@@ -8954,10 +9086,12 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const kartEl = document.getElementById('cash-total-kart');
             const tahsilatEl = document.getElementById('cash-total-tahsilat');
             const grandEl = document.getElementById('cash-grand-total');
+            const transferEl = document.getElementById('cash-total-transfer');
 
             if(nakitEl) nakitEl.innerText = `₺${toplamNakit.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             if(kartEl) kartEl.innerText = `₺${toplamKart.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             if(tahsilatEl) tahsilatEl.innerText = `₺${toplamTahsilat.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            if(transferEl) transferEl.innerText = `₺${satisKasasiTransferleri.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             if(grandEl) grandEl.innerText = `₺${genelToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const incomeEl = document.getElementById('cash-total-income');
             const expenseEl = document.getElementById('cash-total-expense');
@@ -10109,6 +10243,23 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             }
         }
 
+        // Rapor tabloları: uzun listeleri 50 kayıtlık sayfalara böler.
+        let raporGenelSayfa = 1;
+        let raporKullaniciSayfa = 1;
+        let raporSayfaBoyutu = 50;
+        function raporSayfalamaKontrolleriniCiz(containerId, total, currentPage, pageType) {
+            const el = document.getElementById(containerId); if (!el) return;
+            const pages = Math.max(1, Math.ceil(total / raporSayfaBoyutu));
+            const start = total ? (currentPage - 1) * raporSayfaBoyutu + 1 : 0;
+            const end = Math.min(total, currentPage * raporSayfaBoyutu);
+            const setter = pageType === 'user' ? 'raporKullaniciSayfa' : 'raporGenelSayfa';
+            const opts = [25,50,100,200].map(n => `<option value="${n}" ${n===raporSayfaBoyutu?'selected':''}>${n}</option>`).join('');
+            let nums = '';
+            const visible = new Set([1,pages,currentPage-1,currentPage,currentPage+1]);
+            [...visible].filter(n=>n>=1&&n<=pages).sort((a,b)=>a-b).forEach((n,i,arr)=>{ if(i&&n-arr[i-1]>1) nums += '<span class="px-1 text-slate-500">…</span>'; nums += `<button type="button" onclick="${setter}=${n};raporuGuncelle()" class="px-2.5 py-1.5 rounded ${n===currentPage?'bg-emerald-600 text-white':'bg-slate-800 hover:bg-slate-700'}">${n}</button>`; });
+            el.innerHTML = `<div class="text-xs text-slate-400">${start}-${end} / ${total} kayıt</div><div class="flex items-center gap-1 flex-wrap"><label class="text-xs text-slate-400 mr-2">Sayfa başına <select class="theme-input bg-slate-950 border border-slate-700 rounded p-1.5" onchange="raporSayfaBoyutu=Number(this.value)||50;raporGenelSayfa=1;raporKullaniciSayfa=1;raporuGuncelle()">${opts}</select></label><button type="button" ${currentPage<=1?'disabled':''} onclick="${setter}=Math.max(1,${setter}-1);raporuGuncelle()" class="px-2.5 py-1.5 rounded bg-slate-800 disabled:opacity-40">Önceki</button>${nums}<button type="button" ${currentPage>=pages?'disabled':''} onclick="${setter}=Math.min(${pages},${setter}+1);raporuGuncelle()" class="px-2.5 py-1.5 rounded bg-slate-800 disabled:opacity-40">Sonraki</button></div>`;
+        }
+
         function raporTarihiniNormalizeEt(value) {
             if (!value) return '';
             const raw = String(value).trim();
@@ -10145,7 +10296,10 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             document.getElementById('report-credit').textContent = money(credit);
             document.getElementById('report-debt').textContent = money(debt);
             const tbody = document.getElementById('report-table');
-            if (tbody) tbody.innerHTML = rows.length ? rows.map(s => `<tr><td class="p-3 font-mono">${htmlGuvenli(s.id || '')}</td><td class="p-3">${htmlGuvenli(s.date || '')}</td><td class="p-3">${htmlGuvenli(s.kasiyer || 'Admin')}</td><td class="p-3">${htmlGuvenli(s.type || '')}</td><td class="p-3 text-right font-semibold">${money(s.total)}</td></tr>`).join('') : '<tr><td colspan="5" class="p-5 text-center opacity-70">Seçilen tarih aralığında işlem bulunamadı.</td></tr>';
+            const generalStart = (raporGenelSayfa - 1) * raporSayfaBoyutu;
+            const generalPageRows = rows.slice(generalStart, generalStart + raporSayfaBoyutu);
+            if (tbody) tbody.innerHTML = rows.length ? generalPageRows.map(s => `<tr><td class="p-3 font-mono">${htmlGuvenli(s.id || '')}</td><td class="p-3">${htmlGuvenli(s.date || '')}</td><td class="p-3">${htmlGuvenli(s.kasiyer || 'Admin')}</td><td class="p-3">${htmlGuvenli(s.type || '')}</td><td class="p-3 text-right font-semibold">${money(s.total)}</td></tr>`).join('') : '<tr><td colspan="5" class="p-5 text-center opacity-70">Seçilen tarih aralığında işlem bulunamadı.</td></tr>';
+            raporSayfalamaKontrolleriniCiz('report-pagination', rows.length, raporGenelSayfa, 'general');
 
             // Günlük satış toplamları
             const daily = {};
@@ -10218,10 +10372,15 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const selectedUser = userSelect?.value || '';
             const userRows = rows.filter(s => !selectedUser || String(s.kasiyer || 'Admin') === selectedUser);
             const userBody = document.getElementById('report-user-sales-table');
-            if (userBody) userBody.innerHTML = userRows.length ? userRows.map(s => {
+            const userStart = (raporKullaniciSayfa - 1) * raporSayfaBoyutu;
+            const userPageRows = userRows.slice(userStart, userStart + raporSayfaBoyutu);
+            if (userBody) userBody.innerHTML = userRows.length ? userPageRows.map(s => {
                 const itemText = (Array.isArray(s.items) ? s.items : []).map(it => { const pr = it.product || it.urun || it; return `${pr.name || it.name || 'Ürün'} × ${Number(it.qty ?? it.quantity ?? it.adet ?? 1) || 0}`; }).join(', ') || 'Ürün detayı yok';
                 return `<tr class="border-t border-slate-800"><td class="p-2.5">${htmlGuvenli(s.date || '')}</td><td class="p-2.5 font-mono">${htmlGuvenli(s.id || '')}</td><td class="p-2.5">${htmlGuvenli(s.kasiyer || 'Admin')}</td><td class="p-2.5 whitespace-normal">${htmlGuvenli(itemText)}</td><td class="p-2.5">${htmlGuvenli(s.type || '')}</td><td class="p-2.5 text-right font-semibold">${money(s.total)}</td></tr>`;
             }).join('') : '<tr><td colspan="6" class="p-4 text-center opacity-70">Bu kullanıcı için seçilen tarihlerde satış yok.</td></tr>';
+            raporSayfalamaKontrolleriniCiz('report-user-sales-pagination', userRows.length, raporKullaniciSayfa, 'user');
+            window.__raporExcelTumSatirlar = rows;
+            window.__raporExcelKullaniciSatirlari = userRows;
         }
         function tumVerileriExcelAktar() {
             if (typeof XLSX === 'undefined') { onayModaliniGoster('Excel kullanılamıyor', 'Excel dışa aktarma kitaplığı yüklenemedi. İnternet bağlantısını kontrol edin.', null, true); return; }
@@ -10249,7 +10408,8 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const wb = XLSX.utils.book_new();
             const tableData = id => { const table=document.getElementById(id); if(!table) return []; const headers=[...(table.closest('table')?.querySelectorAll('thead th')||[])].map(th=>th.textContent.trim()); return [...table.querySelectorAll('tr')].filter(tr=>tr.querySelectorAll('td').length>1).map(tr=>Object.fromEntries([...tr.querySelectorAll('td')].map((td,i)=>[headers[i]||('Alan '+(i+1)),td.textContent.trim()]))); };
             const add=(name,data)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data.length?data:[{Bilgi:'Kayıt yok'}]),name);
-            add('Satış Veresiye',tableData('report-table')); add('Günlük Satışlar',tableData('report-daily-table')); add('Kullanıcı Ödeme',tableData('report-cashier-payments-table')); add('En Çok Satılan',tableData('report-products-table')); add('En Çok Kâr',tableData('report-profit-products-table')); add('Kullanıcı Satışları',tableData('report-user-sales-table'));
+            const saleExport = (list) => (list || []).map(s => ({'İşlem ID':s.id||'',Tarih:s.date||'',Kasiyer:s.kasiyer||'Admin',Tür:s.type||'',Tutar:Number(s.total)||0,Ürünler:(Array.isArray(s.items)?s.items:[]).map(it=>{const pr=it.product||it.urun||it;return `${pr.name||it.name||'Ürün'} × ${Number(it.qty??it.quantity??it.adet??1)||0}`;}).join(', ')}));
+            add('Satış Veresiye',saleExport(window.__raporExcelTumSatirlar)); add('Günlük Satışlar',tableData('report-daily-table')); add('Kullanıcı Ödeme',tableData('report-cashier-payments-table')); add('En Çok Satılan',tableData('report-products-table')); add('En Çok Kâr',tableData('report-profit-products-table')); add('Kullanıcı Satışları',saleExport(window.__raporExcelKullaniciSatirlari));
             XLSX.writeFile(wb,'Satis_Raporlarinin_Tumu.xlsx');
         }
         function satisKasiyerFiltresiniGuncelle() {
@@ -10607,16 +10767,26 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                 'Satışları ve Kasayı Sıfırla',
                 'Yönetici şifresi doğrulandı. Bu işlem yalnızca seçili dönemin satış geçmişini kalıcı olarak silecek. Kasa hareketleri, cari hesaplar ve ürün kayıtları korunacak. Devam etmek istiyor musunuz?',
                 () => {
+                    // Satış geçmişiyle birlikte Satış Kasası defterini de temizle.
+                    // Manuel/Ana Kasa hareketleri ve Satış Kasasından Ana Kasaya aktarılmış
+                    // giriş kayıtları korunur. Satış Kasası ekranında listelenen hareketler silinir.
                     satisGecmisi = [];
+                    kasaHareketleri = (Array.isArray(kasaHareketleri) ? kasaHareketleri : []).filter(m =>
+                        m && (m.movementKind === 'manual' || m.movementKind === 'manual-settlement' || m.movementKind === 'sales-transfer-in')
+                    );
 
                     if (sistemAyarlari.firebaseAktif && window.firebaseReady && window.database) {
-                        window.dbSet(window.dbRef(window.database, `${kokDugumGetir()}/${aktifDonemId}/pos_sales`), null);
+                        try {
+                            window.dbSet(window.dbRef(window.database, `${kokDugumGetir()}/${aktifDonemId}/pos_sales`), null);
+                            window.dbSet(window.dbRef(window.database, `${kokDugumGetir()}/${aktifDonemId}/satis_gecmisi`), null);
+                            window.dbSet(window.dbRef(window.database, `${kokDugumGetir()}/${aktifDonemId}/kasa_hareketleri`), kasaHareketleri);
+                        } catch (err) { console.warn('Satış/Kasa sıfırlama bulut kaydı sıraya alınamadı:', err); }
                     }
 
                     durumuKaydet();
                     gecmisTablosunuGuncelle();
                     kasaEkraniniGuncelle();
-                    onayModaliniGoster('Başarılı', 'Seçili dönemin satış geçmişi silindi. Kasa hareketleri ve diğer kayıtlar korundu.', null, true);
+                    onayModaliniGoster('Başarılı', 'Seçili dönemin satış geçmişi ve Satış Kasası hareketleri silindi. Ana Kasa / manuel hareketler, cari hesaplar ve ürün kayıtları korundu.', null, true);
                 }
             );
         }
