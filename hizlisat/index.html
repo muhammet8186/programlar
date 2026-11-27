@@ -2663,8 +2663,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 </div>
 </div>
 <!-- JAVASCRIPT KODLARI -->
-<script>
-        // Bozuk/yarım kalmış yerel kayıtların uygulamanın açılmasını engellemesini önler.
+<script type="text/plain" id="hizli-satis-main-source">
+        // Bozuk/yarım kalmış yerel kayıtların uygulamanın açılmasını engeller.
         function yerelKayitOku(anahtar, varsayilan) {
             try {
                 const ham = localStorage.getItem(anahtar);
@@ -10916,6 +10916,159 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             document.addEventListener('pointerup', finishPress); document.addEventListener('pointercancel', finishPress);
             document.addEventListener('click', e => { if (suppressNextClick && e.target.closest('#products-grid .sales-product-card')) { suppressNextClick=false; e.preventDefault(); e.stopPropagation(); } }, true);
         })();</script>
+<script>
+/* Hızlı Satış IndexedDB ana depolama katmanı.
+   İlk açılışta mevcut pos_* LocalStorage kayıtlarını doğrulayarak aktarır.
+   Sonraki okumalar/yazmalar senkron uyum katmanı üzerinden IndexedDB'yi kullanır. */
+(function () {
+  const sourceNode = document.getElementById('hizli-satis-main-source');
+  const nativeGet = Storage.prototype.getItem;
+  const nativeSet = Storage.prototype.setItem;
+  const nativeRemove = Storage.prototype.removeItem;
+  const nativeKey = Storage.prototype.key;
+  const nativeLength = Object.getOwnPropertyDescriptor(Storage.prototype, 'length')?.get;
+  let appReady = false;
+  let domReadyWasHeld = false;
+  document.addEventListener('DOMContentLoaded', function (event) {
+    if (!appReady) {
+      domReadyWasHeld = true;
+      event.stopImmediatePropagation();
+    }
+  }, true);
+
+  function openDatabase() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('HizliSatisDB', 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains('appState')) db.createObjectStore('appState', { keyPath: 'key' });
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error('IndexedDB açılamadı'));
+      request.onblocked = () => reject(new Error('IndexedDB başka bir sekmede engellendi'));
+    });
+  }
+  function requestResult(request) {
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error('IndexedDB işlemi başarısız'));
+    });
+  }
+  function transactionDone(tx) {
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = tx.onabort = () => reject(tx.error || new Error('IndexedDB yazma işlemi tamamlanamadı'));
+    });
+  }
+
+  (async function start() {
+    try {
+      if (!('indexedDB' in window)) throw new Error('Bu tarayıcı IndexedDB desteklemiyor');
+      const db = await openDatabase();
+      const txRead = db.transaction('appState', 'readonly');
+      const storeRead = txRead.objectStore('appState');
+      let rows = await requestResult(storeRead.getAll());
+      const cache = new Map();
+      if (!rows.length) {
+        // Tek seferlik ilk aktarım: eski kayıtlar silinmez, önce IDB'ye yazılır ve okunarak doğrulanır.
+        const legacy = [];
+        const ls = window.localStorage;
+        for (let i = 0; i < ls.length; i++) {
+          const key = nativeKey.call(ls, i);
+          if (key && key.startsWith('pos_')) {
+            const value = nativeGet.call(ls, key);
+            if (value !== null) legacy.push({ key, value: String(value) });
+          }
+        }
+        if (legacy.length) {
+          const txWrite = db.transaction('appState', 'readwrite');
+          const storeWrite = txWrite.objectStore('appState');
+          legacy.forEach(item => storeWrite.put(item));
+          await transactionDone(txWrite);
+          const verifyTx = db.transaction('appState', 'readonly');
+          rows = await requestResult(verifyTx.objectStore('appState').getAll());
+          const verified = new Map(rows.map(item => [item.key, item.value]));
+          for (const item of legacy) {
+            if (verified.get(item.key) !== item.value) throw new Error('Eski kayıtların IndexedDB aktarımı doğrulanamadı: ' + item.key);
+          }
+          console.info('IndexedDB ilk aktarım doğrulandı:', legacy.length, 'kayıt. Eski kayıtlar korunuyor.');
+        }
+      }
+      rows.forEach(item => cache.set(item.key, String(item.value)));
+
+      // Uygulama localStorage API'sini senkron kullandığı için bellek önbelleği API uyumluluğu sağlar;
+      // kalıcı ana kaynak IndexedDB'dir. pos_* anahtarları artık LocalStorage kotasını büyütmez.
+      let writeQueue = Promise.resolve();
+      function enqueue(operation) {
+        writeQueue = writeQueue.then(operation).catch(error => {
+          console.error('IndexedDB kayıt hatası:', error);
+          try { window.dispatchEvent(new CustomEvent('hizli-satis-storage-error', { detail: error })); } catch (_) {}
+        });
+      }
+      const originalGet = Storage.prototype.getItem;
+      const originalSet = Storage.prototype.setItem;
+      const originalRemove = Storage.prototype.removeItem;
+      Storage.prototype.getItem = function (key) {
+        key = String(key);
+        if (this === window.localStorage && key.startsWith('pos_')) return cache.has(key) ? cache.get(key) : null;
+        return originalGet.call(this, key);
+      };
+      Storage.prototype.setItem = function (key, value) {
+        key = String(key); value = String(value);
+        if (this === window.localStorage && key.startsWith('pos_')) {
+          cache.set(key, value);
+          enqueue(() => {
+            const tx = db.transaction('appState', 'readwrite');
+            tx.objectStore('appState').put({ key, value });
+            return transactionDone(tx);
+          });
+          return;
+        }
+        return originalSet.call(this, key, value);
+      };
+      Storage.prototype.removeItem = function (key) {
+        key = String(key);
+        if (this === window.localStorage && key.startsWith('pos_')) {
+          cache.delete(key);
+          enqueue(() => {
+            const tx = db.transaction('appState', 'readwrite');
+            tx.objectStore('appState').delete(key);
+            return transactionDone(tx);
+          });
+          return;
+        }
+        return originalRemove.call(this, key);
+      };
+      window.hizliSatisDB = {
+        name: 'HizliSatisDB',
+        getAll: () => new Promise((resolve, reject) => {
+          const tx = db.transaction('appState', 'readonly');
+          requestResult(tx.objectStore('appState').getAll()).then(resolve, reject);
+        }),
+        flush: () => writeQueue,
+        getStatus: () => ({ engine: 'IndexedDB', records: cache.size, ready: true })
+      };
+      window.addEventListener('pagehide', () => { writeQueue.catch(() => {}); });
+      window.addEventListener('beforeunload', () => { writeQueue.catch(() => {}); });
+      const executable = document.createElement('script');
+      executable.textContent = sourceNode.textContent;
+      sourceNode.replaceWith(executable);
+      appReady = true;
+      if (domReadyWasHeld) {
+        document.dispatchEvent(new Event('DOMContentLoaded', { bubbles: true }));
+      }
+    } catch (error) {
+      console.error('IndexedDB başlatılamadı; eski LocalStorage kayıtları korunarak uygulama açılıyor:', error);
+      // IDB kullanılamazsa uygulama eski depolama yöntemiyle açılır; veri silinmez.
+      const executable = document.createElement('script');
+      executable.textContent = sourceNode.textContent;
+      sourceNode.replaceWith(executable);
+      appReady = true;
+      if (domReadyWasHeld) document.dispatchEvent(new Event('DOMContentLoaded', { bubbles: true }));
+    }
+  })();
+})();
+</script>
 <style id="mobile-sales-usability-fix">
 @media (max-width: 767px) {
   #section-sales { flex-direction: column !important; overflow-x: hidden !important; overflow-y: auto !important; height: 100% !important; min-height: 0 !important; padding: 4px !important; gap: 4px !important; }
