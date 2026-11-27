@@ -6451,13 +6451,13 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             const adisyonOrders = (Array.isArray(acikAdisyonlar) ? acikAdisyonlar : []).filter(a => a && a.kitchenEnabledAtCreation !== false && a.status !== 'closed' && Array.isArray(a.items) && a.items.length).map(a => ({
                 id: 'AD-' + a.id, adisyonId: a.id, isAdisyonOrder: true, date: a.updatedLabel || a.createdLabel || '',
                 masa: a.masa || '', garson: a.garson || '', items: a.items, kitchenNote: a.note || '',
-                kitchenStatus: a.kitchenStatus || 'new', kitchenCreatedAt: a.kitchenCreatedAt || a.updatedAt || a.createdAt || 0,
+                kitchenStatus: a.kitchenStatus || 'new', kitchenCategoryDelivered: a.kitchenCategoryDelivered || {}, kitchenCreatedAt: a.kitchenCreatedAt || a.updatedAt || a.createdAt || 0,
                 total: adisyonToplam(a), kasiyer: a.kasiyer || ''
             }));
             const customerKitchenOrders = (Array.isArray(customerOrderRecords) ? customerOrderRecords : []).filter(o => o && !['served','cancelled'].includes(o.status) && Array.isArray(o.items) && o.items.length).map(o => ({
                 id: String(o.id), date: new Date(o.createdAt || Date.now()).toLocaleString('tr-TR'), masa: 'Masa ' + String(o.table || ''), garson: o.assignedWaiter || '',
                 customerName: 'QR müşteri siparişi', items: o.items, kitchenNote: o.note || '', total: Number(o.total) || 0,
-                kitchenStatus: ({accepted:'new',preparing:'preparing',ready:'ready',served:'completed',cancelled:'completed'})[o.status] || 'new',
+                kitchenStatus: ({accepted:'new',preparing:'preparing',ready:'ready',served:'completed',cancelled:'completed'})[o.status] || 'new', kitchenCategoryDelivered: o.kitchenCategoryDelivered || {},
                 kitchenCreatedAt: o.createdAt || 0, isCustomerOrder: true
             }));
             const all = salesOrders.concat(adisyonOrders, customerKitchenOrders);
@@ -6472,7 +6472,21 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             setText('kitchen-count-new', yeni); setText('kitchen-count-preparing', hazirlaniyor); setText('kitchen-count-ready', hazir); setText('kitchen-nav-count', active.length);
             const host = document.getElementById('kitchen-orders'); if (!host) return;
             const query = String(document.getElementById('kitchen-search')?.value || '').trim().toLocaleLowerCase('tr-TR');
-            const list = (mutfakFiltre === 'all' ? all : active).filter(s => { const items = mutfakAktifKategori === '__all__' ? (s.items||[]) : (s.items||[]).filter(i=>mutfakUrunKategoriAdi(i)===mutfakAktifKategori); if (!items.length) return false; const text=[s.id,s.masa,s.customerName,s.kitchenNote,...items.map(i=>i.product?.name||i.name||'')].join(' ').toLocaleLowerCase('tr-TR'); return !query || text.includes(query); }).sort((a,b) => Number(b.kitchenCreatedAt || 0)-Number(a.kitchenCreatedAt || 0));
+            const list = (mutfakFiltre === 'all' ? all : active).filter(s => {
+                const orderItems = s.items || [];
+                const categories = [...new Set(orderItems.map(mutfakUrunKategoriAdi))];
+                const delivered = s.kitchenCategoryDelivered || {};
+                const items = mutfakAktifKategori === '__all__' ? orderItems : orderItems.filter(i=>mutfakUrunKategoriAdi(i)===mutfakAktifKategori);
+                if (!items.length) return false;
+                // Aktif kategori sekmesinde yalnızca o kategori teslim edilince kapanır.
+                // Tüm Bölümler'de sipariş, bütün kategoriler teslim edilene kadar görünür.
+                if (mutfakFiltre !== 'all') {
+                    if (mutfakAktifKategori === '__all__' && categories.length && categories.every(name => delivered[name] === true)) return false;
+                    if (mutfakAktifKategori !== '__all__' && delivered[mutfakAktifKategori] === true) return false;
+                }
+                const text=[s.id,s.masa,s.customerName,s.kitchenNote,...items.map(i=>i.product?.name||i.name||'')].join(' ').toLocaleLowerCase('tr-TR');
+                return !query || text.includes(query);
+            }).sort((a,b) => Number(b.kitchenCreatedAt || 0)-Number(a.kitchenCreatedAt || 0));
             if (!list.length) { host.innerHTML = '<div class="theme-card rounded-lg border border-slate-700 p-8 text-center text-slate-400 md:col-span-2 xl:col-span-3"><i class="fa-solid fa-check-circle text-3xl text-emerald-500 mb-2"></i><p>Gösterilecek sipariş yok.</p></div>'; return; }
             host.innerHTML = list.map(s => {
                 const status = s.kitchenStatus || 'new';
@@ -6488,10 +6502,11 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 const note = s.kitchenNote ? `<div class="mt-3 p-2 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs"><i class="fa-solid fa-note-sticky mr-1"></i>${htmlGuvenli(s.kitchenNote)}</div>` : '';
                 const time = htmlGuvenli(s.date || '');
                 const customer = s.customerName ? `<span class="text-slate-400"> · ${htmlGuvenli(s.customerName)}</span>` : '';
-                const allItemStatuses = (s.items || []).map(i => i.kitchenItemStatus === 'completed' ? 'ready' : (i.kitchenItemStatus || 'new'));
-                const orderStatus = allItemStatuses.length && allItemStatuses.every(x => x === 'ready') ? 'ready' : allItemStatuses.some(x => x === 'preparing' || x === 'ready') ? 'preparing' : 'new';
-                const allReady = allItemStatuses.length > 0 && allItemStatuses.every(x => x === 'ready');
-                const buttons = `<div class="mt-4 grid ${allReady ? 'grid-cols-2' : 'grid-cols-1'} gap-2"><button onclick="mutfakTekFisYazdir('${htmlGuvenli(s.id)}')" class="rounded bg-sky-700 hover:bg-sky-600 text-white p-2 text-xs font-bold"><i class="fa-solid fa-print mr-1"></i>Fiş yazdır</button>${allReady && orderStatus !== 'completed' ? `<button onclick="mutfakSiparisTeslimEt('${htmlGuvenli(s.id)}')" class="rounded bg-emerald-700 hover:bg-emerald-600 text-white p-2 text-xs font-black"><i class="fa-solid fa-check-double mr-1"></i>Teslim Edildi</button>` : ''}</div>`;
+                const visibleStatuses = visibleItems.map(i => i.kitchenItemStatus === 'completed' ? 'ready' : (i.kitchenItemStatus || 'new'));
+                const orderStatus = visibleStatuses.length && visibleStatuses.every(x => x === 'ready') ? 'ready' : visibleStatuses.some(x => x === 'preparing' || x === 'ready') ? 'preparing' : 'new';
+                const allReady = visibleStatuses.length > 0 && visibleStatuses.every(x => x === 'ready');
+                const categoryDelivered = mutfakAktifKategori !== '__all__' && s.kitchenCategoryDelivered?.[mutfakAktifKategori] === true;
+                const buttons = `<div class="mt-4 grid ${allReady && mutfakAktifKategori !== '__all__' ? 'grid-cols-2' : 'grid-cols-1'} gap-2"><button onclick="mutfakTekFisYazdir('${htmlGuvenli(s.id)}')" class="rounded bg-sky-700 hover:bg-sky-600 text-white p-2 text-xs font-bold"><i class="fa-solid fa-print mr-1"></i>Fiş yazdır</button>${allReady && mutfakAktifKategori !== '__all__' && !categoryDelivered ? `<button onclick="mutfakKategoriTeslimEt('${htmlGuvenli(s.id)}',decodeURIComponent('${encodeURIComponent(mutfakAktifKategori)}'))" class="rounded bg-emerald-700 hover:bg-emerald-600 text-white p-2 text-xs font-black"><i class="fa-solid fa-check-double mr-1"></i>${htmlGuvenli(mutfakAktifKategori)} Teslim Edildi</button>` : ''}</div>`;
                 return `<article class="theme-card rounded-xl border-l-4 ${mutfakDurumRengi(status)} border-y border-r p-4 shadow-lg"><div class="flex items-start justify-between gap-2"><div><div class="text-xs text-slate-400">${time}${customer}</div><h3 class="text-lg font-black mt-1">Sipariş #${htmlGuvenli(s.id)}</h3></div><span class="px-2 py-1 rounded text-[10px] font-black ${status==='new'?'bg-red-500/20 text-red-300':status==='preparing'?'bg-amber-500/20 text-amber-300':status==='ready'?'bg-emerald-500/20 text-emerald-300':'bg-slate-700 text-slate-300'}">${mutfakDurumMetni(orderStatus)}</span></div><ul class="mt-3 text-sm rounded-lg p-3 ${siparisDurumListeSinifi(status)}">${items || '<li class="text-xs opacity-70">Ürün yok</li>'}</ul>${note}${buttons}</article>`;
             }).join('');
         }
@@ -6500,6 +6515,58 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             ['active','all'].forEach(k => { const b=document.getElementById('kitchen-filter-'+k); if(b) b.className='px-3 py-1.5 rounded text-xs font-bold '+(mutfakFiltre===k?'bg-emerald-600 text-white':'bg-slate-800 text-slate-300'); });
             mutfakEkraniniGuncelle();
         }
+        async function mutfakKategoriTeslimEt(orderId, category) {
+            const id = String(orderId);
+            const kategori = String(category || '').trim();
+            if (!kategori) return;
+            const stamp = Date.now();
+            let source = null;
+            if (id.startsWith('AD-')) source = (acikAdisyonlar || []).find(a => String(a.id) === id.slice(3));
+            else if (id.startsWith('MUS-')) source = (customerOrderRecords || []).find(o => String(o.id) === id);
+            else source = (satisGecmisi || []).find(x => String(x.id) === id);
+            if (!source || !Array.isArray(source.items)) return;
+            const categoryItems = source.items.filter(item => mutfakUrunKategoriAdi(item) === kategori);
+            if (!categoryItems.length) return;
+            if (!categoryItems.every(item => ['ready','completed'].includes(item.kitchenItemStatus || 'new'))) {
+                islemBildirimiGoster('Önce bu kategorideki bütün ürünler hazır olmalı.', 'error'); return;
+            }
+            source.kitchenCategoryDelivered = source.kitchenCategoryDelivered || {};
+            source.kitchenCategoryDelivered[kategori] = true;
+            const categories = [...new Set(source.items.map(mutfakUrunKategoriAdi))];
+            const allCategoriesDelivered = categories.length > 0 && categories.every(name => source.kitchenCategoryDelivered[name] === true);
+            if (allCategoriesDelivered) {
+                if (id.startsWith('MUS-')) {
+                    try {
+                        const saved = await musteriSiparisKaydiniYaz(id, { items: source.items, kitchenCategoryDelivered: source.kitchenCategoryDelivered, status: 'served', servedAt: stamp });
+                        if (!saved) throw new Error('Müşteri siparişi Firebase’e kaydedilemedi.');
+                        source.status = 'served'; source.servedAt = stamp;
+                    } catch (error) {
+                        delete source.kitchenCategoryDelivered[kategori];
+                        onayModaliniGoster('Teslim işlemi kaydedilemedi', error.message || 'Bağlantıyı kontrol edin.', null, true);
+                        mutfakEkraniniGuncelle(); return;
+                    }
+                } else {
+                    source.kitchenStatus = 'completed';
+                    source.kitchenCompletedAt = stamp;
+                }
+            } else if (id.startsWith('MUS-')) {
+                try {
+                    const saved = await musteriSiparisKaydiniYaz(id, { kitchenCategoryDelivered: source.kitchenCategoryDelivered });
+                    if (!saved) throw new Error('Kategori teslim durumu Firebase’e kaydedilemedi.');
+                } catch (error) {
+                    delete source.kitchenCategoryDelivered[kategori];
+                    onayModaliniGoster('Kategori teslimi kaydedilemedi', error.message || 'Bağlantıyı kontrol edin.', null, true);
+                    mutfakEkraniniGuncelle(); return;
+                }
+            }
+            durumuKaydet();
+            mutfakEkraniniGuncelle();
+            garsonEkraniniGuncelle();
+            if (typeof adisyonlariGoster === 'function') adisyonlariGoster();
+            if (typeof musteriSiparisleriniGoster === 'function') musteriSiparisleriniGoster();
+            islemBildirimiGoster(allCategoriesDelivered ? 'Bütün kategoriler teslim edildi. Sipariş tüm bölümlerden kaldırıldı.' : kategori + ' kategorisi teslim edildi. Sipariş diğer bölümlerde açık kaldı.');
+        }
+
         async function mutfakSiparisTeslimEt(orderId) {
             const id = String(orderId);
             const stamp = Date.now();
