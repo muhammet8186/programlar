@@ -1487,7 +1487,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <section class="absolute inset-0 p-3 md:p-5 hidden flex-col gap-3 overflow-y-auto" id="section-kitchen">
 <div class="flex flex-wrap items-center justify-between gap-2">
 <div><h2 class="text-xl font-black"><i class="fa-solid fa-fire-burner text-orange-400 mr-2"></i>Mutfak Siparişleri</h2><p class="text-xs text-slate-400 mt-1">Yeni siparişleri alın, hazırlama durumunu güncelleyin ve mutfak fişlerini yazdırın.</p></div>
-<div class="flex gap-2"><button class="px-3 py-2 rounded bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold" onclick="mutfakSesiniAc()"><i class="fa-solid fa-volume-high mr-1"></i>Sesli uyarıyı aç</button><button class="px-3 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold" onclick="mutfakEkraniniGuncelle()"><i class="fa-solid fa-rotate mr-1"></i>Yenile</button><button class="px-3 py-2 rounded bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold" onclick="mutfakBekleyenleriYazdir()"><i class="fa-solid fa-print mr-1"></i>Bekleyen fişleri yazdır</button></div>
+<div class="flex flex-wrap gap-2"><button type="button" class="px-3 py-2 rounded bg-cyan-700 hover:bg-cyan-600 text-white text-xs font-bold" onclick="mutfakBolumAyarModaliniAc()"><i class="fa-solid fa-sliders mr-1"></i>Bölüm ayarları</button><button class="px-3 py-2 rounded bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold" onclick="mutfakSesiniAc()"><i class="fa-solid fa-volume-high mr-1"></i>Sesli uyarıyı aç</button><button class="px-3 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold" onclick="mutfakEkraniniGuncelle()"><i class="fa-solid fa-rotate mr-1"></i>Yenile</button><button class="px-3 py-2 rounded bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold" onclick="mutfakBekleyenleriYazdir()"><i class="fa-solid fa-print mr-1"></i>Bekleyen fişleri yazdır</button></div>
 </div>
 <div class="theme-card rounded-lg border border-slate-700 p-3 flex flex-wrap items-center gap-2" id="kitchen-alert-sound-panel"><label class="text-xs text-slate-300 font-semibold" for="kitchen-alert-tone">Bildirim sesi</label><select class="theme-input bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-xs" id="kitchen-alert-tone" onchange="mutfakSesiTercihiniKaydet()"><option value="classic">Klasik zil</option><option value="double">Çift uyarı</option><option value="urgent">Acil uyarı</option><option value="soft">Yumuşak uyarı</option><option value="uploaded">Yüklenen ses</option></select><button class="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold" onclick="mutfakUyariSesiTestEt()" type="button"><i class="fa-solid fa-play mr-1"></i>Dinle</button><label class="px-3 py-1.5 rounded bg-violet-700 hover:bg-violet-600 text-white text-xs font-bold cursor-pointer" for="kitchen-alert-file"><i class="fa-solid fa-upload mr-1"></i>Ses dosyası yükle</label><input accept="audio/*,.mp3,.wav,.ogg,.m4a" class="hidden" id="kitchen-alert-file" onchange="mutfakSesiDosyasiYukle(this)" type="file"/><span class="text-[11px] text-slate-400" id="kitchen-alert-file-name">Yerleşik seslerden birini seçin veya ses dosyası yükleyin.</span></div>
 <div class="grid grid-cols-3 gap-2">
@@ -1497,9 +1497,12 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 </div>
 <div class="flex flex-wrap items-center gap-2"><button class="px-3 py-1.5 rounded text-xs font-bold bg-emerald-600 text-white" id="kitchen-filter-active" onclick="mutfakFiltresiAyarla('active')">Aktif siparişler</button><button class="px-3 py-1.5 rounded text-xs font-bold bg-slate-800 text-slate-300" id="kitchen-filter-all" onclick="mutfakFiltresiAyarla('all')">Tüm siparişler</button><input id="kitchen-search" type="search" class="theme-input min-w-[220px] flex-1 rounded border border-slate-700 bg-slate-950 px-3 py-2 text-xs" placeholder="Sipariş no, masa veya ürün ara…" oninput="mutfakEkraniniGuncelle()" aria-label="Sipariş no, masa veya ürün ara"></div>
 <div class="flex flex-wrap gap-2" id="kitchen-category-tabs" aria-label="Mutfak kategori bölümleri"><button type="button" class="px-3 py-2 rounded text-xs font-bold bg-emerald-600 text-white" data-kitchen-category="__all__" onclick="mutfakKategoriSec('__all__')">Tüm Bölümler</button></div>
-<div class="theme-card rounded-lg border border-slate-700 p-3 space-y-3" id="kitchen-notify-print-settings">
-  <div class="flex items-center justify-between gap-2"><div><h3 class="font-bold text-sm"><i class="fa-solid fa-sliders mr-1 text-cyan-400"></i>Bölüm Bildirim ve Yazdırma Ayarları</h3><p class="text-[11px] text-slate-400">Genel ayarları kullanabilir veya her kategori için ayrı tercih belirleyebilirsiniz.</p></div><button type="button" class="text-xs rounded bg-slate-700 px-3 py-2" onclick="mutfakBolumAyarlariniGoster()">Ayarları yenile</button></div>
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="kitchen-category-settings"><div class="text-xs text-slate-400">Kategori ayarları yükleniyor…</div></div>
+<div id="kitchen-notify-print-modal" class="fixed inset-0 z-[120] hidden items-center justify-center bg-black/70 p-3" role="dialog" aria-modal="true" aria-labelledby="kitchen-notify-print-title" onclick="if(event.target===this)mutfakBolumAyarModaliniKapat()">
+  <div class="theme-card w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl border border-slate-600 p-4 shadow-2xl" onclick="event.stopPropagation()">
+    <div class="flex items-start justify-between gap-3 mb-4"><div><h3 id="kitchen-notify-print-title" class="font-bold text-base"><i class="fa-solid fa-sliders mr-2 text-cyan-400"></i>Bölüm Bildirim ve Yazdırma Ayarları</h3><p class="text-[11px] text-slate-400 mt-1">Genel ayarları kullanabilir veya her kategori için ayrı tercih belirleyebilirsiniz.</p></div><button type="button" class="rounded bg-slate-700 hover:bg-slate-600 px-3 py-2 text-xs font-bold" onclick="mutfakBolumAyarModaliniKapat()" aria-label="Kapat"><i class="fa-solid fa-xmark mr-1"></i>Kapat</button></div>
+    <div class="flex justify-end mb-3"><button type="button" class="text-xs rounded bg-slate-700 px-3 py-2" onclick="mutfakBolumAyarlariniGoster()"><i class="fa-solid fa-rotate mr-1"></i>Ayarları yenile</button></div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="kitchen-category-settings"><div class="text-xs text-slate-400">Kategori ayarları yükleniyor…</div></div>
+  </div>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" id="kitchen-orders"><div class="text-sm text-slate-400">Siparişler yükleniyor…</div></div>
 </section>
@@ -6762,6 +6765,18 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
         }
         function mutfakBolumOzelAyariniDegistir(category, custom){const data=mutfakBolumTercihleriniOku();data.categories=data.categories||{};data.categories[category]=data.categories[category]||{};data.categories[category].custom=!!custom;if(custom){data.categories[category].sound=!!mutfakSesAktif;let gp=false;try{gp=localStorage.getItem('pos_kitchen_auto_print_v1')==='1';}catch(_){}data.categories[category].print=gp;}mutfakBolumTercihleriniKaydet(data);mutfakBolumAyarlariniGoster();}
         function mutfakBolumEfektifAyar(category, field){const data=mutfakBolumTercihleriniOku();const item=data.categories?.[category];if(item?.custom===true && typeof item[field]==='boolean')return item[field];if(field==='sound')return !!mutfakSesAktif;try{return localStorage.getItem('pos_kitchen_auto_print_v1')==='1';}catch(_){return false;}}
+        function mutfakBolumAyarModaliniAc(){
+            const modal=document.getElementById('kitchen-notify-print-modal');
+            if(!modal)return;
+            mutfakBolumAyarlariniGoster();
+            modal.classList.remove('hidden');modal.classList.add('flex');
+        }
+        function mutfakBolumAyarModaliniKapat(){
+            const modal=document.getElementById('kitchen-notify-print-modal');
+            if(!modal)return;
+            modal.classList.add('hidden');modal.classList.remove('flex');
+        }
+        document.addEventListener('keydown',e=>{if(e.key==='Escape')mutfakBolumAyarModaliniKapat();});
         function mutfakBolumAyarlariniGoster(){
             const host=document.getElementById('kitchen-category-settings');if(!host)return;
             const orders=mutfakYeniSiparisleriOku();
