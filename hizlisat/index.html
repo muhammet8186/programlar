@@ -7355,6 +7355,94 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             listEl.innerHTML = rows.length ? rows.join('') : '<span class="text-emerald-400">Tüm ürünlerin stok seviyesi normal.</span>';
         }
 
+        let aktifUrunGecmisId = null;
+
+        function urunGecmisTarihiniCoz(deger) {
+            if (typeof deger === 'number') return new Date(deger);
+            const metin = String(deger || '').trim();
+            if (!metin) return null;
+            // Uygulamanın Türkçe tarih biçimi: 28.11.2026 14:35:20
+            const eslesme = metin.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:[, ]+(.+))?$/);
+            if (eslesme) {
+                const saat = (eslesme[4] || '00:00:00').trim().split(':').map(Number);
+                return new Date(Number(eslesme[3]), Number(eslesme[2])-1, Number(eslesme[1]), saat[0]||0, saat[1]||0, saat[2]||0);
+            }
+            const tarih = new Date(metin);
+            return Number.isNaN(tarih.getTime()) ? null : tarih;
+        }
+
+        function urunGecmisSatirlariniGetir(urunId) {
+            const urun = urunler.find(p => String(p.id) === String(urunId));
+            if (!urun) return { urun: null, satirlar: [] };
+            const satirlar = [];
+            (Array.isArray(satisGecmisi) ? satisGecmisi : []).forEach(sale => {
+                (Array.isArray(sale.items) ? sale.items : []).forEach(item => {
+                    const product = item.product || item.urun || {};
+                    const itemId = product.id ?? item.productId ?? item.urunId ?? item.id;
+                    const itemName = product.name || product.ad || item.name || item.urunAdi || '';
+                    const ayniUrun = itemId !== undefined && itemId !== null && String(itemId) === String(urunId);
+                    const ayniAd = (itemId === undefined || itemId === null || itemId === '') && itemName && itemName.trim().toLocaleLowerCase('tr-TR') === String(urun.name || '').trim().toLocaleLowerCase('tr-TR');
+                    if (!ayniUrun && !ayniAd) return;
+                    const miktar = Number(item.qty ?? item.quantity ?? item.adet ?? 1) || 1;
+                    const birimFiyat = Number(item.price ?? item.satisFiyati ?? product.price ?? product.fiyat ?? 0) || 0;
+                    const tarihDegeri = sale.date || sale.tarih || sale.createdAt || sale.timestamp || '';
+                    satirlar.push({ saleId: sale.id || sale.fisNo || sale.orderNo || '-', date: tarihDegeri, dateObj: urunGecmisTarihiniCoz(tarihDegeri), qty: miktar, unitPrice: birimFiyat, total: miktar * birimFiyat, customer: sale.customerName || sale.musteriAdi || '', payment: sale.type || sale.odemeTipi || '', cashier: sale.kasiyer || sale.user || '' });
+                });
+            });
+            satirlar.sort((a,b) => (b.dateObj?.getTime() || 0) - (a.dateObj?.getTime() || 0));
+            return { urun, satirlar };
+        }
+
+        function urunSatisGecmisiniAc(urunId) {
+            const sonuc = urunGecmisSatirlariniGetir(urunId);
+            if (!sonuc.urun) return;
+            aktifUrunGecmisId = String(urunId);
+            let modal = document.getElementById('product-sales-history-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'product-sales-history-modal';
+                modal.className = 'fixed inset-0 z-[120] bg-black/70 flex items-center justify-center p-2 sm:p-4';
+                modal.innerHTML = `<section class="w-full max-w-3xl max-h-[92vh] overflow-hidden rounded-xl border border-slate-600 bg-slate-900 text-slate-100 shadow-2xl flex flex-col" role="dialog" aria-modal="true" aria-labelledby="product-sales-history-title"><header class="flex items-center justify-between gap-3 p-4 border-b border-slate-700"><div><h2 id="product-sales-history-title" class="font-black text-lg">Ürün Satış Geçmişi</h2><p id="product-sales-history-name" class="text-xs text-slate-400 mt-1"></p></div><button type="button" onclick="urunSatisGecmisiniKapat()" class="rounded-lg bg-slate-800 hover:bg-slate-700 px-3 py-2" aria-label="Kapat"><i class="fa-solid fa-xmark"></i></button></header><div class="p-3 sm:p-4 overflow-y-auto"><div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3"><div class="rounded-lg bg-slate-800 p-3"><div class="text-[11px] text-slate-400">Toplam satılan</div><strong id="product-history-total-qty" class="text-lg"></strong></div><div class="rounded-lg bg-slate-800 p-3"><div class="text-[11px] text-slate-400">Toplam satış tutarı</div><strong id="product-history-total-amount" class="text-lg"></strong></div><div class="rounded-lg bg-slate-800 p-3"><div class="text-[11px] text-slate-400">Satış adedi</div><strong id="product-history-sale-count" class="text-lg"></strong></div><div class="rounded-lg bg-slate-800 p-3"><div class="text-[11px] text-slate-400">Ortalama fiyat</div><strong id="product-history-average-price" class="text-lg"></strong></div></div><div class="grid grid-cols-2 gap-2 mb-3"><label class="text-xs text-slate-400">Başlangıç tarihi<input id="product-history-from" type="date" class="mt-1 w-full rounded-lg border border-slate-600 bg-slate-800 text-slate-100 p-2" onchange="urunSatisGecmisiniCiz()"></label><label class="text-xs text-slate-400">Bitiş tarihi<input id="product-history-to" type="date" class="mt-1 w-full rounded-lg border border-slate-600 bg-slate-800 text-slate-100 p-2" onchange="urunSatisGecmisiniCiz()"></label></div><div class="overflow-x-auto rounded-lg border border-slate-700"><table class="w-full text-xs text-left"><thead class="bg-slate-800 text-slate-300"><tr><th class="p-2">Tarih</th><th class="p-2">Fiş / Satış No</th><th class="p-2 text-right">Adet</th><th class="p-2 text-right">Birim fiyat</th><th class="p-2 text-right">Tutar</th><th class="p-2">Ödeme</th></tr></thead><tbody id="product-sales-history-rows"></tbody></table></div><p id="product-sales-history-empty" class="hidden text-center text-sm text-slate-400 py-6">Bu tarih aralığında satış kaydı bulunamadı.</p></div></section>`;
+                modal.addEventListener('click', e => { if (e.target === modal) urunSatisGecmisiniKapat(); });
+                document.body.appendChild(modal);
+            }
+            document.getElementById('product-sales-history-name').textContent = sonuc.urun.name || sonuc.urun.ad || 'Ürün';
+            const bugun = new Date();
+            const tarihInput = document.getElementById('product-history-to');
+            if (tarihInput) tarihInput.value = `${bugun.getFullYear()}-${String(bugun.getMonth()+1).padStart(2,'0')}-${String(bugun.getDate()).padStart(2,'0')}`;
+            document.getElementById('product-history-from').value = '';
+            modal.classList.remove('hidden');
+            urunSatisGecmisiniCiz();
+        }
+
+        function urunSatisGecmisiniCiz() {
+            if (!aktifUrunGecmisId) return;
+            const { satirlar } = urunGecmisSatirlariniGetir(aktifUrunGecmisId);
+            const from = document.getElementById('product-history-from')?.value || '';
+            const to = document.getElementById('product-history-to')?.value || '';
+            const filtreli = satirlar.filter(row => {
+                if (!row.dateObj || Number.isNaN(row.dateObj.getTime())) return !from && !to;
+                const gun = `${row.dateObj.getFullYear()}-${String(row.dateObj.getMonth()+1).padStart(2,'0')}-${String(row.dateObj.getDate()).padStart(2,'0')}`;
+                return (!from || gun >= from) && (!to || gun <= to);
+            });
+            const miktar = filtreli.reduce((sum,row)=>sum+row.qty,0);
+            const tutar = filtreli.reduce((sum,row)=>sum+row.total,0);
+            const para = n => '₺' + Number(n||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});
+            document.getElementById('product-history-total-qty').textContent = miktar.toLocaleString('tr-TR') + ' adet';
+            document.getElementById('product-history-total-amount').textContent = para(tutar);
+            document.getElementById('product-history-sale-count').textContent = filtreli.length.toLocaleString('tr-TR');
+            document.getElementById('product-history-average-price').textContent = para(miktar ? tutar/miktar : 0);
+            const tbody = document.getElementById('product-sales-history-rows');
+            tbody.innerHTML = filtreli.map(row => `<tr class="border-t border-slate-800"><td class="p-2 whitespace-nowrap">${htmlGuvenli(row.date || '-')}</td><td class="p-2">${htmlGuvenli(row.saleId)}</td><td class="p-2 text-right">${row.qty.toLocaleString('tr-TR')}</td><td class="p-2 text-right whitespace-nowrap">${para(row.unitPrice)}</td><td class="p-2 text-right whitespace-nowrap font-bold">${para(row.total)}</td><td class="p-2">${htmlGuvenli(row.payment || '-')}</td></tr>`).join('');
+            document.getElementById('product-sales-history-empty').classList.toggle('hidden', filtreli.length > 0);
+        }
+
+        function urunSatisGecmisiniKapat() {
+            const modal = document.getElementById('product-sales-history-modal');
+            if (modal) modal.classList.add('hidden');
+            aktifUrunGecmisId = null;
+        }
+
         function urunleriGoster() {
             const grid = document.getElementById('products-grid');
             if(!grid) return;
@@ -8512,6 +8600,7 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                     <td class="p-3 text-center font-mono text-amber-600 dark:text-amber-400 font-bold text-xs md:text-sm ${isLight ? 'bg-slate-200/50' : 'bg-slate-950/80'}">${remaining}</td>
                     <td class="p-3 text-center">${statusBadge}</td>
                     <td class="p-3 text-center space-x-1">
+                        <button onclick="urunSatisGecmisiniAc(decodeURIComponent('${encodeURIComponent(safeId)}'))" type="button" class="text-cyan-700 dark:text-cyan-300 hover:bg-cyan-500/20 bg-cyan-500/10 p-1.5 rounded border border-cyan-500/20 transition" title="Ürünün satış geçmişini görüntüle" aria-label="${htmlGuvenli(p.name)} satış geçmişi"><i class="fa-solid fa-clock-rotate-left"></i></button>
                         <button onclick="barkodEtiketYazdir('${safeId}')" type="button" class="text-purple-700 dark:text-purple-400 hover:bg-purple-500/20 bg-purple-500/10 p-1.5 rounded border border-purple-500/20 transition" title="Barkod Etiket Yazdır"><i class="fa-solid fa-barcode"></i></button>
                         ${islemYetkisiVar('stock_add') ? `<button onclick="stokEkleModaliniAc('${safeId}')" type="button" class="text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 text-xs font-semibold transition inline-flex items-center gap-1" title="Stok Ekle"><i class="fa-solid fa-plus"></i> Stok</button>` : ''}
                         ${islemYetkisiVar('product_edit') ? `<button onclick="urunDuzenle('${safeId}')" type="button" class="text-blue-700 dark:text-blue-400 hover:bg-blue-500/20 bg-blue-500/10 p-1.5 rounded border border-blue-500/20 transition" title="Düzenle"><i class="fa-solid fa-pen"></i></button>` : ''}
