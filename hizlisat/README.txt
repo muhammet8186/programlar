@@ -1,16 +1,11 @@
-HIZLI SATIŞ - INDEXEDDB DESTEKLİ SÜRÜM
+HIZLI SATIŞ - SON MEVCUT PAKET
 
-Kurulum:
-- ZIP içeriğini HTTPS destekleyen bir web sunucusuna yükleyin veya localhost üzerinden çalıştırın.
-- file:// üzerinden açıldığında Service Worker ve çevrimdışı uygulama kabuğu çalışmayabilir.
-- Programı ilk kez açarken mevcut tarayıcı verilerinin aktarılması için birkaç saniye bekleyin.
-
-Veri koruma:
-- İlk açılışta eski localStorage kayıtları IndexedDB'ye kopyalanır; eski kayıtlar silinmez.
-- IndexedDB'de bulunan kayıtlar sonraki açılışlarda öncelikli kabul edilir.
-- Ürün, kategori, müşteri, satış geçmişi, kasa, kullanıcı, ayar ve dönem verileri yerel IndexedDB deposuna yazılır.
-- Firebase eşitlemesi mevcut ayarlara göre çalışmaya devam eder.
-- Tarayıcı/site verileri kullanıcı tarafından temizlenirse IndexedDB de silinebilir. Düzenli Excel/JSON yedeği alın.
+Başlatma:
+- index.html dosyasını Chrome veya Edge ile açın.
+- Çevrimdışı/PWA desteği için klasörü HTTPS destekli bir web sunucusunda yayınlayın.
 
 Not:
-- Bu sürümün JavaScript sözdizimi kontrol edilmiştir. Gerçek cihaz, tarayıcı kotası, Firebase projesi ve yazıcı ile uçtan uca test yapılmamıştır.
+Bu paket, mevcut kontrol edilmiş HTML sürümünden hazırlanmıştır.
+IndexedDB'ye tam veri taşıma henüz uygulanmış değildir.
+Para gösteriminde mevcut Türkçe biçimlendirme kullanılan alanlar 1.250,00 biçimindedir.
+İşletme verilerini silmeden önce ayrıca yedek alın.

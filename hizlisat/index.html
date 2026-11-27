@@ -62,9 +62,10 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
         }
         let savedSettings;
         try { savedSettings = JSON.parse(localStorage.getItem('pos_system_settings_v4')); } catch (e) { console.warn('Ayar kaydı okunamadı; varsayılan ayarlar kullanılacak.', e); }
+        const firebaseFormuTemizlendi = localStorage.getItem('pos_firebase_config_cleared_v1') === '1';
         const kodIciFirebaseAyarlari = window.KOD_ICI_FIREBASE_AYARLARI || {};
-        const kodIciFirebaseBilgileri = kodIciFirebaseAyarlari.baglantiBilgileri || {};
-        const kodIciKokBasligi = String(kodIciFirebaseAyarlari.kokBasligi || '').trim();
+        const kodIciFirebaseBilgileri = firebaseFormuTemizlendi ? {} : (kodIciFirebaseAyarlari.baglantiBilgileri || {});
+        const kodIciKokBasligi = firebaseFormuTemizlendi ? '' : String(kodIciFirebaseAyarlari.kokBasligi || '').trim();
         savedSettings = (savedSettings && typeof savedSettings === 'object' && !Array.isArray(savedSettings)) ? savedSettings : {
             sirketAdi: 'Hızlı Satış Programı',
             sifre: '1234',
@@ -82,13 +83,21 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
             firebaseConfig: { ...kodIciFirebaseBilgileri }
         };
         // Kod içi bilgiler yalnızca yerel formda geçerli bir kayıt yoksa varsayılan olarak kullanılır.
-        if (!savedSettings.firebaseConfig || !savedSettings.firebaseConfig.databaseURL) {
-            if (kodIciFirebaseBilgileri.databaseURL) savedSettings.firebaseConfig = { ...kodIciFirebaseBilgileri };
+        if (firebaseFormuTemizlendi) {
+            savedSettings.firebaseConfig = {};
+            savedSettings.kokDugum = '';
+            savedSettings.firebaseKayitlari = [];
+            savedSettings.firebaseAktif = false;
+        } else {
+            if (!savedSettings.firebaseConfig || !savedSettings.firebaseConfig.databaseURL) {
+                if (kodIciFirebaseBilgileri.databaseURL) savedSettings.firebaseConfig = { ...kodIciFirebaseBilgileri };
+            }
+            if (!savedSettings.kokDugum && kodIciKokBasligi) savedSettings.kokDugum = kodIciKokBasligi;
         }
-        if (!savedSettings.kokDugum && kodIciKokBasligi) savedSettings.kokDugum = kodIciKokBasligi;
         try {
             const cihazFirebaseDurumu = localStorage.getItem('pos_firebase_enabled_v1');
-            if (cihazFirebaseDurumu === '1' || cihazFirebaseDurumu === '0') savedSettings.firebaseAktif = cihazFirebaseDurumu === '1';
+            if (firebaseFormuTemizlendi) savedSettings.firebaseAktif = false;
+            else if (cihazFirebaseDurumu === '1' || cihazFirebaseDurumu === '0') savedSettings.firebaseAktif = cihazFirebaseDurumu === '1';
             else savedSettings.firebaseAktif = true;
         } catch (_) {}
 
@@ -2656,126 +2665,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
 <!-- JAVASCRIPT KODLARI -->
 <script>
         // Bozuk/yarım kalmış yerel kayıtların uygulamanın açılmasını engellemesini önler.
-        // Kalıcı yerel veri katmanı: IndexedDB. localStorage eski sürümlerle uyumluluk
-        // için okunmaya devam eder; ana kayıt kopyası IndexedDB'de tutulur.
-        const HIZLI_POS_IDB_DB = 'hizli-satis-local-v1';
-        const HIZLI_POS_IDB_STORE = 'kayitlar';
-        const HIZLI_POS_IDB_KEYS = [
-            'pos_products_v4','pos_categories_v4','pos_customers_v4','pos_sales_v4',
-            'pos_cash_movements_v4','pos_cash_accounts_v1','pos_suspended_carts_v4',
-            'pos_open_adisyon_v1','pos_system_users_v4','pos_system_settings_v4',
-            'pos_periods_v1','pos_active_period_v1','pos_period_data_v1',
-            'pos_stock_movements_v1','pos_system_settings_revision_v1'
-        ];
-        window.__posIDBCache = window.__posIDBCache || {};
-        let hizliPosIdb = null;
-        let hizliPosIdbYazmaKuyrugu = Promise.resolve();
-        function hizliPosIdbAc() {
-            if (hizliPosIdb) return Promise.resolve(hizliPosIdb);
-            if (!('indexedDB' in window)) return Promise.reject(new Error('Bu tarayıcı IndexedDB desteklemiyor.'));
-            return new Promise((resolve, reject) => {
-                const req = indexedDB.open(HIZLI_POS_IDB_DB, 1);
-                req.onupgradeneeded = () => {
-                    const db = req.result;
-                    if (!db.objectStoreNames.contains(HIZLI_POS_IDB_STORE)) db.createObjectStore(HIZLI_POS_IDB_STORE, { keyPath: 'key' });
-                };
-                req.onsuccess = () => { hizliPosIdb = req.result; hizliPosIdb.onversionchange = () => { hizliPosIdb.close(); hizliPosIdb = null; }; resolve(hizliPosIdb); };
-                req.onerror = () => reject(req.error || new Error('IndexedDB açılamadı.'));
-                req.onblocked = () => reject(new Error('IndexedDB başka bir sekmede güncelleniyor. Diğer program sekmelerini kapatıp tekrar deneyin.'));
-            });
-        }
-        function hizliPosIdbOku(key) {
-            return hizliPosIdbAc().then(db => new Promise((resolve, reject) => {
-                const tx = db.transaction(HIZLI_POS_IDB_STORE, 'readonly');
-                const req = tx.objectStore(HIZLI_POS_IDB_STORE).get(key);
-                req.onsuccess = () => resolve(req.result ? req.result.value : undefined);
-                req.onerror = () => reject(req.error || new Error('IndexedDB kaydı okunamadı: ' + key));
-            }));
-        }
-        function hizliPosIdbTopluYaz(kayitlar) {
-            hizliPosIdbYazmaKuyrugu = hizliPosIdbYazmaKuyrugu.catch(() => {}).then(() => hizliPosIdbAc()).then(db => new Promise((resolve, reject) => {
-                const tx = db.transaction(HIZLI_POS_IDB_STORE, 'readwrite');
-                const store = tx.objectStore(HIZLI_POS_IDB_STORE);
-                kayitlar.forEach(item => store.put({ key: item.key, value: item.value, updatedAt: Date.now() }));
-                tx.oncomplete = () => resolve(true);
-                tx.onerror = () => reject(tx.error || new Error('IndexedDB kayıt işlemi başarısız.'));
-                tx.onabort = () => reject(tx.error || new Error('IndexedDB kayıt işlemi iptal edildi.'));
-            }));
-            return hizliPosIdbYazmaKuyrugu;
-        }
-        async function hizliSatisIDBIlklendirVeYukle() {
-            const db = await hizliPosIdbAc();
-            const kayitlar = await new Promise((resolve, reject) => {
-                const tx = db.transaction(HIZLI_POS_IDB_STORE, 'readonly');
-                const req = tx.objectStore(HIZLI_POS_IDB_STORE).getAll();
-                req.onsuccess = () => resolve(req.result || []);
-                req.onerror = () => reject(req.error || new Error('Yerel veritabanı okunamadı.'));
-            });
-            const mevcut = new Map(kayitlar.map(x => [x.key, x.value]));
-            const ilkAktarim = [];
-            for (const key of HIZLI_POS_IDB_KEYS) {
-                if (mevcut.has(key)) window.__posIDBCache[key] = mevcut.get(key);
-                else {
-                    try {
-                        const raw = localStorage.getItem(key);
-                        if (raw !== null) {
-                            let value;
-                            try { value = JSON.parse(raw); } catch (_) { value = raw; }
-                            window.__posIDBCache[key] = value;
-                            ilkAktarim.push({ key, value });
-                        }
-                    } catch (e) { console.warn('Eski yerel kayıt okunamadı:', key, e); }
-                }
-            }
-            if (ilkAktarim.length) await hizliPosIdbTopluYaz(ilkAktarim);
-            // IndexedDB'deki kayıtlar varsa, eski localStorage kopyalarından önceliklidir.
-            const al = key => Object.prototype.hasOwnProperty.call(window.__posIDBCache, key) ? window.__posIDBCache[key] : undefined;
-            if (Array.isArray(al('pos_products_v4'))) urunler = al('pos_products_v4');
-            if (Array.isArray(al('pos_categories_v4'))) kategorilerListesi = al('pos_categories_v4');
-            if (Array.isArray(al('pos_customers_v4'))) musteriler = al('pos_customers_v4');
-            if (Array.isArray(al('pos_sales_v4'))) satisGecmisi = al('pos_sales_v4');
-            if (Array.isArray(al('pos_cash_movements_v4'))) kasaHareketleri = al('pos_cash_movements_v4');
-            if (Array.isArray(al('pos_cash_accounts_v1'))) kasaHesaplari = al('pos_cash_accounts_v1');
-            if (Array.isArray(al('pos_suspended_carts_v4'))) bekleyenSepetler = al('pos_suspended_carts_v4');
-            if (Array.isArray(al('pos_open_adisyon_v1'))) acikAdisyonlar = al('pos_open_adisyon_v1');
-            if (Array.isArray(al('pos_system_users_v4'))) sistemKullanicilari = al('pos_system_users_v4');
-            if (al('pos_system_settings_v4') && typeof al('pos_system_settings_v4') === 'object') sistemAyarlari = al('pos_system_settings_v4');
-            if (Array.isArray(al('pos_periods_v1')) && al('pos_periods_v1').length) donemler = al('pos_periods_v1');
-            if (al('pos_active_period_v1')) aktifDonemId = String(al('pos_active_period_v1'));
-            try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch (_) {}
-            window.__posIDBReady = true;
-            console.info('Hızlı Satış IndexedDB hazır. Eski veriler korundu; ilk aktarım:', ilkAktarim.length);
-            return true;
-        }
-        function hizliSatisIDBKaydet() {
-            try {
-                const values = {
-                    pos_products_v4: urunler, pos_categories_v4: kategorilerListesi,
-                    pos_customers_v4: musteriler, pos_sales_v4: satisGecmisi,
-                    pos_cash_movements_v4: kasaHareketleri, pos_cash_accounts_v1: kasaHesaplari,
-                    pos_suspended_carts_v4: bekleyenSepetler, pos_open_adisyon_v1: acikAdisyonlar,
-                    pos_system_users_v4: sistemKullanicilari, pos_system_settings_v4: sistemAyarlari,
-                    pos_periods_v1: donemler, pos_active_period_v1: aktifDonemId,
-                    pos_period_data_v1: yerelKayitOku('pos_period_data_v1', {}),
-                    pos_stock_movements_v1: yerelKayitOku('pos_stock_movements_v1', [])
-                };
-                // Aktif dönemin en güncel bellekteki verisini ayrıca kaydet; localStorage kotası dolu olsa da dönem kaydı güncel kalır.
-                if (aktifDonemId && donemVerisiIlklendi) {
-                    if (!values.pos_period_data_v1 || typeof values.pos_period_data_v1 !== 'object') values.pos_period_data_v1 = {};
-                    values.pos_period_data_v1[aktifDonemId] = { urunler, musteriler, satisGecmisi, kasaHareketleri, kasaHesaplari, bekleyenSepetler, kategorilerListesi, acikAdisyonlar };
-                }
-                const rows = Object.entries(values).map(([key, value]) => ({ key, value: JSON.parse(JSON.stringify(value)) }));
-                rows.forEach(x => { window.__posIDBCache[x.key] = x.value; });
-                return hizliPosIdbTopluYaz(rows);
-            } catch (e) { return Promise.reject(e); }
-        }
-
         function yerelKayitOku(anahtar, varsayilan) {
             try {
-                if (window.__posIDBCache && Object.prototype.hasOwnProperty.call(window.__posIDBCache, anahtar)) {
-                    const idbVeri = window.__posIDBCache[anahtar];
-                    return idbVeri === null || idbVeri === undefined ? varsayilan : idbVeri;
-                }
                 const ham = localStorage.getItem(anahtar);
                 if (ham === null || ham === '') return varsayilan;
                 const veri = JSON.parse(ham);
@@ -2866,9 +2757,10 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             measurementId: ""
         };
 
+        const firebaseFormuTemizlendiAna = localStorage.getItem('pos_firebase_config_cleared_v1') === '1';
         const kodIciFirebaseAyarlariniOku = window.KOD_ICI_FIREBASE_AYARLARI || {};
-        const kodIciFirebaseBilgileriniOku = kodIciFirebaseAyarlariniOku.baglantiBilgileri || {};
-        const kodIciKokBasliginiOku = String(kodIciFirebaseAyarlariniOku.kokBasligi || '').trim();
+        const kodIciFirebaseBilgileriniOku = firebaseFormuTemizlendiAna ? {} : (kodIciFirebaseAyarlariniOku.baglantiBilgileri || {});
+        const kodIciKokBasliginiOku = firebaseFormuTemizlendiAna ? '' : String(kodIciFirebaseAyarlariniOku.kokBasligi || '').trim();
         let sistemAyarlari = yerelKayitOku('pos_system_settings_v4', {
             sirketAdi: 'Hızlı Satış Programı',
             logoDataUrl: '',
@@ -2898,10 +2790,17 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             else sistemAyarlari.firebaseAktif = true;
         } catch (_) {}
         // Kod içi bağlantı bilgileri, yalnızca kayıtlı formda geçerli bir veritabanı adresi yoksa varsayılan olur.
-        if (!sistemAyarlari.firebaseConfig || !sistemAyarlari.firebaseConfig.databaseURL) {
-            if (kodIciFirebaseBilgileriniOku.databaseURL) sistemAyarlari.firebaseConfig = { ...kodIciFirebaseBilgileriniOku };
+        if (firebaseFormuTemizlendiAna) {
+            sistemAyarlari.firebaseConfig = {};
+            sistemAyarlari.kokDugum = '';
+            sistemAyarlari.firebaseKayitlari = [];
+            sistemAyarlari.firebaseAktif = false;
+        } else {
+            if (!sistemAyarlari.firebaseConfig || !sistemAyarlari.firebaseConfig.databaseURL) {
+                if (kodIciFirebaseBilgileriniOku.databaseURL) sistemAyarlari.firebaseConfig = { ...kodIciFirebaseBilgileriniOku };
+            }
+            if (!sistemAyarlari.kokDugum && kodIciKokBasliginiOku) sistemAyarlari.kokDugum = kodIciKokBasliginiOku;
         }
-        if (!sistemAyarlari.kokDugum && kodIciKokBasliginiOku) sistemAyarlari.kokDugum = kodIciKokBasliginiOku;
         // İlk kurulumda üç özellik kapalıdır; açık/kapalı şeklindeki kullanıcı seçimleri korunur.
         function ozellikVarsayilanlariniTamamla() {
             if (typeof sistemAyarlari.mutfakAktif !== 'boolean') sistemAyarlari.mutfakAktif = false;
@@ -2964,12 +2863,12 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
         ['normal','coklu','toplu'].forEach(tip => {
             sistemAyarlari.fisTasarimlari[tip] = { ...fisTasarimVarsayilanProfil(), ...(sistemAyarlari.fisTasarimlari[tip] || {}) };
         });
-        if(!sistemAyarlari.firebaseConfig) sistemAyarlari.firebaseConfig = { ...kodIciFirebaseBilgileriniOku };
+        if(!sistemAyarlari.firebaseConfig) sistemAyarlari.firebaseConfig = firebaseFormuTemizlendiAna ? {} : { ...kodIciFirebaseBilgileriniOku };
         if (!Array.isArray(sistemAyarlari.firebaseKayitlari)) sistemAyarlari.firebaseKayitlari = [];
         if (!Array.isArray(sistemAyarlari.customerQrLinks)) sistemAyarlari.customerQrLinks = [];
         // Eski sürümlerde biriken kayıtları tek forma indir; mevcut bağlantı ayarı varsa formu kayıttan yeniden oluştur.
         if (sistemAyarlari.firebaseKayitlari.length > 1) sistemAyarlari.firebaseKayitlari = sistemAyarlari.firebaseKayitlari.slice(0, 1);
-        if (!sistemAyarlari.firebaseKayitlari.length && sistemAyarlari.firebaseConfig && sistemAyarlari.firebaseConfig.databaseURL) {
+        if (!firebaseFormuTemizlendiAna && !sistemAyarlari.firebaseKayitlari.length && sistemAyarlari.firebaseConfig && sistemAyarlari.firebaseConfig.databaseURL) {
             sistemAyarlari.firebaseKayitlari = [{
                 id: 'firebase-current',
                 kokDugum: sistemAyarlari.kokDugum || 'hizli_pos',
@@ -3266,12 +3165,6 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
-            // Önce IndexedDB'deki son yerel kayıtları yükle; sonra Firebase ile eşitle.
-            try { await hizliSatisIDBIlklendirVeYukle(); }
-            catch (idbHata) {
-                console.error('IndexedDB başlatılamadı; eski localStorage kayıtlarıyla devam ediliyor:', idbHata);
-                onayModaliniGoster('Yerel veritabanı uyarısı', 'IndexedDB açılamadı. Eski yerel kayıtlarla devam ediliyor; veri kaybını önlemek için yedek alın.', null, true);
-            }
             // Bulut verisi varsa ilk yerel kayıt işleminden önce yükle; boş bulut yerel veriyi ezmesin.
             await firebaseVerileriniYukle();
             firebaseBekleyenDurumunuGuncelle();
@@ -4488,6 +4381,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 // Tek bir form/kayıt tutulur: yeni ayarlar önceki kaydın yerini alır.
                 sistemAyarlari.firebaseKayitlari = [kayit];
                 sistemAyarlari.kokDugum = yeniKok;
+                try { localStorage.removeItem('pos_firebase_config_cleared_v1'); } catch (_) {}
                 sistemAyarlari.firebaseConfig = parsedConfig;
                 try {
                     localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari));
@@ -4607,8 +4501,15 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 sistemAyarlari.kokDugum = '';
                 sistemAyarlari.firebaseAktif = false;
                 try {
+                    // Bu işaret, kod içi/önceki ayarların yeniden forma yüklenmesini engeller.
+                    localStorage.setItem('pos_firebase_config_cleared_v1', '1');
                     localStorage.setItem('pos_firebase_enabled_v1', '0');
                     localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari));
+                    // Formu anında temizle; ürün, satış, kasa ve diğer yerel veriler korunur.
+                    const rootInput = document.getElementById('setting-root-node');
+                    const configInput = document.getElementById('setting-firebase-config');
+                    if (rootInput) rootInput.value = '';
+                    if (configInput) configInput.value = '';
                     window.location.reload();
                 } catch (hata) {
                     sistemAyarlari = eskiAyarlari;
@@ -5787,7 +5688,8 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             firebaseDurumunuYerelKaydaYaz();
             localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari));
             } catch (hata) {
-                console.warn('Eski localStorage kopyası güncellenemedi; IndexedDB ana kayıt deposu kullanılacak:', hata);
+                console.error('Yerel kayıt yapılamadı. Tarayıcı depolama alanını kontrol edin:', hata);
+                onayModaliniGoster('Kayıt Uyarısı', 'Veriler tarayıcıya kaydedilemedi. Depolama alanı dolu veya engellenmiş olabilir; yedek alın.', null, true);
             }
 
             try {
@@ -5813,10 +5715,6 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/acik_adisyonlar`, acikAdisyonlar, 'Açık adisyonlar', 'acik_adisyonlar', 'acikAdisyonlar', 'pos_open_adisyon_v1');
                 firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/sistem_kullanicilari`, sistemKullanicilari, 'Kullanıcılar', 'sistem_kullanicilari', 'sistemKullanicilari', 'pos_system_users_v4');
             }
-            hizliSatisIDBKaydet().catch(hata => {
-                console.error('IndexedDB kayıt hatası:', hata);
-                onayModaliniGoster('Kalıcı kayıt hatası', 'Veriler IndexedDB veritabanına kaydedilemedi. Tarayıcı depolama izinlerini kontrol edin ve hemen Excel/JSON yedeği alın.', null, true);
-            });
         }
 
         function bagliOzelligiDegistir(ad, aktif) {
