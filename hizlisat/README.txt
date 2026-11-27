@@ -1,17 +1,17 @@
-HIZLI SATIŞ - INDEXEDDB ANA KAYIT SİSTEMİ
+HIZLI SATIS - MUTFAK BOLUM BILDIRIM VE YAZDIRMA AYARLARI
 
-Başlatma:
-- index.html dosyasını Chrome veya Edge ile açın.
-- Çevrimdışı/PWA desteği için klasörü HTTPS destekli bir web sunucusunda yayınlayın.
+Bu pakette:
+- Tum Bolumler icin genel bildirim sesi ve otomatik fis ayari
+- Her kategori icin "Ozel ayar" secenegi
+- Kategori bazinda bildirim sesini ve otomatik fis yazdirma ozelligini acma/kapama
+- Kategori ayari genel ayardan bagimsiz kaydedilir
+- Bir sipariste tum kategoriler yazdirilacaksa tek fis; yalnizca secili kategoriler yazdirilacaksa kategoriye ozel fis basilir
+- Bildirim, siparis icindeki kategorilerin etkin ayarlarina gore bir kez calar
+- Service Worker onbellek surumu v10'a yukseltildi
 
-Kayıt sistemi:
-- Uygulama verileri IndexedDB içinde HizliSatisDB veritabanının appState deposunda tutulur.
-- İlk açılışta mevcut pos_* LocalStorage kayıtları IndexedDB'ye aktarılır ve aktarım okunarak doğrulanır.
-- Eski LocalStorage kayıtları aktarım sırasında silinmez.
-- Uygulama, mevcut kod yapısıyla uyumluluk için localStorage API'sini kullanmaya devam eder; pos_* anahtarları bellek önbelleği üzerinden okunur ve IndexedDB'ye yazılır.
-- IndexedDB başlatılamazsa uygulama veri kaybını önlemek için eski LocalStorage yöntemiyle açılmayı dener.
+Kurulum:
+Mevcut uygulamanin index.html, sw.js ve manifest.webmanifest dosyalarini yedekleyin.
+Ardindan bu paketteki dosyalari uygulamanizin mevcut dosyalariyla degistirin.
 
-Önemli:
-- İlk açılışta aktarımın tamamlanması için sayfayı kapatmayın.
-- Tarayıcı/site verilerini temizlemek IndexedDB kayıtlarını da silebilir. Düzenli Excel yedeği alın.
-- Firebase bulut kayıtları bu değişiklikle silinmez veya taşınmaz.
+Ayarlar tarayicinin localStorage alaninda saklanir. Ayni cihaz/tarayicida korunur.
+Yazdirma davranisi tarayici ve yazici izinlerine baglidir; otomatik yazdirma icin tarayici yazdirma penceresi acabilir.
