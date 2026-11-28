@@ -7873,11 +7873,16 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
         function islemBildirimiGoster(mesaj, tur = 'success') {
             const el = document.getElementById('action-toast');
             if (!el) return;
-            const renk = tur === 'error' ? 'border-red-500/60 text-red-100' : 'border-emerald-500/50 text-white';
-            el.className = 'fixed top-16 left-1/2 -translate-x-1/2 z-[250] max-w-[92vw] rounded-lg border bg-slate-900 px-4 py-3 text-sm font-semibold shadow-2xl ' + renk;
+            const renkler = {
+                error: 'border-red-500/60 text-red-100',
+                pending: 'border-amber-400/60 text-amber-50',
+                success: 'border-emerald-500/50 text-white'
+            };
+            el.className = 'fixed top-16 left-1/2 -translate-x-1/2 z-[250] max-w-[92vw] rounded-lg border bg-slate-900 px-4 py-3 text-sm font-semibold shadow-2xl ' + (renkler[tur] || renkler.success);
             el.textContent = mesaj;
+            el.setAttribute('role', tur === 'error' ? 'alert' : 'status');
             if (islemBildirimiZamanlayici) clearTimeout(islemBildirimiZamanlayici);
-            islemBildirimiZamanlayici = setTimeout(() => { el.classList.add('hidden'); }, 2600);
+            islemBildirimiZamanlayici = setTimeout(() => { el.classList.add('hidden'); }, tur === 'error' ? 4200 : 3800);
         }
 
         function adisyonPara(n) { return '₺' + (Number(n) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
@@ -8335,11 +8340,22 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const adisyonLabel = document.getElementById('adisyon-save-label'); if (adisyonLabel) adisyonLabel.textContent = 'ADİSYON AÇ / KAYDET';
 
             const basariMesaji = type + ' işlemi tamamlandı: ₺' + total.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + (type === 'Nakit' && nakitAlinan > total ? ' · Para üstü: ₺' + (nakitAlinan-total).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '');
-            if ((firebaseBilgileriKayitli && sistemAyarlari.firebaseAktif === true && !firebaseKritikKayitlarBasarili) || !kayitSonucu.localOk) {
-                try { islemBildirimiGoster(!kayitSonucu.localOk ? 'Satış işlemi oluşturuldu ancak yerel kayıt doğrulanamadı. Lütfen yedek ve depolama alanını kontrol edin.' : 'Satış yerel cihaza kaydedildi; satış geçmişi ve/veya kasa hareketi Firebase’de doğrulanamadı. Kayıt aktarım kuyruğunda korunuyor.', 'error'); }
-                catch (hata) { console.error('Firebase aktarım uyarısı gösterilemedi:', hata); }
+            // Yerel kayıt başarılıysa satış bildirimi normal/yeşil görünür.
+            // Bulut aktarımı bekliyorsa bu durum mesajda belirtilir; hata gizlenmez,
+            // kayıt kuyruğu ve Ayarlar ekranındaki ayrıntılı senkronizasyon durumu korunur.
+            if (!kayitSonucu.localOk) {
+                try { islemBildirimiGoster('Satış tamamlandı ancak cihazdaki kayıt doğrulanamadı. Lütfen depolama alanını ve yedeği kontrol edin.', 'error'); }
+                catch (hata) { console.error('Yerel kayıt uyarısı gösterilemedi:', hata); }
             } else {
-                try { islemBildirimiGoster(basariMesaji); }
+                let satisDurumMesaji = basariMesaji;
+                if (firebaseBilgileriKayitli && sistemAyarlari.firebaseAktif === true) {
+                    satisDurumMesaji += firebaseKritikKayitlarBasarili
+                        ? ' · Bulut kaydı doğrulandı'
+                        : ' · Bulut aktarımı bekliyor';
+                } else {
+                    satisDurumMesaji += ' · Cihaza kaydedildi';
+                }
+                try { islemBildirimiGoster(satisDurumMesaji, 'success'); }
                 catch (hata) { console.error('Satış bildirimi gösterilemedi:', hata); }
             }
 

@@ -27,3 +27,12 @@ TEST:
 - Ses secimi degistirilip pencere kapatildiktan sonra tekrar acildiginda secim korunmali.
 - Ses dosyasi yuklendikten sonra yuklenen dosyanin adi gorunmeli ve Dinle ile onizlenebilmelidir.
 - Yeni ayarlar gercek cihaz ve tarayicida denenmelidir. ZIP kontrolu ve JavaScript sozdizimi testi, Firebase canli baglantisini veya sesin tum cihazlarda calismasini tek basina garanti etmez.
+
+
+SATIS BILDIRIMI GUNCELLEMESI (v18):
+- Yerel kayit basariliysa satis bildirimi artik normal yesil bilgilendirme olarak gosterilir.
+- Firebase satis gecmisi ve kasa hareketi dogrulanmadiysa bildirimde 'Bulut aktarimi bekliyor' yazilir.
+- Firebase dogrulamasi basariliysa 'Bulut kaydi dogrulandi' yazilir.
+- Firebase yedekleme kapali/yapilandirilmamis ise 'Cihaza kaydedildi' yazilir.
+- Yerel kayit dogrulanamazsa kritik kirmizi uyari korunur.
+- Bekleyen Firebase aktarim kuyrugu ve ayarlardaki senkronizasyon ayrintilari kaldirilmamistir.
