@@ -54,6 +54,14 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
         import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, remove, onValue, get, runTransaction, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
+        // Firebase modülü, pos_* ayarları IndexedDB'den localStorage uyumluluk
+        // katmanına yüklenmeden çalışırsa kayıtlı firebaseConfig'i boş görür.
+        // Depolama katmanının hazır olmasını bekle; böylece her sayfa açılışında
+        // şalteri kapatıp açmaya gerek kalmadan aynı Firebase projesi başlatılır.
+        if (!window.hizliSatisStorageReady) {
+            await new Promise(resolve => window.addEventListener('hizli-satis-storage-ready', resolve, { once: true }));
+        }
+
         const customerParams = new URLSearchParams(window.location.search);
         const customerMode = customerParams.get('musteriSiparis') === '1';
         const saleTrackingMode = customerParams.get('satisTakip') === '1';
@@ -238,6 +246,8 @@ window.KOD_ICI_FIREBASE_AYARLARI = {
                 return false;
             }
         };
+        window.hizliSatisFirebaseModuleReady = true;
+        window.dispatchEvent(new Event('hizli-satis-firebase-module-ready'));
         window.dispatchEvent(new Event('firebase-ready'));
 
         // Sayfa açılışında kayıtlı ayarı uygula; checkbox değişince de son görünürlük kontrolünü yap.
@@ -11590,6 +11600,17 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
           window.islemBildirimiGoster('Yerel kayıt hatası: veriler diske yazılamadı. Lütfen depolama alanını kontrol edin.', 'error');
         }
       });
+      // Önce depolama katmanının hazır olduğunu bildir. Firebase modülü bu sinyalden
+      // sonra kayıtlı yapılandırmayı okur. Ana uygulama, Firebase modülü de hazır
+      // olana kadar DOMContentLoaded aşamasına bırakılmaz.
+      window.hizliSatisStorageReady = true;
+      const firebaseModuleReady = new Promise(resolve => {
+        if (window.hizliSatisFirebaseModuleReady) resolve();
+        else window.addEventListener('hizli-satis-firebase-module-ready', resolve, { once: true });
+      });
+      window.dispatchEvent(new Event('hizli-satis-storage-ready'));
+      await Promise.race([firebaseModuleReady, new Promise(resolve => setTimeout(resolve, 10000))]);
+
       const executable = document.createElement('script');
       executable.textContent = sourceNode.textContent;
       sourceNode.replaceWith(executable);
@@ -11600,6 +11621,14 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
     } catch (error) {
       console.error('IndexedDB başlatılamadı; eski LocalStorage kayıtları korunarak uygulama açılıyor:', error);
       // IDB kullanılamazsa uygulama eski depolama yöntemiyle açılır; veri silinmez.
+      // Firebase modülü de native localStorage üzerinden yapılandırmayı okuyabilsin.
+      window.hizliSatisStorageReady = true;
+      const firebaseModuleReady = new Promise(resolve => {
+        if (window.hizliSatisFirebaseModuleReady) resolve();
+        else window.addEventListener('hizli-satis-firebase-module-ready', resolve, { once: true });
+      });
+      window.dispatchEvent(new Event('hizli-satis-storage-ready'));
+      await Promise.race([firebaseModuleReady, new Promise(resolve => setTimeout(resolve, 10000))]);
       const executable = document.createElement('script');
       executable.textContent = sourceNode.textContent;
       sourceNode.replaceWith(executable);
