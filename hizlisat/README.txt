@@ -1,24 +1,21 @@
-HIZLI SATIS - MUTFAK BOLUM AYARLARI / GUVENLILIK GUNCELLEMESI
+HIZLI SATIS - KONSOL HATALARI ICIN DUZELTME PAKETI
 
-Bu paket mevcut uygulamanin yapisi korunarak duzenlenmistir.
+Bu ZIP'in icindeki dosyalar dogrudan uygulama klasorune konulacak sekildedir. ZIP'te ekstra ust klasor yoktur.
 
 Yapilanlar:
-- IndexedDB yazma kuyrugu hata sonrasi calismaya devam edecek sekilde duzenlendi.
-- IndexedDB flush() artik yazma hatalarini basari gibi gizlemiyor; hata bilgisini cagirana iletiyor.
-- Kalici depolama hatalarinda konsol kaydi ve kullaniciya uyari eklendi.
-- Mutfak bolum tercihlerinin (kategori ozel ses/yazdirma ayarlari), genel ses ve otomatik fis seceneklerinin Firebase ile senkronizasyonu eklendi.
-- Mutfak ayarlari Firebase kok dugumunde mutfak_bolum_ayarlar_v1 yolunda saklanir.
-- Ses dosyasi ve ses tonu gibi cihaza ozel medya tercihleri Firebase'e gonderilmez.
-- Service Worker onbellek surumu v12'ye yukseltildi; Firebase veritabani ve kimlik dogrulama istekleri onbellek disinda tutulur.
+- Eski arayuz yordamcilarinin secilenSekme degiskenine yaptigi global referanslar icin uyumluluk degiskeni eklendi.
+- Sekme degistiginde global aktif sekme de guncellenir.
+- pos_active_period_v1 icin onceki pakette bulunan eski duz metin donem kimligi okuma uyumlulugu korunmustur.
+- PWA simgesi onbellek kabuguna eklendi; manifestte 192x192 ikon tanimlandi.
+- Service Worker onbellegi v14'e yukseltildi.
+- Mobil web app meta etiketi eklendi.
 
-Kurulum:
-1. Mevcut uygulama dosyalarini yedekleyin.
-2. index.html, sw.js ve manifest.webmanifest dosyalarini sunucudaki uygulama dosyalariyla degistirin.
-3. Tarayicida uygulamayi yenileyin. Gerekirse PWA'yi kapatip yeniden acin.
-4. Firebase ayarlarinin etkin oldugunu ve veritabani guvenlik kurallarinin okuma/yazmaya izin verdigini kontrol edin.
+KURULUM:
+1. GitHub reposunda /programlar/hizlisat/ klasorunu acin.
+2. ZIP'i acin ve icindeki index.html, sw.js, manifest.webmanifest ve app-icon-192.png dosyalarini dogrudan hizlisat klasorune yukleyin.
+3. index.html dosyasini eski dosyanin uzerine yazin.
+4. GitHub Pages dagitiminin tamamlanmasini bekleyin.
+5. Chrome'da Ctrl+Shift+R yapin. Gerekirse DevTools > Application > Service Workers bolumunden eski service worker'i unregister edip sayfayi yenileyin.
 
-ONEMLI:
-- Firebase gercek ortam baglantisi bu paket uzerinde test edilemez; Firebase proje ayarlari ve guvenlik kurallari kullanici ortaminda dogrulanmalidir.
-- Ilk Firebase senkronizasyonunda bulutta mutfak ayari yoksa mevcut cihaz ayarlari buluta ilk deger olarak yazilir. Bulutta ayar varsa diger cihazlara aktarilir.
-- Ses dosyasi/ton tercihi cihazda kalir.
-- Yazdirma davranisi tarayici ve yazici izinlerine baglidir.
+NOT: Tailwind CDN uyarisi kritik JavaScript hatasi degildir; uygulama gorunum kutuphanesinin CDN'den yuklendigini bildirir.
+Firebase canli yazma/okuma, izin kurallari ve farkli cihaz testi kullanicinin Firebase ortami uzerinde ayrica yapilmalidir.

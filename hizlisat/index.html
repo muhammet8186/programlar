@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <meta content="#0f172a" name="theme-color"/>
-<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="yes" name="apple-mobile-web-app-capable"/><meta content="yes" name="mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="Hızlı POS" name="apple-mobile-web-app-title"/>
 <link href="./manifest.webmanifest" rel="manifest"/>
@@ -2688,8 +2688,14 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             try {
                 const ham = localStorage.getItem(anahtar);
                 if (ham === null || ham === '') return varsayilan;
-                const veri = JSON.parse(ham);
-                return veri === null || veri === undefined ? varsayilan : veri;
+                try {
+                    const veri = JSON.parse(ham);
+                    return veri === null || veri === undefined ? varsayilan : veri;
+                } catch (parseHatasi) {
+                    // pos_active_period_v1 eski sürümlerde JSON değil, düz metin olarak yazılıyordu.
+                    if (anahtar === 'pos_active_period_v1') return ham;
+                    throw parseHatasi;
+                }
             } catch (hata) {
                 console.warn(`Yerel kayıt okunamadı (${anahtar}); varsayılan değer kullanılacak.`, hata);
                 return varsayilan;
@@ -2761,6 +2767,9 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
         let donemVerisiIlklendi = false;
         let yoneticiAyarYetkisi = false;
         let aktifTaramaModu = 'sales';
+        let aktifSekme = 'sales';
+        // Eski/harici arayuz yordamcilari icin global aktif sekme uyumlulugu.
+        var secilenSekme = 'sales';
         let aktifKasaAltBolumu = 'sales';
         let secilenLogoVerisi = null;
         let seciliUrunEtiketIdleri = new Set();
@@ -3043,7 +3052,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     const bulutAktifDonem = String(activePeriodSnap.val() || '');
                     if (donemler.some(d => String(d.id) === bulutAktifDonem)) {
                         aktifDonemId = bulutAktifDonem;
-                        try { localStorage.setItem('pos_active_period_v1', aktifDonemId); } catch (_) {}
+                        try { localStorage.setItem('pos_active_period_v1', JSON.stringify(aktifDonemId)); } catch (_) {}
                     }
                 }
                 // Şalter kapalıysa ortak ayarları yükle, satış verilerini buluttan alma.
@@ -3376,7 +3385,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
         function donemVerisiniYukle(id) {
             // Hedef dönemi önce etkinleştir ki kayıtlar yanlış döneme yazılmasın.
             aktifDonemId = id;
-            localStorage.setItem('pos_active_period_v1', id);
+            localStorage.setItem('pos_active_period_v1', JSON.stringify(id));
             if (sistemAyarlari.firebaseAktif && window.firebaseReady && window.database) window.dbSet(window.dbRef(window.database, `${kokDugumGetir()}/aktif_donem_id`), id).catch(e => console.error('Aktif dönem buluta kaydedilemedi:', e));
             const all = yerelKayitOku('pos_period_data_v1', {});
             const data = all[id];
@@ -3765,7 +3774,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                             const requestedPeriod = String(parsed.aktifDonemId || '');
                             if (requestedPeriod && donemler.some(d => String(d.id) === requestedPeriod)) aktifDonemId = requestedPeriod;
                             if (aktifDonemId) {
-                                localStorage.setItem('pos_active_period_v1', aktifDonemId);
+                                localStorage.setItem('pos_active_period_v1', JSON.stringify(aktifDonemId));
                                 localStorage.setItem('pos_period_data_v1', JSON.stringify({
                                     ...yerelKayitOku('pos_period_data_v1', {}),
                                     [aktifDonemId]: { urunler, musteriler, satisGecmisi, kasaHareketleri, bekleyenSepetler, kategorilerListesi, acikAdisyonlar }
@@ -4315,7 +4324,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 mutfakArayuzunuUygula();
                 adisyonArayuzunuUygula();
                 garsonArayuzunuUygula();
-                if (secilenSekme === 'settings') {
+                if (aktifSekme === 'settings') {
                     const mutfak = document.getElementById('setting-kitchen-enabled'); if (mutfak) mutfak.checked = sistemAyarlari.mutfakAktif === true;
                     const adisyon = document.getElementById('setting-adisyon-enabled'); if (adisyon) adisyon.checked = sistemAyarlari.ozellikler?.adisyon === true;
                     const siparisler = document.getElementById('setting-customerorders-enabled'); if (siparisler) siparisler.checked = sistemAyarlari.ozellikler?.customerorders === true;
@@ -5359,6 +5368,18 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 for (const item of items) {
                     if (!item || item.root !== kokDugumGetir()) { skipped++; continue; }
                     if (!item.global && String(item.period) !== String(aktifDonemId)) { skipped++; continue; }
+                    if (item.variable === '__meta__') {
+                        try {
+                            if (!(window.dbSet && window.dbGet && window.dbRef && window.database)) throw new Error('Firebase yazma/okuma desteği hazır değil.');
+                            await window.dbSet(window.dbRef(window.database, item.path), firebaseIcinVeriyiTemizle(item.value));
+                            const snap = await window.dbGet(window.dbRef(window.database, item.path));
+                            const actual = snap && snap.exists() ? snap.val() : null;
+                            if (JSON.stringify(actual) !== JSON.stringify(item.value)) throw new Error(`${item.label || item.field} bulut doğrulaması başarısız.`);
+                            firebaseBekleyenKaydiSil(item.path);
+                            success++;
+                        } catch (metaError) { console.error(`${item.label || item.field} bekleyen aktarımı başarısız:`, metaError); failed++; }
+                        continue;
+                    }
                     const data = firebaseBekleyenVeriyiBul(item);
                     const result = await firebaseDizisiniGuvenliKaydet(item.path, data, item.label, item.field, item.variable, item.localKey);
                     if (result === true) success++; else failed++;
@@ -5693,20 +5714,22 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
         }
 
         function durumuKaydet() {
+            let yerelKayitBasarili = true;
+            const firebaseIsleri = [];
             try {
-            localStorage.setItem('pos_products_v4', JSON.stringify(urunler));
-            localStorage.setItem('pos_categories_v4', JSON.stringify(kategorilerListesi));
-            localStorage.setItem('pos_customers_v4', JSON.stringify(musteriler));
-            localStorage.setItem('pos_sales_v4', JSON.stringify(satisGecmisi));
-            localStorage.setItem('pos_cash_movements_v4', JSON.stringify(kasaHareketleri));
-            localStorage.setItem('pos_cash_accounts_v1', JSON.stringify(kasaHesaplari));
-            localStorage.setItem('pos_suspended_carts_v4', JSON.stringify(bekleyenSepetler));
-            localStorage.setItem('pos_open_adisyon_v1', JSON.stringify(acikAdisyonlar));
-            localStorage.setItem('pos_system_users_v4', JSON.stringify(sistemKullanicilari));
-            // Satış/kayıt hareketleri ayar revizyonunu değiştirmesin; yalnızca ayar kontrolleri revizyon üretir.
-            firebaseDurumunuYerelKaydaYaz();
-            localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari));
+                localStorage.setItem('pos_products_v4', JSON.stringify(urunler));
+                localStorage.setItem('pos_categories_v4', JSON.stringify(kategorilerListesi));
+                localStorage.setItem('pos_customers_v4', JSON.stringify(musteriler));
+                localStorage.setItem('pos_sales_v4', JSON.stringify(satisGecmisi));
+                localStorage.setItem('pos_cash_movements_v4', JSON.stringify(kasaHareketleri));
+                localStorage.setItem('pos_cash_accounts_v1', JSON.stringify(kasaHesaplari));
+                localStorage.setItem('pos_suspended_carts_v4', JSON.stringify(bekleyenSepetler));
+                localStorage.setItem('pos_open_adisyon_v1', JSON.stringify(acikAdisyonlar));
+                localStorage.setItem('pos_system_users_v4', JSON.stringify(sistemKullanicilari));
+                firebaseDurumunuYerelKaydaYaz();
+                localStorage.setItem('pos_system_settings_v4', JSON.stringify(sistemAyarlari));
             } catch (hata) {
+                yerelKayitBasarili = false;
                 console.error('Yerel kayıt yapılamadı. Tarayıcı depolama alanını kontrol edin:', hata);
                 onayModaliniGoster('Kayıt Uyarısı', 'Veriler tarayıcıya kaydedilemedi. Depolama alanı dolu veya engellenmiş olabilir; yedek alın.', null, true);
             }
@@ -5718,30 +5741,62 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     localStorage.setItem('pos_period_data_v1', JSON.stringify(allPeriods));
                     localStorage.setItem('pos_periods_v1', JSON.stringify(donemler));
                 }
-            } catch (e) { console.warn('Dönem verisi kaydedilemedi', e); }
+            } catch (e) { yerelKayitBasarili = false; console.warn('Dönem verisi kaydedilemedi', e); }
 
-            // Yerel IndexedDB yazmalarının tamamlanmasını takip et; hata olursa sessizce geçme.
-            if (window.hizliSatisDB?.flush) {
-                window.hizliSatisDB.flush().catch(hata => {
+            // IndexedDB kuyruğunun tamamlanmasını beklenebilir bir sonuç olarak döndür.
+            const yerelFlushPromise = window.hizliSatisDB?.flush
+                ? window.hizliSatisDB.flush().then(() => true).catch(hata => {
+                    yerelKayitBasarili = false;
                     console.error('Yerel kayıt kuyruğu tamamlanamadı:', hata);
                     if (typeof islemBildirimiGoster === 'function') islemBildirimiGoster('Yerel kayıt tamamlanamadı. Depolama alanını kontrol edin.', 'error');
-                });
+                    return false;
+                })
+                : Promise.resolve(true);
+
+            // Firebase yapılandırılmış ve etkinse bağlantı henüz hazır olmasa bile
+            // kayıt kuyruğa alınır. Böylece çevrimdışı kayıtlar uygulama açılışını beklemez.
+            const firebaseCfg = sistemAyarlari.firebaseConfig || {};
+            const firebaseYapilandirilmis = Boolean(firebaseCfg.databaseURL && firebaseCfg.apiKey && firebaseCfg.projectId);
+            if (sistemAyarlari.firebaseAktif === true && firebaseYapilandirilmis && aktifDonemId) {
+                const root = kokDugumGetir();
+                const period = String(aktifDonemId);
+                const ekle = (key, promise) => firebaseIsleri.push({ key, promise });
+                ekle('urunler', firebaseDizisiniGuvenliKaydet(`${root}/${period}/urunler`, urunler, 'Ürünler', 'urunler', 'urunler', 'pos_products_v4'));
+                ekle('kategoriler', firebaseDizisiniGuvenliKaydet(`${root}/${period}/kategoriler`, kategorilerListesi, 'Kategoriler', 'kategoriler', 'kategorilerListesi', 'pos_categories_v4'));
+                ekle('musteriler', firebaseDizisiniGuvenliKaydet(`${root}/${period}/musteriler`, musteriler, 'Müşteriler', 'musteriler', 'musteriler', 'pos_customers_v4'));
+                ekle('satis_gecmisi', firebaseDizisiniGuvenliKaydet(`${root}/${period}/satis_gecmisi`, satisGecmisi, 'Satış geçmişi', 'satis_gecmisi', 'satisGecmisi', 'pos_sales_v4'));
+                ekle('kasa_hareketleri', firebaseKasayiSiraliKaydet(`${root}/${period}/kasa_hareketleri`, kasaHareketleri, 'Kasa hareketleri', 'kasa_hareketleri', 'kasaHareketleri', 'pos_cash_movements_v4'));
+                ekle('kasa_hesaplari', firebaseDizisiniGuvenliKaydet(`${root}/${period}/kasa_hesaplari`, kasaHesaplari, 'Kasa tanımları', 'kasa_hesaplari', 'kasaHesaplari', 'pos_cash_accounts_v1'));
+                ekle('bekleyen_sepetler', firebaseDizisiniGuvenliKaydet(`${root}/${period}/bekleyen_sepetler`, bekleyenSepetler, 'Bekleyen sepetler', 'bekleyen_sepetler', 'bekleyenSepetler', 'pos_suspended_carts_v4'));
+                ekle('acik_adisyonlar', firebaseDizisiniGuvenliKaydet(`${root}/${period}/acik_adisyonlar`, acikAdisyonlar, 'Açık adisyonlar', 'acik_adisyonlar', 'acikAdisyonlar', 'pos_open_adisyon_v1'));
+                ekle('sistem_kullanicilari', firebaseDizisiniGuvenliKaydet(`${root}/sistem_kullanicilari`, sistemKullanicilari, 'Kullanıcılar', 'sistem_kullanicilari', 'sistemKullanicilari', 'pos_system_users_v4'));
+                // Dönem meta verileri de kuyruklanır; doğrudan set başarısızlığı kaybolmaz.
+                const metaWrites = [
+                    ['donemler', `${root}/donemler`, donemler],
+                    ['aktif_donem_id', `${root}/aktif_donem_id`, aktifDonemId]
+                ];
+                for (const [key, path, value] of metaWrites) {
+                    const metaItem = { path, label: key === 'donemler' ? 'Dönem listesi' : 'Aktif dönem', field: key, variable: '__meta__', localKey: key === 'donemler' ? 'pos_periods_v1' : 'pos_active_period_v1', root, period, global: true, value };
+                    firebaseBekleyenKaydiEkle(metaItem);
+                    const metaPromise = (async () => {
+                        if (!(window.firebaseReady && window.database && window.dbSet && window.dbRef) || firebaseWriteBlocked) return false;
+                        try {
+                            await window.dbSet(window.dbRef(window.database, path), firebaseIcinVeriyiTemizle(value));
+                            const snap = await window.dbGet(window.dbRef(window.database, path));
+                            const actual = snap && snap.exists() ? snap.val() : null;
+                            if (JSON.stringify(actual) !== JSON.stringify(value)) throw new Error(`${key} bulut doğrulaması başarısız.`);
+                            firebaseBekleyenKaydiSil(path);
+                            return true;
+                        } catch (err) { console.error(`${key} Firebase kaydı başarısız:`, err); return false; }
+                    })();
+                    ekle(key, metaPromise);
+                }
             }
 
-            if (!firebaseWriteBlocked && sistemAyarlari.firebaseAktif && window.firebaseReady && window.database) {
-                const db = window.database;
-                window.dbSet(window.dbRef(db, `${kokDugumGetir()}/donemler`), donemler).catch(hata => console.error('Dönem listesi Firebase’e kaydedilemedi:', hata));
-                window.dbSet(window.dbRef(db, `${kokDugumGetir()}/aktif_donem_id`), aktifDonemId).catch(hata => console.error('Aktif dönem Firebase’e kaydedilemedi:', hata));
-                firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/urunler`, urunler, 'Ürünler', 'urunler', 'urunler', 'pos_products_v4');
-                firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/kategoriler`, kategorilerListesi, 'Kategoriler', 'kategoriler', 'kategorilerListesi', 'pos_categories_v4');
-                firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/musteriler`, musteriler, 'Müşteriler', 'musteriler', 'musteriler', 'pos_customers_v4');
-                firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/satis_gecmisi`, satisGecmisi, 'Satış geçmişi', 'satis_gecmisi', 'satisGecmisi', 'pos_sales_v4');
-                firebaseKasayiSiraliKaydet(`${kokDugumGetir()}/${aktifDonemId}/kasa_hareketleri`, kasaHareketleri, 'Kasa hareketleri', 'kasa_hareketleri', 'kasaHareketleri', 'pos_cash_movements_v4');
-                firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/kasa_hesaplari`, kasaHesaplari, 'Kasa tanımları', 'kasa_hesaplari', 'kasaHesaplari', 'pos_cash_accounts_v1');
-                firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/bekleyen_sepetler`, bekleyenSepetler, 'Bekleyen sepetler', 'bekleyen_sepetler', 'bekleyenSepetler', 'pos_suspended_carts_v4');
-                firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/${aktifDonemId}/acik_adisyonlar`, acikAdisyonlar, 'Açık adisyonlar', 'acik_adisyonlar', 'acikAdisyonlar', 'pos_open_adisyon_v1');
-                firebaseDizisiniGuvenliKaydet(`${kokDugumGetir()}/sistem_kullanicilari`, sistemKullanicilari, 'Kullanıcılar', 'sistem_kullanicilari', 'sistemKullanicilari', 'pos_system_users_v4');
-            }
+            return Promise.all([
+                yerelFlushPromise,
+                ...firebaseIsleri.map(async item => ({ key: item.key, ok: await item.promise }))
+            ]).then(results => ({ localOk: yerelKayitBasarili && results[0] === true, firebase: results.slice(1) }));
         }
 
         function bagliOzelligiDegistir(ad, aktif) {
@@ -5752,7 +5807,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             const panel = document.getElementById(ad === 'adisyon' ? 'section-adisyon' : 'section-customerorders');
             if (nav) nav.classList.toggle('hidden', !aktif || !kullaniciYetkisiVar(ad));
             if (!aktif && panel) { panel.classList.add('hidden'); panel.classList.remove('flex'); }
-            if (!aktif && secilenSekme === ad) sekmeyiDegistir('sales');
+            if (!aktif && aktifSekme === ad) sekmeyiDegistir('sales');
             if (ad === 'adisyon') adisyonArayuzunuUygula();
         }
 
@@ -5812,7 +5867,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                     panel.style.setProperty('display', 'none', 'important');
                 }
             }
-            if (!aktif && secilenSekme === 'adisyon') sekmeyiDegistir('sales');
+            if (!aktif && aktifSekme === 'adisyon') sekmeyiDegistir('sales');
 
             window.adisyonArayuzunuUygula();
         };
@@ -5875,7 +5930,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 section.classList.remove('flex');
                 section.style.setProperty('display', 'none', 'important');
             }
-            if (!garsonAktif && secilenSekme === 'waiter') sekmeyiDegistir('sales');
+            if (!garsonAktif && aktifSekme === 'waiter') sekmeyiDegistir('sales');
         };
 
         function mutfakSisteminiDegistir(aktif) {
@@ -5911,7 +5966,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             });
             const section = document.getElementById('section-kitchen');
             if (!mutfakAktif && section) { section.classList.add('hidden'); section.classList.remove('flex'); }
-            if (!mutfakAktif && secilenSekme === 'kitchen') sekmeyiDegistir('sales');
+            if (!mutfakAktif && aktifSekme === 'kitchen') sekmeyiDegistir('sales');
         }
 
         function musteriIzlemeFirebaseConfigBul() {
@@ -5974,7 +6029,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 if (!aktif) { section.classList.add('hidden'); section.classList.remove('flex'); section.style.setProperty('display', 'none', 'important'); }
                 else section.style.removeProperty('display');
             }
-            if (!aktif && secilenSekme === 'waiter') sekmeyiDegistir('sales');
+            if (!aktif && aktifSekme === 'waiter') sekmeyiDegistir('sales');
         }
         function garsonSecenekleriniGuncelle() {
             const select = document.getElementById('cart-waiter'); if (!select) return;
@@ -6379,6 +6434,7 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 onayModaliniGoster('Erişim Kısıtlı', 'Bu bölüme erişim yetkiniz yok. Yönetici Ayarlar bölümünden izin verebilir.', null, true);
                 return;
             }
+            aktifSekme = secilenSekme; window.secilenSekme = secilenSekme;
             ['sales', 'kitchen', 'waiter', 'adisyon', 'customerorders', 'products', 'cash', 'history', 'reports', 'debtors', 'settings'].forEach(t => {
                 const sec = document.getElementById(`section-${t}`);
                 const btn = document.getElementById(`tab-${t}`);
@@ -8103,8 +8159,12 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
                 if (prod) { prod.outStock = (prod.outStock || 0) + item.qty; stokHareketKaydi(prod, 'Satış', item.qty, 'Satış #' + Date.now()); }
             });
 
+            const saleOperationId = (window.crypto && typeof window.crypto.randomUUID === 'function')
+                ? window.crypto.randomUUID()
+                : `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
             const sale = {
-                id: 'S-' + Date.now().toString(),
+                id: 'S-' + saleOperationId,
+                operationId: saleOperationId,
                 trackingToken: '',
                 date: new Date().toLocaleString('tr-TR'),
                 kasiyer: aktifKullaniciAdi,
@@ -8185,9 +8245,10 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const tableInput = document.getElementById('cart-table-number'); if (tableInput) tableInput.value = '';
             const orderTypeReset2 = document.getElementById('cart-order-type'); if (orderTypeReset2) orderTypeReset2.value = 'Masa';
 
-            // Yerel kayıt/Firebase gönderimi hata verse bile satış akışını durdurma.
-            // Firebase fonksiyonları kendi hata kayıtlarını konsola yazar.
-            try { durumuKaydet(); }
+            // Yerel kayıt ve bulut aktarım sonuçlarını bekle. Başarı bildirimi,
+            // satış geçmişi + kasa hareketleri Firebase'de doğrulanmadan gösterilmez.
+            let kayitSonucu = { localOk: false, firebase: [] };
+            try { kayitSonucu = await durumuKaydet(); }
             catch (hata) { console.error('Satış oluşturuldu; kayıt/eşitleme sırasında hata:', hata); }
             const firebaseAdayAyarlar = [
                 sistemAyarlari.firebaseConfig,
@@ -8196,21 +8257,19 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const firebaseBilgileriKayitli = firebaseAdayAyarlar.some(cfg =>
                 cfg && cfg.databaseURL && cfg.apiKey && cfg.projectId
             );
-            let kasaFirebaseKaydiBasarili = true;
-            // Firebase bilgileri kayıtlı ve eşitleme etkinse aktarım sonucunu kontrol et.
-            // Firebase hiç yapılandırılmamışsa satış normal şekilde tamamlanır.
+            let firebaseKritikKayitlarBasarili = true;
+            // Hem satış geçmişi hem kasa hareketi doğrulanmalı. Tek taraflı başarı,
+            // satışın buluta kaydedildiği anlamına gelmez.
             if (firebaseBilgileriKayitli && sistemAyarlari.firebaseAktif === true) {
-                if (!(window.firebaseReady && window.database) || firebaseWriteBlocked) {
-                    kasaFirebaseKaydiBasarili = false;
-                } else {
-                    try {
-                        kasaFirebaseKaydiBasarili = await firebaseKasaYazmaKuyrugu;
-                        if (kasaFirebaseKaydiBasarili === false) throw new Error('Firebase kasa hareketi yazma işlemi tamamlanmadı.');
-                    } catch (hata) {
-                        kasaFirebaseKaydiBasarili = false;
-                        console.error('Satış yerel kaydedildi; kasa hareketi Firebase’e henüz aktarılamadı:', hata);
-                    }
+                const cloudResults = Array.isArray(kayitSonucu.firebase) ? kayitSonucu.firebase : [];
+                const salesResult = cloudResults.find(x => x && x.key === 'satis_gecmisi');
+                const cashResult = cloudResults.find(x => x && x.key === 'kasa_hareketleri');
+                firebaseKritikKayitlarBasarili = kayitSonucu.localOk === true && salesResult?.ok === true && cashResult?.ok === true;
+                if (!firebaseKritikKayitlarBasarili) {
+                    console.warn('Satış yerelde korundu; Firebase satış/kasa doğrulaması tamamlanmadı. Bekleyen kayıt kuyruğu korunuyor.', { localOk: kayitSonucu.localOk, salesOk: salesResult?.ok, cashOk: cashResult?.ok });
                 }
+            } else if (!kayitSonucu.localOk) {
+                firebaseKritikKayitlarBasarili = false;
             }
             if (sistemAyarlari.garsonAktif) musteriIzlemeKaydiniYaz(sale);
 
@@ -8224,8 +8283,8 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
             const adisyonLabel = document.getElementById('adisyon-save-label'); if (adisyonLabel) adisyonLabel.textContent = 'ADİSYON AÇ / KAYDET';
 
             const basariMesaji = type + ' işlemi tamamlandı: ₺' + total.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) + (type === 'Nakit' && nakitAlinan > total ? ' · Para üstü: ₺' + (nakitAlinan-total).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '');
-            if (firebaseBilgileriKayitli && sistemAyarlari.firebaseAktif === true && !kasaFirebaseKaydiBasarili) {
-                try { islemBildirimiGoster('Satış cihaza kaydedildi; kasa hareketi Firebase’e aktarılamadı. İnternet bağlantısını kontrol edip eşitlemeyi yenileyin.', 'error'); }
+            if ((firebaseBilgileriKayitli && sistemAyarlari.firebaseAktif === true && !firebaseKritikKayitlarBasarili) || !kayitSonucu.localOk) {
+                try { islemBildirimiGoster(!kayitSonucu.localOk ? 'Satış işlemi oluşturuldu ancak yerel kayıt doğrulanamadı. Lütfen yedek ve depolama alanını kontrol edin.' : 'Satış yerel cihaza kaydedildi; satış geçmişi ve/veya kasa hareketi Firebase’de doğrulanamadı. Kayıt aktarım kuyruğunda korunuyor.', 'error'); }
                 catch (hata) { console.error('Firebase aktarım uyarısı gösterilemedi:', hata); }
             } else {
                 try { islemBildirimiGoster(basariMesaji); }
