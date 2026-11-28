@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hizli-pos-offline-v11';
+const CACHE_NAME = 'hizli-pos-offline-v12';
 const APP_SHELL = ['./', './index.html', './manifest.webmanifest'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
@@ -11,7 +11,7 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   // Firebase is live data; never cache API/database traffic in the app shell cache.
-  if (url.hostname.includes('firebaseio.com') || url.hostname.includes('googleapis.com') || url.pathname.includes('/.lp')) return;
+  if (/(^|\.)firebaseio\.com$|(^|\.)firebasedatabase\.app$|(^|\.)firebaseapp\.com$|(^|\.)googleapis\.com$|(^|\.)firebasestorage\.app$/.test(url.hostname) || url.pathname.includes('/.lp') || url.pathname.includes('/identitytoolkit/')) return;
   if (request.mode === 'navigate') {
     event.respondWith(fetch(request).then(response => {
       const copy = response.clone();

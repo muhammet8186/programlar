@@ -5720,6 +5720,14 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
                 }
             } catch (e) { console.warn('Dönem verisi kaydedilemedi', e); }
 
+            // Yerel IndexedDB yazmalarının tamamlanmasını takip et; hata olursa sessizce geçme.
+            if (window.hizliSatisDB?.flush) {
+                window.hizliSatisDB.flush().catch(hata => {
+                    console.error('Yerel kayıt kuyruğu tamamlanamadı:', hata);
+                    if (typeof islemBildirimiGoster === 'function') islemBildirimiGoster('Yerel kayıt tamamlanamadı. Depolama alanını kontrol edin.', 'error');
+                });
+            }
+
             if (!firebaseWriteBlocked && sistemAyarlari.firebaseAktif && window.firebaseReady && window.database) {
                 const db = window.database;
                 window.dbSet(window.dbRef(db, `${kokDugumGetir()}/donemler`), donemler).catch(hata => console.error('Dönem listesi Firebase’e kaydedilemedi:', hata));
@@ -6752,12 +6760,56 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
             if (input) input.placeholder = type === 'Paket' ? 'Paket no / müşteri' : 'Masa no';
         }
         const MUTFAK_BOLUM_AYAR_KEY = 'pos_kitchen_section_preferences_v1';
+        const MUTFAK_BULUT_AYAR_YOLU = 'mutfak_bolum_ayarlar_v1';
+        let mutfakBulutAyarDinleyicisi = null;
+        let mutfakBulutIlkSnapshot = true;
         function mutfakBolumTercihleriniOku(){try{return JSON.parse(localStorage.getItem(MUTFAK_BOLUM_AYAR_KEY)||'{}')||{};}catch(_){return {};}}
-        function mutfakBolumTercihleriniKaydet(data){try{localStorage.setItem(MUTFAK_BOLUM_AYAR_KEY,JSON.stringify(data||{}));}catch(_){} }
+        function mutfakBulutAyarVerisiniOlustur(){
+            let sound=false, print=false;
+            try { sound=localStorage.getItem('pos_kitchen_sound_enabled_v1')==='1'; print=localStorage.getItem('pos_kitchen_auto_print_v1')==='1'; } catch (_) {}
+            return { version:1, sectionPreferences:mutfakBolumTercihleriniOku(), soundEnabled:sound, autoPrintEnabled:print, updatedAt:Date.now() };
+        }
+        function mutfakAyarlariniBulutaGonder(){
+            if (!(sistemAyarlari?.firebaseAktif && window.firebaseReady && window.database && window.dbSet && window.dbRef)) return;
+            try {
+                const path=`${kokDugumGetir()}/${MUTFAK_BULUT_AYAR_YOLU}`;
+                window.dbSet(window.dbRef(window.database,path),mutfakBulutAyarVerisiniOlustur()).catch(error=>{
+                    console.warn("Mutfak ayarları Firebase'e aktarılamadı:",error);
+                    if(typeof islemBildirimiGoster==='function') islemBildirimiGoster('Mutfak ayarları buluta aktarılamadı. İnternet ve Firebase izinlerini kontrol edin.','error');
+                });
+            } catch(error) { console.warn('Mutfak bulut ayarı hazırlanamadı:',error); }
+        }
+        function mutfakBolumTercihleriniKaydet(data, bulutaGonder=true){
+            try { localStorage.setItem(MUTFAK_BOLUM_AYAR_KEY,JSON.stringify(data||{})); }
+            catch(error) { console.error('Mutfak bölüm ayarı yerel kaydedilemedi:',error); if(typeof islemBildirimiGoster==='function') islemBildirimiGoster('Mutfak ayarı bu cihaza kaydedilemedi.','error'); }
+            if(bulutaGonder) mutfakAyarlariniBulutaGonder();
+        }
+        function mutfakBulutAyarlariniUygula(remote){
+            if(!remote || typeof remote!=='object') return;
+            try {
+                if(remote.sectionPreferences && typeof remote.sectionPreferences==='object') mutfakBolumTercihleriniKaydet(remote.sectionPreferences,false);
+                if(typeof remote.soundEnabled==='boolean') { localStorage.setItem('pos_kitchen_sound_enabled_v1',remote.soundEnabled?'1':'0'); mutfakSesAktif=remote.soundEnabled; }
+                if(typeof remote.autoPrintEnabled==='boolean') localStorage.setItem('pos_kitchen_auto_print_v1',remote.autoPrintEnabled?'1':'0');
+                mutfakSesDugmesiniGuncelle(); mutfakOtomatikYazdirAyarlariniGoster(); mutfakBolumAyarlariniGoster();
+            } catch(error) { console.warn('Firebase mutfak ayarları uygulanamadı:',error); }
+        }
+        function mutfakBulutAyarEsitlemesiniBaslat(){
+            if(mutfakBulutAyarDinleyicisi){ try{mutfakBulutAyarDinleyicisi();}catch(_){} mutfakBulutAyarDinleyicisi=null; }
+            if(!(sistemAyarlari?.firebaseAktif && window.firebaseReady && window.database && window.dbOnValue && window.dbRef)) return;
+            const path=`${kokDugumGetir()}/${MUTFAK_BULUT_AYAR_YOLU}`;
+            mutfakBulutIlkSnapshot=true;
+            mutfakBulutAyarDinleyicisi=window.dbOnValue(window.dbRef(window.database,path),snapshot=>{
+                if(snapshot.exists()) mutfakBulutAyarlariniUygula(snapshot.val());
+                else if(mutfakBulutIlkSnapshot) mutfakAyarlariniBulutaGonder();
+                mutfakBulutIlkSnapshot=false;
+            },error=>console.warn('Mutfak ayarları Firebase üzerinden okunamadı:',error));
+        }
+        window.addEventListener('firebase-ready',mutfakBulutAyarEsitlemesiniBaslat);
+        document.addEventListener('DOMContentLoaded',mutfakBulutAyarEsitlemesiniBaslat);
         function mutfakBolumAyariniDegistir(category, field, value){
             if(category==='__all__'){
-                if(field==='sound'){mutfakSesAktif=!!value;try{localStorage.setItem('pos_kitchen_sound_enabled_v1',value?'1':'0');}catch(_){}mutfakSesDugmesiniGuncelle();}
-                if(field==='print'){try{localStorage.setItem('pos_kitchen_auto_print_v1',value?'1':'0');}catch(_){}const t=document.getElementById('kitchen-auto-print');if(t)t.checked=!!value;}
+                if(field==='sound'){mutfakSesAktif=!!value;try{localStorage.setItem('pos_kitchen_sound_enabled_v1',value?'1':'0');}catch(_){}mutfakSesDugmesiniGuncelle();mutfakAyarlariniBulutaGonder();}
+                if(field==='print'){try{localStorage.setItem('pos_kitchen_auto_print_v1',value?'1':'0');}catch(_){}const t=document.getElementById('kitchen-auto-print');if(t)t.checked=!!value;mutfakAyarlariniBulutaGonder();}
             }else{
                 const data=mutfakBolumTercihleriniOku();data.categories=data.categories||{};data.categories[category]=data.categories[category]||{custom:true};data.categories[category].custom=true;data.categories[category][field]=!!value;mutfakBolumTercihleriniKaydet(data);
             }
@@ -6845,12 +6897,13 @@ body#app-body[data-theme-mode="light"] #sale-detail-edit-modal #sale-edit-close 
         }
         document.addEventListener('DOMContentLoaded', mutfakSesiAyarlariniGoster);
         function mutfakOtomatikYazdirAyarlariniGoster(){let enabled=false;try{enabled=localStorage.getItem('pos_kitchen_auto_print_v1')==='1';}catch(_){}const toggle=document.getElementById('kitchen-auto-print');if(toggle)toggle.checked=enabled;}
-        function mutfakOtomatikYazdirDegistir(enabled){try{localStorage.setItem('pos_kitchen_auto_print_v1',enabled?'1':'0');}catch(_){}mutfakBolumAyarlariniGoster();islemBildirimiGoster(enabled?'Genel bölüm için otomatik fiş yazdırma açıldı.':'Genel bölüm için otomatik fiş yazdırma kapatıldı.');}
+        function mutfakOtomatikYazdirDegistir(enabled){try{localStorage.setItem('pos_kitchen_auto_print_v1',enabled?'1':'0');}catch(_){}mutfakAyarlariniBulutaGonder();mutfakBolumAyarlariniGoster();islemBildirimiGoster(enabled?'Genel bölüm için otomatik fiş yazdırma açıldı.':'Genel bölüm için otomatik fiş yazdırma kapatıldı.');}
         document.addEventListener('DOMContentLoaded', mutfakOtomatikYazdirAyarlariniGoster);
 
         function mutfakSesiniAc() {
             mutfakSesAktif = !mutfakSesAktif;
             try { localStorage.setItem('pos_kitchen_sound_enabled_v1', mutfakSesAktif ? '1' : '0'); } catch (_) {}
+            mutfakAyarlariniBulutaGonder();
             const btn = document.querySelector('button[onclick="mutfakSesiniAc()"]');
             if (btn) {
                 btn.innerHTML = mutfakSesAktif ? '<i class="fa-solid fa-volume-xmark mr-1"></i>Sesli uyarıyı kapat' : '<i class="fa-solid fa-volume-high mr-1"></i>Sesli uyarıyı aç';
@@ -11405,9 +11458,19 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
 
       // Uygulama localStorage API'sini senkron kullandığı için bellek önbelleği API uyumluluğu sağlar;
       // kalıcı ana kaynak IndexedDB'dir. pos_* anahtarları artık LocalStorage kotasını büyütmez.
+      // Yazma kuyruğu hata sonrası da çalışmaya devam eder; flush() gerçek hatayı
+      // çağırana iletir. Önceki sürüm hatayı yutup flush() işlemini daima başarılı gösteriyordu.
       let writeQueue = Promise.resolve();
+      let lastStorageError = null;
+      let failedWriteCount = 0;
       function enqueue(operation) {
-        writeQueue = writeQueue.then(operation).catch(error => {
+        const current = writeQueue.catch(() => {}).then(operation);
+        writeQueue = current;
+        current.then(() => {
+          lastStorageError = null;
+        }).catch(error => {
+          lastStorageError = error;
+          failedWriteCount++;
           console.error('IndexedDB kayıt hatası:', error);
           try { window.dispatchEvent(new CustomEvent('hizli-satis-storage-error', { detail: error })); } catch (_) {}
         });
@@ -11452,11 +11515,22 @@ le="text-align:center;font-size:19px;font-weight:900;margin:0 0 6px">${htmlGuven
           const tx = db.transaction('appState', 'readonly');
           requestResult(tx.objectStore('appState').getAll()).then(resolve, reject);
         }),
-        flush: () => writeQueue,
-        getStatus: () => ({ engine: 'IndexedDB', records: cache.size, ready: true })
+        // Çağıran taraf bekleyen tüm yazmaları bekleyebilir. Son yazma hata verdiyse
+        // hata sessizce başarıya çevrilmez.
+        flush: async () => {
+          await writeQueue;
+          if (lastStorageError) throw lastStorageError;
+          return true;
+        },
+        getStatus: () => ({ engine: 'IndexedDB', records: cache.size, ready: true, pending: 0, failedWrites: failedWriteCount, lastError: lastStorageError ? String(lastStorageError.message || lastStorageError) : null })
       };
-      window.addEventListener('pagehide', () => { writeQueue.catch(() => {}); });
-      window.addEventListener('beforeunload', () => { writeQueue.catch(() => {}); });
+      window.addEventListener('hizli-satis-storage-error', event => {
+        const message = event.detail?.message || 'Bilinmeyen IndexedDB hatası';
+        console.error('Kalıcı kayıt uyarısı:', message);
+        if (typeof window.islemBildirimiGoster === 'function') {
+          window.islemBildirimiGoster('Yerel kayıt hatası: veriler diske yazılamadı. Lütfen depolama alanını kontrol edin.', 'error');
+        }
+      });
       const executable = document.createElement('script');
       executable.textContent = sourceNode.textContent;
       sourceNode.replaceWith(executable);
