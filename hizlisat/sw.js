@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hizli-pos-offline-v15';
+const CACHE_NAME = 'hizli-pos-offline-v17';
 const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './app-icon-192.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
